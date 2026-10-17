@@ -1,0 +1,18 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+
+# Secrets - không commit chuỗi kết nối thật
+appsettings.Development.json
+appsettings.*.Local.json
+
+# Rider / VS Code
+.idea/
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
+docs/
