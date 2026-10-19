@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ETOMS.Infrastructure\ETOMS.Infrastructure.csproj" />
+    <ProjectReference Include="..\ETOMS.Application\ETOMS.Application.csproj" />
   </ItemGroup>
 
 </Project>
