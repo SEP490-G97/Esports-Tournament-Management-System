@@ -1,0 +1,175 @@
+/* ===== ETOMS — giao diện tối, phong cách nền tảng thể thao điện tử ===== */
+:root {
+  --bg: #0a0e17;
+  --bg-2: #0e1420;
+  --panel: #141b2b;
+  --panel-2: #1a2334;
+  --border: #243049;
+  --border-soft: #1c2740;
+  --ink: #e9edf6;
+  --muted: #8b95ad;
+  --muted-2: #636d85;
+  --primary: #3b6cff;
+  --primary-600: #2a56e6;
+  --primary-050: rgba(59,108,255,.12);
+  --cyan: #2fd4e6;
+  --success: #27c76f;
+  --success-bg: rgba(39,199,111,.12);
+  --danger: #ef4d5a;
+  --danger-bg: rgba(239,77,90,.12);
+  --warn: #f6a723;
+  --gold: #f4c04f;
+  --radius: 14px;
+  --shadow: 0 12px 40px rgba(0,0,0,.35);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Inter", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background: radial-gradient(1200px 600px at 80% -10%, #15203a 0%, var(--bg) 55%) no-repeat, var(--bg);
+  color: var(--ink);
+  margin: 0; line-height: 1.55; min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--ink); text-decoration: none; }
+
+/* ---- Thanh điều hướng ---- */
+.etoms-nav { background: rgba(10,14,23,.82); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-soft); position: sticky; top: 0; z-index: 50; }
+.etoms-nav .inner { max-width: 1180px; margin: 0 auto; padding: 0 22px; height: 66px; display: flex; align-items: center; gap: 28px; }
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand .mark { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), #6f8bff); display: grid; place-items: center; font-weight: 800; color: #fff; box-shadow: 0 6px 18px rgba(59,108,255,.4); }
+.brand .txt { line-height: 1.05; }
+.brand .txt b { font-size: 1.12rem; font-weight: 800; letter-spacing: -.3px; }
+.brand .txt span { display: block; font-size: .64rem; letter-spacing: 2px; color: var(--muted-2); text-transform: uppercase; }
+.etoms-nav nav { display: flex; gap: 4px; }
+.etoms-nav nav a { color: var(--muted); padding: 8px 13px; border-radius: 9px; font-weight: 600; font-size: .9rem; text-transform: uppercase; letter-spacing: .4px; }
+.etoms-nav nav a:hover, .etoms-nav nav a.active { color: #fff; background: var(--primary-050); }
+.etoms-nav .spacer { flex: 1; }
+.nav-user { display: flex; align-items: center; gap: 12px; font-size: .88rem; color: var(--muted); }
+.nav-user .who { font-weight: 700; color: var(--ink); }
+.nav-user .av { width: 34px; height: 34px; border-radius: 9px; background: var(--panel-2); border: 1px solid var(--border); display: grid; place-items: center; font-weight: 700; color: var(--cyan); }
+
+/* ---- Khung nội dung ---- */
+.container-etoms { max-width: 1180px; margin: 0 auto; padding: 34px 22px 70px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: .72rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted-2); margin-bottom: 10px; }
+.eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+.page-head { margin-bottom: 26px; }
+.page-head h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.6px; margin: 0 0 6px; }
+.page-head p { color: var(--muted); margin: 0; max-width: 640px; }
+
+/* ---- Thẻ / panel ---- */
+.card-etoms { background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.card-etoms .body { padding: 28px; }
+.form-narrow { max-width: 680px; }
+
+/* ---- Nhãn & ô nhập ---- */
+.field { margin-bottom: 20px; }
+.field label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 8px; color: var(--ink); }
+.field .hint { color: var(--muted-2); font-size: .82rem; margin-top: 6px; }
+.req { color: var(--danger); }
+
+.input, .select, textarea.input {
+  width: 100%; padding: 12px 14px; font-size: .95rem; color: var(--ink);
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 11px; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input::placeholder, textarea.input::placeholder { color: var(--muted-2); }
+.input:focus, .select:focus, textarea.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,108,255,.22); }
+.select option { background: var(--panel); color: var(--ink); }
+.input.err, .select.err { border-color: var(--danger); }
+.field-error, .field-validation-error { color: var(--danger); font-size: .84rem; margin-top: 6px; display: block; }
+input[type=file].input { padding: 9px 12px; color: var(--muted); }
+
+/* ---- Nút ---- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; font-size: .92rem; font-weight: 700; border-radius: 11px; border: 1px solid transparent; cursor: pointer; transition: .15s; letter-spacing: .2px; }
+.btn-primary { background: linear-gradient(135deg, var(--primary), #5a82ff); color: #fff; box-shadow: 0 8px 22px rgba(59,108,255,.35); }
+.btn-primary:hover { filter: brightness(1.08); color: #fff; }
+.btn-ghost { background: var(--panel-2); border-color: var(--border); color: var(--ink); }
+.btn-ghost:hover { border-color: var(--primary); color: #fff; }
+.btn-row { display: flex; gap: 12px; margin-top: 10px; }
+
+/* ---- Thông báo ---- */
+.alert { padding: 14px 16px; border-radius: 12px; font-size: .92rem; margin-bottom: 22px; border: 1px solid transparent; }
+.alert-success { background: var(--success-bg); color: #7cf0ad; border-color: rgba(39,199,111,.35); }
+.alert-danger { background: var(--danger-bg); color: #ff98a1; border-color: rgba(239,77,90,.35); }
+.dev-banner { background: rgba(246,167,35,.1); border: 1px solid rgba(246,167,35,.3); color: var(--warn); padding: 10px 15px; border-radius: 11px; font-size: .85rem; margin-bottom: 20px; }
+
+/* ---- Lưới thẻ đội ---- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
+.team-card { background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: .18s; display: block; }
+.team-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: var(--shadow); }
+.team-card .top { display: flex; gap: 14px; align-items: center; padding: 20px; }
+.team-logo { width: 58px; height: 58px; border-radius: 13px; object-fit: cover; background: var(--panel-2); border: 1px solid var(--border); display: grid; place-items: center; color: var(--cyan); font-weight: 800; font-size: 1.3rem; flex: none; }
+.team-card .name { font-weight: 800; font-size: 1.05rem; }
+.team-card .tag { color: var(--muted); font-size: .84rem; margin-top: 2px; }
+.team-card .meta { display: flex; justify-content: space-between; align-items: center; padding: 13px 20px; border-top: 1px solid var(--border-soft); font-size: .84rem; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.badge-active { background: var(--success-bg); color: #5fe3a0; }
+.badge-soft { background: var(--primary-050); color: #8fb0ff; }
+.badge-gold { background: rgba(244,192,79,.14); color: var(--gold); }
+
+/* ---- Rỗng ---- */
+.empty { text-align: center; padding: 66px 20px; color: var(--muted); }
+.empty h3 { color: var(--ink); margin-bottom: 6px; }
+
+/* ---- Hồ sơ đội ---- */
+.team-hero { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+.team-hero .logo-big { width: 104px; height: 104px; border-radius: 18px; object-fit: cover; background: var(--panel-2); border: 1px solid var(--border); display: grid; place-items: center; color: var(--cyan); font-weight: 800; font-size: 2.4rem; flex: none; }
+.team-hero h1 { margin: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -.5px; }
+.team-hero .sub { color: var(--muted); margin-top: 6px; display: flex; gap: 14px; flex-wrap: wrap; font-size: .92rem; }
+.team-hero .slogan { font-style: italic; color: var(--cyan); margin-top: 8px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 26px 0; }
+.stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.stat-card .label { font-size: .72rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted-2); font-weight: 700; }
+.stat-card .num { font-size: 2.1rem; font-weight: 800; margin-top: 8px; letter-spacing: -1px; }
+.stat-card .num.accent { color: var(--cyan); }
+.stat-card .sub { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+
+.section-title { font-size: 1.15rem; font-weight: 800; margin: 28px 0 4px; }
+.section-sub { color: var(--muted); font-size: .88rem; margin-bottom: 16px; }
+
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.member-card { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+.member-card.cap { border-left-color: var(--gold); }
+.member-card .av { width: 46px; height: 46px; border-radius: 11px; background: var(--panel-2); border: 1px solid var(--border); display: grid; place-items: center; font-weight: 800; color: var(--cyan); flex: none; }
+.member-card .nm { font-weight: 700; }
+.member-card .rl { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+/* ---- Trang lỗi ---- */
+.error-wrap { min-height: 70vh; display: grid; place-items: center; text-align: center; padding: 40px 20px; }
+.error-code { font-size: 6rem; font-weight: 800; letter-spacing: -3px; background: linear-gradient(135deg, var(--primary), var(--cyan)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; }
+.error-title { font-size: 1.5rem; font-weight: 800; margin: 12px 0 6px; }
+.error-msg { color: var(--muted); max-width: 440px; margin: 0 auto 24px; }
+
+/* ---- Logo preview ---- */
+.logo-preview { width: 84px; height: 84px; border-radius: 13px; border: 1px dashed var(--border); object-fit: cover; display: none; margin-top: 12px; }
+
+/* ---- Chọn tài khoản demo ---- */
+.pick-list { display: grid; gap: 11px; }
+.pick-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); width: 100%; cursor: pointer; transition: .15s; }
+.pick-item:hover { border-color: var(--primary); background: var(--panel-2); }
+.pick-item .av { width: 42px; height: 42px; border-radius: 11px; background: var(--panel-2); color: var(--cyan); display: grid; place-items: center; font-weight: 800; border: 1px solid var(--border); }
+.pick-item .grow { flex: 1; text-align: left; }
+.pick-item .em { color: var(--muted); font-size: .84rem; }
+
+/* ---- Trang chủ hero ---- */
+.home-hero { background: linear-gradient(135deg, rgba(59,108,255,.14), rgba(47,212,230,.06)); border: 1px solid var(--border); border-radius: 18px; padding: 44px 36px; }
+.home-hero h1 { font-size: 2.3rem; font-weight: 800; letter-spacing: -.8px; margin: 10px 0 10px; }
+.home-hero p { color: var(--muted); max-width: 620px; margin: 0 0 22px; }
+
+/* ---- Modal xác nhận tùy biến (thay confirm() mặc định của trình duyệt) ---- */
+.modal-overlay { position: fixed; inset: 0; background: rgba(5,8,15,.72); backdrop-filter: blur(4px); display: none; place-items: center; z-index: 200; padding: 20px; }
+.modal-overlay.show { display: grid; }
+.modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 26px 28px; max-width: 440px; width: 100%; box-shadow: var(--shadow); animation: modalIn .15s ease; }
+@keyframes modalIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+.modal-title { font-weight: 800; font-size: 1.15rem; margin-bottom: 8px; }
+.modal-msg { color: var(--muted); margin-bottom: 24px; line-height: 1.55; }
+.modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+
+@media (max-width: 760px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .etoms-nav nav { display: none; }
+}

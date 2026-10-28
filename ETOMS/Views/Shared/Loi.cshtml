@@ -1,0 +1,13 @@
+@model ETOMS.Models.ErrorPageViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "_Layout";
+}
+<div class="error-wrap">
+    <div>
+        <div class="error-code">@Model.Code</div>
+        <div class="error-title">@Model.Title</div>
+        <p class="error-msg">@Model.Message</p>
+        <a class="btn btn-primary" href="/">Về trang chủ</a>
+    </div>
+</div>

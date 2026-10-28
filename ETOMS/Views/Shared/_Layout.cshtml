@@ -1,0 +1,91 @@
+﻿@{
+    var demoUser = Context.Session.GetString("DemoUserName");
+    var path = Context.Request.Path.Value?.ToLower() ?? "";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · ETOMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="etoms-nav">
+        <div class="inner">
+            <a class="brand" href="/">
+                <span class="mark">ET</span>
+                <span class="txt"><b>ETOMS</b><span>Esports Platform</span></span>
+            </a>
+            <nav>
+                <a href="/" class="@(path == "/" ? "active" : "")">Trang chủ</a>
+            </nav>
+            <div class="spacer"></div>
+            <div class="nav-user">
+                @if (!string.IsNullOrEmpty(demoUser))
+                {
+                    <span>Xin chào, <span class="who">@demoUser</span></span>
+                    <span class="av">@demoUser.Substring(0, 1)</span>
+                    <a class="btn btn-ghost" style="padding:8px 14px" href="/DevAuth/Logout">Đăng xuất</a>
+                }
+                else
+                {
+                    <a class="btn btn-primary" style="padding:8px 16px" href="/DevAuth">Đăng nhập</a>
+                }
+            </div>
+        </div>
+    </header>
+
+    <main class="container-etoms">
+        @RenderBody()
+    </main>
+
+    <div id="etoms-modal" class="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal-box">
+            <div class="modal-title" id="etoms-modal-title">Xác nhận</div>
+            <div class="modal-msg" id="etoms-modal-msg"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" id="etoms-modal-cancel">Hủy</button>
+                <button type="button" class="btn btn-primary" id="etoms-modal-ok">Đồng ý</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Modal xác nhận tùy biến: form có data-confirm="..." sẽ hỏi qua modal này,
+        // KHÔNG dùng hộp thoại confirm() mặc định của trình duyệt.
+        (function () {
+            var overlay = document.getElementById('etoms-modal');
+            var msg = document.getElementById('etoms-modal-msg');
+            var okBtn = document.getElementById('etoms-modal-ok');
+            var cancelBtn = document.getElementById('etoms-modal-cancel');
+            var pending = null;
+            document.addEventListener('submit', function (e) {
+                var form = e.target;
+                if (form.dataset && form.dataset.confirm) {
+                    e.preventDefault();
+                    pending = form;
+                    msg.textContent = form.dataset.confirm;
+                    okBtn.className = 'btn ' + (form.dataset.danger === 'true' ? 'btn-primary' : 'btn-primary');
+                    overlay.classList.add('show');
+                }
+            });
+            function close() { overlay.classList.remove('show'); pending = null; }
+            okBtn.addEventListener('click', function () {
+                var f = pending; close();
+                if (f) f.submit();
+            });
+            cancelBtn.addEventListener('click', close);
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+        })();
+    </script>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

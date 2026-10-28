@@ -1,0 +1,44 @@
+@model List<(int UserId, string DisplayName, string Email)>
+@{
+    ViewData["Title"] = "Đăng nhập demo";
+    var returnUrl = ViewBag.ReturnUrl as string;
+}
+<div class="page-head">
+    <h1>Đăng nhập demo</h1>
+    <p>Chọn một tài khoản để test các chức năng cần đăng nhập.</p>
+</div>
+
+<div class="dev-banner">
+    Đây là trang đăng nhập <strong>tạm thời</strong> phục vụ phát triển. Sẽ được thay bằng
+    màn hình đăng nhập thật (Email/Google) khi module Xác thực hoàn thành.
+</div>
+
+<div class="card-etoms form-narrow">
+    <div class="body">
+        @if (Model.Count == 0)
+        {
+            <div class="empty"><h3>Chưa có tài khoản demo</h3></div>
+        }
+        else
+        {
+            <div class="pick-list">
+                @foreach (var u in Model)
+                {
+                    <form method="post" asp-action="Login">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="accountId" value="@u.UserId" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button type="submit" class="pick-item" style="width:100%;text-align:left;cursor:pointer">
+                            <span class="av">@(u.DisplayName.Length > 0 ? u.DisplayName.Substring(0,1) : "?")</span>
+                            <span class="grow">
+                                <div style="font-weight:600">@u.DisplayName</div>
+                                <div class="em">@u.Email</div>
+                            </span>
+                            <span class="badge-soft">Chọn</span>
+                        </button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+</div>

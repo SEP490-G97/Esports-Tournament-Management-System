@@ -22,6 +22,9 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+.vs/
+*.user
+*.suo
 
 # .NET Core
 project.lock.json
@@ -39,6 +42,10 @@ ScaffoldingReadMe.txt
 # dotenv environment variables file
 .env
 
+# Secrets - không commit chuỗi kết nối thật
+appsettings.Development.json
+appsettings.*.Local.json
+
 # Others
 ~$*
 *~
@@ -55,3 +62,16 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Rider / VS Code
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Tai lieu nang (.docx/.pdf) khong commit vao repo - xem ly do o commit dau
+docs/
+
+# Anh nguoi dung upload (khong commit)
+**/wwwroot/uploads/
