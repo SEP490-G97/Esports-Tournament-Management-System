@@ -1,0 +1,26 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider IDE state
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Chuỗi kết nối thật không bao giờ commit (theo quy ước dự án — xem README.md)
+appsettings.Development.json
+appsettings.*.local.json
+*.env
+.env
+.env.*
+
+# NuGet
+*.nupkg
+packages/
+
+# OS junk
+.DS_Store
+Thumbs.db
