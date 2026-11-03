@@ -3,77 +3,80 @@
 Hệ thống quản lý giải đấu thể thao điện tử. Capstone FPT University, nhóm SEP490_G97.
 Repo GitHub: `SEP490-G97/Esports-Tournament-Management-System`.
 
-## Tình trạng hiện tại
+> File README này được viết lại từ việc đọc trực tiếp code hiện có trong thư mục này
+> (`ETOMS_1` trên máy) ngày 2026-11-03. README cũ trên GitHub chỉ có đúng 1 dòng tên
+> repo, chưa có nội dung gì để kế thừa.
 
-Nhánh `main-dev` đang chứa **code thật, chạy được**, không phải khung rỗng — đồng bộ từ
-thư mục làm việc cục bộ `E:\Đồ án - SEP490 G97\ETOMS\ETOMS\` (đã code xong Iteration
-1–3: Team, Registration, Bracket, Result — cả API lẫn giao diện HTML/CSS/JS thuần).
-Build `dotnet build` tại `ETOMS_API/` ra **0 lỗi** trước khi đẩy lên.
+## ⚠️ Tình trạng hiện tại — đọc trước khi code tiếp
 
-Khác với ban đầu (xem lịch sử commit): đã bỏ code mẫu mặc định
-(`WeatherForecastController`), bỏ project lồng 2 cấp, thêm `.gitignore` đúng chuẩn.
+Thư mục làm việc trên máy này **khác với commit mới nhất trên GitHub** và đang ở trạng
+thái dở dang, chưa commit:
 
-## Cấu trúc thư mục
+| | Trạng thái |
+|---|---|
+| Trên GitHub (nhánh `main`, commit `83b3d52`/`a692cf3`/`d4ae700`) | Cấu trúc **cũ**: `ETOMS_API/` phẳng 1 cấp, còn nguyên `WeatherForecastController.cs` do `dotnet new webapi` sinh ra mặc định, có kèm `Dockerfile`, `.gitignore`, `README.md` (1 dòng) |
+| Trên máy (working tree) | Cấu trúc **mới** (giống mẫu `EbayCloneBuyerService_CoreAPI`): toàn bộ code cũ đã bị **xóa khỏi working tree** (`git status` báo *deleted*, kể cả `.gitignore` và `README.md`), thay bằng project lồng một cấp nữa: `ETOMS_API/ETOMS_API/...` — **project này hoàn toàn chưa add vào git** (untracked) |
+
+**Hệ quả cần biết:**
+1. `.gitignore` đang **không tồn tại** trên đĩa → `bin/`, `obj/`, `.vs/` dễ bị add nhầm vào git nếu ai đó `git add -A`. Phải tạo lại `.gitignore` (chuẩn ASP.NET Core: loại `bin/`, `obj/`, `.vs/`, `*.user`, `appsettings.Development.json` nếu sau này có chuỗi kết nối thật) **trước khi** commit đợt cấu trúc mới này.
+2. `ETOMS_API/ETOMS_API.csproj` (bản cũ, cấp 1) và `ETOMS_API/ETOMS_API/ETOMS_API.csproj` (bản mới, cấp 2) **không phải cùng 1 file** — đang có 2 project cùng tên lồng nhau trên đĩa. Trước khi commit cần dọn cho chỉ còn 1 cấu trúc, nếu không Visual Studio/`.slnx` sẽ rối.
+3. Repo này (`ETOMS_1`) là **bản chia sẻ chung của cả nhóm trên GitHub**, khác với thư mục làm việc cục bộ `E:\Đồ án - SEP490 G97\ETOMS\` (đã code xong Iteration 1–3: Team/Registration/Bracket/Result, cả MVC lẫn Web API, giao diện HTML/CSS/JS thuần). Hai thư mục là **hai codebase tách biệt, chưa hợp nhất** — đừng nhầm lẫn khi quyết định code tiếp ở đâu.
+
+## Cấu trúc thư mục (bản mới, đang dùng để code tiếp)
 
 ```
 ETOMS_1/
-├── database/
-│   ├── ETOMS_Database.sql         script tạo 27 bảng + 3 view (SQL Server, database-first)
-│   └── ETOMS_Database_Test.sql    bộ kiểm ràng buộc — chạy xong phải ra 22/22
-├── ETOMS_API/                      project Web API duy nhất (ASP.NET Core, net10.0)
-│   ├── Controllers/                Controller API (JSON), mỗi file 1 module/resource
-│   ├── DTOs/                       request/response DTO, chia theo thư mục con từng module
-│   ├── Exceptions/                 trống — chỉ dùng cho lỗi hạ tầng (xem "Luật code" bên dưới)
-│   ├── Hubs/                       trống — SignalR Hub (tỉ số trực tiếp, thông báo) khi cần
-│   ├── Models/                     entity scaffold database-first từ database/ETOMS_Database.sql
-│   ├── Repositories/               IGenericRepository<T>/GenericRepository<T>,
-│   │                               IUnitOfWork/UnitOfWork, EtomsDbContext — đã nối EF thật
-│   ├── Services/                   toàn bộ business logic (ITeamService, IRegistrationService,
-│   │                               IBracketService, IResultService + implementation)
-│   ├── Utils/                      Result/Result<T>/PagedResult<T>, upload file, v.v.
-│   ├── wwwroot/                    giao diện — HTML/CSS/JS thuần (không Razor), gọi API qua fetch()
-│   ├── Program.cs
-│   ├── appsettings.json            KHÔNG có chuỗi kết nối thật (để trống)
-│   └── Properties/launchSettings.json
-└── ui/                             chưa dùng — hiện giao diện nằm trong ETOMS_API/wwwroot/
-                                     (xem mục "Vì sao không tách ui/ riêng" bên dưới)
+├── ETOMS_API/
+│   └── ETOMS_API/              ← project Web API thật (nested — xem cảnh báo mục trên)
+│       ├── Controllers/        trống — Controller API (JSON) sẽ nằm ở đây
+│       ├── DTOs/                trống — request/response DTO, theo từng module con nếu nhiều
+│       ├── Exceptions/          trống — exception nghiệp vụ tự định nghĩa (nếu dùng cách bắt lỗi qua exception thay vì Result)
+│       ├── Hubs/                trống — SignalR Hub (tỉ số trực tiếp, thông báo — module LIVE/NOT)
+│       ├── Models/               trống — entity (sẽ scaffold database-first từ ETOMS_Database.sql, xem CLAUDE.md mục 6)
+│       ├── Repositories/
+│       │   ├── Interface/       IGenericRepository.cs — đã có
+│       │   └── Impl/            GenericRepository.cs — đã có, TOÀN BỘ method đang `throw new NotImplementedException()`
+│       ├── Services/
+│       │   ├── Interface/       trống (khai trong .csproj, chưa có file)
+│       │   └── Impl/             trống
+│       ├── Utils/                trống — helper dùng chung (upload file, format, v.v.)
+│       ├── Program.cs            rất tối giản: AddControllers + AddOpenApi, CHƯA có Session/EF/DI module nào
+│       ├── appsettings.json / appsettings.Development.json
+│       └── Properties/launchSettings.json   (http: 5137, https: 7148)
+└── ui/                           HOÀN TOÀN TRỐNG — chưa quyết định làm frontend kiểu gì ở đây
 ```
 
-### Vì sao không tách `ui/` riêng
-
-Bản đang đẩy lên gộp chung backend + frontend trong **1 project ASP.NET Core**
-(`ETOMS_API/wwwroot/` chứa toàn bộ HTML/CSS/JS, gọi các Controller cùng project qua
-`fetch()`, dùng chung session cookie nên không cần CORS). Đây là kiến trúc **đã chạy
-thật và test qua** ở bản cục bộ, nên giữ nguyên khi đồng bộ lên đây thay vì tách `ui/`
-ra một project riêng (sẽ cần thêm CORS, thêm cách xác thực qua origin khác, chưa có lý
-do bắt buộc để làm việc đó bây giờ). `ui/` vẫn để trống, dành cho sau này nếu nhóm
-quyết định tách thật.
-
-### Pattern: Generic Repository + Unit of Work
+### Pattern đang dùng: Generic Repository
 
 ```csharp
-public interface IUnitOfWork : IDisposable
+public interface IGenericRepository<T> where T : class
 {
-    IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class;
-    Task<int> SaveChangesAsync();
+    IEnumerable<T> GetAll();
+    T GetById(object id);
+    void Add(T entity);
+    void Update(T entity);
+    void Delete(T entity);
+    void Save();
 }
 ```
 
-`Controller → Service → IUnitOfWork.Repository<TEntity>() → EtomsDbContext → DB`.
-Service **không** inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`. Đã nối
-`Microsoft.EntityFrameworkCore.SqlServer` thật — không còn `NotImplementedException`.
+`GenericRepository<T>` implement interface này nhưng **mọi method đều throw
+`NotImplementedException`** — đây là khung sườn (scaffold) do Hải dựng ("[Haivd] Add
+base repository, base architecture code"), chưa nối với `DbContext` thật. Muốn dùng
+được phải:
+1. Thêm package `Microsoft.EntityFrameworkCore.SqlServer` (hiện `.csproj` mới chỉ có
+   `Microsoft.EntityFrameworkCore` lõi, chưa có provider SQL Server).
+2. Scaffold `DbContext` + entity database-first từ `ETOMS_Database.sql` (script này
+   **chưa có trong repo `ETOMS_1`** — đang nằm ở thư mục cha `E:\Đồ án - SEP490 G97\`,
+   cần copy vào đúng vị trí theo cấu trúc chuẩn trước, xem CLAUDE.md mục 5/6).
+3. Viết lại `GenericRepository<T>` dùng `DbSet<T>` thay vì throw exception (có thể
+   tham khảo cách làm ở `E:\Đồ án - SEP490 G97\ETOMS\ETOMS\Repositories\GenericRepository.cs`
+   — đã implement đầy đủ, chạy được trên SQL Server thật).
 
-**Để chạy được trên máy bạn:** tạo file `ETOMS_API/appsettings.Development.json`
-(đã nằm trong `.gitignore`, không commit) với nội dung:
-```json
-{
-  "ConnectionStrings": {
-    "EtomsDb": "Server=.\\SQLEXPRESS;Database=ETOMS;Trusted_Connection=True;TrustServerCertificate=True"
-  }
-}
-```
-rồi chạy `database/ETOMS_Database.sql` để tạo CSDL (xem CLAUDE.md mục 6 để biết thứ tự
-và cờ `-f 65001` bắt buộc khi chạy bằng `sqlcmd`).
+Package khác đã thêm sẵn nhưng **chưa được dùng ở đâu trong code** (chỉ khai trong
+`.csproj`, `Program.cs` chưa gọi): `AutoMapper`, `DotNetEnv` (đọc biến môi trường từ
+file `.env` — hiện chưa có file `.env`/`.env.example` nào trong repo), `MailKit` +
+`MimeKit` (gửi email — phục vụ xác thực/thông báo sau này).
 
 ## Luật để code — áp dụng cho TOÀN BỘ dự án ETOMS (rút từ `CLAUDE.md`)
 
@@ -91,7 +94,7 @@ khi thêm bất kỳ chức năng nào:
 4. **Ngôn ngữ:** dữ liệu/chuỗi trả về cho người dùng (message lỗi, label...) phải
    **100% tiếng Việt có dấu**. Tên class/property/route/biến trong code: tiếng Anh.
 5. **Database: SQL Server, database-first.** Không dùng `dotnet ef migrations add` để
-   tạo/đổi schema — sửa schema thì sửa `database/ETOMS_Database.sql` rồi scaffold lại
+   tạo/đổi schema — sửa schema thì sửa file `ETOMS_Database.sql` rồi scaffold lại
    entity. Lược đồ có CHECK constraint + unique index có điều kiện là tầng cưỡng chế
    nghiệp vụ thật sự — đừng xóa khi EF scaffold báo khó, sai là ở code.
 6. **Phân công module** (ai đụng module nào hỏi người đó trước khi đổi logic chung):
@@ -104,100 +107,121 @@ khi thêm bất kỳ chức năng nào:
    | Nguyễn Duy Khánh | BRK-08..13, GRL, ITG-07..11, POR, TOUR-08..14 |
    | Vũ Đức Hải | ADM, AUTH, ITG-01..06, MAT-01..07, NOT |
 
-7. **Git:** không commit `appsettings.Development.json` hay bất kỳ chuỗi kết nối thật
-   nào — đã nằm trong `.gitignore`, đừng `git add -f` đè lên.
+7. **Git:** đừng `git add -A` khi chưa có `.gitignore` đúng (xem cảnh báo đầu file) —
+   dễ commit nhầm `bin/`, `obj/`, `.vs/`, hoặc chuỗi kết nối thật trong
+   `appsettings.Development.json`.
 
 ## Luật code theo từng thư mục
 
-Nguyên tắc chung: **Controller không chứa logic nghiệp vụ, Service không biết gì về
-HTTP, Repository không biết gì về nghiệp vụ.**
+Chốt theo đúng pattern **đã chạy thật** ở `E:\Đồ án - SEP490 G97\ETOMS\ETOMS\` (project
+cục bộ, đã code xong Iteration 1-3, build 0 lỗi, test qua `curl` đầy đủ) — áp dụng lại
+cho `ETOMS_1` để hai bên không lệch kiến trúc. Nguyên tắc chung: **Controller không
+chứa logic nghiệp vụ, Service không biết gì về HTTP, Repository không biết gì về
+nghiệp vụ.**
 
 ### `Controllers/`
 - Mỗi Controller ứng với **1 module/resource**, route `[Route("api/<ten-so-nhieu>")]`
   (vd `api/teams`, `api/registrations`, `api/tournaments/{tournamentId}/bracket`).
-- Kế thừa `ApiControllerBase : ControllerBase` (`[ApiController]`) để chuẩn hoá response:
-  ```csharp
-  protected IActionResult FromResult(Result r)
-      => r.IsSuccess ? Ok(new { message = r.Message }) : BadRequest(new { message = r.Message, fieldErrors = r.FieldErrors });
-  protected IActionResult FromResult<T>(Result<T> r)
-      => r.IsSuccess ? Ok(new { message = r.Message, data = r.Data }) : BadRequest(new { message = r.Message, fieldErrors = r.FieldErrors });
-  ```
+- Kế thừa 1 base class chung (vd `ApiControllerBase : ControllerBase`, có `[ApiController]`)
+  để chuẩn hoá response — xem khung dưới.
 - Action **chỉ làm 3 việc**: đọc input → gọi đúng 1 method của Service → chuyển
   `Result`/`Result<T>` thành `IActionResult`. Không query DB, không if/else nghiệp vụ
   trong Controller.
 - Thứ tự kiểm tra bắt buộc trong mọi action cần quyền: **tồn tại trước (404) rồi mới
-  tới quyền (403)**. Dùng `bool?` cho hàm check quyền để phân biệt "không tồn tại"
-  (`null`) và "tồn tại nhưng không có quyền" (`false`).
-- Không dùng `[ValidateAntiForgeryToken]` (frontend gọi `fetch`, không có token) —
-  bảo vệ CSRF bằng cookie session `SameSite=Strict` đã cấu hình ở `Program.cs`.
+  tới quyền (403)** — kiểm tra ngược sẽ lộ thông tin tồn tại của tài nguyên cho người
+  không có quyền. Dùng `bool?`/kiểu nullable cho hàm check quyền để phân biệt
+  "không tồn tại" (`null`) và "tồn tại nhưng không có quyền" (`false`).
+- Không dùng `[ValidateAntiForgeryToken]` cho Controller API (frontend gọi `fetch`,
+  không có token) — bảo vệ CSRF bằng cookie session `SameSite=Strict` ở `Program.cs`.
+- Khuôn mẫu base class nên có (copy ý tưởng từ `ETOMS/ETOMS/Controllers/ApiControllerBase.cs`):
+  ```csharp
+  [ApiController]
+  public abstract class ApiControllerBase : ControllerBase
+  {
+      protected IActionResult FromResult(Result r)
+          => r.IsSuccess ? Ok(new { message = r.Message }) : BadRequest(new { message = r.Message, fieldErrors = r.FieldErrors });
+      protected IActionResult FromResult<T>(Result<T> r)
+          => r.IsSuccess ? Ok(new { message = r.Message, data = r.Data }) : BadRequest(new { message = r.Message, fieldErrors = r.FieldErrors });
+  }
+  ```
 
 ### `DTOs/`
-- Tách theo module con, mỗi module 1 thư mục con (`DTOs/Team/`, `DTOs/Registration/`...).
+- Tách theo module con, mỗi module 1 thư mục con (`DTOs/Team/`, `DTOs/Registration/`...)
+  — không gom hết vào 1 file lớn.
 - Request DTO validate bằng DataAnnotations (`[Required]`, `[StringLength]`,
-  `[Range]`, `[EmailAddress]`...); lỗi nghiệp vụ sâu hơn (trùng tên, sai trạng thái...)
-  trả qua `Result.FieldFailure`.
-- Response DTO được phép có **property tính sẵn** (vd `StatusLabel`, `StatusClass`,
-  `RoleLabel` dịch tiếng Việt + gán class CSS) để FE không phải tính lại logic hiển thị.
-- **Không bao giờ trả thẳng Entity ra API** — luôn qua DTO.
+  `[Range]`, `[EmailAddress]`...) để `[ApiController]` tự trả 400 khi sai định dạng
+  cơ bản; lỗi nghiệp vụ sâu hơn (trùng tên, sai trạng thái...) trả qua `Result.FieldFailure`.
+- Response DTO là object thuần phục vụ hiển thị — được phép có **property tính sẵn**
+  (vd `StatusLabel`, `StatusClass`, `RoleLabel` dịch tiếng Việt + gán class CSS) để FE
+  không phải tính lại logic hiển thị.
+- **Không bao giờ trả thẳng Entity ra API** — luôn qua DTO, kể cả khi DTO và Entity
+  giống hệt nhau, để tránh lộ cột nhạy cảm (`PasswordHash`...) khi Entity đổi cột sau này.
 
 ### `Exceptions/`
-- Dự án **ưu tiên `Result`/`Result<T>` thay vì exception** cho lỗi nghiệp vụ (xem
-  `Services/` bên dưới). Thư mục này chỉ dùng cho lỗi **hạ tầng/hệ thống thật sự** (mất
-  kết nối DB, timeout bên ngoài) mà `UseExceptionHandler` ở `Program.cs` bắt chung —
-  không dùng cho "sai dữ liệu", "trùng tên", "hết hạn"...
+- Dự án này **ưu tiên dùng kiểu `Result`/`Result<T>` thay vì exception** cho lỗi
+  nghiệp vụ (xem `Services/` bên dưới) — exception dùng `throw` làm luồng điều khiển
+  chính rất chậm và khó test. Thư mục `Exceptions/` chỉ nên chứa exception cho lỗi
+  **hạ tầng/hệ thống thật sự** (vd mất kết nối DB, timeout bên ngoài) mà
+  `UseExceptionHandler` ở `Program.cs` bắt chung, không dùng cho "sai dữ liệu",
+  "trùng tên", "hết hạn"... — những cái đó trả `Result.Failure(...)`.
 
 ### `Hubs/`
-- Mỗi Hub SignalR ứng 1 nhóm sự kiện real-time (vd `LiveScoreHub` — module LIVE,
-  `NotificationHub` — module NOT). Hub chỉ nhận kết nối + broadcast, **không chứa logic
-  nghiệp vụ** — Service xử lý xong rồi gọi `IHubContext<T>...SendAsync(...)`.
+- Mỗi Hub SignalR ứng với 1 nhóm sự kiện real-time (vd `LiveScoreHub` cho tỉ số
+  trực tiếp — module LIVE, `NotificationHub` — module NOT).
+- Hub chỉ nhận kết nối + broadcast, **không chứa logic nghiệp vụ**: Service xử lý
+  xong rồi gọi `IHubContext<T>.Clients...SendAsync(...)` để đẩy tin, không để Hub tự
+  query DB.
 
 ### `Models/`
-- **Chỉ entity scaffold database-first** từ `database/ETOMS_Database.sql`:
-  ```bash
-  dotnet ef dbcontext scaffold "Server=.\SQLEXPRESS;Database=ETOMS;Trusted_Connection=True;TrustServerCertificate=True" \
-    Microsoft.EntityFrameworkCore.SqlServer -o Models -c EtomsDbContext --no-onconfiguring
-  ```
-  Không sửa tay property, không thêm property không có trong script SQL.
-- Đổi schema thì sửa `database/ETOMS_Database.sql` → tạo lại DB → scaffold lại, **không**
-  dùng `dotnet ef migrations add`.
+- **Chỉ entity scaffold database-first** từ `ETOMS_Database.sql`
+  (`dotnet ef dbcontext scaffold ... -o Models -c EtomsDbContext --no-onconfiguring`,
+  xem CLAUDE.md mục 6) — không sửa tay property, không thêm property không có trong
+  script SQL, không đặt ViewModel/DTO chung chỗ này.
+- Đổi schema thì sửa `ETOMS_Database.sql` → tạo lại DB → scaffold lại, **không** dùng
+  `dotnet ef migrations add`.
 
-### `Repositories/`
-- **1 Generic Repository chung cho mọi entity** (`IGenericRepository<T>`) — không tạo
-  riêng `ITeamRepository`, `IGameRepository`... trừ khi thật sự cần query phức tạp.
-- `IUnitOfWork.Repository<TEntity>()` phát ra 1 `GenericRepository<TEntity>` dùng chung
-  1 `EtomsDbContext`/request, gom nhiều thay đổi rồi `SaveChangesAsync()` đúng 1 lần ở
-  cuối — Service inject `IUnitOfWork`, không inject `DbContext` trực tiếp.
+### `Repositories/Interface/` và `Repositories/Impl/`
+- Dùng **1 Generic Repository chung cho mọi entity** (`IGenericRepository<T>`) —
+  không tạo riêng `ITeamRepository`, `IGameRepository`... cho từng entity trừ khi
+  thật sự cần query phức tạp không generic hoá được.
+- Khuyến nghị thêm `IUnitOfWork` (đúng kiến trúc Report 4 đã chốt, xem
+  `ETOMS/ETOMS/Repositories/UnitOfWork.cs`): `IUnitOfWork.Repository<TEntity>()` phát
+  ra 1 `GenericRepository<TEntity>` dùng chung 1 `DbContext`/request, gom nhiều thay
+  đổi rồi `SaveChangesAsync()` đúng 1 lần ở cuối — Service inject `IUnitOfWork`, không
+  inject `DbContext` trực tiếp.
+- `Interface/` chỉ chứa interface, `Impl/` chỉ chứa class implement — không khai báo
+  interface lẫn trong file implementation.
 - Repository chỉ CRUD/query (`Query()`, `GetByIdAsync`, `AnyAsync`, `AddAsync`,
   `Update`, `Remove`) — không chứa if/else nghiệp vụ.
 
-### `Services/`
-- **Toàn bộ business logic nằm ở đây.** Mỗi Service ứng 1 module (`ITeamService`/
-  `TeamService`...), method đặt tên theo hành vi nghiệp vụ (`CreateTeamAsync`,
-  `JoinByCodeAsync`, `ApproveMemberAsync`...), không đặt tên kiểu CRUD chung chung.
+### `Services/Interface/` và `Services/Impl/`
+- **Toàn bộ business logic nằm ở đây.** Mỗi Service ứng 1 module
+  (`ITeamService`/`TeamService`, `IRegistrationService`/`RegistrationService`...),
+  method đặt tên theo hành vi nghiệp vụ (`CreateTeamAsync`, `JoinByCodeAsync`,
+  `ApproveMemberAsync`...), không đặt tên kiểu CRUD chung chung.
 - Method trả `Task<Result>` hoặc `Task<Result<T>>` — **không throw exception cho lỗi
   nghiệp vụ**, dùng `Result.Failure("thông báo tiếng Việt")` hoặc
-  `Result.FieldFailure("TenField", "thông báo")`.
-- Truy DB qua `IUnitOfWork`/`IGenericRepository<T>` injected.
-- Thông báo (`Result.Message`, lỗi field) **luôn tiếng Việt có dấu**.
+  `Result.FieldFailure("TenField", "thông báo")` để Controller/FE gắn đúng lỗi vào
+  đúng ô trên form.
+- Truy DB qua `IUnitOfWork`/`IGenericRepository<T>` injected, **không** inject
+  `DbContext` thẳng vào Service.
+- Thông báo (`Result.Message`, lỗi field) **luôn tiếng Việt có dấu** — đây là chuỗi
+  sẽ hiển thị thẳng cho người dùng.
 
 ### `Utils/`
-- Chỉ helper thuần, **không phụ thuộc `DbContext`/`IUnitOfWork`**: upload file (kiểm
-  định dạng/dung lượng), format chuỗi/ngày tháng... `Result`/`Result<T>`/`PagedResult<T>`
-  cũng nằm ở đây vì là kiểu dữ liệu dùng chung, không phải nghiệp vụ của module nào.
+- Chỉ helper thuần, **không phụ thuộc `DbContext`/`IUnitOfWork`**, không chứa quy tắc
+  nghiệp vụ: upload file (kiểm định dạng/dung lượng), format chuỗi/ngày tháng, sinh mã
+  ngẫu nhiên... Kiểu `Result`/`Result<T>`/`PagedResult<T>` cũng nằm ở đây vì chúng là
+  kiểu dữ liệu dùng chung, không phải nghiệp vụ của module nào.
 
-### `wwwroot/`
-- HTML/CSS/JS thuần, không Razor. Mỗi màn hình cũ (`.cshtml`) tương ứng 1 file `.html`
-  tĩnh + 1 file `js/pages/<ten>.js` gọi `fetch()` tới Controller cùng project rồi tự
-  dựng DOM. `js/api.js` bọc sẵn envelope response (`{message,data}` /
-  `{message,fieldErrors}`); `js/ui.js` có `escapeHtml`, `requireAuth`, gán lỗi field...
-  — xem code trong `js/` để tái dùng thay vì viết lại.
+## Việc cần làm trước khi nhóm code tiếp trên repo này (TODO)
 
-## Việc còn thiếu
-
-- [ ] Module AUTH thật (hiện đăng nhập là stub demo qua session, đọc `Controllers/DevAuthApiController.cs`).
-- [ ] Các module chưa code: MKT, ORG, PRF, RNK, FA, LIVE, MAT-08..13, PEN, SPN, TOUR,
-      BRK-08..13, GRL, ITG, ADM, MAT-01..07, NOT — xem bảng phân công ở trên, mỗi
-      người code phần mình vào đúng `Controllers/DTOs/Services` theo luật ở trên.
-- [ ] `Exceptions/` và `Hubs/` còn trống — dùng khi module LIVE/NOT cần SignalR.
-- [ ] `AutoMapper`, `DotNetEnv`, `MailKit`, `MimeKit` đã có package nhưng **chưa được
-      gọi ở đâu trong code** — dành cho ai làm module cần gửi email (AUTH, NOT).
+- [ ] Quyết định giữ cấu trúc nào: xóa hẳn `ETOMS_API/ETOMS_API.csproj` (cấp 1, cũ) hay
+      gộp ngược lại — hiện đang tồn tại song song 2 project lồng nhau trên đĩa.
+- [ ] Tạo lại `.gitignore` (và `.dockerignore` nếu còn dùng Docker) trước khi commit.
+- [ ] Thêm `Microsoft.EntityFrameworkCore.SqlServer`, copy `ETOMS_Database.sql` vào
+      repo, scaffold entity, viết lại `GenericRepository<T>` dùng `DbSet<T>` thật.
+- [ ] Quyết định `ui/` làm bằng gì (Razor riêng, SPA riêng, hay đồng bộ theo hướng
+      HTML/CSS/JS thuần đã làm ở `ETOMS/ETOMS` cục bộ) — hiện đang trống hoàn toàn.
+- [ ] Nối `Program.cs`: Session/DI cho Repository+Service, CORS nếu `ui/` tách origin
+      riêng với API.
