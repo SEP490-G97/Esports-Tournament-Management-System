@@ -2,6 +2,7 @@ using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Services;
 using Microsoft.EntityFrameworkCore;
+using MySql.Data.MySqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,8 +12,14 @@ var connectionString = builder.Configuration.GetConnectionString("EtomsDatabase"
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
-        "Chưa cấu hình kết nối cơ sở dữ liệu. Hãy đặt biến môi trường ETOMS_DB_CONNECTION.");
+        "Chưa cấu hình kết nối MySQL. Hãy đặt ConnectionStrings:EtomsDatabase hoặc biến môi trường ETOMS_DB_CONNECTION.");
 }
+
+var mysqlConnectionStringBuilder = new MySqlConnectionStringBuilder(connectionString)
+{
+    CharacterSet = "utf8mb4"
+};
+var mysqlConnectionString = mysqlConnectionStringBuilder.ConnectionString;
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -29,7 +36,7 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
-builder.Services.AddDbContext<EtomsDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ETOMS_API.Repositories.IUnitOfWork, ETOMS_API.Repositories.UnitOfWork>();
