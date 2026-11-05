@@ -45,6 +45,9 @@ Entity trong `ETOMS_API/Models/` và `ETOMS_API/Repositories/EtomsDbContext.cs` 
 khớp schema MySQL do nhóm cung cấp (tên bảng/cột, kiểu dữ liệu, khóa ngoại và views).
 File local `ETOMS_Database.sql` là cú pháp SQL Server cũ, **không chạy file đó trên
 MySQL**. Dự án dùng database-first, không tự tạo hoặc nâng cấp schema khi khởi động.
+Connection của API được đặt rõ charset `utf8mb4`. Nếu dữ liệu seed cũ đã mất dấu, có
+thể áp dụng có điều kiện script `database/mysql/fix-vietnamese-seed-data.sql`; script
+chỉ sửa đúng các giá trị đã bị mất dấu như nội dung trong ảnh.
 Các unique index có điều kiện của SQL Server không được MySQL hỗ trợ trực tiếp; schema
 MySQL phải có cách cưỡng chế tương đương (ví dụ generated column/index hoặc constraint
 phù hợp). Cần đối chiếu schema MySQL thật trước khi xác nhận mọi API hoạt động.
