@@ -1,6 +1,6 @@
 ﻿/*===============================================================================
   ETOMS - Hệ thống quản lý giải đấu Thể thao Điện tử
-  SEP490_G97 - Script tạo Database  (v2, 25 bảng)
+  SEP490_G97 - Script tạo Database  (v2.1, 27 bảng)
 
   Chạy được ở CẢ HAI nơi: SQL Server 2019+ (SSMS) và Azure SQL Database.
   Collation: Vietnamese_CI_AS - mọi cột chữ dùng NVARCHAR.
@@ -10,6 +10,21 @@
 
   Nguồn: UC Update.docx bản 27/10/2026 - 46 use case (UC-01 … UC-46).
   Bản v1 có 62 bảng, giữ ở _backup_sql_v1_62bang/ để đối chiếu với Report 3.
+
+  v2.1 (31/10/2026) - chỉnh theo Report 3 đã chốt 46 UC. Ưu tiên THÊM CỘT vào bảng
+  sẵn có; chỉ thêm 2 bảng cho dữ liệu không thuộc bảng nào:
+    - Bỏ CK_Account_Ban: khóa tài khoản không cần lý do (UC-43, BR-AUTH-05).
+    - Account   + yêu cầu cấp quyền Organizer (UC-43), không tách bảng yêu cầu.
+    - Tournament + số bảng / số đội đi tiếp (BR-BRK-05), người & lúc khóa nhánh (BR-BRK-04).
+    - TournamentSponsor + giữ logo khi hủy giải (BR-SPN-02).
+    - Dispute   + lý do kết quả khiếu nại (BR-RES-09).
+    - AuditLog  + 7 loại thao tác mà các UC yêu cầu ghi nhật ký.
+    - ContentItem  (MỚI) - tin tức VÀ mẫu thông báo gộp một bảng (UC-13, UC-36, UC-43).
+    - PromotionLink (MỚI) - link cộng tác viên có đếm lượt truy cập (UC-42).
+    03/11/2026 - người dự giải không chỉ là sinh viên (góp ý GVHD, UC-08):
+    - Bỏ Account.School (không xác minh trường học nữa).
+    - Tournament.RequireStudentCard đổi thành RequireIdentityDocument.
+    - PlayerCredential gộp STUDENT_CARD và CITIZEN_ID thành IDENTITY_DOCUMENT.
 
   BA QUY TẮC THIẾT KẾ CỦA BẢN NÀY
   -------------------------------
@@ -96,6 +111,7 @@ GO
 
 DROP TABLE IF EXISTS dbo.AuditLog;
 DROP TABLE IF EXISTS dbo.Livestream;
+DROP TABLE IF EXISTS dbo.ContentItem;
 DROP TABLE IF EXISTS dbo.TournamentFollow;
 DROP TABLE IF EXISTS dbo.Notification;
 DROP TABLE IF EXISTS dbo.Attachment;
@@ -110,6 +126,7 @@ DROP TABLE IF EXISTS dbo.BracketNode;
 DROP TABLE IF EXISTS dbo.PaymentRecord;
 DROP TABLE IF EXISTS dbo.RegistrationLineup;
 DROP TABLE IF EXISTS dbo.Registration;
+DROP TABLE IF EXISTS dbo.PromotionLink;
 DROP TABLE IF EXISTS dbo.TournamentSponsor;
 DROP TABLE IF EXISTS dbo.Tournament;
 DROP TABLE IF EXISTS dbo.TeamMember;
@@ -151,7 +168,11 @@ GO
      ADMIN     - quản trị hệ thống
    Vai trò Đội trưởng suy ra từ Team.CaptainAccountID; vai trò Trọng tài suy ra
    từ Match.RefereeAccountID, nên cả hai không nằm trong ENUM này.
-   Hai cột NotifyInApp / NotifyEmail thay cho bảng NotificationPreference. */
+   Hai cột NotifyInApp / NotifyEmail thay cho bảng NotificationPreference.
+   BanReason KHÔNG bắt buộc: quản trị viên khóa vì lý do bất kỳ mà không cần
+   giải thích (UC-43, BR-AUTH-05); người bị khóa chỉ thấy "tài khoản đã bị khóa".
+   OrganizerRequestStatus - yêu cầu xin quyền tổ chức chờ quản trị viên duyệt
+   (UC-43). Mỗi tài khoản chỉ có một yêu cầu đang xét nên để cột, không tách bảng. */
 CREATE TABLE dbo.Account
 (
     AccountID        INT IDENTITY(1,1) NOT NULL,
@@ -162,21 +183,23 @@ CREATE TABLE dbo.Account
     AvatarUrl        NVARCHAR(500)     NULL,
     DateOfBirth      DATE              NULL,
     Phone            VARCHAR(20)       NULL,
-    School           NVARCHAR(200)     NULL,
     SocialLinks      NVARCHAR(500)     NULL,
     Role             VARCHAR(20)       NOT NULL CONSTRAINT DF_Account_Role   DEFAULT 'PLAYER',
     Status           VARCHAR(20)       NOT NULL CONSTRAINT DF_Account_Status DEFAULT 'PENDING_VERIFY',
     BanReason        NVARCHAR(500)     NULL,
     NotifyInApp      BIT               NOT NULL CONSTRAINT DF_Account_NotiApp   DEFAULT 1,
     NotifyEmail      BIT               NOT NULL CONSTRAINT DF_Account_NotiMail  DEFAULT 1,
+    OrganizerRequestStatus VARCHAR(20) NOT NULL CONSTRAINT DF_Account_OrgReq DEFAULT 'NONE',
+    OrganizerRequestedAt   DATETIME2(0) NULL,
     EmailVerifiedAt  DATETIME2(0)      NULL,
     CreatedAt        DATETIME2(0)      NOT NULL CONSTRAINT DF_Account_At DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Account         PRIMARY KEY (AccountID),
     CONSTRAINT UQ_Account_Email   UNIQUE (Email),
     CONSTRAINT CK_Account_Role    CHECK (Role   IN ('PLAYER','ORGANIZER','ADMIN')),
     CONSTRAINT CK_Account_Status  CHECK (Status IN ('PENDING_VERIFY','ACTIVE','BANNED')),
-    -- Khóa tài khoản thì BẮT BUỘC có lý do, để còn trả lời người dùng được.
-    CONSTRAINT CK_Account_Ban     CHECK (Status <> 'BANNED' OR BanReason IS NOT NULL),
+    CONSTRAINT CK_Account_OrgReq  CHECK (OrganizerRequestStatus IN ('NONE','PENDING','APPROVED','REJECTED')),
+    -- Đã gửi yêu cầu thì phải biết gửi lúc nào, để duyệt theo thứ tự đến.
+    CONSTRAINT CK_Account_OrgReqAt CHECK (OrganizerRequestStatus = 'NONE' OR OrganizerRequestedAt IS NOT NULL),
     -- Phải có ít nhất một cách đăng nhập.
     CONSTRAINT CK_Account_Login   CHECK (PasswordHash IS NOT NULL OR GoogleSubjectId IS NOT NULL)
 );
@@ -240,9 +263,10 @@ CREATE TABLE dbo.Game
 GO
 
 /* PlayerCredential - UC-03. Gộp GameAccount và IdentityDocument của bản v1.
-   IN_GAME_NAME  - tên trong game, gắn với một tựa game, lưu ở Value
-   STUDENT_CARD  - ảnh thẻ sinh viên, lưu ở FileUrl
-   CITIZEN_ID    - ảnh giấy tờ tùy thân, lưu ở FileUrl
+   IN_GAME_NAME      - tên trong game, gắn với một tựa game, lưu ở Value
+   IDENTITY_DOCUMENT - ảnh giấy tờ định danh, lưu ở FileUrl. Là thẻ sinh viên hay
+                       bất kỳ giấy xác nhận nào khác, vì người dự giải không chỉ là
+                       sinh viên (UC-08) - nên KHÔNG tách loại thẻ sinh viên riêng.
    Ban tổ chức đối chiếu các bản ghi này khi duyệt đơn (UC-08). */
 CREATE TABLE dbo.PlayerCredential
 (
@@ -255,7 +279,7 @@ CREATE TABLE dbo.PlayerCredential
     VerifiedAt         DATETIME2(0)      NULL,
     CreatedAt          DATETIME2(0)      NOT NULL CONSTRAINT DF_PlayerCred_At DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_PlayerCredential         PRIMARY KEY (PlayerCredentialID),
-    CONSTRAINT CK_PlayerCredential_Type    CHECK (CredentialType IN ('IN_GAME_NAME','STUDENT_CARD','CITIZEN_ID')),
+    CONSTRAINT CK_PlayerCredential_Type    CHECK (CredentialType IN ('IN_GAME_NAME','IDENTITY_DOCUMENT')),
     -- Tên trong game phải có tựa game và có giá trị; giấy tờ phải có file.
     CONSTRAINT CK_PlayerCredential_Shape   CHECK (
         (CredentialType =  'IN_GAME_NAME' AND GameID IS NOT NULL AND Value   IS NOT NULL) OR
@@ -382,7 +406,11 @@ GO
      TieBreakerOrder   - thứ tự tiêu chí phân định khi bằng điểm
      BestOfPerRound    - số ván mỗi vòng, ví dụ 'R1:1,R2:3,F:5'
      PenaltyThreshold  - NULL = KHÔNG tự tước quyền (UC-35)
-   StreamUrl là link phát của cả giải; link theo từng trận nằm ở bảng Livestream. */
+   StreamUrl là link phát của cả giải; link theo từng trận nằm ở bảng Livestream.
+     GroupCount / AdvancePerGroup - số bảng và số đội đi tiếp mỗi bảng. Vòng bảng
+       phải khai, loại trực tiếp thì không được khai (BR-BRK-05, UC-12, UC-18).
+     BracketLockedByAccountID / BracketLockedAt - ai khóa nhánh và lúc nào.
+       Khóa mà thiếu một trong hai là bị từ chối (BR-BRK-04, UC-16). */
 CREATE TABLE dbo.Tournament
 (
     TournamentID         INT IDENTITY(1,1) NOT NULL,
@@ -398,6 +426,8 @@ CREATE TABLE dbo.Tournament
     Venue                NVARCHAR(300)     NULL,
     Format               VARCHAR(30)       NOT NULL,
     HasThirdPlaceMatch   BIT               NOT NULL CONSTRAINT DF_Tour_Third DEFAULT 0,
+    GroupCount           INT               NULL,
+    AdvancePerGroup      INT               NULL,
     MaxTeams             INT               NOT NULL,
     StarterCount         INT               NOT NULL,
     MaxSubstitutes       INT               NOT NULL,
@@ -408,7 +438,7 @@ CREATE TABLE dbo.Tournament
     EntryFee             DECIMAL(18,2)     NOT NULL CONSTRAINT DF_Tour_Fee DEFAULT 0,
     BankAccountInfo      NVARCHAR(300)     NULL,
     PrizeStructure       NVARCHAR(MAX)     NULL,
-    RequireStudentCard   BIT               NOT NULL CONSTRAINT DF_Tour_ReqCard DEFAULT 1,
+    RequireIdentityDocument BIT            NOT NULL CONSTRAINT DF_Tour_ReqDoc  DEFAULT 1,
     RequirePaymentProof  BIT               NOT NULL CONSTRAINT DF_Tour_ReqPay  DEFAULT 1,
     RequireInGameName    BIT               NOT NULL CONSTRAINT DF_Tour_ReqIgn  DEFAULT 1,
     TieBreakerOrder      NVARCHAR(200)     NULL,
@@ -419,6 +449,8 @@ CREATE TABLE dbo.Tournament
     StreamUrl            NVARCHAR(500)     NULL,
     Status               VARCHAR(20)       NOT NULL CONSTRAINT DF_Tour_Status DEFAULT 'DRAFT',
     CancelReason         NVARCHAR(500)     NULL,
+    BracketLockedByAccountID INT           NULL,
+    BracketLockedAt      DATETIME2(0)      NULL,
     CreatedAt            DATETIME2(0)      NOT NULL CONSTRAINT DF_Tour_At DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Tournament            PRIMARY KEY (TournamentID),
     CONSTRAINT CK_Tournament_Format     CHECK (Format IN ('SINGLE_ELIMINATION','DOUBLE_ELIMINATION','ROUND_ROBIN','HYBRID')),
@@ -431,13 +463,32 @@ CREATE TABLE dbo.Tournament
     CONSTRAINT CK_Tournament_Threshold  CHECK (PenaltyThreshold IS NULL OR PenaltyThreshold >= 1),
     -- Hủy giải thì BẮT BUỘC có lý do, vì phải thông báo cho mọi đội đã đăng ký.
     CONSTRAINT CK_Tournament_Cancel     CHECK (Status <> 'CANCELLED' OR CancelReason IS NOT NULL),
+    -- Vòng bảng phải khai số bảng (HYBRID khai thêm số đội đi tiếp); loại trực tiếp
+    -- thì không khai. Giải còn nháp hoặc đã hủy được phép chưa khai (BR-BRK-05).
+    CONSTRAINT CK_Tournament_Groups     CHECK (
+            (Format IN ('SINGLE_ELIMINATION','DOUBLE_ELIMINATION') AND GroupCount IS NULL AND AdvancePerGroup IS NULL)
+         OR (Format = 'ROUND_ROBIN' AND AdvancePerGroup IS NULL
+             AND ((GroupCount IS NOT NULL AND GroupCount >= 1)
+                  OR (GroupCount IS NULL AND Status IN ('DRAFT','CANCELLED'))))
+         OR (Format = 'HYBRID'
+             AND ((GroupCount IS NOT NULL AND AdvancePerGroup IS NOT NULL AND GroupCount >= 1 AND AdvancePerGroup >= 1)
+                  OR (Status IN ('DRAFT','CANCELLED') AND (GroupCount IS NULL OR GroupCount >= 1)
+                      AND (AdvancePerGroup IS NULL OR AdvancePerGroup >= 1))))),
+    -- Viết IS NOT NULL tường minh: CHECK coi kết quả UNKNOWN (so sánh với NULL) là ĐẠT.
+    -- Khóa nhánh phải ghi đủ người khóa và thời điểm (BR-BRK-04).
+    CONSTRAINT CK_Tournament_Lock       CHECK ((BracketLockedAt IS NULL AND BracketLockedByAccountID IS NULL)
+                                            OR (BracketLockedAt IS NOT NULL AND BracketLockedByAccountID IS NOT NULL)),
     CONSTRAINT FK_Tournament_Game       FOREIGN KEY (GameID)             REFERENCES dbo.Game(GameID),
-    CONSTRAINT FK_Tournament_Organizer  FOREIGN KEY (OrganizerAccountID) REFERENCES dbo.Account(AccountID)
+    CONSTRAINT FK_Tournament_Organizer  FOREIGN KEY (OrganizerAccountID) REFERENCES dbo.Account(AccountID),
+    CONSTRAINT FK_Tournament_LockedBy   FOREIGN KEY (BracketLockedByAccountID) REFERENCES dbo.Account(AccountID)
 );
 GO
 
 /* TournamentSponsor - UC-42. Nhà tài trợ và mẩu quảng cáo GẮN VỚI ĐÚNG MỘT GIẢI.
-   Thêm / sửa / xóa theo từng giải. Kích thước logo trên trang giải suy ra từ Tier. */
+   Thêm / sửa / xóa theo từng giải. Kích thước logo trên trang giải suy ra từ Tier.
+   ShowWhenCancelled - hủy giải KHÔNG xóa nhà tài trợ; ban tổ chức chọn logo còn
+   hiện trên trang giải đã hủy hay không (BR-SPN-02). Khóa ngoại tới Tournament để
+   NO ACTION nên không xóa được giải còn nhà tài trợ: bản ghi tài trợ không mất. */
 CREATE TABLE dbo.TournamentSponsor
 (
     TournamentSponsorID INT IDENTITY(1,1) NOT NULL,
@@ -448,6 +499,7 @@ CREATE TABLE dbo.TournamentSponsor
     ContactInfo         NVARCHAR(300)     NULL,
     Tier                VARCHAR(20)       NOT NULL,
     DisplayOrder        INT               NOT NULL CONSTRAINT DF_TourSponsor_Order DEFAULT 1,
+    ShowWhenCancelled   BIT               NOT NULL CONSTRAINT DF_TourSponsor_Show DEFAULT 1,
     CreatedByAccountID  INT               NOT NULL,
     CreatedAt           DATETIME2(0)      NOT NULL CONSTRAINT DF_TourSponsor_At DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_TournamentSponsor       PRIMARY KEY (TournamentSponsorID),
@@ -456,6 +508,29 @@ CREATE TABLE dbo.TournamentSponsor
     CONSTRAINT CK_TournamentSponsor_Order CHECK (DisplayOrder >= 1),
     CONSTRAINT FK_TournamentSponsor_Tour  FOREIGN KEY (TournamentID)       REFERENCES dbo.Tournament(TournamentID),
     CONSTRAINT FK_TournamentSponsor_By    FOREIGN KEY (CreatedByAccountID) REFERENCES dbo.Account(AccountID)
+);
+GO
+
+/* PromotionLink - UC-42. Link cộng tác viên có theo dõi của MỘT giải: mỗi cộng tác
+   viên một mã, hệ thống đếm lượt truy cập đi qua mã đó.
+   Cần bảng riêng vì một giải có nhiều link và mỗi link có bộ đếm của nó. Trang đích,
+   mã QR và bộ tài liệu quảng bá sinh ra từ cấu hình giải nên KHÔNG cần lưu.
+   Cộng tác viên không phải người dùng ETOMS, nên chỉ lưu tên gọi (Label). */
+CREATE TABLE dbo.PromotionLink
+(
+    PromotionLinkID    INT IDENTITY(1,1) NOT NULL,
+    TournamentID       INT               NOT NULL,
+    Code               VARCHAR(20)       NOT NULL,
+    Label              NVARCHAR(150)     NOT NULL,
+    VisitCount         INT               NOT NULL CONSTRAINT DF_PromotionLink_Visit DEFAULT 0,
+    CreatedByAccountID INT               NOT NULL,
+    CreatedAt          DATETIME2(0)      NOT NULL CONSTRAINT DF_PromotionLink_At DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_PromotionLink        PRIMARY KEY (PromotionLinkID),
+    -- Mã nằm trên đường dẫn công khai nên phải duy nhất trên toàn hệ thống.
+    CONSTRAINT UQ_PromotionLink_Code   UNIQUE (Code),
+    CONSTRAINT CK_PromotionLink_Visit  CHECK (VisitCount >= 0),
+    CONSTRAINT FK_PromotionLink_Tour   FOREIGN KEY (TournamentID)       REFERENCES dbo.Tournament(TournamentID),
+    CONSTRAINT FK_PromotionLink_By     FOREIGN KEY (CreatedByAccountID) REFERENCES dbo.Account(AccountID)
 );
 GO
 
@@ -780,7 +855,9 @@ GO
 /* Dispute - UC-29 quá hạn báo cáo, UC-30 cắm cờ, UC-31 xét tranh chấp,
    UC-32 phán quyết, UC-33 khiếu nại.
    Bản v1 tách bảng Appeal và bảng cắm cờ; ở đây là cột của cùng một vòng đời.
-   AppealCount cưỡng chế luật "chỉ được khiếu nại MỘT lần" (UC-33). */
+   AppealCount cưỡng chế luật "chỉ được khiếu nại MỘT lần" (UC-33).
+   AppealOutcomeNote - lý do chấp nhận hay bác khiếu nại, bắt buộc khi đã có kết
+   quả (BR-RES-09). */
 CREATE TABLE dbo.Dispute
 (
     DisputeID            INT IDENTITY(1,1) NOT NULL,
@@ -798,7 +875,8 @@ CREATE TABLE dbo.Dispute
     AppealCount          INT               NOT NULL CONSTRAINT DF_Dispute_AppealN DEFAULT 0,
     AppealReason         NVARCHAR(1000)    NULL,
     AppealStatus         VARCHAR(20)       NOT NULL CONSTRAINT DF_Dispute_AppealS DEFAULT 'NONE',
-    OpenedAt             DATETIME2(0)      NOT NULL CONSTRAINT DF_Dispute_At DEFAULT SYSUTCDATETIME(),
+    AppealOutcomeNote    NVARCHAR(1000)    NULL,
+    OpenedAt            DATETIME2(0)      NOT NULL CONSTRAINT DF_Dispute_At DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Dispute            PRIMARY KEY (DisputeID),
     CONSTRAINT CK_Dispute_Open       CHECK (OpenReason IN ('CONFLICTING_REPORT','REPORT_TIMEOUT','FLAGGED')),
     CONSTRAINT CK_Dispute_Status     CHECK (Status IN ('OPEN','UNDER_REVIEW','RESOLVED','CLOSED')),
@@ -813,6 +891,8 @@ CREATE TABLE dbo.Dispute
                                              AND RulingReason IS NOT NULL AND ResolvedByAccountID IS NOT NULL)),
     -- Chỉ được khiếu nại một lần (UC-33).
     CONSTRAINT CK_Dispute_AppealN    CHECK (AppealCount BETWEEN 0 AND 1),
+    -- Chấp nhận hay bác khiếu nại đều phải viết lý do (BR-RES-09).
+    CONSTRAINT CK_Dispute_AppealOut  CHECK (AppealStatus NOT IN ('ACCEPTED','REJECTED') OR AppealOutcomeNote IS NOT NULL),
     CONSTRAINT FK_Dispute_Match      FOREIGN KEY (MatchID)             REFERENCES dbo.Match(MatchID),
     CONSTRAINT FK_Dispute_Flagger    FOREIGN KEY (FlaggedByAccountID)  REFERENCES dbo.Account(AccountID),
     CONSTRAINT FK_Dispute_Resolver   FOREIGN KEY (ResolvedByAccountID) REFERENCES dbo.Account(AccountID)
@@ -890,11 +970,12 @@ CREATE INDEX IX_Attachment_Owner ON dbo.Attachment(OwnerType, OwnerID);
 GO
 
 /*===============================================================================
-  MODULE H - NỀN TẢNG                 UC-36, UC-38, UC-40, UC-41, UC-43, UC-46
+  MODULE H - NỀN TẢNG                 UC-13, UC-36, UC-38, UC-40, UC-41, UC-43, UC-46
 ===============================================================================*/
 
 /* Notification - UC-40 thông báo in-app, UC-41 email theo sự kiện và nhắc check-in.
-   Nội dung mẫu nằm ở tầng ứng dụng nên KHÔNG cần bảng NotificationTemplate.
+   Nội dung mẫu của từng loại thông báo nằm ở ContentItem (Kind = TEMPLATE) để quản
+   trị viên sửa được trên màn hình (UC-43, NOT-04).
    Bật/tắt theo kênh đọc từ Account.NotifyInApp và Account.NotifyEmail. */
 CREATE TABLE dbo.Notification
 (
@@ -929,6 +1010,58 @@ CREATE TABLE dbo.TournamentFollow
     CONSTRAINT FK_TournamentFollow_Acc   FOREIGN KEY (AccountID)    REFERENCES dbo.Account(AccountID),
     CONSTRAINT FK_TournamentFollow_Tour  FOREIGN KEY (TournamentID) REFERENCES dbo.Tournament(TournamentID)
 );
+GO
+
+/* ContentItem - nội dung người quản lý soạn ra để người khác đọc. Gộp HAI loại cùng
+   một hình dạng (tiêu đề + nội dung + người soạn) như PaymentRecord gộp minh chứng
+   và hoàn tiền, thay cho hai bảng News và NotificationTemplate:
+     NEWS     - tin tức của một giải, hoặc của cả nền tảng khi TournamentID = NULL
+                (UC-13 ban tổ chức đăng tin, UC-36 khách đọc tin, UC-43 quản trị viên
+                ghim một tin lên banner trang chủ).
+     TEMPLATE - mẫu nội dung cho một loại thông báo (UC-43, NOT-04); Title là tiêu đề
+                thư, Body chứa các biến của sự kiện.
+   Tin tức không đặt trong Notification được: Notification là thư gửi cho TỪNG người,
+   còn tin tức là trang công khai mà khách chưa có tài khoản cũng đọc. */
+CREATE TABLE dbo.ContentItem
+(
+    ContentItemID    INT IDENTITY(1,1) NOT NULL,
+    Kind             VARCHAR(20)       NOT NULL,
+    TournamentID     INT               NULL,
+    NotificationType VARCHAR(30)       NULL,
+    Title            NVARCHAR(200)     NOT NULL,
+    Body             NVARCHAR(MAX)     NOT NULL,
+    Status           VARCHAR(20)       NOT NULL CONSTRAINT DF_ContentItem_Status DEFAULT 'DRAFT',
+    IsPinned         BIT               NOT NULL CONSTRAINT DF_ContentItem_Pin    DEFAULT 0,
+    AuthorAccountID  INT               NOT NULL,
+    PublishedAt      DATETIME2(0)      NULL,
+    UpdatedAt        DATETIME2(0)      NOT NULL CONSTRAINT DF_ContentItem_At     DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_ContentItem          PRIMARY KEY (ContentItemID),
+    CONSTRAINT CK_ContentItem_Kind     CHECK (Kind   IN ('NEWS','TEMPLATE')),
+    CONSTRAINT CK_ContentItem_Status   CHECK (Status IN ('DRAFT','PUBLISHED','HIDDEN')),
+    CONSTRAINT CK_ContentItem_NotiType CHECK (NotificationType IS NULL
+                                           OR NotificationType IN ('REGISTRATION','CHECKIN_REMINDER','MATCH_RESULT','DISPUTE','PENALTY','NEWS','SYSTEM')),
+    -- Hình dạng theo loại: mẫu thông báo phải nói cho loại sự kiện nào, không thuộc giải
+    -- nào và không được ghim; tin tức thì không mang loại sự kiện.
+    CONSTRAINT CK_ContentItem_Shape    CHECK ((Kind = 'NEWS'     AND NotificationType IS NULL)
+                                           OR (Kind = 'TEMPLATE' AND NotificationType IS NOT NULL
+                                               AND TournamentID IS NULL AND IsPinned = 0)),
+    -- Tin đã đăng phải có thời điểm đăng.
+    CONSTRAINT CK_ContentItem_Publish  CHECK (Kind <> 'NEWS' OR Status <> 'PUBLISHED' OR PublishedAt IS NOT NULL),
+    -- Chỉ ghim được tin đã đăng (UC-43).
+    CONSTRAINT CK_ContentItem_PinShow  CHECK (IsPinned = 0 OR (Kind = 'NEWS' AND Status = 'PUBLISHED')),
+    CONSTRAINT FK_ContentItem_Tour     FOREIGN KEY (TournamentID)    REFERENCES dbo.Tournament(TournamentID),
+    CONSTRAINT FK_ContentItem_Author   FOREIGN KEY (AuthorAccountID) REFERENCES dbo.Account(AccountID)
+);
+GO
+
+/* Banner trang chủ hiện MỘT tin ghim tại một thời điểm (UC-43): ghim tin mới thì
+   phải bỏ ghim tin cũ trước. */
+CREATE UNIQUE INDEX UX_ContentItem_Pinned
+    ON dbo.ContentItem(IsPinned) WHERE IsPinned = 1;
+/* Mỗi loại thông báo có đúng một mẫu. */
+CREATE UNIQUE INDEX UX_ContentItem_Template
+    ON dbo.ContentItem(NotificationType) WHERE Kind = 'TEMPLATE';
+CREATE INDEX IX_ContentItem_Tour ON dbo.ContentItem(TournamentID, Status);
 GO
 
 /* Livestream - UC-46. Ban tổ chức thêm / sửa / xóa link phát và gán vào từng trận.
@@ -975,8 +1108,13 @@ CREATE TABLE dbo.AuditLog
     Reason         NVARCHAR(1000)       NULL,
     CreatedAt      DATETIME2(0)         NOT NULL CONSTRAINT DF_AuditLog_At DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_AuditLog         PRIMARY KEY (AuditLogID),
+    -- v2.1 thêm 7 loại mà các UC yêu cầu ghi nhật ký: LOCK_BRACKET (UC-16),
+    -- WALKOVER (UC-23), AUTO_VERIFY (UC-28), ISSUE_PENALTY / CANCEL_PENALTY (UC-34),
+    -- PROMOTE_WAITLIST (UC-10, BR-REG-06), APPEAL_DECISION (UC-33).
     CONSTRAINT CK_AuditLog_Action  CHECK (ActionType IN ('FORCE_UPDATE','REMATCH','MANUAL_CHECKIN','DISQUALIFY','BAN','UNBAN',
-                                                         'APPROVE','REJECT','RULEBOOK_EDIT','CANCEL_TOURNAMENT','GRANT_ORGANIZER')),
+                                                         'APPROVE','REJECT','RULEBOOK_EDIT','CANCEL_TOURNAMENT','GRANT_ORGANIZER',
+                                                         'LOCK_BRACKET','WALKOVER','AUTO_VERIFY','ISSUE_PENALTY','CANCEL_PENALTY',
+                                                         'PROMOTE_WAITLIST','APPEAL_DECISION')),
     CONSTRAINT FK_AuditLog_Actor   FOREIGN KEY (ActorAccountID) REFERENCES dbo.Account(AccountID),
     CONSTRAINT FK_AuditLog_Tour    FOREIGN KEY (TournamentID)   REFERENCES dbo.Tournament(TournamentID)
 );
@@ -1098,7 +1236,7 @@ SELECT 'Account' AS Bang, COUNT(*) AS SoDong FROM dbo.Account
 UNION ALL SELECT 'Game', COUNT(*) FROM dbo.Game;
 GO
 
-PRINT N'Đã tạo xong database ETOMS (v2, 25 bảng).';
+PRINT N'Đã tạo xong database ETOMS (v2.1, 27 bảng).';
 GO
 
 SET NOEXEC OFF;

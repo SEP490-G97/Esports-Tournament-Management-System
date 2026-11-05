@@ -1,13 +1,16 @@
 /*===============================================================================
-  ETOMS - Kiem thu rang buoc nghiep vu cua luoc do v2 (25 bang)
+  ETOMS - Kiem thu rang buoc nghiep vu cua luoc do v2.1 (27 bang)
   SEP490_G97
 
   Script CHEN du lieu thu roi co tinh vi pham tung quy tac nghiep vu, de chung
   minh rang chinh CO SO DU LIEU chan duoc, khong phai tang ung dung chan.
 
-  CHAY LAI BAO NHIEU LAN CUNG DUOC: dau file tu don du lieu thu cua lan truoc.
+  CHAY LAI BAO NHIEU LAN CUNG DUOC, KE CA TREN DATABASE DANG CO DU LIEU CUA NHOM:
+  toan bo phep thu chay trong MOT transaction va luon ROLLBACK o cuoi, nen khong de
+  lai dong nao va KHONG BAO GIO xoa du lieu cua nguoi khac. Du lieu thu dung ten
+  rieng (@kiemthu.local, doi KTA/KTB, "Giai kiem thu rang buoc") de khong trung.
 
-  TRONG SSMS: chon database ETOMS roi bam F5. Phai ra "Dat: 12 / 12".
+  TRONG SSMS: chon database ETOMS roi bam F5. Phai ra "Dat: 22 / 22".
 
   BANG sqlcmd (bat buoc -f 65001, thieu la dau tieng Viet hong):
     sqlcmd -S .\SQLEXPRESS -E -d ETOMS -f 65001 -i ETOMS_Database_Test.sql
@@ -20,66 +23,52 @@ SET NOCOUNT ON;
 GO
 
 /*-------------------------------------------------------------------------------
-  DỌN DỮ LIỆU THỬ CỦA LẦN CHẠY TRƯỚC.
-  Nhờ bước này mà file chạy lại được nhiều lần mà không cần tạo lại database.
-  Xóa theo thứ tự ngược, và CHỈ xóa đúng những dòng do chính script này tạo ra
-  (nhận ra qua email @test.local, tag đội AAA/BBB, tên giải có chữ "thử").
+  KHÔNG có bước xóa dữ liệu: mọi phép thử nằm trong MỘT transaction và cuối file
+  luôn ROLLBACK. Database sau khi chạy y như trước khi chạy, kể cả khi nhóm đang
+  dùng nó để demo. ID của dữ liệu thử lấy bằng SCOPE_IDENTITY() nên không lẫn với
+  dòng có sẵn.
 -------------------------------------------------------------------------------*/
-DELETE p FROM dbo.Penalty p
-  JOIN dbo.Tournament t ON t.TournamentID = p.TournamentID WHERE t.Name LIKE N'%thử nghiệm v2%';
-DELETE d FROM dbo.Dispute d
-  JOIN dbo.Match m ON m.MatchID = d.MatchID
-  JOIN dbo.Tournament t ON t.TournamentID = m.TournamentID WHERE t.Name LIKE N'%thử nghiệm v2%';
-DELETE r FROM dbo.MatchReport r
-  JOIN dbo.Match m ON m.MatchID = r.MatchID
-  JOIN dbo.Tournament t ON t.TournamentID = m.TournamentID WHERE t.Name LIKE N'%thử nghiệm v2%';
-DELETE m FROM dbo.Match m
-  JOIN dbo.Tournament t ON t.TournamentID = m.TournamentID WHERE t.Name LIKE N'%thử nghiệm v2%';
-DELETE n FROM dbo.BracketNode n
-  JOIN dbo.Tournament t ON t.TournamentID = n.TournamentID WHERE t.Name LIKE N'%thử nghiệm v2%';
-DELETE FROM dbo.Tournament WHERE Name LIKE N'%thử nghiệm v2%' OR Name = N'Giải mốc sai';
-DELETE tm FROM dbo.TeamMember tm JOIN dbo.Team t ON t.TeamID = tm.TeamID WHERE t.Tag IN (N'AAA', N'BBB');
-DELETE FROM dbo.Team WHERE Tag IN (N'AAA', N'BBB');
-DELETE FROM dbo.Account WHERE Email IN (N'cap1@test.local', N'cap2@test.local', N'btc@test.local');
-PRINT N'--- Đã dọn dữ liệu thử của lần chạy trước ---';
-GO
-
 DECLARE @ok INT = 0, @fail INT = 0;
 DECLARE @gLol INT = (SELECT GameID FROM dbo.Game WHERE ShortCode = 'LOL');
 DECLARE @gVal INT = (SELECT GameID FROM dbo.Game WHERE ShortCode = 'VAL');
 DECLARE @adm  INT = (SELECT AccountID FROM dbo.Account WHERE Email = N'admin@etoms.local');
+DECLARE @uA INT, @uB INT, @uO INT, @tA INT, @tB INT, @tour INT, @node INT, @m INT;
 
-/* du lieu nen */
-INSERT INTO dbo.Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt) VALUES
- (N'cap1@test.local', 'x', N'Đội trưởng A', 'PLAYER', 'ACTIVE', SYSUTCDATETIME()),
- (N'cap2@test.local', 'x', N'Đội trưởng B', 'PLAYER', 'ACTIVE', SYSUTCDATETIME()),
- (N'btc@test.local',  'x', N'Ban tổ chức',  'ORGANIZER', 'ACTIVE', SYSUTCDATETIME());
-DECLARE @uA INT = (SELECT AccountID FROM dbo.Account WHERE Email = N'cap1@test.local');
-DECLARE @uB INT = (SELECT AccountID FROM dbo.Account WHERE Email = N'cap2@test.local');
-DECLARE @uO INT = (SELECT AccountID FROM dbo.Account WHERE Email = N'btc@test.local');
+BEGIN TRANSACTION;
 
-INSERT INTO dbo.Team (GameID, CaptainAccountID, Name, Tag) VALUES
- (@gLol, @uA, N'Đội Thử A', N'AAA'), (@gLol, @uB, N'Đội Thử B', N'BBB');
-DECLARE @tA INT = (SELECT TeamID FROM dbo.Team WHERE Tag = N'AAA');
-DECLARE @tB INT = (SELECT TeamID FROM dbo.Team WHERE Tag = N'BBB');
+/* du lieu nen - ten rieng, khong trung du lieu cua nhom */
+INSERT INTO dbo.Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt)
+VALUES (N'kt.cap1@kiemthu.local', 'x', N'Đội trưởng A', 'PLAYER', 'ACTIVE', SYSUTCDATETIME());
+SET @uA = SCOPE_IDENTITY();
+INSERT INTO dbo.Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt)
+VALUES (N'kt.cap2@kiemthu.local', 'x', N'Đội trưởng B', 'PLAYER', 'ACTIVE', SYSUTCDATETIME());
+SET @uB = SCOPE_IDENTITY();
+INSERT INTO dbo.Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt)
+VALUES (N'kt.btc@kiemthu.local', 'x', N'Ban tổ chức', 'ORGANIZER', 'ACTIVE', SYSUTCDATETIME());
+SET @uO = SCOPE_IDENTITY();
+
+INSERT INTO dbo.Team (GameID, CaptainAccountID, Name, Tag) VALUES (@gLol, @uA, N'Đội kiểm thử A', N'KTA');
+SET @tA = SCOPE_IDENTITY();
+INSERT INTO dbo.Team (GameID, CaptainAccountID, Name, Tag) VALUES (@gLol, @uB, N'Đội kiểm thử B', N'KTB');
+SET @tB = SCOPE_IDENTITY();
 
 INSERT INTO dbo.TeamMember (TeamID, GameID, AccountID, Direction, Status, JoinedAt)
 VALUES (@tA, @gLol, @uA, 'JOIN_BY_CODE', 'ACTIVE', SYSUTCDATETIME());
 
 INSERT INTO dbo.Tournament (GameID, OrganizerAccountID, Name, Format, MaxTeams, StarterCount,
     MaxSubstitutes, RegOpenAt, RegCloseAt, StartAt, PenaltyThreshold, Status)
-VALUES (@gLol, @uO, N'Giải thử nghiệm v2', 'SINGLE_ELIMINATION', 8, 5, 3,
+VALUES (@gLol, @uO, N'Giải kiểm thử ràng buộc', 'SINGLE_ELIMINATION', 8, 5, 3,
     '2026-11-01', '2026-11-10', '2026-11-15', 3, 'PUBLISHED');
-DECLARE @tour INT = (SELECT TournamentID FROM dbo.Tournament WHERE Name = N'Giải thử nghiệm v2');
+SET @tour = SCOPE_IDENTITY();
 
 INSERT INTO dbo.BracketNode (TournamentID, StageType, NodeType, RoundNo, PositionInRound, Status)
 VALUES (@tour, 'KNOCKOUT', 'MATCH_SLOT', 1, 1, 'LOCKED');
-DECLARE @node INT = (SELECT TOP 1 BracketNodeID FROM dbo.BracketNode WHERE TournamentID = @tour);
+SET @node = SCOPE_IDENTITY();
 
 INSERT INTO dbo.Match (TournamentID, BracketNodeID, TeamAID, TeamBID, BestOf, Status)
 VALUES (@tour, @node, @tA, @tB, 3, 'WAITING_REPORT');
-DECLARE @m INT = (SELECT TOP 1 MatchID FROM dbo.Match WHERE TournamentID = @tour);
-PRINT N'--- Đã dựng xong dữ liệu nền ---';
+SET @m = SCOPE_IDENTITY();
+PRINT N'--- Đã dựng xong dữ liệu nền (trong transaction) ---';
 
 -- 1. Mốc thời gian sai thứ tự phải bị chặn
 BEGIN TRY
@@ -161,11 +150,100 @@ BEGIN TRY
 END TRY BEGIN CATCH PRINT N'OK 11. Da chan: check-in thu cong ma khong co ly do'; SET @ok += 1; END CATCH
 
 -- 12. Dấu tiếng Việt lưu đúng
-IF (SELECT FullName FROM dbo.Account WHERE Email = N'cap1@test.local') = N'Đội trưởng A'
+IF (SELECT FullName FROM dbo.Account WHERE Email = N'kt.cap1@kiemthu.local') = N'Đội trưởng A'
 BEGIN PRINT N'OK 12. Dau tieng Viet luu dung trong database'; SET @ok += 1; END
 ELSE BEGIN PRINT N'12. Dau tieng Viet bi hong'; SET @fail += 1; END
 
+/*-------------------------------------------------------------------------------
+  v2.1 (31/10/2026) - cac luat moi theo Report 3 da chot 46 UC
+-------------------------------------------------------------------------------*/
+
+-- 13. Khóa tài khoản KHÔNG cần lý do phải ĐƯỢC PHÉP (UC-43, BR-AUTH-05)
+BEGIN TRY
+    UPDATE dbo.Account SET Status = 'BANNED', BanReason = NULL WHERE AccountID = @uB;
+    UPDATE dbo.Account SET Status = 'ACTIVE' WHERE AccountID = @uB;
+    PRINT N'OK 13. Khoa tai khoan khong can ly do: duoc phep'; SET @ok += 1;
+END TRY BEGIN CATCH PRINT N'13. SAI: van bat ly do khi khoa tai khoan'; SET @fail += 1; END CATCH
+
+-- 14. Yêu cầu quyền Organizer mà không có thời điểm gửi phải bị chặn (UC-43)
+BEGIN TRY
+    UPDATE dbo.Account SET OrganizerRequestStatus = 'PENDING', OrganizerRequestedAt = NULL WHERE AccountID = @uA;
+    PRINT N'14. KHONG chan duoc: yeu cau Organizer khong co thoi diem'; SET @fail += 1;
+END TRY BEGIN CATCH PRINT N'OK 14. Da chan: yeu cau Organizer khong co thoi diem gui'; SET @ok += 1; END CATCH
+
+-- 15. Giải loại trực tiếp mà khai số bảng phải bị chặn (BR-BRK-05)
+BEGIN TRY
+    UPDATE dbo.Tournament SET GroupCount = 2 WHERE TournamentID = @tour;
+    PRINT N'15. KHONG chan duoc: giai loai truc tiep khai so bang'; SET @fail += 1;
+END TRY BEGIN CATCH PRINT N'OK 15. Da chan: giai loai truc tiep khai so bang'; SET @ok += 1; END CATCH
+
+-- 16. Giải HYBRID đã công bố mà chưa khai số đội đi tiếp phải bị chặn (BR-BRK-05)
+BEGIN TRY
+    INSERT INTO dbo.Tournament (GameID, OrganizerAccountID, Name, Format, GroupCount, AdvancePerGroup,
+        MaxTeams, StarterCount, MaxSubstitutes, RegOpenAt, RegCloseAt, StartAt, Status)
+    VALUES (@gLol, @uO, N'Giải thử nghiệm v2 hybrid', 'HYBRID', 2, NULL, 8, 5, 3,
+        '2026-11-01', '2026-11-10', '2026-11-15', 'PUBLISHED');
+    PRINT N'16. KHONG chan duoc: HYBRID cong bo ma thieu so doi di tiep'; SET @fail += 1;
+END TRY BEGIN CATCH PRINT N'OK 16. Da chan: HYBRID cong bo ma thieu so doi di tiep'; SET @ok += 1; END CATCH
+
+-- 17. Khóa nhánh mà không ghi ai khóa phải bị chặn (BR-BRK-04)
+BEGIN TRY
+    UPDATE dbo.Tournament SET BracketLockedAt = SYSUTCDATETIME(), BracketLockedByAccountID = NULL WHERE TournamentID = @tour;
+    PRINT N'17. KHONG chan duoc: khoa nhanh khong ghi nguoi khoa'; SET @fail += 1;
+END TRY BEGIN CATCH PRINT N'OK 17. Da chan: khoa nhanh ma khong ghi nguoi khoa'; SET @ok += 1; END CATCH
+
+-- 18. Bác khiếu nại mà không viết lý do phải bị chặn (BR-RES-09)
+BEGIN TRY
+    UPDATE dbo.Dispute SET AppealStatus = 'REJECTED', AppealOutcomeNote = NULL WHERE DisputeID = @d;
+    PRINT N'18. KHONG chan duoc: bac khieu nai khong ly do'; SET @fail += 1;
+END TRY BEGIN CATCH PRINT N'OK 18. Da chan: bac khieu nai ma khong viet ly do'; SET @ok += 1; END CATCH
+
+-- 19. Ghim hai tin lên banner cùng lúc phải bị chặn (UC-43)
+-- (trong transaction: tam bo ghim tin dang ghim cua nhom de phep thu chinh xac; ROLLBACK se tra lai)
+UPDATE dbo.ContentItem SET IsPinned = 0 WHERE IsPinned = 1;
+INSERT INTO dbo.ContentItem (Kind, TournamentID, Title, Body, Status, IsPinned, AuthorAccountID, PublishedAt)
+VALUES ('NEWS', @tour, N'Tin thử nghiệm v2 số 1', N'Nội dung', 'PUBLISHED', 1, @uO, SYSUTCDATETIME());
+BEGIN TRY
+    INSERT INTO dbo.ContentItem (Kind, TournamentID, Title, Body, Status, IsPinned, AuthorAccountID, PublishedAt)
+    VALUES ('NEWS', @tour, N'Tin thử nghiệm v2 số 2', N'Nội dung', 'PUBLISHED', 1, @uO, SYSUTCDATETIME());
+    PRINT N'19. KHONG chan duoc: ghim hai tin cung luc'; SET @fail += 1;
+END TRY BEGIN CATCH PRINT N'OK 19. Da chan: ghim hai tin len banner cung luc'; SET @ok += 1; END CATCH
+
+-- 20. Hai mẫu cho cùng một loại thông báo phải bị chặn (UC-43, NOT-04)
+-- (trong transaction: tam bo mau PENALTY co san; ROLLBACK se tra lai)
+DELETE FROM dbo.ContentItem WHERE Kind = 'TEMPLATE' AND NotificationType = 'PENALTY';
+INSERT INTO dbo.ContentItem (Kind, NotificationType, Title, Body, AuthorAccountID)
+VALUES ('TEMPLATE', 'PENALTY', N'Mẫu thử nghiệm v2', N'Đội {team} nhận {points} điểm phạt.', @adm);
+BEGIN TRY
+    INSERT INTO dbo.ContentItem (Kind, NotificationType, Title, Body, AuthorAccountID)
+    VALUES ('TEMPLATE', 'PENALTY', N'Mẫu thử nghiệm v2 trùng', N'Nội dung', @adm);
+    PRINT N'20. KHONG chan duoc: hai mau cho mot loai thong bao'; SET @fail += 1;
+END TRY BEGIN CATCH PRINT N'OK 20. Da chan: hai mau cho cung mot loai thong bao'; SET @ok += 1; END CATCH
+
+-- 21. Hai link cộng tác viên trùng mã phải bị chặn (UC-42)
+INSERT INTO dbo.PromotionLink (TournamentID, Code, Label, CreatedByAccountID)
+VALUES (@tour, 'KTRB01', N'Cộng tác viên A', @uO);
+BEGIN TRY
+    INSERT INTO dbo.PromotionLink (TournamentID, Code, Label, CreatedByAccountID)
+    VALUES (@tour, 'KTRB01', N'Cộng tác viên B', @uO);
+    PRINT N'21. KHONG chan duoc: hai link trung ma'; SET @fail += 1;
+END TRY BEGIN CATCH PRINT N'OK 21. Da chan: hai link cong tac vien trung ma'; SET @ok += 1; END CATCH
+
+-- 22. Giấy tờ định danh là MỘT loại chung, không còn loại thẻ sinh viên riêng (UC-08)
+BEGIN TRY
+    INSERT INTO dbo.PlayerCredential (AccountID, CredentialType, FileUrl)
+    VALUES (@uA, 'IDENTITY_DOCUMENT', N'/uploads/test/giay-to.png');
+    BEGIN TRY
+        INSERT INTO dbo.PlayerCredential (AccountID, CredentialType, FileUrl)
+        VALUES (@uA, 'STUDENT_CARD', N'/uploads/test/the-sv.png');
+        PRINT N'22. SAI: van nhan loai STUDENT_CARD'; SET @fail += 1;
+    END TRY BEGIN CATCH PRINT N'OK 22. Giay to dinh danh dung mot loai chung, STUDENT_CARD bi chan'; SET @ok += 1; END CATCH
+END TRY BEGIN CATCH PRINT N'22. SAI: khong nhan duoc IDENTITY_DOCUMENT'; SET @fail += 1; END CATCH
+
 PRINT N'================= TONG KET =================';
-PRINT N'Dat:       ' + CAST(@ok   AS NVARCHAR(10)) + N' / 12';
+PRINT N'Dat:       ' + CAST(@ok   AS NVARCHAR(10)) + N' / 22';
 PRINT N'Khong dat: ' + CAST(@fail AS NVARCHAR(10));
+
+ROLLBACK TRANSACTION;
+PRINT N'--- Da ROLLBACK: database tro ve y nhu truoc khi chay ---';
 GO

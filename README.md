@@ -1,85 +1,160 @@
-# Esports Tournament Management System (ETOMS)
+# ETOMS — Esports Tournament Management System (SEP490_G97)
 
-Đồ án SEP490 — Nhóm G97. ASP.NET Core MVC + Web API, EF Core, SignalR, Bootstrap 5, SQL Server.
-
-Cấu trúc theo kiểu **1 project chia tầng bằng folder** (giống đồ án môn PRN/Cinema nhóm từng làm) — Clean Architecture nhẹ: Domain → Application → Infrastructure, cộng lớp giao diện (Controllers + Views).
+Hệ thống quản lý giải đấu thể thao điện tử. Capstone FPT University, nhóm SEP490_G97.
+Repo GitHub: `SEP490-G97/Esports-Tournament-Management-System`.
 
 ## Cấu trúc thư mục
 
 ```
-ETOMS/                          ← repo (nhánh master dùng chung)
-├── ETOMS.sln
-├── database/                   ← script SQL (ETOMS_Database.sql, ETOMS_Database_Test.sql)
-└── ETOMS/                      ← 1 project duy nhất
-    ├── Application/            TẦNG NGHIỆP VỤ
-    │   ├── Common/             Result, PagedResult, hằng số dùng chung
-    │   ├── DTOs/               lớp dữ liệu trả ra API (chỉ field cần)
-    │   ├── Interfaces/         interface của Service + Repository
-    │   ├── Services/           cài đặt nghiệp vụ
-    │   └── Mappings/           AutoMapper Profile (map Entity ↔ DTO)
-    ├── Domain/                 TẦNG LÕI
-    │   ├── Entities/           entity (sẽ scaffold từ DB)
-    │   └── Enums/              enum nghiệp vụ
-    ├── Infrastructure/         TẦNG DỮ LIỆU
-    │   ├── Data/               EtomsDbContext
-    │   └── Repositories/       GenericRepository, UnitOfWork
-    ├── Controllers/            nhận request (API [Route("api/...")] + MVC trả View)
-    ├── Views/                  giao diện Razor (.cshtml)
-    ├── Hubs/                   SignalR (thông báo, tỉ số trực tiếp)
-    ├── wwwroot/                css, js, Bootstrap 5
-    └── Program.cs
+ETOMS_1/
+├── ETOMS_API/                   project Web API (ASP.NET Core, net10.0)
+│   ├── Controllers/              Controller API (JSON), mỗi file 1 module/resource
+│   ├── DTOs/                     request/response DTO, chia theo thư mục con từng module
+│   ├── Exceptions/                exception tự định nghĩa cho lỗi hạ tầng (xem luật bên dưới)
+│   ├── Hubs/                      SignalR Hub (tỉ số trực tiếp, thông báo)
+│   ├── Models/                    entity scaffold database-first từ ETOMS_Database.sql
+│   ├── Repositories/
+│   │   ├── Interface/             IGenericRepository<T>, IUnitOfWork
+│   │   └── Impl/                  GenericRepository<T>, UnitOfWork
+│   ├── Services/
+│   │   ├── Interface/             IXxxService — 1 interface / module nghiệp vụ
+│   │   └── Impl/                  XxxService — implementation
+│   ├── Utils/                     Result/Result<T>/PagedResult<T>, upload file, format...
+│   ├── Program.cs
+│   ├── appsettings.json           KHÔNG chứa chuỗi kết nối thật
+│   └── Properties/launchSettings.json
+└── ui/                            frontend (chưa code)
 ```
 
-## Luồng chuẩn khi code 1 chức năng
+### Pattern: Generic Repository + Unit of Work
 
-```
-Controller  →  IService → Service  →  IUnitOfWork/Repository  →  Entity (DB)
-    ↑ trả DTO       ↑ AutoMapper map Entity→DTO
-```
-
-1. Tạo **DTO** trong `Application/DTOs/` — chỉ field client cần.
-2. Tạo **Mapping Profile** trong `Application/Mappings/` (`CreateMap<Entity, Dto>()`).
-3. Tạo **interface** `IXxxService` trong `Application/Interfaces/`.
-4. Tạo **Service** trong `Application/Services/` (inject `IUnitOfWork`, lấy entity, map sang DTO).
-5. Đăng ký service trong `Program.cs`: `builder.Services.AddScoped<IXxxService, XxxService>();`
-6. Tạo **Controller** trong `Controllers/` (gọi service, trả DTO).
-
-Xem bộ mẫu `Sample*` (SampleItem, SampleItemDto, SampleMappingProfile, SampleService,
-SampleController) để hiểu luồng. Chạy app → `/swagger` test thử. Quen rồi thì xóa các file `Sample*`.
-
-## Quy tắc
-
-- **Không trả thẳng Entity ra API** — luôn map sang DTO. Cần gì lấy đó, không xổ full.
-- **Controller mỏng** — chỉ gọi Service, không chứa nghiệp vụ, không đụng DbContext.
-
-## Chạy dự án
-
-```bash
-dotnet run --project ETOMS
-```
-
-- Giao diện: `https://localhost:<port>/`
-- Swagger (test API): `https://localhost:<port>/swagger`
-
-## Cấu hình database
-
-Chuỗi kết nối thật đặt trong `ETOMS/appsettings.Development.json` (**không commit**):
-
-```json
+```csharp
+public interface IGenericRepository<T> where T : class
 {
-  "ConnectionStrings": {
-    "EtomsDb": "Server=.\\SQLEXPRESS;Database=ETOMS;Trusted_Connection=True;TrustServerCertificate=True"
-  }
+    IEnumerable<T> GetAll();
+    T GetById(object id);
+    void Add(T entity);
+    void Update(T entity);
+    void Delete(T entity);
+    void Save();
+}
+
+public interface IUnitOfWork : IDisposable
+{
+    IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class;
+    Task<int> SaveChangesAsync();
 }
 ```
 
-Sinh entity từ database đã có (database-first — không dùng migrations để đổi lược đồ):
+`Controller → Service → IUnitOfWork.Repository<TEntity>() → DbContext → DB`. Service
+không inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`.
 
-```bash
-dotnet ef dbcontext scaffold "Name=ConnectionStrings:EtomsDb" Microsoft.EntityFrameworkCore.SqlServer -o Domain/Entities --context EtomsDbContext --context-dir Infrastructure/Data
-```
+## Luật để code — áp dụng cho TOÀN BỘ dự án ETOMS (rút từ `CLAUDE.md`)
 
-## Nhánh git
+1. **LI-01 — KHÔNG tích hợp API nhà phát hành game.** Tỉ số chỉ vào hệ thống qua
+   báo cáo mù hai chiều (`MatchReport`) hoặc phán quyết VAR (`Dispute`). Không viết
+   client gọi Riot/Garena/bất kỳ game publisher nào.
+2. **LI-02 — KHÔNG tích hợp cổng thanh toán.** Không bảng giao dịch, không cột số dư.
+   Chỉ lưu minh chứng thanh toán (`PaymentRecord`). Không gọi VNPay/Momo/Stripe...
+3. **Không tự nghĩ ra chức năng.** Mọi API/Controller/Service phải truy được về catalogue
+   144 chức năng (`ChucNangcuaGiaDau.xlsx`) hoặc Report 3. Thiếu thì hỏi người phụ
+   trách, đừng tự chế thêm endpoint.
+4. **Ngôn ngữ:** dữ liệu/chuỗi trả về cho người dùng (message lỗi, label...) phải
+   **100% tiếng Việt có dấu**. Tên class/property/route/biến trong code: tiếng Anh.
+5. **Database: SQL Server, database-first.** Không dùng `dotnet ef migrations add` để
+   tạo/đổi schema — sửa schema thì sửa file `ETOMS_Database.sql` rồi scaffold lại
+   entity. Lược đồ có CHECK constraint + unique index có điều kiện là tầng cưỡng chế
+   nghiệp vụ thật sự — đừng xóa khi EF scaffold báo khó, sai là ở code.
+6. **Phân công module** (ai đụng module nào hỏi người đó trước khi đổi logic chung):
 
-- `master` — nhánh code chung, mọi người clone về từ đây.
-- Mỗi chức năng tạo nhánh `feature/<ten>`, xong tạo Pull Request vào `master`.
+   | Thành viên | Module |
+   |---|---|
+   | Cấn Việt Hùng (Leader) | MKT, ORG, PRF, REG, RNK |
+   | Nguyễn Tiến Dũng | BRK-01..07, RES, TEAM |
+   | Nguyễn Quang Anh | FA, LIVE, MAT-08..13, PEN, SPN, TOUR-01..07 |
+   | Nguyễn Duy Khánh | BRK-08..13, GRL, ITG-07..11, POR, TOUR-08..14 |
+   | Vũ Đức Hải | ADM, AUTH, ITG-01..06, MAT-01..07, NOT |
+
+7. **Git:** không commit `appsettings.Development.json` hay bất kỳ chuỗi kết nối thật
+   nào — đã nằm trong `.gitignore`.
+
+## Luật code theo từng thư mục
+
+Nguyên tắc chung: **Controller không chứa logic nghiệp vụ, Service không biết gì về
+HTTP, Repository không biết gì về nghiệp vụ.**
+
+### `Controllers/`
+- Mỗi Controller ứng với **1 module/resource**, route `[Route("api/<ten-so-nhieu>")]`
+  (vd `api/teams`, `api/registrations`, `api/tournaments/{tournamentId}/bracket`).
+- Kế thừa 1 base class chung (`ApiControllerBase : ControllerBase`, có `[ApiController]`)
+  để chuẩn hoá response:
+  ```csharp
+  protected IActionResult FromResult(Result r)
+      => r.IsSuccess ? Ok(new { message = r.Message }) : BadRequest(new { message = r.Message, fieldErrors = r.FieldErrors });
+  protected IActionResult FromResult<T>(Result<T> r)
+      => r.IsSuccess ? Ok(new { message = r.Message, data = r.Data }) : BadRequest(new { message = r.Message, fieldErrors = r.FieldErrors });
+  ```
+- Action **chỉ làm 3 việc**: đọc input → gọi đúng 1 method của Service → chuyển
+  `Result`/`Result<T>` thành `IActionResult`. Không query DB, không if/else nghiệp vụ
+  trong Controller.
+- Thứ tự kiểm tra bắt buộc trong mọi action cần quyền: **tồn tại trước (404) rồi mới
+  tới quyền (403)**. Dùng `bool?` cho hàm check quyền để phân biệt "không tồn tại"
+  (`null`) và "tồn tại nhưng không có quyền" (`false`).
+- Không dùng `[ValidateAntiForgeryToken]` (frontend gọi `fetch`, không có token) —
+  bảo vệ CSRF bằng cookie session `SameSite=Strict` ở `Program.cs`.
+
+### `DTOs/`
+- Tách theo module con, mỗi module 1 thư mục con (`DTOs/Team/`, `DTOs/Registration/`...)
+  — không gom hết vào 1 file lớn.
+- Request DTO validate bằng DataAnnotations (`[Required]`, `[StringLength]`,
+  `[Range]`, `[EmailAddress]`...); lỗi nghiệp vụ sâu hơn (trùng tên, sai trạng thái...)
+  trả qua `Result.FieldFailure`.
+- Response DTO được phép có **property tính sẵn** (vd `StatusLabel`, `StatusClass`,
+  `RoleLabel` dịch tiếng Việt + gán class CSS) để FE không phải tính lại logic hiển thị.
+- **Không bao giờ trả thẳng Entity ra API** — luôn qua DTO.
+
+### `Exceptions/`
+- Dự án **ưu tiên `Result`/`Result<T>` thay vì exception** cho lỗi nghiệp vụ (xem
+  `Services/` bên dưới). Thư mục này chỉ dùng cho lỗi **hạ tầng/hệ thống thật sự** (mất
+  kết nối DB, timeout bên ngoài) mà `UseExceptionHandler` ở `Program.cs` bắt chung —
+  không dùng cho "sai dữ liệu", "trùng tên", "hết hạn"...
+
+### `Hubs/`
+- Mỗi Hub SignalR ứng 1 nhóm sự kiện real-time (vd `LiveScoreHub` — module LIVE,
+  `NotificationHub` — module NOT). Hub chỉ nhận kết nối + broadcast, **không chứa logic
+  nghiệp vụ** — Service xử lý xong rồi gọi `IHubContext<T>...SendAsync(...)`.
+
+### `Models/`
+- **Chỉ entity scaffold database-first** từ `ETOMS_Database.sql`:
+  ```bash
+  dotnet ef dbcontext scaffold "Server=.\SQLEXPRESS;Database=ETOMS;Trusted_Connection=True;TrustServerCertificate=True" \
+    Microsoft.EntityFrameworkCore.SqlServer -o Models -c EtomsDbContext --no-onconfiguring
+  ```
+  Không sửa tay property, không thêm property không có trong script SQL.
+- Đổi schema thì sửa `ETOMS_Database.sql` → tạo lại DB → scaffold lại, **không** dùng
+  `dotnet ef migrations add`.
+
+### `Repositories/Interface/` và `Repositories/Impl/`
+- **1 Generic Repository chung cho mọi entity** (`IGenericRepository<T>`) — không tạo
+  riêng `ITeamRepository`, `IGameRepository`... trừ khi thật sự cần query phức tạp.
+- `IUnitOfWork.Repository<TEntity>()` phát ra 1 `GenericRepository<TEntity>` dùng chung
+  1 `DbContext`/request, gom nhiều thay đổi rồi `SaveChangesAsync()` đúng 1 lần ở cuối.
+- `Interface/` chỉ chứa interface, `Impl/` chỉ chứa class implement.
+- Repository chỉ CRUD/query (`Query()`, `GetById`, `Any`, `Add`, `Update`, `Delete`) —
+  không chứa if/else nghiệp vụ.
+
+### `Services/Interface/` và `Services/Impl/`
+- **Toàn bộ business logic nằm ở đây.** Mỗi Service ứng 1 module (`ITeamService`/
+  `TeamService`...), method đặt tên theo hành vi nghiệp vụ (`CreateTeamAsync`,
+  `JoinByCodeAsync`, `ApproveMemberAsync`...), không đặt tên kiểu CRUD chung chung.
+- Method trả `Task<Result>` hoặc `Task<Result<T>>` — **không throw exception cho lỗi
+  nghiệp vụ**, dùng `Result.Failure("thông báo tiếng Việt")` hoặc
+  `Result.FieldFailure("TenField", "thông báo")`.
+- Truy DB qua `IUnitOfWork`/`IGenericRepository<T>` injected, **không** inject
+  `DbContext` thẳng vào Service.
+- Thông báo (`Result.Message`, lỗi field) **luôn tiếng Việt có dấu**.
+
+### `Utils/`
+- Chỉ helper thuần, **không phụ thuộc `DbContext`/`IUnitOfWork`**: upload file (kiểm
+  định dạng/dung lượng), format chuỗi/ngày tháng... `Result`/`Result<T>`/`PagedResult<T>`
+  cũng nằm ở đây vì là kiểu dữ liệu dùng chung, không phải nghiệp vụ của module nào.
