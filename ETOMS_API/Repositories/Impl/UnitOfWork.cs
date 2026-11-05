@@ -1,18 +1,15 @@
-using ETOMS_API.Models;
-using ETOMS_API.Repositories.Interface;
-
 namespace ETOMS_API.Repositories.Impl;
 
-public sealed class UnitOfWork : IUnitOfWork
+public sealed class UnitOfWork : ETOMS_API.Repositories.Interface.IUnitOfWork
 {
-    private readonly EtomsDbContext _dbContext;
+    private readonly ETOMS_API.HungModels.EtomsDbContext _dbContext;
 
-    public UnitOfWork(EtomsDbContext dbContext)
+    public UnitOfWork(ETOMS_API.HungModels.EtomsDbContext dbContext)
     {
         _dbContext = dbContext;
     }
 
-    public IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class
+    public ETOMS_API.Repositories.Interface.IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class
         => new GenericRepository<TEntity>(_dbContext.Set<TEntity>());
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

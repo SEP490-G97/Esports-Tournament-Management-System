@@ -1,14 +1,12 @@
 using ETOMS_API.Models;
-using ETOMS_API.Repositories.Impl;
-using ETOMS_API.Repositories.Interface;
-using ETOMS_API.Services.Impl;
-using ETOMS_API.Services.Interface;
-using ETOMS_API.Utils;
+using ETOMS_API.Repositories;
+using ETOMS_API.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("EtomsDatabase")
+    ?? builder.Configuration.GetConnectionString("EtomsDb")
     ?? builder.Configuration["ETOMS_DB_CONNECTION"];
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -18,21 +16,54 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromHours(4);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
+
 builder.Services.AddDbContext<EtomsDbContext>(options => options.UseSqlServer(connectionString));
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IProfileService, ProfileService>();
-builder.Services.AddScoped<IOrganizationService, OrganizationService>();
-builder.Services.AddSingleton<PrivateFileStorage>();
+builder.Services.AddDbContext<ETOMS_API.HungModels.EtomsDbContext>(
+    options => options.UseSqlServer(connectionString));
+
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<ETOMS_API.Repositories.IUnitOfWork, ETOMS_API.Repositories.UnitOfWork>();
+builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
+builder.Services.AddScoped<ETOMS_API.Services.Interface.IProfileService, ETOMS_API.Services.Impl.ProfileService>();
+builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ETOMS_API.Services.Impl.OrganizationService>();
+builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
+builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
+builder.Services.AddScoped<ITeamService, TeamService>();
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
+{
+    branch.UseExceptionHandler("/errors/500.html");
+    branch.UseStatusCodePagesWithReExecute("/errors/{0}.html");
+});
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.UseHttpsRedirection();
+app.UseRouting();
+
+app.UseSession();
 app.UseAuthorization();
 
 app.MapControllers();

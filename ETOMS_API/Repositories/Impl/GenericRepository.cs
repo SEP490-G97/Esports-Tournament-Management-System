@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Repositories.Impl
 {
-    public class GenericRepository<T> : IGenericRepository<T> where T : class
+    public class GenericRepository<T> : ETOMS_API.Repositories.Interface.IGenericRepository<T> where T : class
     {
         private readonly DbSet<T> _entities;
 

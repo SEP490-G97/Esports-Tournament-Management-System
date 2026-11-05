@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trang chủ · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div id="ticker-root"></div>
+
+        <section class="fullbleed hero" id="heroCarousel">
+            <div class="hero-slide active" style="background-image:url('/images/hero.jpg')"></div>
+            <div class="hero-slide" style="background-image:url('/images/hero2.jpg')"></div>
+            <div class="hero-slide" style="background-image:url('/images/hero3.jpg')"></div>
+            <div class="hero-scrim"></div>
+            <div class="hero-dots">
+                <button type="button" class="active" data-slide="0" aria-label="Ảnh 1"></button>
+                <button type="button" data-slide="1" aria-label="Ảnh 2"></button>
+                <button type="button" data-slide="2" aria-label="Ảnh 3"></button>
+            </div>
+            <div class="wrap row align-items-center g-4 hero-inner">
+                <div class="col-12 col-lg-7 hero-text">
+                    <div class="eyebrow">Nền tảng quản lý giải đấu thể thao điện tử</div>
+                    <h1>Tổ chức &amp; chinh phục <span class="grad">giải đấu E-Sports</span> của bạn</h1>
+                    <p>Đăng ký đội, vận hành nhánh đấu, báo cáo kết quả minh bạch và theo dõi bảng xếp hạng — tất cả trong một nền tảng duy nhất.</p>
+                    <div class="btn-row">
+                        <a class="btn btn-primary btn-lg" href="/team/index.html">Xem đội tuyển</a>
+                        <a class="btn btn-ghost btn-lg" href="/team/create.html">Tạo đội ngay</a>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-5">
+                    <div class="row g-3">
+                        <div class="col-6"><div class="stat-tile"><div class="n" id="stat-tournaments" data-count="0">0</div><div class="l">Giải đấu</div></div></div>
+                        <div class="col-6"><div class="stat-tile"><div class="n" id="stat-teams" data-count="0">0</div><div class="l">Đội tuyển</div></div></div>
+                        <div class="col-6"><div class="stat-tile"><div class="n" id="stat-players" data-count="0">0</div><div class="l">Người chơi</div></div></div>
+                        <div class="col-6"><div class="stat-tile"><div class="n" id="stat-games" data-count="0">0</div><div class="l">Tựa game</div></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="fullbleed ad-band">
+            <div class="wrap">
+                <div class="ad-label">Nhà tài trợ &amp; Quảng cáo</div>
+                <div class="row g-3">
+                    <div class="col-12 col-lg-6">
+                        <div class="ad-slot ad-main h-100">
+                            <div>
+                                <div class="ad-kicker">ĐỐI TÁC KIM CƯƠNG</div>
+                                <div class="ad-title">Khu vực đặt banner quảng cáo</div>
+                                <div class="ad-sub">Vị trí hiển thị nổi bật dành cho nhà tài trợ chính của mùa giải.</div>
+                            </div>
+                            <a class="btn btn-primary" href="#">Trở thành nhà tài trợ</a>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3"><div class="ad-slot h-100">Banner 1</div></div>
+                    <div class="col-6 col-lg-3"><div class="ad-slot h-100">Banner 2</div></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="home-section" id="featured">
+            <div class="sec-head">
+                <div><div class="eyebrow">Đang diễn ra &amp; sắp tới</div><h2>Giải đấu nổi bật</h2></div>
+            </div>
+            <div id="featured-list"></div>
+        </section>
+
+        <section class="home-section">
+            <div class="sec-head">
+                <div><div class="eyebrow">Cộng đồng</div><h2>Đội tuyển nổi bật</h2></div>
+                <a class="btn btn-ghost" href="/team/index.html">Xem tất cả đội</a>
+            </div>
+            <div id="teams-list"></div>
+        </section>
+
+        <section class="home-section">
+            <div class="sec-head"><div><div class="eyebrow">Bộ môn thi đấu</div><h2>Các tựa game</h2></div></div>
+            <div class="row g-3" id="games-list"></div>
+        </section>
+
+        <section class="home-section">
+            <div class="sec-head"><div><div class="eyebrow">Đơn giản &amp; minh bạch</div><h2>Vận hành giải đấu trong 4 bước</h2></div></div>
+            <div class="row g-3">
+                <div class="col-12 col-sm-6 col-lg-3"><div class="step h-100"><div class="step-n">1</div><h3>Tạo đội &amp; giải</h3><p>Lập đội tuyển, tạo giải đấu và cấu hình thể lệ chỉ trong vài phút.</p></div></div>
+                <div class="col-12 col-sm-6 col-lg-3"><div class="step h-100"><div class="step-n">2</div><h3>Đăng ký &amp; duyệt</h3><p>Đội nộp hồ sơ, ban tổ chức duyệt minh chứng và lệ phí.</p></div></div>
+                <div class="col-12 col-sm-6 col-lg-3"><div class="step h-100"><div class="step-n">3</div><h3>Thi đấu &amp; báo cáo</h3><p>Sinh nhánh đấu, check-in, báo cáo kết quả mù minh bạch.</p></div></div>
+                <div class="col-12 col-sm-6 col-lg-3"><div class="step h-100"><div class="step-n">4</div><h3>Kết quả &amp; xếp hạng</h3><p>Đối chiếu kết quả, xử lý tranh chấp và cập nhật bảng xếp hạng.</p></div></div>
+            </div>
+        </section>
+
+        <section class="fullbleed subscribe-band">
+            <div class="wrap row align-items-center g-4">
+                <div class="col-12 col-lg-6">
+                    <div class="eyebrow">Đừng bỏ lỡ</div>
+                    <h2>Nhận thông báo sự kiện &amp; giải đấu mới</h2>
+                    <p>Đăng ký email để cập nhật lịch thi đấu, mở đăng ký và tin tức cộng đồng.</p>
+                </div>
+                <div class="col-12 col-lg-6 sub-form">
+                    <div id="subscribe-flash"></div>
+                    <form id="subscribe-form" novalidate>
+                        <div class="sub-row">
+                            <input name="Email" class="input" placeholder="email@cua-ban.com" />
+                            <button type="submit" class="btn btn-primary">Đăng ký</button>
+                        </div>
+                        <span class="field-error" data-field-error="Email"></span>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <footer class="fullbleed site-footer">
+            <div class="wrap row g-4">
+                <div class="col-12 col-lg-5 foot-brand">
+                    <div class="brand"><span class="mark">ET</span><span class="txt"><b>ETOMS</b><span>Esports Platform</span></span></div>
+                    <p>Nền tảng tổ chức và vận hành giải đấu thể thao điện tử. SEP490 — FPT University.</p>
+                </div>
+                <div class="col-6 col-lg-2"><h4>Giải đấu</h4><a href="#">Lịch thi đấu</a><a href="#">Bảng xếp hạng</a><a href="#">Tổ chức giải</a></div>
+                <div class="col-6 col-lg-2"><h4>Cộng đồng</h4><a href="/team/index.html">Đội tuyển</a><a href="/team/join.html">Gia nhập đội</a><a href="#">Tin tức</a></div>
+                <div class="col-6 col-lg-2"><h4>Hỗ trợ</h4><a href="#">Điều khoản</a><a href="#">Bảo mật</a><a href="#">Liên hệ</a></div>
+            </div>
+            <div class="foot-bottom wrap">© 2026 ETOMS · SEP490_G97 · Nền tảng quản lý giải đấu E-Sports</div>
+        </footer>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/home.js" defer></script>
+</body>
+</html>

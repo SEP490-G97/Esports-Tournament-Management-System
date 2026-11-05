@@ -42,6 +42,11 @@ public sealed class Result<T> : Result
 
     public T? Data { get; }
 
+    public new static Result<T> Failure(
+        string message,
+        int statusCode = StatusCodes.Status400BadRequest)
+        => new(default, false, message, statusCode, null);
+
     public new static Result<T> FieldFailure(string field, string message)
         => new(default, false, "Thông tin chưa hợp lệ.", StatusCodes.Status400BadRequest,
             new Dictionary<string, string[]> { [field] = [message] });
