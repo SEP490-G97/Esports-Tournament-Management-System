@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Organization;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -15,7 +15,7 @@ public sealed partial class OrganizationService
             CancellationToken cancellationToken)
         {
             var organizationExists = await _unitOfWork.Repository<Organization>().Query()
-                .AnyAsync(item => item.OrganizationID == organizationId && item.Status == "ACTIVE", cancellationToken);
+                .AnyAsync(item => item.OrganizationId == organizationId && item.Status == "ACTIVE", cancellationToken);
             if (!organizationExists)
             {
                 return Result.Failure("Không tìm thấy đơn vị đang hoạt động.", StatusCodes.Status404NotFound);
@@ -23,11 +23,11 @@ public sealed partial class OrganizationService
 
             var members = _unitOfWork.Repository<OrganizationMember>();
             var currentChair = await members.Query().FirstOrDefaultAsync(
-                item => item.OrganizationID == organizationId && item.Role == "CHAIR" && item.Status == "ACTIVE",
+                item => item.OrganizationId == organizationId && item.Role == "CHAIR" && item.Status == "ACTIVE",
                 cancellationToken);
             var nextChair = await members.Query().FirstOrDefaultAsync(
-                item => item.OrganizationID == organizationId
-                    && item.AccountID == newChairAccountId
+                item => item.OrganizationId == organizationId
+                    && item.AccountId == newChairAccountId
                     && item.Status == "ACTIVE",
                 cancellationToken);
             if (currentChair is null || nextChair is null)
@@ -35,7 +35,7 @@ public sealed partial class OrganizationService
                 return Result.Failure("Chủ nhiệm hiện tại hoặc thành viên nhận bàn giao không hợp lệ.", StatusCodes.Status409Conflict);
             }
 
-            if (currentChair.OrganizationMemberID == nextChair.OrganizationMemberID)
+            if (currentChair.OrganizationMemberId == nextChair.OrganizationMemberId)
             {
                 return Result.Failure("Tài khoản này hiện đã là chủ nhiệm.", StatusCodes.Status409Conflict);
             }

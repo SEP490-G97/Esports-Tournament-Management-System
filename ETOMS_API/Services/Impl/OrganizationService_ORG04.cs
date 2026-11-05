@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Organization;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -14,7 +14,7 @@ public sealed partial class OrganizationService
             CancellationToken cancellationToken)
         {
             var organizationExists = await _unitOfWork.Repository<Organization>().Query()
-                .AnyAsync(item => item.OrganizationID == organizationId, cancellationToken);
+                .AnyAsync(item => item.OrganizationId == organizationId, cancellationToken);
             if (!organizationExists)
             {
                 return Result.Failure<IReadOnlyList<OrganizationMemberResponse>>("Không tìm thấy đơn vị tổ chức.", StatusCodes.Status404NotFound);
@@ -22,7 +22,7 @@ public sealed partial class OrganizationService
 
             var members = await _unitOfWork.Repository<OrganizationMember>().Query()
                 .AsNoTracking()
-                .Where(member => member.OrganizationID == organizationId && member.Status != "REMOVED")
+                .Where(member => member.OrganizationId == organizationId && member.Status != "REMOVED")
                 .OrderBy(member => member.Role)
                 .ThenBy(member => member.Account.FullName)
                 .Select(ToMemberProjection())
@@ -55,15 +55,15 @@ public sealed partial class OrganizationService
 
             var account = await _unitOfWork.Repository<Account>().Query()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(item => item.AccountID == request.AccountId, cancellationToken);
+                .FirstOrDefaultAsync(item => item.AccountId == request.AccountId, cancellationToken);
             if (account is null)
             {
                 return Result.Failure<OrganizationMemberResponse>("Không tìm thấy tài khoản được mời.", StatusCodes.Status404NotFound);
             }
 
             var existing = await _unitOfWork.Repository<OrganizationMember>().Query()
-                .AnyAsync(member => member.OrganizationID == organizationId
-                    && member.AccountID == request.AccountId
+                .AnyAsync(member => member.OrganizationId == organizationId
+                    && member.AccountId == request.AccountId
                     && member.Status != "REMOVED", cancellationToken);
             if (existing)
             {
@@ -72,8 +72,8 @@ public sealed partial class OrganizationService
 
             var member = new OrganizationMember
             {
-                OrganizationID = organizationId,
-                AccountID = request.AccountId,
+                OrganizationId = organizationId,
+                AccountId = request.AccountId,
                 Role = role,
                 Status = "INVITED"
             };
@@ -81,8 +81,8 @@ public sealed partial class OrganizationService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Result.Success(new OrganizationMemberResponse(
-                member.OrganizationMemberID,
-                account.AccountID,
+                member.OrganizationMemberId,
+                account.AccountId,
                 account.FullName,
                 member.Role,
                 MemberRoleLabel(member.Role),
@@ -99,8 +99,8 @@ public sealed partial class OrganizationService
             CancellationToken cancellationToken)
         {
             var member = await _unitOfWork.Repository<OrganizationMember>().Query()
-                .FirstOrDefaultAsync(item => item.OrganizationID == organizationId
-                    && item.OrganizationMemberID == memberId
+                .FirstOrDefaultAsync(item => item.OrganizationId == organizationId
+                    && item.OrganizationMemberId == memberId
                     && item.Status == "INVITED", cancellationToken);
             if (member is null)
             {
@@ -114,10 +114,10 @@ public sealed partial class OrganizationService
 
             var account = await _unitOfWork.Repository<Account>().Query()
                 .AsNoTracking()
-                .FirstAsync(item => item.AccountID == member.AccountID, cancellationToken);
+                .FirstAsync(item => item.AccountId == member.AccountId, cancellationToken);
             return Result.Success(new OrganizationMemberResponse(
-                member.OrganizationMemberID,
-                account.AccountID,
+                member.OrganizationMemberId,
+                account.AccountId,
                 account.FullName,
                 member.Role,
                 MemberRoleLabel(member.Role),

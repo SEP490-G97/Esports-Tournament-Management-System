@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Profile;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -21,18 +21,18 @@ public sealed partial class ProfileService
 
             var gameAccounts = await _unitOfWork.Repository<PlayerCredential>().Query()
                 .AsNoTracking()
-                .Where(item => item.AccountID == accountId && item.CredentialType == InGameNameType)
+                .Where(item => item.AccountId == accountId && item.CredentialType == InGameNameType)
                 .Select(item => new PublicGameAccountResponse(
-                    item.GameID!.Value,
+                    item.GameId!.Value,
                     item.Game!.Title,
                     item.Value!))
                 .ToListAsync(cancellationToken);
 
             var teams = await _unitOfWork.Repository<TeamMember>().Query()
                 .AsNoTracking()
-                .Where(member => member.AccountID == accountId && member.Status == "ACTIVE")
+                .Where(member => member.AccountId == accountId && member.Status == "ACTIVE")
                 .Select(member => new PublicTeamResponse(
-                    member.TeamID,
+                    member.TeamId,
                     member.Team.Name,
                     member.Team.Game.Title))
                 .ToListAsync(cancellationToken);
@@ -40,17 +40,17 @@ public sealed partial class ProfileService
             var titles = await _unitOfWork.Repository<Registration>().Query()
                 .AsNoTracking()
                 .Where(registration =>
-                    registration.RegistrationLineup.Any(lineup => lineup.AccountID == accountId)
+                    registration.RegistrationLineups.Any(lineup => lineup.AccountId == accountId)
                     && registration.FinalPlacement != "NONE")
                 .Select(registration => new PublicTitleResponse(
-                    registration.TournamentID,
+                    registration.TournamentId,
                     registration.Tournament.Name,
                     registration.FinalPlacement,
                     PlacementLabel(registration.FinalPlacement)))
                 .ToListAsync(cancellationToken);
 
             return Result.Success(new PublicProfileResponse(
-                account.AccountID,
+                account.AccountId,
                 account.FullName,
                 account.AvatarUrl,
                 gameAccounts,

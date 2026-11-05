@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Profile;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -15,7 +15,7 @@ public sealed partial class ProfileService
             CancellationToken cancellationToken)
         {
             var accountExists = await _unitOfWork.Repository<Account>().Query()
-                .AnyAsync(account => account.AccountID == accountId, cancellationToken);
+                .AnyAsync(account => account.AccountId == accountId, cancellationToken);
             if (!accountExists)
             {
                 return Result.Failure<CredentialResponse>("Không tìm thấy tài khoản.", StatusCodes.Status404NotFound);
@@ -33,7 +33,7 @@ public sealed partial class ProfileService
 
             var credential = new PlayerCredential
             {
-                AccountID = accountId,
+                AccountId = accountId,
                 CredentialType = IdentityDocumentType,
                 FileUrl = storedFile.RelativePath
             };
@@ -57,7 +57,7 @@ public sealed partial class ProfileService
             CancellationToken cancellationToken)
         {
             var accountExists = await _unitOfWork.Repository<Account>().Query()
-                .AnyAsync(account => account.AccountID == accountId, cancellationToken);
+                .AnyAsync(account => account.AccountId == accountId, cancellationToken);
             if (!accountExists)
             {
                 return Result.Failure<IReadOnlyList<CredentialResponse>>("Không tìm thấy tài khoản.", StatusCodes.Status404NotFound);
@@ -65,11 +65,11 @@ public sealed partial class ProfileService
 
             var documents = await _unitOfWork.Repository<PlayerCredential>().Query()
                 .AsNoTracking()
-                .Where(item => item.AccountID == accountId && item.CredentialType == IdentityDocumentType)
+                .Where(item => item.AccountId == accountId && item.CredentialType == IdentityDocumentType)
                 .OrderByDescending(item => item.CreatedAt)
                 .Select(item => new CredentialResponse(
-                    item.PlayerCredentialID,
-                    item.GameID,
+                    item.PlayerCredentialId,
+                    item.GameId,
                     item.CredentialType,
                     "Giấy tờ định danh",
                     null,

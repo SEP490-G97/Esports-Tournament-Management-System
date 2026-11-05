@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Organization;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -32,7 +32,7 @@ public sealed partial class OrganizationService
             }
 
             var reviewerExists = await _unitOfWork.Repository<Account>().Query()
-                .AnyAsync(account => account.AccountID == request.ReviewerAccountId, cancellationToken);
+                .AnyAsync(account => account.AccountId == request.ReviewerAccountId, cancellationToken);
             if (!reviewerExists)
             {
                 return Result.Failure<OrganizationReviewResponse>("Không tìm thấy tài khoản người xét duyệt.", StatusCodes.Status404NotFound);
@@ -40,7 +40,7 @@ public sealed partial class OrganizationService
 
             var documents = await _unitOfWork.Repository<OrganizationDocument>().Query()
                 .AsNoTracking()
-                .Where(document => document.OrganizationID == organizationId)
+                .Where(document => document.OrganizationId == organizationId)
                 .OrderBy(document => document.UploadedAt)
                 .ToListAsync(cancellationToken);
             if (documents.Count == 0)
@@ -58,13 +58,13 @@ public sealed partial class OrganizationService
 
             organization.Status = decision == "APPROVE" ? "ACTIVE" : "REJECTED";
             organization.ReviewReason = reason;
-            organization.ReviewedByAccountID = request.ReviewerAccountId;
+            organization.ReviewedByAccountId = request.ReviewerAccountId;
             organization.ReviewedAt = DateTime.UtcNow;
             _unitOfWork.Repository<Organization>().Update(organization);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Result.Success(new OrganizationReviewResponse(
-                organization.OrganizationID,
+                organization.OrganizationId,
                 organization.Name,
                 organization.OrganizationType,
                 organization.Status,
@@ -82,25 +82,25 @@ public sealed partial class OrganizationService
                 .Where(item => item.Status == "PENDING")
                 .OrderBy(item => item.CreatedAt)
                 .ToListAsync(cancellationToken);
-            var organizationIds = organizations.Select(item => item.OrganizationID).ToArray();
+            var organizationIds = organizations.Select(item => item.OrganizationId).ToArray();
             var documents = await _unitOfWork.Repository<OrganizationDocument>().Query()
                 .AsNoTracking()
-                .Where(item => organizationIds.Contains(item.OrganizationID))
+                .Where(item => organizationIds.Contains(item.OrganizationId))
                 .OrderBy(item => item.UploadedAt)
                 .ToListAsync(cancellationToken);
             var documentsByOrganization = documents
-                .GroupBy(item => item.OrganizationID)
+                .GroupBy(item => item.OrganizationId)
                 .ToDictionary(group => group.Key, group => group.Select(ToDocumentResponse).ToArray());
 
             var queue = organizations.Select(organization => new OrganizationReviewResponse(
-                organization.OrganizationID,
+                organization.OrganizationId,
                 organization.Name,
                 organization.OrganizationType,
                 organization.Status,
                 OrganizationStatusLabel(organization.Status),
                 organization.ReviewReason,
                 organization.CreatedAt,
-                documentsByOrganization.TryGetValue(organization.OrganizationID, out var organizationDocuments)
+                documentsByOrganization.TryGetValue(organization.OrganizationId, out var organizationDocuments)
                     ? organizationDocuments
                     : []))
                 .ToArray();

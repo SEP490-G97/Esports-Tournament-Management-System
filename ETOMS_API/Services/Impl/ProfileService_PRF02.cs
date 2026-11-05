@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Profile;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -16,7 +16,7 @@ public sealed partial class ProfileService
             CancellationToken cancellationToken)
         {
             var accountExists = await _unitOfWork.Repository<Account>().Query()
-                .AnyAsync(account => account.AccountID == accountId, cancellationToken);
+                .AnyAsync(account => account.AccountId == accountId, cancellationToken);
             if (!accountExists)
             {
                 return Result.Failure<CredentialResponse>("Không tìm thấy tài khoản.", StatusCodes.Status404NotFound);
@@ -24,7 +24,7 @@ public sealed partial class ProfileService
 
             var game = await _unitOfWork.Repository<Game>().Query()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(item => item.GameID == gameId, cancellationToken);
+                .FirstOrDefaultAsync(item => item.GameId == gameId, cancellationToken);
             if (game is null)
             {
                 return Result.Failure<CredentialResponse>("Không tìm thấy tựa game.", StatusCodes.Status404NotFound);
@@ -43,8 +43,8 @@ public sealed partial class ProfileService
 
             var repository = _unitOfWork.Repository<PlayerCredential>();
             var credential = await repository.Query().FirstOrDefaultAsync(
-                item => item.AccountID == accountId
-                    && item.GameID == gameId
+                item => item.AccountId == accountId
+                    && item.GameId == gameId
                     && item.CredentialType == InGameNameType,
                 cancellationToken);
 
@@ -52,8 +52,8 @@ public sealed partial class ProfileService
             {
                 credential = new PlayerCredential
                 {
-                    AccountID = accountId,
-                    GameID = gameId,
+                    AccountId = accountId,
+                    GameId = gameId,
                     CredentialType = InGameNameType,
                     Value = normalizedName
                 };

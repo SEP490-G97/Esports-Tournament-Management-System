@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Profile;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -41,11 +41,11 @@ public sealed partial class ProfileService : IProfileService
 
     private Task<Account?> FindAccountAsync(int accountId, CancellationToken cancellationToken)
         => _unitOfWork.Repository<Account>().Query()
-            .FirstOrDefaultAsync(account => account.AccountID == accountId, cancellationToken);
+            .FirstOrDefaultAsync(account => account.AccountId == accountId, cancellationToken);
 
     private static ProfileResponse ToProfileResponse(Account account)
         => new(
-            account.AccountID,
+            account.AccountId,
             account.Email,
             account.FullName,
             account.AvatarUrl,
@@ -55,8 +55,8 @@ public sealed partial class ProfileService : IProfileService
 
     private static CredentialResponse ToCredentialResponse(PlayerCredential credential)
         => new(
-            credential.PlayerCredentialID,
-            credential.GameID,
+            credential.PlayerCredentialId,
+            credential.GameId,
             credential.CredentialType,
             credential.CredentialType == InGameNameType ? "Tên trong game" : "Giấy tờ định danh",
             credential.CredentialType == InGameNameType ? credential.Value : null,

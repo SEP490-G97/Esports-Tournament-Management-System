@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Organization;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -64,12 +64,12 @@ public sealed partial class OrganizationService : IOrganizationService
 
     private async Task<Organization?> FindOrganizationAsync(int organizationId, CancellationToken cancellationToken)
         => await _unitOfWork.Repository<Organization>().Query()
-            .FirstOrDefaultAsync(item => item.OrganizationID == organizationId, cancellationToken);
+            .FirstOrDefaultAsync(item => item.OrganizationId == organizationId, cancellationToken);
 
     private static System.Linq.Expressions.Expression<Func<OrganizationMember, OrganizationMemberResponse>> ToMemberProjection()
         => member => new OrganizationMemberResponse(
-            member.OrganizationMemberID,
-            member.AccountID,
+            member.OrganizationMemberId,
+            member.AccountId,
             member.Account.FullName,
             member.Role,
             MemberRoleLabel(member.Role),
@@ -123,8 +123,8 @@ public sealed partial class OrganizationService : IOrganizationService
 
     private static OrganizationDocumentResponse ToDocumentResponse(OrganizationDocument document)
         => new(
-            document.OrganizationDocumentID,
-            document.OrganizationID,
+            document.OrganizationDocumentId,
+            document.OrganizationId,
             document.DocumentType,
             document.OriginalFileName,
             document.UploadedAt);

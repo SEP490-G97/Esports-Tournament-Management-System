@@ -83,6 +83,8 @@ public partial class Tournament
 
     public DateTime CreatedAt { get; set; }
 
+    public int? OrganizationId { get; set; }
+
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
 
     public virtual Account? BracketLockedByAccount { get; set; }
@@ -98,6 +100,8 @@ public partial class Tournament
     public virtual ICollection<Match> Matches { get; set; } = new List<Match>();
 
     public virtual Account OrganizerAccount { get; set; } = null!;
+
+    public virtual Organization? Organization { get; set; }
 
     public virtual ICollection<Penalty> Penalties { get; set; } = new List<Penalty>();
 

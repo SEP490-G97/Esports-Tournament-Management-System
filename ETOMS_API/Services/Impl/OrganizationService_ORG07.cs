@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Organization;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -14,7 +14,7 @@ public sealed partial class OrganizationService
             CancellationToken cancellationToken)
         {
             var organizationExists = await _unitOfWork.Repository<Organization>().Query()
-                .AnyAsync(item => item.OrganizationID == organizationId && item.Status == "ACTIVE", cancellationToken);
+                .AnyAsync(item => item.OrganizationId == organizationId && item.Status == "ACTIVE", cancellationToken);
             if (!organizationExists)
             {
                 return Result.Failure<OrganizationReputationResponse>("Không tìm thấy đơn vị đang hoạt động.", StatusCodes.Status404NotFound);
@@ -28,23 +28,23 @@ public sealed partial class OrganizationService
             CancellationToken cancellationToken)
         {
             var tournaments = _unitOfWork.Repository<Tournament>().Query()
-                .Where(item => item.OrganizationID == organizationId);
+                .Where(item => item.OrganizationId == organizationId);
             var totalTournaments = await tournaments.CountAsync(cancellationToken);
             var completedTournaments = await tournaments.CountAsync(item => item.Status == "COMPLETED", cancellationToken);
             var totalMatches = await _unitOfWork.Repository<Match>().Query()
-                .CountAsync(item => item.Tournament.OrganizationID == organizationId, cancellationToken);
+                .CountAsync(item => item.Tournament.OrganizationId == organizationId, cancellationToken);
             var disputedMatches = await _unitOfWork.Repository<Dispute>().Query()
-                .Where(item => item.Match.Tournament.OrganizationID == organizationId)
-                .Select(item => item.MatchID)
+                .Where(item => item.Match.Tournament.OrganizationId == organizationId)
+                .Select(item => item.MatchId)
                 .Distinct()
                 .CountAsync(cancellationToken);
             var resolvedDisputes = await _unitOfWork.Repository<Dispute>().Query()
-                .Where(item => item.Match.Tournament.OrganizationID == organizationId && item.ResolvedAt != null)
+                .Where(item => item.Match.Tournament.OrganizationId == organizationId && item.ResolvedAt != null)
                 .Select(item => new { item.OpenedAt, item.ResolvedAt })
                 .ToListAsync(cancellationToken);
             var refundCount = await _unitOfWork.Repository<PaymentRecord>().Query()
                 .CountAsync(item => item.RecordKind == "REFUND"
-                    && item.Registration.Tournament.OrganizationID == organizationId,
+                    && item.Registration.Tournament.OrganizationId == organizationId,
                     cancellationToken);
 
             var completionRate = totalTournaments == 0

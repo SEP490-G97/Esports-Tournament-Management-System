@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Organization;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -22,8 +22,8 @@ public sealed partial class OrganizationService
             }
 
             var member = await _unitOfWork.Repository<OrganizationMember>().Query()
-                .FirstOrDefaultAsync(item => item.OrganizationID == organizationId
-                    && item.OrganizationMemberID == memberId
+                .FirstOrDefaultAsync(item => item.OrganizationId == organizationId
+                    && item.OrganizationMemberId == memberId
                     && item.Status != "REMOVED", cancellationToken);
             if (member is null)
             {
@@ -36,10 +36,10 @@ public sealed partial class OrganizationService
 
             var account = await _unitOfWork.Repository<Account>().Query()
                 .AsNoTracking()
-                .FirstAsync(item => item.AccountID == member.AccountID, cancellationToken);
+                .FirstAsync(item => item.AccountId == member.AccountId, cancellationToken);
             return Result.Success(new OrganizationMemberResponse(
-                member.OrganizationMemberID,
-                account.AccountID,
+                member.OrganizationMemberId,
+                account.AccountId,
                 account.FullName,
                 member.Role,
                 MemberRoleLabel(member.Role),

@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Profile;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -14,7 +14,7 @@ public sealed partial class ProfileService
             CancellationToken cancellationToken)
         {
             var accountExists = await _unitOfWork.Repository<Account>().Query()
-                .AnyAsync(account => account.AccountID == accountId, cancellationToken);
+                .AnyAsync(account => account.AccountId == accountId, cancellationToken);
             if (!accountExists)
             {
                 return Result.Failure<IReadOnlyList<MatchHistoryResponse>>("Không tìm thấy tài khoản.", StatusCodes.Status404NotFound);
@@ -22,11 +22,11 @@ public sealed partial class ProfileService
 
             var lineups = await _unitOfWork.Repository<RegistrationLineup>().Query()
                 .AsNoTracking()
-                .Where(lineup => lineup.AccountID == accountId)
+                .Where(lineup => lineup.AccountId == accountId)
                 .Select(lineup => new
                 {
-                    lineup.Registration.TournamentID,
-                    lineup.Registration.TeamID,
+                    lineup.Registration.TournamentId,
+                    lineup.Registration.TeamId,
                     lineup.Registration.Tournament.Name,
                     TeamName = lineup.Registration.Team.Name,
                     lineup.Slot
@@ -39,22 +39,22 @@ public sealed partial class ProfileService
             }
 
             var teamByTournament = lineups
-                .GroupBy(item => item.TournamentID)
+                .GroupBy(item => item.TournamentId)
                 .ToDictionary(group => group.Key, group => group.First());
             var tournamentIds = teamByTournament.Keys.ToArray();
-            var teamIds = teamByTournament.Values.Select(item => item.TeamID).Distinct().ToArray();
+            var teamIds = teamByTournament.Values.Select(item => item.TeamId).Distinct().ToArray();
 
             var matches = await _unitOfWork.Repository<Match>().Query()
                 .AsNoTracking()
-                .Where(match => tournamentIds.Contains(match.TournamentID)
-                    && ((match.TeamAID.HasValue && teamIds.Contains(match.TeamAID.Value))
-                        || (match.TeamBID.HasValue && teamIds.Contains(match.TeamBID.Value))))
+                .Where(match => tournamentIds.Contains(match.TournamentId)
+                    && ((match.TeamAid.HasValue && teamIds.Contains(match.TeamAid.Value))
+                        || (match.TeamBid.HasValue && teamIds.Contains(match.TeamBid.Value))))
                 .Select(match => new
                 {
-                    match.MatchID,
-                    match.TournamentID,
-                    match.TeamAID,
-                    match.TeamBID,
+                    match.MatchId,
+                    match.TournamentId,
+                    match.TeamAid,
+                    match.TeamBid,
                     match.ScoreA,
                     match.ScoreB,
                     match.ScheduledAt,
@@ -68,20 +68,20 @@ public sealed partial class ProfileService
             var history = new List<MatchHistoryResponse>();
             foreach (var match in matches)
             {
-                if (!teamByTournament.TryGetValue(match.TournamentID, out var participant))
+                if (!teamByTournament.TryGetValue(match.TournamentId, out var participant))
                 {
                     continue;
                 }
 
-                var isTeamA = match.TeamAID == participant.TeamID;
-                var isTeamB = match.TeamBID == participant.TeamID;
+                var isTeamA = match.TeamAid == participant.TeamId;
+                var isTeamB = match.TeamBid == participant.TeamId;
                 if (!isTeamA && !isTeamB)
                 {
                     continue;
                 }
 
                 history.Add(new MatchHistoryResponse(
-                    match.MatchID,
+                    match.MatchId,
                     match.TournamentName,
                     isTeamA ? match.TeamAName! : match.TeamBName!,
                     participant.Slot,

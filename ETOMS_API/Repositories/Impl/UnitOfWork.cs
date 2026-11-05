@@ -2,9 +2,9 @@ namespace ETOMS_API.Repositories.Impl;
 
 public sealed class UnitOfWork : ETOMS_API.Repositories.Interface.IUnitOfWork
 {
-    private readonly ETOMS_API.HungModels.EtomsDbContext _dbContext;
+    private readonly ETOMS_API.Repositories.EtomsDbContext _dbContext;
 
-    public UnitOfWork(ETOMS_API.HungModels.EtomsDbContext dbContext)
+    public UnitOfWork(ETOMS_API.Repositories.EtomsDbContext dbContext)
     {
         _dbContext = dbContext;
     }

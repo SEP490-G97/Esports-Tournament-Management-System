@@ -42,6 +42,12 @@ public partial class EtomsDbContext : DbContext
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
+    public virtual DbSet<Organization> Organizations { get; set; }
+
+    public virtual DbSet<OrganizationDocument> OrganizationDocuments { get; set; }
+
+    public virtual DbSet<OrganizationMember> OrganizationMembers { get; set; }
+
     public virtual DbSet<PaymentRecord> PaymentRecords { get; set; }
 
     public virtual DbSet<Penalty> Penalties { get; set; }
@@ -115,12 +121,99 @@ public partial class EtomsDbContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasDefaultValue("PLAYER", "DF_Account_Role");
-            entity.Property(e => e.School).HasMaxLength(200);
             entity.Property(e => e.SocialLinks).HasMaxLength(500);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasDefaultValue("PENDING_VERIFY", "DF_Account_Status");
+        });
+
+        modelBuilder.Entity<Organization>(entity =>
+        {
+            entity.ToTable("Organization");
+            entity.HasKey(item => item.OrganizationId).HasName("PK_Organization");
+            entity.Property(item => item.OrganizationId).HasColumnName("OrganizationID");
+            entity.Property(item => item.Name).HasMaxLength(150);
+            entity.Property(item => item.OrganizationType).HasMaxLength(20).IsUnicode(false);
+            entity.Property(item => item.ParentOrganization).HasMaxLength(150);
+            entity.Property(item => item.ContactEmail).HasMaxLength(256);
+            entity.Property(item => item.ContactPhone).HasMaxLength(20).IsUnicode(false);
+            entity.Property(item => item.WebsiteUrl).HasMaxLength(500);
+            entity.Property(item => item.LogoUrl).HasMaxLength(500);
+            entity.Property(item => item.Description).HasMaxLength(1000);
+            entity.Property(item => item.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue("PENDING", "DF_Organization_Status");
+            entity.Property(item => item.ReviewReason).HasMaxLength(1000);
+            entity.Property(item => item.ReviewedByAccountId).HasColumnName("ReviewedByAccountID");
+            entity.Property(item => item.ReviewedAt).HasPrecision(0);
+            entity.Property(item => item.SuspensionReason).HasMaxLength(1000);
+            entity.Property(item => item.SuspendedAt).HasPrecision(0);
+            entity.Property(item => item.CreatedByAccountId).HasColumnName("CreatedByAccountID");
+            entity.Property(item => item.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Organization_At");
+
+            entity.HasOne(item => item.CreatedByAccount)
+                .WithMany(account => account.OrganizationCreatedByAccounts)
+                .HasForeignKey(item => item.CreatedByAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Organization_Creator");
+            entity.HasOne(item => item.ReviewedByAccount)
+                .WithMany(account => account.OrganizationReviewedByAccounts)
+                .HasForeignKey(item => item.ReviewedByAccountId)
+                .HasConstraintName("FK_Organization_Reviewer");
+        });
+
+        modelBuilder.Entity<OrganizationDocument>(entity =>
+        {
+            entity.ToTable("OrganizationDocument");
+            entity.HasKey(item => item.OrganizationDocumentId).HasName("PK_OrganizationDocument");
+            entity.Property(item => item.OrganizationDocumentId).HasColumnName("OrganizationDocumentID");
+            entity.Property(item => item.OrganizationId).HasColumnName("OrganizationID");
+            entity.Property(item => item.DocumentType).HasMaxLength(100);
+            entity.Property(item => item.FileUrl).HasMaxLength(500);
+            entity.Property(item => item.OriginalFileName).HasMaxLength(255);
+            entity.Property(item => item.UploadedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_OrgDocument_At");
+            entity.HasOne(item => item.Organization)
+                .WithMany(organization => organization.OrganizationDocuments)
+                .HasForeignKey(item => item.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrganizationDocument_Org");
+        });
+
+        modelBuilder.Entity<OrganizationMember>(entity =>
+        {
+            entity.ToTable("OrganizationMember");
+            entity.HasKey(item => item.OrganizationMemberId).HasName("PK_OrganizationMember");
+            entity.HasIndex(item => new { item.OrganizationId, item.Role }, "UX_OrganizationMember_Chair")
+                .IsUnique()
+                .HasFilter("([Role]='CHAIR' AND [Status]='ACTIVE')");
+            entity.Property(item => item.OrganizationMemberId).HasColumnName("OrganizationMemberID");
+            entity.Property(item => item.OrganizationId).HasColumnName("OrganizationID");
+            entity.Property(item => item.AccountId).HasColumnName("AccountID");
+            entity.Property(item => item.Role).HasMaxLength(30).IsUnicode(false);
+            entity.Property(item => item.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue("INVITED", "DF_OrgMember_Status");
+            entity.Property(item => item.InvitedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_OrgMember_InvitedAt");
+            entity.Property(item => item.JoinedAt).HasPrecision(0);
+            entity.HasOne(item => item.Account)
+                .WithMany(account => account.OrganizationMembers)
+                .HasForeignKey(item => item.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrganizationMember_Account");
+            entity.HasOne(item => item.Organization)
+                .WithMany(organization => organization.OrganizationMembers)
+                .HasForeignKey(item => item.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrganizationMember_Org");
         });
 
         modelBuilder.Entity<Attachment>(entity =>
@@ -1031,6 +1124,7 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.IsOnline).HasDefaultValue(true, "DF_Tour_Online");
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.OrganizerAccountId).HasColumnName("OrganizerAccountID");
+            entity.Property(e => e.OrganizationId).HasColumnName("OrganizationID");
             entity.Property(e => e.OrganizingUnit).HasMaxLength(200);
             entity.Property(e => e.RegCloseAt).HasPrecision(0);
             entity.Property(e => e.RegOpenAt).HasPrecision(0);
@@ -1061,6 +1155,12 @@ public partial class EtomsDbContext : DbContext
                 .HasForeignKey(d => d.OrganizerAccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Tournament_Organizer");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Status }, "IX_Tournament_Organization");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.Tournaments)
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("FK_Tournament_Organization");
         });
 
         modelBuilder.Entity<TournamentFollow>(entity =>

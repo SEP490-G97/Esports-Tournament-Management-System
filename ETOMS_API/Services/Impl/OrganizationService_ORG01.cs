@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Organization;
-using ETOMS_API.HungModels;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -22,7 +22,7 @@ public sealed partial class OrganizationService
             }
 
             var creatorExists = await _unitOfWork.Repository<Account>().Query()
-                .AnyAsync(account => account.AccountID == request.CreatedByAccountId, cancellationToken);
+                .AnyAsync(account => account.AccountId == request.CreatedByAccountId, cancellationToken);
             if (!creatorExists)
             {
                 return Result.Failure<OrganizationCreatedResponse>("Không tìm thấy tài khoản đăng ký.", StatusCodes.Status404NotFound);
@@ -39,22 +39,22 @@ public sealed partial class OrganizationService
                 LogoUrl = NormalizeOptional(request.LogoUrl),
                 Description = NormalizeOptional(request.Description),
                 Status = "PENDING",
-                CreatedByAccountID = request.CreatedByAccountId
+                CreatedByAccountId = request.CreatedByAccountId
             };
             var chair = new OrganizationMember
             {
-                AccountID = request.CreatedByAccountId,
+                AccountId = request.CreatedByAccountId,
                 Role = "CHAIR",
                 Status = "ACTIVE",
                 JoinedAt = DateTime.UtcNow
             };
-            organization.OrganizationMember.Add(chair);
+            organization.OrganizationMembers.Add(chair);
             _unitOfWork.Repository<Organization>().Add(organization);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Result.Success(
                 new OrganizationCreatedResponse(
-                    organization.OrganizationID,
+                    organization.OrganizationId,
                     organization.Status,
                     OrganizationStatusLabel(organization.Status)),
                 "Đã gửi hồ sơ đăng ký đơn vị tổ chức.");
@@ -95,7 +95,7 @@ public sealed partial class OrganizationService
 
             var document = new OrganizationDocument
             {
-                OrganizationID = organizationId,
+                OrganizationId = organizationId,
                 DocumentType = normalizedType,
                 FileUrl = storedFile.RelativePath,
                 OriginalFileName = storedFile.OriginalFileName

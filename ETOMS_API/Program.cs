@@ -30,8 +30,6 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddDbContext<EtomsDbContext>(options => options.UseSqlServer(connectionString));
-builder.Services.AddDbContext<ETOMS_API.HungModels.EtomsDbContext>(
-    options => options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ETOMS_API.Repositories.IUnitOfWork, ETOMS_API.Repositories.UnitOfWork>();
