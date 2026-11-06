@@ -29,9 +29,9 @@ public partial class Account
 
     public string? BanReason { get; set; }
 
-    public bool NotifyInApp { get; set; }
+    public bool? NotifyInApp { get; set; }
 
-    public bool NotifyEmail { get; set; }
+    public bool? NotifyEmail { get; set; }
 
     public string OrganizerRequestStatus { get; set; } = null!;
 

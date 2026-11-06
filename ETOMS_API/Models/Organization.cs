@@ -41,6 +41,8 @@ public partial class Organization
 
     public virtual Account CreatedByAccount { get; set; } = null!;
 
+    public virtual ICollection<OrganizationDocument> OrganizationDocuments { get; set; } = new List<OrganizationDocument>();
+
     public virtual ICollection<OrganizationMember> OrganizationMembers { get; set; } = new List<OrganizationMember>();
 
     public virtual Account? ReviewedByAccount { get; set; }

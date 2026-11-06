@@ -25,7 +25,7 @@ public partial class Tournament
 
     public string? ContactInfo { get; set; }
 
-    public bool IsOnline { get; set; }
+    public bool? IsOnline { get; set; }
 
     public string? Venue { get; set; }
 
@@ -57,11 +57,11 @@ public partial class Tournament
 
     public string? PrizeStructure { get; set; }
 
-    public bool RequireIdentityDocument { get; set; }
+    public bool? RequireIdentityDocument { get; set; }
 
-    public bool RequirePaymentProof { get; set; }
+    public bool? RequirePaymentProof { get; set; }
 
-    public bool RequireInGameName { get; set; }
+    public bool? RequireInGameName { get; set; }
 
     public string? TieBreakerOrder { get; set; }
 

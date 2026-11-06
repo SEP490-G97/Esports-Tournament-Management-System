@@ -25,14 +25,14 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
-// EF Core — SQL Server. Chuỗi kết nối trong appsettings.Development.json (KHÔNG commit).
+// EF Core — MySQL (Pomelo). Chuỗi kết nối trong appsettings.Development.json (KHÔNG commit).
 // Controller → Service → IUnitOfWork (phát GenericRepository<T> theo entity, dùng chung
 // 1 EtomsDbContext/request) → DB.
 var connectionString = builder.Configuration.GetConnectionString("EtomsDb");
 if (!string.IsNullOrWhiteSpace(connectionString))
 {
     builder.Services.AddDbContext<EtomsDbContext>(options =>
-        options.UseSqlServer(connectionString));
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
     builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
