@@ -31,8 +31,12 @@ builder.Services.AddSession(options =>
 var connectionString = builder.Configuration.GetConnectionString("EtomsDb");
 if (!string.IsNullOrWhiteSpace(connectionString))
 {
+    // ServerVersion.AutoDetect mở 1 kết nối dò version MySQL — phải dò 1 LẦN DUY NHẤT lúc khởi
+    // động rồi dùng lại. Gọi AutoDetect bên trong lambda AddDbContext sẽ dò lại mỗi khi tạo
+    // EtomsDbContext mới (tức là MỖI REQUEST), tốn thêm ~1 round-trip ẩn không hiện trong log EF Core.
+    var mysqlServerVersion = ServerVersion.AutoDetect(connectionString);
     builder.Services.AddDbContext<EtomsDbContext>(options =>
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+        options.UseMySql(connectionString, mysqlServerVersion));
 
     builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
