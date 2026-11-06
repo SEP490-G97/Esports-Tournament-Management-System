@@ -47,9 +47,20 @@
             } else {
                 slot.innerHTML = loggedOutHtml;
             }
+            applyRoleVisibility(me);
         } catch (e) {
             slot.innerHTML = loggedOutHtml;
+            applyRoleVisibility({ isAuthenticated: false });
         }
+    }
+
+    // Ẩn mục menu dành riêng cho vai trò Ban tổ chức/Admin (hàng đợi tranh chấp — RES-06) với
+    // khách (Guest) và tài khoản PLAYER thường — tránh Guest/User trông giống hệt nhau trên nav.
+    // Đây chỉ là gợi ý hiển thị: quyền thật vẫn được chặn ở API/trang đích dù có thấy nút hay không.
+    function applyRoleVisibility(me) {
+        var canSeeDisputes = !!me.isAuthenticated && (me.role === 'ORGANIZER' || me.role === 'ADMIN');
+        var link = document.querySelector('#etomsNavCollapse nav a[data-nav="result"]');
+        if (link) link.style.display = canSeeDisputes ? '' : 'none';
     }
 
     var pendingResolve = null;

@@ -142,6 +142,43 @@
         root.innerHTML = html;
     }
 
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function fmtDate(iso) {
+        var d = new Date(iso);
+        return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+    }
+
+    var NEWS_IMAGES = ['/images/news/news-1.jpg', '/images/news/news-2.jpg', '/images/news/news-3.jpg'];
+
+    function renderNews(list) {
+        var root = document.getElementById('news-root');
+        if (!list || !list.length) {
+            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có tin tức nào</h3></div></div>';
+            return;
+        }
+        var lead = list[0];
+        var rest = list.slice(1);
+
+        var leadHtml =
+            '<div class="news-lead"><div class="news-cover" style="background-image:linear-gradient(180deg, rgba(10,14,23,.15), rgba(10,14,23,.75)), url(\'' + NEWS_IMAGES[0] + '\')"><span class="news-cat">Tin tức</span></div>' +
+            '<div class="news-lead-body">' +
+            (lead.publishedAt ? '<div class="news-meta">' + fmtDate(lead.publishedAt) + '</div>' : '') +
+            '<h3>' + Ui.escapeHtml(lead.title) + '</h3>' +
+            '<p>' + Ui.escapeHtml(lead.excerpt) + '</p>' +
+            '</div></div>';
+
+        var listHtml = '<div class="news-list">';
+        rest.forEach(function (n, i) {
+            var img = NEWS_IMAGES[(i + 1) % NEWS_IMAGES.length];
+            listHtml +=
+                '<div class="news-item"><span class="news-thumb" style="background-image:url(\'' + img + '\');background-size:cover;background-position:center;color:transparent"></span>' +
+                '<div><div class="news-cat-sm">Tin tức</div><h4>' + Ui.escapeHtml(n.title) + '</h4></div></div>';
+        });
+        listHtml += '</div>';
+
+        root.innerHTML = '<div class="news-grid">' + leadHtml + listHtml + '</div>';
+    }
+
     function wireSubscribeForm() {
         var form = document.getElementById('subscribe-form');
         var flash = document.getElementById('subscribe-flash');
@@ -176,10 +213,12 @@
             renderFeatured(summary.featured);
             renderTeams(summary.teams);
             renderGames(summary.games);
+            renderNews(summary.news);
         } catch (e) {
             renderFeatured([]);
             renderTeams([]);
             renderGames([]);
+            renderNews([]);
         }
         wireReveal();
         animateCounters();
