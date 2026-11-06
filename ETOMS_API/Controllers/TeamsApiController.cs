@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;
 
-// API JSON cho module TEAM. Tiến độ Iteration 1 — mới có TEAM-01 (Khởi tạo đội) và
-// TEAM-02 (Trang quản trị đội). Các chức năng còn lại (Roster, Mã mời, Gia nhập,
-// Rời đội, Chuyển quyền, Giải tán...) sẽ bổ sung ở các commit tiếp theo.
+// API JSON cho module TEAM. Tiến độ Iteration 1 — có TEAM-01 (Khởi tạo đội), TEAM-02
+// (Trang quản trị đội), TEAM-03 (Quản lý Roster) và TEAM-04 (Mã mời). Các chức năng còn
+// lại (Gia nhập, Rời đội, Chuyển quyền, Giải tán...) sẽ bổ sung ở các commit tiếp theo.
 // Đăng nhập vẫn qua session (ICurrentUser đọc từ /DevAuth — stub tạm thay AUTH thật).
 [Route("api/teams")]
 public class TeamsApiController : ApiControllerBase
@@ -54,4 +54,71 @@ public class TeamsApiController : ApiControllerBase
         if (!result.IsSuccess) return FromResult(result);
         return CreatedAtAction(nameof(GetDashboard), new { id = result.Data }, new { message = result.Message, data = result.Data });
     }
+
+    // GET /api/teams/{id}/roster — TEAM-03, chỉ đội trưởng.
+    [HttpGet("{id:int}/roster")]
+    public async Task<IActionResult> GetRoster(int id)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        var captainId = await _teamService.GetCaptainAccountIdAsync(id);
+        if (captainId is null) return NotFound();
+        if (captainId != _currentUser.UserId!.Value) return StatusCode(403);
+        return Ok(await _teamService.GetRosterAsync(id));
+    }
+
+    // POST /api/teams/{id}/members/{targetAccountId}/slot — đổi chính thức/dự bị (TEAM-03).
+    [HttpPost("{id:int}/members/{targetAccountId:int}/slot")]
+    public async Task<IActionResult> ChangeSlot(int id, int targetAccountId, [FromBody] ChangeSlotRequest body)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.ChangeSlotAsync(id, targetAccountId, body.NewSlot, _currentUser.UserId!.Value));
+    }
+
+    // POST /api/teams/{id}/members/{targetAccountId}/approve — duyệt đơn ứng tuyển/lời mời (TEAM-03).
+    [HttpPost("{id:int}/members/{targetAccountId:int}/approve")]
+    public async Task<IActionResult> ApproveMember(int id, int targetAccountId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.ApproveMemberAsync(id, targetAccountId, _currentUser.UserId!.Value));
+    }
+
+    // POST /api/teams/{id}/members/{targetAccountId}/reject — từ chối đơn ứng tuyển/lời mời (TEAM-03).
+    [HttpPost("{id:int}/members/{targetAccountId:int}/reject")]
+    public async Task<IActionResult> RejectMember(int id, int targetAccountId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.RejectMemberAsync(id, targetAccountId, _currentUser.UserId!.Value));
+    }
+
+    // GET /api/teams/{id}/invite — TEAM-04, chỉ đội trưởng.
+    [HttpGet("{id:int}/invite")]
+    public async Task<IActionResult> GetInvite(int id)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        var captainId = await _teamService.GetCaptainAccountIdAsync(id);
+        if (captainId is null) return NotFound();
+        if (captainId != _currentUser.UserId!.Value) return StatusCode(403);
+        return Ok(await _teamService.GetInviteAsync(id));
+    }
+
+    // POST /api/teams/{id}/invite — TEAM-04, tạo mã mời mới (thay mã cũ).
+    [HttpPost("{id:int}/invite")]
+    public async Task<IActionResult> GenerateInvite(int id, [FromBody] CreateInviteRequest model)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        var captainId = await _teamService.GetCaptainAccountIdAsync(id);
+        if (captainId is null) return NotFound();
+        if (captainId != _currentUser.UserId!.Value) return StatusCode(403);
+        return FromResult(await _teamService.GenerateInviteAsync(id, _currentUser.UserId!.Value, model));
+    }
+
+    // DELETE /api/teams/{id}/invite — thu hồi mã mời hiện tại (TEAM-04).
+    [HttpDelete("{id:int}/invite")]
+    public async Task<IActionResult> RevokeInvite(int id)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.RevokeInviteAsync(id, _currentUser.UserId!.Value));
+    }
 }
+
+public class ChangeSlotRequest { public string NewSlot { get; set; } = string.Empty; }
