@@ -1,4 +1,7 @@
-namespace ETOMS_API.Repositories;
+using ETOMS_API.Repositories.Interface;
+using ETOMS_API.Repositories;
+
+namespace ETOMS_API.Repositories.Impl;
 
 public class UnitOfWork : IUnitOfWork
 {

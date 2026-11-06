@@ -1,7 +1,7 @@
 using ETOMS_API.Utils;
 using ETOMS_API.DTOs.Registration;
 
-namespace ETOMS_API.Services;
+namespace ETOMS_API.Services.Interface;
 
 public interface IRegistrationService
 {

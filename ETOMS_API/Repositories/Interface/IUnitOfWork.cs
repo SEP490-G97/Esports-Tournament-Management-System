@@ -1,4 +1,4 @@
-namespace ETOMS_API.Repositories;
+namespace ETOMS_API.Repositories.Interface;
 
 // Gom nhiều thao tác repository vào 1 lần lưu (1 transaction). Lấy repository qua Repository<T>()
 // rồi gọi SaveChangesAsync() một lần ở cuối.

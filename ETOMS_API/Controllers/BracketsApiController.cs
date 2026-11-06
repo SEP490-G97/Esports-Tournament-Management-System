@@ -1,5 +1,5 @@
 using ETOMS_API.DTOs.Bracket;
-using ETOMS_API.Services;
+using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;

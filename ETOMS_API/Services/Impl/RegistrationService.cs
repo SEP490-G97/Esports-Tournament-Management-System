@@ -1,10 +1,12 @@
 using ETOMS_API.Utils;
 using ETOMS_API.DTOs.Registration;
 using ETOMS_API.Repositories;
+using ETOMS_API.Repositories.Interface;
+using ETOMS_API.Services.Interface;
 using ETOMS_API.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace ETOMS_API.Services;
+namespace ETOMS_API.Services.Impl;
 
 // Phần CỦA DŨNG: REG-03 (tải minh chứng), REG-04 (theo dõi đơn).
 // Phần STUB TẠM thay REG-01/06/07 (Cấn Việt Hùng): tạo đơn tối thiểu + duyệt/từ chối

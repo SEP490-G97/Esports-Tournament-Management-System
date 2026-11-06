@@ -1,7 +1,7 @@
 using ETOMS_API.Utils;
 using ETOMS_API.DTOs.Result;
 
-namespace ETOMS_API.Services;
+namespace ETOMS_API.Services.Interface;
 
 // Module RES (Kết quả & Khiếu nại / Result & VAR) — Nguyễn Tiến Dũng, Iteration 3.
 // RES-01, 02, 04, 05, 06, 07, 08, 09 (RES-03 "Hết hạn báo cáo kết quả" là của Vũ Đức Hải).

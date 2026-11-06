@@ -2,10 +2,12 @@ using System.Collections.Concurrent;
 using ETOMS_API.Utils;
 using ETOMS_API.DTOs.Result;
 using ETOMS_API.Repositories;
+using ETOMS_API.Repositories.Interface;
+using ETOMS_API.Services.Interface;
 using ETOMS_API.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace ETOMS_API.Services;
+namespace ETOMS_API.Services.Impl;
 
 // Khóa trong-tiến-trình theo MatchID — chống race condition khi 2 đội trưởng nộp báo cáo gần như
 // cùng lúc (RES-02/UC-28). Ứng dụng chạy 1 tiến trình (không scale ngang) nên khóa trong bộ nhớ

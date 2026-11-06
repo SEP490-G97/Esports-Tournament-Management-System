@@ -1,10 +1,12 @@
 using ETOMS_API.Utils;
 using ETOMS_API.DTOs.Bracket;
 using ETOMS_API.Repositories;
+using ETOMS_API.Repositories.Interface;
+using ETOMS_API.Services.Interface;
 using ETOMS_API.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace ETOMS_API.Services;
+namespace ETOMS_API.Services.Impl;
 
 // Module BRK của Dũng (Iteration 2): BRK-01 (sinh nhánh + byes), BRK-02 (xếp hạt giống),
 // BRK-03 (khóa nhánh), BRK-04 (thuật toán Single Elimination), BRK-06 (thuật toán Round Robin).

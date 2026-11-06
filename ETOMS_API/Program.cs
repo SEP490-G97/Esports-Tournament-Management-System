@@ -1,5 +1,8 @@
 using ETOMS_API.Repositories;
-using ETOMS_API.Services;
+using ETOMS_API.Repositories.Interface;
+using ETOMS_API.Repositories.Impl;
+using ETOMS_API.Services.Interface;
+using ETOMS_API.Services.Impl;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

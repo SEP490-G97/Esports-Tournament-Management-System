@@ -1,7 +1,7 @@
 using ETOMS_API.Utils;
 using ETOMS_API.DTOs.Bracket;
 
-namespace ETOMS_API.Services;
+namespace ETOMS_API.Services.Interface;
 
 public interface IBracketService
 {
