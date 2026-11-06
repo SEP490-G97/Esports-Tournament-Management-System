@@ -57,6 +57,40 @@ kết nối MySQL cùng định dạng trước khi chạy API. Provider Oracle 
 GPL-2.0 kèm Universal-FOSS exception; nhóm cần xác nhận giấy phép này phù hợp với
 cách phân phối dự án.
 
+Các API Profile và Organization hiện chưa tích hợp xác thực/ủy quyền; chỉ chạy trong
+môi trường phát triển cục bộ cho đến khi module AUTH được tích hợp. Tệp định danh và
+giấy tờ tổ chức được lưu dưới `ETOMS_API/App_Data/private-uploads/`, không nằm trong
+thư mục tĩnh được phục vụ bởi web server. Hiện chưa có API tải/xem nội dung giấy tờ;
+chỉ có metadata được trả về cho hàng đợi xét duyệt. Không đưa API lên môi trường công
+khai trước khi module AUTH bổ sung kiểm tra quyền, bao gồm quyền đọc các tệp riêng tư.
+
+### API được triển khai — Iteration 1 (Profile, Organization)
+
+- `GET/PUT /api/profiles/{accountId}` — đọc/cập nhật hồ sơ.
+- `PUT /api/profiles/{accountId}/games/{gameId}` — lưu tên trong game.
+- `GET /api/profiles/{accountId}/public`, `GET /api/profiles/{accountId}/match-history` —
+  hồ sơ công khai và lịch sử thi đấu.
+- `GET/PUT /api/profiles/{accountId}/notification-preferences` — cài đặt thông báo.
+- `POST/GET /api/profiles/{accountId}/identity-documents` — tải lên/liệt kê metadata
+  giấy tờ định danh.
+- `POST /api/organizations` — đăng ký đơn vị; `POST /api/organizations/{organizationId}/documents`
+  — tải giấy tờ.
+- `GET /api/organizations/review-queue`, `POST /api/organizations/{organizationId}/review`
+  — hàng đợi và kết quả xét duyệt.
+- `GET /api/organizations`, `GET /api/organizations/{organizationId}` — danh sách và
+  hồ sơ công khai của đơn vị.
+- `GET/POST /api/organizations/{organizationId}/members`,
+  `POST /api/organizations/{organizationId}/members/{memberId}/accept`,
+  `PATCH /api/organizations/{organizationId}/members/{memberId}` — thành viên, lời mời,
+  chấp nhận lời mời và vai trò.
+- `POST /api/organizations/{organizationId}/chair-transfer`,
+  `GET /api/organizations/{organizationId}/reputation`,
+  `POST /api/organizations/{organizationId}/suspension` — chuyển chủ nhiệm, uy tín và
+  đình chỉ.
+
+Trong giai đoạn chưa có AUTH, các ID tài khoản/người xét duyệt nhận từ request chỉ là
+đầu vào phát triển, không chứng minh danh tính hoặc quyền hạn của người gọi.
+
 ### Pattern: Generic Repository + Unit of Work
 
 ```csharp

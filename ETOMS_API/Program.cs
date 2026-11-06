@@ -1,6 +1,7 @@
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
-using ETOMS_API.Services;
+using ETOMS_API.Services.Impl;
+using ETOMS_API.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 using MySql.Data.MySqlClient;
 

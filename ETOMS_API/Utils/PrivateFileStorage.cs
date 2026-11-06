@@ -53,12 +53,7 @@ public sealed class PrivateFileStorage
 
     public Task DeleteAsync(string relativePath)
     {
-        var fullPath = Path.GetFullPath(Path.Combine(_rootDirectory, relativePath));
-        var rootWithSeparator = Path.GetFullPath(_rootDirectory) + Path.DirectorySeparatorChar;
-        if (!fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Đường dẫn tệp riêng tư không hợp lệ.");
-        }
+        var fullPath = ResolvePath(relativePath);
 
         if (File.Exists(fullPath))
         {
@@ -66,5 +61,20 @@ public sealed class PrivateFileStorage
         }
 
         return Task.CompletedTask;
+    }
+
+    public FileStream OpenRead(string relativePath)
+        => new(ResolvePath(relativePath), FileMode.Open, FileAccess.Read, FileShare.Read);
+
+    private string ResolvePath(string relativePath)
+    {
+        var fullPath = Path.GetFullPath(Path.Combine(_rootDirectory, relativePath));
+        var rootWithSeparator = Path.GetFullPath(_rootDirectory) + Path.DirectorySeparatorChar;
+        if (!fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Đường dẫn tệp riêng tư không hợp lệ.");
+        }
+
+        return fullPath;
     }
 }

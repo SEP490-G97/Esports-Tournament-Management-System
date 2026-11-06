@@ -71,7 +71,11 @@ public sealed class SuspendOrganizationRequest
     public string Reason { get; set; } = string.Empty;
 }
 
-public sealed record OrganizationCreatedResponse(int OrganizationId, string Status, string StatusLabel);
+public sealed record OrganizationCreatedResponse(
+    int OrganizationId,
+    string Status,
+    string StatusLabel,
+    IReadOnlyList<string> RequiredDocumentTypes);
 
 public sealed record OrganizationDocumentResponse(
     int DocumentId,
@@ -131,4 +135,5 @@ public sealed record OrganizationReviewResponse(
     string StatusLabel,
     string? ReviewReason,
     DateTime CreatedAt,
+    IReadOnlyList<string> RequiredDocumentTypes,
     IReadOnlyList<OrganizationDocumentResponse> Documents);
