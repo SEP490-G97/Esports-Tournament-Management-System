@@ -61,6 +61,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IBracketService, BracketService>();
+builder.Services.AddScoped<IResultService, ResultService>();
 
 var app = builder.Build();
 
