@@ -21,8 +21,6 @@ public partial class Account
 
     public string? Phone { get; set; }
 
-    public string? School { get; set; }
-
     public string? SocialLinks { get; set; }
 
     public string Role { get; set; } = null!;
@@ -76,6 +74,12 @@ public partial class Account
     public virtual ICollection<Match> Matches { get; set; } = new List<Match>();
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+    public virtual ICollection<Organization> OrganizationCreatedByAccounts { get; set; } = new List<Organization>();
+
+    public virtual ICollection<OrganizationMember> OrganizationMembers { get; set; } = new List<OrganizationMember>();
+
+    public virtual ICollection<Organization> OrganizationReviewedByAccounts { get; set; } = new List<Organization>();
 
     public virtual ICollection<PaymentRecord> PaymentRecords { get; set; } = new List<PaymentRecord>();
 

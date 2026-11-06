@@ -42,6 +42,10 @@ public partial class EtomsDbContext : DbContext
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
+    public virtual DbSet<Organization> Organizations { get; set; }
+
+    public virtual DbSet<OrganizationMember> OrganizationMembers { get; set; }
+
     public virtual DbSet<PaymentRecord> PaymentRecords { get; set; }
 
     public virtual DbSet<Penalty> Penalties { get; set; }
@@ -69,6 +73,8 @@ public partial class EtomsDbContext : DbContext
     public virtual DbSet<VwGroupStanding> VwGroupStandings { get; set; }
 
     public virtual DbSet<VwLeaderboard> VwLeaderboards { get; set; }
+
+    public virtual DbSet<VwOrganizationReputation> VwOrganizationReputations { get; set; }
 
     public virtual DbSet<VwTeamPenaltyPoint> VwTeamPenaltyPoints { get; set; }
 
@@ -115,7 +121,6 @@ public partial class EtomsDbContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasDefaultValue("PLAYER", "DF_Account_Role");
-            entity.Property(e => e.School).HasMaxLength(200);
             entity.Property(e => e.SocialLinks).HasMaxLength(500);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
@@ -650,6 +655,87 @@ public partial class EtomsDbContext : DbContext
                 .HasConstraintName("FK_Notification_Account");
         });
 
+        modelBuilder.Entity<Organization>(entity =>
+        {
+            entity.ToTable("Organization");
+
+            entity.HasIndex(e => e.Name, "UQ_Organization_Name").IsUnique();
+
+            entity.Property(e => e.OrganizationId).HasColumnName("OrganizationID");
+            entity.Property(e => e.ContactEmail).HasMaxLength(256);
+            entity.Property(e => e.ContactPhone)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Organization_At");
+            entity.Property(e => e.CreatedByAccountId).HasColumnName("CreatedByAccountID");
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.LogoUrl).HasMaxLength(500);
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.OrganizationType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.ParentOrganization).HasMaxLength(150);
+            entity.Property(e => e.ReviewReason).HasMaxLength(1000);
+            entity.Property(e => e.ReviewedAt).HasPrecision(0);
+            entity.Property(e => e.ReviewedByAccountId).HasColumnName("ReviewedByAccountID");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue("PENDING", "DF_Organization_Status");
+            entity.Property(e => e.SuspendedAt).HasPrecision(0);
+            entity.Property(e => e.SuspensionReason).HasMaxLength(1000);
+            entity.Property(e => e.WebsiteUrl).HasMaxLength(500);
+
+            entity.HasOne(d => d.CreatedByAccount).WithMany(p => p.OrganizationCreatedByAccounts)
+                .HasForeignKey(d => d.CreatedByAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Organization_Creator");
+
+            entity.HasOne(d => d.ReviewedByAccount).WithMany(p => p.OrganizationReviewedByAccounts)
+                .HasForeignKey(d => d.ReviewedByAccountId)
+                .HasConstraintName("FK_Organization_Reviewer");
+        });
+
+        modelBuilder.Entity<OrganizationMember>(entity =>
+        {
+            entity.ToTable("OrganizationMember");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Role }, "UX_OrganizationMember_Chair")
+                .IsUnique()
+                .HasFilter("([Role]='CHAIR' AND [Status]='ACTIVE')");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.AccountId }, "UX_OrganizationMember_Current")
+                .IsUnique()
+                .HasFilter("([Status]<>'REMOVED')");
+
+            entity.Property(e => e.OrganizationMemberId).HasColumnName("OrganizationMemberID");
+            entity.Property(e => e.AccountId).HasColumnName("AccountID");
+            entity.Property(e => e.InvitedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_OrgMember_InvitedAt");
+            entity.Property(e => e.JoinedAt).HasPrecision(0);
+            entity.Property(e => e.OrganizationId).HasColumnName("OrganizationID");
+            entity.Property(e => e.Role)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue("INVITED", "DF_OrgMember_Status");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.OrganizationMembers)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrganizationMember_Account");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.OrganizationMembers)
+                .HasForeignKey(d => d.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrganizationMember_Org");
+        });
+
         modelBuilder.Entity<PaymentRecord>(entity =>
         {
             entity.ToTable("PaymentRecord");
@@ -1011,6 +1097,8 @@ public partial class EtomsDbContext : DbContext
         {
             entity.ToTable("Tournament");
 
+            entity.HasIndex(e => new { e.OrganizationId, e.Status }, "IX_Tournament_Organization");
+
             entity.Property(e => e.TournamentId).HasColumnName("TournamentID");
             entity.Property(e => e.BankAccountInfo).HasMaxLength(300);
             entity.Property(e => e.BannerUrl).HasMaxLength(500);
@@ -1030,14 +1118,15 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.GameId).HasColumnName("GameID");
             entity.Property(e => e.IsOnline).HasDefaultValue(true, "DF_Tour_Online");
             entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.OrganizationId).HasColumnName("OrganizationID");
             entity.Property(e => e.OrganizerAccountId).HasColumnName("OrganizerAccountID");
             entity.Property(e => e.OrganizingUnit).HasMaxLength(200);
             entity.Property(e => e.RegCloseAt).HasPrecision(0);
             entity.Property(e => e.RegOpenAt).HasPrecision(0);
             entity.Property(e => e.Region).HasMaxLength(100);
+            entity.Property(e => e.RequireIdentityDocument).HasDefaultValue(true, "DF_Tour_ReqDoc");
             entity.Property(e => e.RequireInGameName).HasDefaultValue(true, "DF_Tour_ReqIgn");
             entity.Property(e => e.RequirePaymentProof).HasDefaultValue(true, "DF_Tour_ReqPay");
-            entity.Property(e => e.RequireStudentCard).HasDefaultValue(true, "DF_Tour_ReqCard");
             entity.Property(e => e.RulebookVersion).HasDefaultValue(1, "DF_Tour_RbVer");
             entity.Property(e => e.StartAt).HasPrecision(0);
             entity.Property(e => e.Status)
@@ -1056,6 +1145,10 @@ public partial class EtomsDbContext : DbContext
                 .HasForeignKey(d => d.GameId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Tournament_Game");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.Tournaments)
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("FK_Tournament_Organization");
 
             entity.HasOne(d => d.OrganizerAccount).WithMany(p => p.TournamentOrganizerAccounts)
                 .HasForeignKey(d => d.OrganizerAccountId)
@@ -1139,6 +1232,19 @@ public partial class EtomsDbContext : DbContext
 
             entity.Property(e => e.GameId).HasColumnName("GameID");
             entity.Property(e => e.TeamId).HasColumnName("TeamID");
+        });
+
+        modelBuilder.Entity<VwOrganizationReputation>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_OrganizationReputation");
+
+            entity.Property(e => e.AvgResolveHours).HasColumnType("decimal(9, 1)");
+            entity.Property(e => e.CompletedPercent).HasColumnType("decimal(5, 1)");
+            entity.Property(e => e.DisputedPercent).HasColumnType("decimal(5, 1)");
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.OrganizationId).HasColumnName("OrganizationID");
         });
 
         modelBuilder.Entity<VwTeamPenaltyPoint>(entity =>

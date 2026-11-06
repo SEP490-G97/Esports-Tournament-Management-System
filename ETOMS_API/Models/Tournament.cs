@@ -11,6 +11,8 @@ public partial class Tournament
 
     public int OrganizerAccountId { get; set; }
 
+    public int? OrganizationId { get; set; }
+
     public string Name { get; set; } = null!;
 
     public string? Description { get; set; }
@@ -55,7 +57,7 @@ public partial class Tournament
 
     public string? PrizeStructure { get; set; }
 
-    public bool RequireStudentCard { get; set; }
+    public bool RequireIdentityDocument { get; set; }
 
     public bool RequirePaymentProof { get; set; }
 
@@ -96,6 +98,8 @@ public partial class Tournament
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();
 
     public virtual ICollection<Match> Matches { get; set; } = new List<Match>();
+
+    public virtual Organization? Organization { get; set; }
 
     public virtual Account OrganizerAccount { get; set; } = null!;
 
