@@ -45,7 +45,8 @@
             checks + blocked +
             '<div class="btn-row">' + actionsHtml(s) +
             '<a class="btn btn-ghost" href="/tournament/rulebook.html?id=' + tournamentId + '">Thể lệ giải</a>' +
-            '<a class="btn btn-ghost" href="/tournament/dashboard.html?id=' + tournamentId + '">Bảng điều hành</a></div>' +
+            '<a class="btn btn-ghost" href="/tournament/dashboard.html?id=' + tournamentId + '">Bảng điều hành</a>' +
+            '<a class="btn btn-ghost" href="/tournament/clone.html?id=' + tournamentId + '">Nhân bản giải</a></div>' +
             '</div></div>';
 
         wireAction('publish-btn', 'Xuất bản giải đấu? Sau khi xuất bản, mọi người đều xem được trang giải.', 'publish');
@@ -91,6 +92,7 @@
             showEmpty('Không xác định được giải đấu', 'Đường dẫn thiếu mã giải.');
             return;
         }
+        Ui.consumeFlash(document.getElementById('flash'));
         await load();
     });
 })();

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nhân bản giải · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Giải đấu · Nhân bản</div>
+            <h1 id="page-title">Nhân bản giải</h1>
+            <p>Chép cấu hình, thể lệ, giải thưởng và yêu cầu hồ sơ sang một giải nháp mới. Đội, trận đấu và nhà tài trợ không được chép.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="clone-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+
+        <div class="card-etoms form-narrow" id="clone-card" hidden>
+            <div class="body">
+                <form id="clone-form" novalidate>
+                    <div class="field">
+                        <label for="Name">Tên giải mới <span class="req">*</span></label>
+                        <input id="Name" class="input" maxlength="200" />
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+                    <div class="field">
+                        <label for="RegOpenAt">Mở đăng ký <span class="req">*</span></label>
+                        <input id="RegOpenAt" type="datetime-local" class="input" />
+                        <span class="field-error" data-field-error="RegOpenAt"></span>
+                    </div>
+                    <div class="field">
+                        <label for="RegCloseAt">Đóng đăng ký <span class="req">*</span></label>
+                        <input id="RegCloseAt" type="datetime-local" class="input" />
+                        <span class="field-error" data-field-error="RegCloseAt"></span>
+                    </div>
+                    <div class="field">
+                        <label for="StartAt">Khai mạc <span class="req">*</span></label>
+                        <input id="StartAt" type="datetime-local" class="input" />
+                        <span class="field-error" data-field-error="StartAt"></span>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" id="clone-btn">Nhân bản giải</button>
+                        <a class="btn btn-ghost" id="back-link" href="#">Hủy</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-clone.js" defer></script>
+</body>
+</html>

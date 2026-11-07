@@ -49,6 +49,7 @@ builder.Services.AddScoped<IRulebookService, RulebookService>();
 builder.Services.AddScoped<ITournamentPublishService, TournamentPublishService>();
 builder.Services.AddScoped<ITournamentDashboardService, TournamentDashboardService>();
 builder.Services.AddScoped<IRefereeAssignmentService, RefereeAssignmentService>();
+builder.Services.AddScoped<ITournamentCloneService, TournamentCloneService>();
 
 var app = builder.Build();
 

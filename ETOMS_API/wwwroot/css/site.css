@@ -442,3 +442,8 @@ body { overflow-x: hidden; }
 @media (max-width: 760px) {
   .rulebook-compare { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Ô chọn ngày giờ: lịch của trình duyệt theo đúng giao diện sáng/tối */
+input[type="datetime-local"].input { color-scheme: dark; cursor: pointer; }
+:root[data-theme="light"] input[type="datetime-local"].input { color-scheme: light; }
+input[type="datetime-local"].input::-webkit-calendar-picker-indicator { cursor: pointer; }
