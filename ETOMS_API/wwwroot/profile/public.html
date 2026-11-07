@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hồ sơ người chơi · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=iteration1-ux-3" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="page-head">
+            <a class="back-link" href="/profile/index.html">← Hồ sơ của tôi</a>
+            <div class="eyebrow mt-3">Hồ sơ công khai</div>
+            <h1 id="player-name">Hồ sơ người chơi</h1>
+            <p>Thông tin thi đấu công khai. Thông tin liên hệ và giấy tờ định danh không hiển thị tại đây.</p>
+        </div>
+        <div id="public-profile-flash" aria-live="polite"></div>
+        <div id="public-player-profile">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải hồ sơ...</h3></div></div>
+        </div>
+        <section class="feature-card mt-4" aria-labelledby="public-match-history-title">
+            <span class="profile-overline">Hoạt động thi đấu</span>
+            <h2 id="public-match-history-title">Lịch sử trận đấu</h2>
+            <div id="public-match-history" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
+        </section>
+    </main>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js?v=profile-org"></script>
+    <script src="/js/ui.js?v=profile-org"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/profile-public.js?v=iteration1-ux-3" defer></script>
+</body>
+</html>

@@ -12,7 +12,7 @@ ETOMS_1/
 │   ├── DTOs/                     request/response DTO, chia theo thư mục con từng module
 │   ├── Exceptions/                exception tự định nghĩa cho lỗi hạ tầng (xem luật bên dưới)
 │   ├── Hubs/                      SignalR Hub (tỉ số trực tiếp, thông báo)
-│   ├── Models/                    entity scaffold database-first từ ETOMS_Database.sql
+│   ├── Models/                    entity ánh xạ database-first từ schema MySQL của nhóm
 │   ├── Repositories/
 │   │   ├── Interface/             IGenericRepository<T>, IUnitOfWork
 │   │   └── Impl/                  GenericRepository<T>, UnitOfWork
@@ -25,6 +25,71 @@ ETOMS_1/
 │   └── Properties/launchSettings.json
 └── ui/                            frontend (chưa code)
 ```
+
+### Cấu hình database khi chạy API
+
+API dùng provider `MySql.EntityFrameworkCore` cho EF Core 10. Có thể lưu chuỗi kết nối
+trong User Secrets (khuyến nghị) hoặc đặt biến môi trường `ETOMS_DB_CONNECTION`.
+Ví dụ PowerShell, chạy từ thư mục gốc repository:
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:EtomsDatabase" "Server=15.135.76.150;Port=3306;Database=etoms_db;User ID=etoms;Password=YOUR_NEW_PASSWORD;Character Set=utf8mb4" --project ETOMS_API
+dotnet run --project ETOMS_API/ETOMS_API.csproj
+```
+
+Hãy thay `YOUR_NEW_PASSWORD` bằng mật khẩu mới sau khi đổi mật khẩu đã chia sẻ trong
+ảnh; không đưa mật khẩu thật vào `appsettings.json`, README hoặc Git. Máy chủ MySQL
+cần cho phép kết nối từ máy bạn và cung cấp đúng cổng/TLS mode cho nhóm.
+
+Entity trong `ETOMS_API/Models/` và `ETOMS_API/Repositories/EtomsDbContext.cs` phải
+khớp schema MySQL do nhóm cung cấp (tên bảng/cột, kiểu dữ liệu, khóa ngoại và views).
+File local `ETOMS_Database.sql` là cú pháp SQL Server cũ, **không chạy file đó trên
+MySQL**. Dự án dùng database-first, không tự tạo hoặc nâng cấp schema khi khởi động.
+Connection của API được đặt rõ charset `utf8mb4`. Nếu dữ liệu seed cũ đã mất dấu, có
+thể áp dụng có điều kiện script `database/mysql/fix-vietnamese-seed-data.sql`; script
+chỉ sửa đúng các giá trị đã bị mất dấu như nội dung trong ảnh.
+Các unique index có điều kiện của SQL Server không được MySQL hỗ trợ trực tiếp; schema
+MySQL phải có cách cưỡng chế tương đương (ví dụ generated column/index hoặc constraint
+phù hợp). Cần đối chiếu schema MySQL thật trước khi xác nhận mọi API hoạt động.
+
+Nếu dùng biến môi trường thay cho User Secrets, đặt `ETOMS_DB_CONNECTION` bằng chuỗi
+kết nối MySQL cùng định dạng trước khi chạy API. Provider Oracle có giấy phép
+GPL-2.0 kèm Universal-FOSS exception; nhóm cần xác nhận giấy phép này phù hợp với
+cách phân phối dự án.
+
+Các API Profile và Organization hiện chưa tích hợp xác thực/ủy quyền; chỉ chạy trong
+môi trường phát triển cục bộ cho đến khi module AUTH được tích hợp. Tệp định danh và
+giấy tờ tổ chức được lưu dưới `ETOMS_API/App_Data/private-uploads/`, không nằm trong
+thư mục tĩnh được phục vụ bởi web server. Hiện chưa có API tải/xem nội dung giấy tờ;
+chỉ có metadata được trả về cho hàng đợi xét duyệt. Không đưa API lên môi trường công
+khai trước khi module AUTH bổ sung kiểm tra quyền, bao gồm quyền đọc các tệp riêng tư.
+
+### API được triển khai — Iteration 1 (Profile, Organization)
+
+- `GET/PUT /api/profiles/{accountId}` — đọc/cập nhật hồ sơ.
+- `PUT /api/profiles/{accountId}/games/{gameId}` — lưu tên trong game.
+- `GET /api/profiles/{accountId}/public`, `GET /api/profiles/{accountId}/match-history` —
+  hồ sơ công khai và lịch sử thi đấu.
+- `GET/PUT /api/profiles/{accountId}/notification-preferences` — cài đặt thông báo.
+- `POST/GET /api/profiles/{accountId}/identity-documents` — tải lên/liệt kê metadata
+  giấy tờ định danh.
+- `POST /api/organizations` — đăng ký đơn vị; `POST /api/organizations/{organizationId}/documents`
+  — tải giấy tờ.
+- `GET /api/organizations/review-queue`, `POST /api/organizations/{organizationId}/review`
+  — hàng đợi và kết quả xét duyệt.
+- `GET /api/organizations`, `GET /api/organizations/{organizationId}` — danh sách và
+  hồ sơ công khai của đơn vị.
+- `GET/POST /api/organizations/{organizationId}/members`,
+  `POST /api/organizations/{organizationId}/members/{memberId}/accept`,
+  `PATCH /api/organizations/{organizationId}/members/{memberId}` — thành viên, lời mời,
+  chấp nhận lời mời và vai trò.
+- `POST /api/organizations/{organizationId}/chair-transfer`,
+  `GET /api/organizations/{organizationId}/reputation`,
+  `POST /api/organizations/{organizationId}/suspension` — chuyển chủ nhiệm, uy tín và
+  đình chỉ.
+
+Trong giai đoạn chưa có AUTH, các ID tài khoản/người xét duyệt nhận từ request chỉ là
+đầu vào phát triển, không chứng minh danh tính hoặc quyền hạn của người gọi.
 
 ### Pattern: Generic Repository + Unit of Work
 
@@ -61,10 +126,10 @@ không inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`.
    trách, đừng tự chế thêm endpoint.
 4. **Ngôn ngữ:** dữ liệu/chuỗi trả về cho người dùng (message lỗi, label...) phải
    **100% tiếng Việt có dấu**. Tên class/property/route/biến trong code: tiếng Anh.
-5. **Database: SQL Server, database-first.** Không dùng `dotnet ef migrations add` để
-   tạo/đổi schema — sửa schema thì sửa file `ETOMS_Database.sql` rồi scaffold lại
-   entity. Lược đồ có CHECK constraint + unique index có điều kiện là tầng cưỡng chế
-   nghiệp vụ thật sự — đừng xóa khi EF scaffold báo khó, sai là ở code.
+5. **Database: MySQL, database-first.** Không dùng `dotnet ef migrations add` để tự
+   tạo/đổi schema. Schema MySQL do nhóm quản lý; cập nhật entity/context theo schema
+   MySQL đã thống nhất. Không chạy `ETOMS_Database.sql` (script SQL Server cũ) trên
+   MySQL. Bảo toàn các ràng buộc nghiệp vụ bằng các constraint/index MySQL tương đương.
 6. **Phân công module** (ai đụng module nào hỏi người đó trước khi đổi logic chung):
 
    | Thành viên | Module |
@@ -125,13 +190,9 @@ HTTP, Repository không biết gì về nghiệp vụ.**
   nghiệp vụ** — Service xử lý xong rồi gọi `IHubContext<T>...SendAsync(...)`.
 
 ### `Models/`
-- **Chỉ entity scaffold database-first** từ `ETOMS_Database.sql`:
-  ```bash
-  dotnet ef dbcontext scaffold "Server=.\SQLEXPRESS;Database=ETOMS;Trusted_Connection=True;TrustServerCertificate=True" \
-    Microsoft.EntityFrameworkCore.SqlServer -o Models -c EtomsDbContext --no-onconfiguring
-  ```
-  Không sửa tay property, không thêm property không có trong script SQL.
-- Đổi schema thì sửa `ETOMS_Database.sql` → tạo lại DB → scaffold lại, **không** dùng
+- **Entity database-first** phải khớp schema MySQL đã thống nhất với nhóm. Không lấy
+  `ETOMS_Database.sql` làm nguồn schema hiện tại vì đó là script SQL Server cũ.
+- Đổi schema thì cập nhật schema MySQL và scaffold/đối chiếu entity, **không** dùng
   `dotnet ef migrations add`.
 
 ### `Repositories/Interface/` và `Repositories/Impl/`

@@ -2,9 +2,10 @@ using ETOMS_API.Utils;
 using ETOMS_API.DTOs.Team;
 using ETOMS_API.Repositories;
 using ETOMS_API.Models;
+using ETOMS_API.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 
-namespace ETOMS_API.Services;
+namespace ETOMS_API.Services.Impl;
 
 // Module TEAM (v2 schema). Đội trưởng = Team.CaptainAccountId và cũng là một TeamMember
 // (Slot = STARTER). Thành viên lưu ở TeamMember với Slot STARTER/SUBSTITUTE, không có vai trò

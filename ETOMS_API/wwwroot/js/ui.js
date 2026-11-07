@@ -10,6 +10,16 @@ var Ui = (function () {
             .replace(/'/g, '&#39;');
     }
 
+    function safeUrl(value) {
+        if (!value) return '';
+        try {
+            var url = new URL(value, location.origin);
+            return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : '';
+        } catch (e) {
+            return '';
+        }
+    }
+
     // containerEl: phần tử chứa alert (thường là 1 <div id="flash"></div> đầu trang/khối).
     function showAlert(containerEl, type, message) {
         if (!containerEl) return;
@@ -77,7 +87,7 @@ var Ui = (function () {
     }
 
     return {
-        escapeHtml: escapeHtml, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
+        escapeHtml: escapeHtml, safeUrl: safeUrl, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
         applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth,
         setFlash: setFlash, consumeFlash: consumeFlash
     };

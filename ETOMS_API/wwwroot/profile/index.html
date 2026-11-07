@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hồ sơ cá nhân · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=iteration1-ux-3" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="page-head profile-page-head">
+            <div>
+                <div class="eyebrow">Khu vực người chơi</div>
+                <h1>Hồ sơ của bạn</h1>
+                <p>Cập nhật thông tin thi đấu, tài khoản game và cách nhận thông báo.</p>
+            </div>
+            <a class="btn btn-ghost" href="/organization/index.html">Khám phá tổ chức</a>
+        </div>
+        <div class="dev-banner" role="note">
+            <strong>Môi trường thử nghiệm:</strong> Profile chưa có xác thực/phân quyền máy chủ hoàn chỉnh.
+            Không tải giấy tờ thật hoặc dùng dữ liệu nhạy cảm.
+        </div>
+        <div id="profile-flash" aria-live="polite"></div>
+
+        <div class="profile-layout">
+            <aside class="profile-aside">
+                <div class="profile-account-card">
+                    <div id="profile-nav-avatar" class="profile-avatar" aria-hidden="true">P</div>
+                    <div class="profile-account-copy">
+                        <span class="profile-overline">Tài khoản đang sửa</span>
+                        <strong id="profile-nav-name">Đang tải hồ sơ...</strong>
+                        <span id="profile-email" class="profile-account-email">Đang tải email...</span>
+                    </div>
+                </div>
+                <nav class="profile-section-nav" aria-label="Điều hướng hồ sơ">
+                    <a href="#profile-basics">Thông tin cá nhân</a>
+                    <a href="#profile-game-section">Tài khoản game</a>
+                    <a href="#profile-privacy">Giấy tờ &amp; riêng tư</a>
+                    <a href="#profile-public">Hồ sơ thi đấu</a>
+                    <a href="#profile-history">Lịch sử trận</a>
+                </nav>
+                <p class="profile-aside-note">Email, ngày sinh và số điện thoại không được đưa vào hồ sơ công khai hiện tại.</p>
+            </aside>
+
+            <div class="profile-main">
+                <section id="profile-basics" class="feature-card profile-section" aria-labelledby="profile-basics-title">
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Thông tin tài khoản</span><h2 id="profile-basics-title">Thông tin cá nhân</h2></div>
+                        <span class="badge badge-soft">Chỉ bạn quản lý</span>
+                    </div>
+                    <p class="muted-copy">Email đăng nhập được quản lý bởi tài khoản và chưa thể thay đổi tại đây.</p>
+                    <form id="profile-form" novalidate>
+                        <div class="field">
+                            <label for="profile-full-name">Tên hiển thị <span class="req">*</span></label>
+                            <input id="profile-full-name" name="FullName" class="input" maxlength="150" autocomplete="name" required aria-describedby="profile-full-name-error" />
+                            <span id="profile-full-name-error" class="field-error" data-field-error="FullName"></span>
+                        </div>
+                        <div class="field">
+                            <label for="profile-avatar">Ảnh đại diện</label>
+                            <input id="profile-avatar" name="AvatarUrl" type="url" class="input" maxlength="500" placeholder="https://..." autocomplete="url" aria-describedby="profile-avatar-hint profile-avatar-error" />
+                            <span id="profile-avatar-hint" class="field-hint">Dán liên kết ảnh công khai bắt đầu bằng https://. Hiện chưa hỗ trợ tải ảnh lên.</span>
+                            <span id="profile-avatar-error" class="field-error" data-field-error="AvatarUrl"></span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 field">
+                                <label for="profile-dob">Ngày sinh</label>
+                                <input id="profile-dob" name="DateOfBirth" type="date" class="input" autocomplete="bday" aria-describedby="profile-private-hint" />
+                            </div>
+                            <div class="col-md-6 field">
+                                <label for="profile-phone">Số điện thoại</label>
+                                <input id="profile-phone" name="Phone" type="tel" class="input" maxlength="20" autocomplete="tel" aria-describedby="profile-private-hint profile-phone-error" />
+                                <span id="profile-phone-error" class="field-error" data-field-error="Phone"></span>
+                            </div>
+                        </div>
+                        <p id="profile-private-hint" class="field-hint">Không bắt buộc; hiện không hiển thị trong hồ sơ công khai.</p>
+                        <div class="field">
+                            <label for="profile-social">Liên kết mạng xã hội</label>
+                            <textarea id="profile-social" name="SocialLinks" class="input" rows="3" maxlength="500" placeholder="https://facebook.com/ten-cua-ban&#10;https://discord.com/users/..." aria-describedby="profile-social-hint profile-social-error"></textarea>
+                            <span id="profile-social-hint" class="field-hint">Mỗi liên kết một dòng, tối đa 500 ký tự. Các liên kết này chưa được hiển thị công khai.</span>
+                            <span id="profile-social-error" class="field-error" data-field-error="SocialLinks"></span>
+                        </div>
+                        <div class="profile-form-actions"><button class="btn btn-primary" type="submit">Lưu thông tin</button></div>
+                    </form>
+                </section>
+
+                <section id="profile-game-section" class="feature-card profile-section" aria-labelledby="profile-game-title">
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Định danh thi đấu</span><h2 id="profile-game-title">Tài khoản trong game</h2></div>
+                    </div>
+                    <p class="muted-copy">Thêm tên hiển thị bạn dùng trong game. ETOMS hiện chỉ lưu tên, chưa xác minh quyền sở hữu tài khoản.</p>
+                    <form id="game-form" class="profile-game-form" novalidate>
+                        <div class="field">
+                            <label for="game-id">Tựa game <span class="req">*</span></label>
+                            <select id="game-id" name="GameId" class="select" required aria-describedby="game-id-error"><option value="">Đang tải danh sách game...</option></select>
+                            <span id="game-id-error" class="field-error" data-field-error="GameId"></span>
+                        </div>
+                        <div class="field">
+                            <label for="in-game-name">Tên trong game <span class="req">*</span></label>
+                            <input id="in-game-name" name="InGameName" class="input" maxlength="150" required placeholder="Ví dụ: TenGame#TAG" aria-describedby="in-game-name-error" />
+                            <span id="in-game-name-error" class="field-error" data-field-error="InGameName"></span>
+                            <span id="game-account-hint" class="field-hint">Chọn tựa game để thêm tên mới hoặc cập nhật tên đang liên kết.</span>
+                        </div>
+                        <button id="game-submit" class="btn btn-primary" type="submit">Thêm tên game</button>
+                    </form>
+                    <h3 class="section-title">Tên game đã liên kết</h3>
+                    <div id="profile-games" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
+                </section>
+
+                <section id="profile-privacy" class="feature-card profile-section" aria-labelledby="profile-privacy-title">
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Kiểm soát dữ liệu</span><h2 id="profile-privacy-title">Giấy tờ &amp; thông báo</h2></div>
+                    </div>
+                    <div class="profile-privacy-grid">
+                        <div class="profile-subsection">
+                            <h3>Minh chứng định danh</h3>
+                            <p class="muted-copy">Chỉ tải JPG, PNG hoặc PDF tối đa 10 MB khi đang thử nghiệm bằng dữ liệu giả. Tệp được lưu riêng tư; hiện chưa có trạng thái xét duyệt.</p>
+                            <form id="identity-form" novalidate>
+                                <div class="field">
+                                    <label for="identity-file">Chọn tệp minh chứng</label>
+                                    <input id="identity-file" name="file" type="file" class="input" accept=".jpg,.jpeg,.png,.pdf" required aria-describedby="identity-file-hint identity-file-error" />
+                                    <span id="identity-file-hint" class="field-hint">Định dạng JPG, PNG hoặc PDF · tối đa 10 MB.</span>
+                                    <span id="identity-file-error" class="field-error" data-field-error="file"></span>
+                                </div>
+                                <button class="btn btn-ghost" type="submit">Tải minh chứng lên</button>
+                            </form>
+                            <div id="identity-documents" class="feature-list mt-3"><p class="muted-copy">Đang tải...</p></div>
+                        </div>
+                        <div class="profile-subsection">
+                            <h3>Tùy chọn thông báo</h3>
+                            <p class="muted-copy">Chọn kênh nhận cập nhật hoạt động tài khoản.</p>
+                            <form id="preferences-form">
+                                <label class="preference-option">
+                                    <input class="form-check-input" type="checkbox" name="NotifyInApp" />
+                                    <span><strong>Trong ứng dụng</strong><small>Thông báo trong ETOMS</small></span>
+                                </label>
+                                <label class="preference-option">
+                                    <input class="form-check-input" type="checkbox" name="NotifyEmail" />
+                                    <span><strong>Qua email</strong><small>Gửi cập nhật đến email tài khoản</small></span>
+                                </label>
+                                <button class="btn btn-ghost mt-3" type="submit">Lưu tùy chọn</button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="profile-public" class="feature-card profile-section" aria-labelledby="profile-public-title">
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Góc nhìn cộng đồng</span><h2 id="profile-public-title">Hồ sơ thi đấu</h2></div>
+                        <span class="badge badge-active">Thông tin công khai</span>
+                    </div>
+                    <p class="muted-copy">Tên hiển thị, ảnh đại diện, tên game, đội tuyển và thành tích có thể xuất hiện với người khác.</p>
+                    <div id="public-profile"><p class="muted-copy">Đang tải hồ sơ công khai...</p></div>
+                </section>
+
+                <section id="profile-history" class="feature-card profile-section" aria-labelledby="profile-history-title">
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Hoạt động thi đấu</span><h2 id="profile-history-title">Lịch sử trận đấu</h2></div>
+                    </div>
+                    <div id="match-history" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
+                </section>
+            </div>
+        </div>
+    </main>
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js?v=profile-org"></script>
+    <script src="/js/ui.js?v=profile-org"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/profile.js?v=iteration1-ux-3" defer></script>
+</body>
+</html>
