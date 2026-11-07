@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Soạn thể lệ giải · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Giải đấu · Thể lệ</div>
+            <h1 id="page-title">Soạn thể lệ giải</h1>
+            <p id="page-sub">Thể lệ là căn cứ để đội trưởng tick cam kết khi đăng ký giải.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="rulebook-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+
+        <div class="card-etoms" id="editor-card" hidden>
+            <div class="body">
+                <form id="rulebook-form" novalidate>
+                    <div class="field">
+                        <label id="editor-label">Nội dung thể lệ <span class="req">*</span></label>
+                        <div class="rte-toolbar" role="toolbar" aria-label="Định dạng văn bản">
+                            <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="H2" title="Tiêu đề lớn">H2</button>
+                            <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="H3" title="Tiêu đề nhỏ">H3</button>
+                            <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="P" title="Đoạn văn">¶</button>
+                            <span class="rte-sep"></span>
+                            <button type="button" class="rte-btn" data-cmd="bold" title="In đậm"><b>B</b></button>
+                            <button type="button" class="rte-btn" data-cmd="italic" title="In nghiêng"><i>I</i></button>
+                            <button type="button" class="rte-btn" data-cmd="underline" title="Gạch chân"><u>U</u></button>
+                            <span class="rte-sep"></span>
+                            <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Danh sách chấm">• Danh sách</button>
+                            <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Danh sách số">1. Danh sách</button>
+                            <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="BLOCKQUOTE" title="Trích dẫn">“ ”</button>
+                            <button type="button" class="rte-btn" id="rte-link" title="Chèn liên kết">Liên kết</button>
+                        </div>
+                        <div id="editor" class="rte-editor rulebook-content" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="editor-label"></div>
+                        <div class="hint">Gồm thể lệ thi đấu, quy định kỷ luật và hướng dẫn nộp minh chứng. Ảnh và định dạng màu sẽ bị loại khi lưu.</div>
+                        <span class="field-error" data-field-error="Content"></span>
+                    </div>
+
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" id="save-btn">Lưu thể lệ</button>
+                        <a class="btn btn-ghost" id="history-link" href="#">Xem các phiên bản</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-rulebook.js" defer></script>
+</body>
+</html>
