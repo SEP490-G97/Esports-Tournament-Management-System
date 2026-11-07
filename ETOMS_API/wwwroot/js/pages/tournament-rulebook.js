@@ -7,6 +7,7 @@
     var tournamentId = null;
     var baseVersion = 1;
     var hasSavedContent = false;
+    var isDraft = false;
 
     function showEmpty(title, message, linkHtml) {
         document.getElementById('rulebook-root').innerHTML =
@@ -16,9 +17,11 @@
 
     function updateVersionLine(name) {
         document.getElementById('page-title').textContent = 'Thể lệ giải ' + name;
-        document.getElementById('page-sub').textContent = hasSavedContent
-            ? 'Đang sửa từ phiên bản ' + baseVersion + '. Lưu sẽ tạo phiên bản mới, các đội đã đăng ký vẫn giữ bản họ đã chấp nhận.'
-            : 'Giải chưa có thể lệ. Lần lưu đầu tiên sẽ là phiên bản ' + baseVersion + '.';
+        var sub;
+        if (isDraft) sub = 'Giải còn nháp nên thể lệ giữ phiên bản ' + baseVersion + ' đến khi xuất bản.';
+        else if (hasSavedContent) sub = 'Đang sửa từ phiên bản ' + baseVersion + '. Lưu sẽ tạo phiên bản mới, các đội đã đăng ký vẫn giữ bản họ đã chấp nhận.';
+        else sub = 'Giải chưa có thể lệ. Lần lưu đầu tiên sẽ là phiên bản ' + baseVersion + '.';
+        document.getElementById('page-sub').textContent = sub;
     }
 
     function wireToolbar(editor) {
@@ -62,7 +65,7 @@
             Ui.clearAlert(flash);
             Ui.clearFieldErrors(form);
 
-            if (hasSavedContent) {
+            if (hasSavedContent && !isDraft) {
                 var ok = await window.etomsConfirm('Lưu sẽ tạo phiên bản thể lệ mới và thông báo cho các đội đã đăng ký. Bản các đội đã chấp nhận không thay đổi. Tiếp tục?');
                 if (!ok) return;
             }
@@ -115,6 +118,7 @@
 
         baseVersion = rulebook.currentVersion;
         hasSavedContent = !!rulebook.content;
+        isDraft = rulebook.tournamentStatus === 'DRAFT';
 
         var editor = document.getElementById('editor');
         editor.innerHTML = rulebook.content || STARTER_TEMPLATE;

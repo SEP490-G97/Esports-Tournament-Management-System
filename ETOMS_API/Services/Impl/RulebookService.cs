@@ -81,7 +81,8 @@ public class RulebookService : IRulebookService
         return versions.OrderByDescending(v => v.Version).ToList();
     }
 
-    // ===== TOUR-08: Lưu thể lệ. Lần lưu đầu là phiên bản hiện có, mỗi lần đổi nội dung sau đó tăng 1 =====
+    // ===== TOUR-08: Lưu thể lệ. Giải còn nháp giữ nguyên phiên bản vì chưa đội nào xem được;
+    // từ khi xuất bản, mỗi lần đổi nội dung tăng 1 và báo cho các đội đã đăng ký =====
     public async Task<Result<RulebookSavedDto>> SaveRulebookAsync(int tournamentId, SaveRulebookRequest request, int organizerAccountId)
     {
         var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
@@ -105,7 +106,8 @@ public class RulebookService : IRulebookService
         var previousContent = tournament.RulebookContent;
         var previousVersion = tournament.RulebookVersion;
         var isFirstSave = string.IsNullOrWhiteSpace(previousContent);
-        var newVersion = isFirstSave ? previousVersion : previousVersion + 1;
+        var createsNewVersion = !isFirstSave && tournament.Status != "DRAFT";
+        var newVersion = createsNewVersion ? previousVersion + 1 : previousVersion;
 
         tournament.RulebookContent = content;
         tournament.RulebookVersion = newVersion;
@@ -125,7 +127,7 @@ public class RulebookService : IRulebookService
         });
 
         var notified = 0;
-        if (!isFirstSave)
+        if (createsNewVersion)
         {
             var captains = await GetCaptainsToNotifyAsync(tournamentId);
             foreach (var captainId in captains)
@@ -162,11 +164,11 @@ public class RulebookService : IRulebookService
     private static bool CanView(Tournament t, int? viewerAccountId)
         => t.Status != "DRAFT" || t.OrganizerAccountId == viewerAccountId;
 
+    // Đổi thể lệ ràng buộc các đội nên luôn gửi, không xét Account.NotifyInApp.
     private async Task<List<int>> GetCaptainsToNotifyAsync(int tournamentId)
         => await _uow.Repository<Registration>().Query()
             .Where(r => r.TournamentId == tournamentId
-                && (r.Status == "PENDING" || r.Status == "APPROVED" || r.Status == "WAITLISTED")
-                && r.Team.CaptainAccount.NotifyInApp)
+                && (r.Status == "PENDING" || r.Status == "APPROVED" || r.Status == "WAITLISTED"))
             .Select(r => r.Team.CaptainAccountId)
             .Distinct()
             .ToListAsync();
