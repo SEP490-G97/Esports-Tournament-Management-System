@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng ký giải · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Đăng ký tham gia</div>
+            <h1 id="tournament-name">Đăng ký giải đấu</h1>
+            <p id="tournament-summary">Chọn đội hình, kiểm tra điều kiện và xác nhận thể lệ giải.</p>
+        </div>
+        <div class="dev-banner" role="note">
+            <strong>Lưu ý:</strong> chỉ đội trưởng đã xác minh email được nộp đơn. Giấy tờ định danh chỉ hiển thị trong màn hình xét duyệt của ban tổ chức giải.
+        </div>
+        <div id="registration-flash" aria-live="polite"></div>
+        <section id="registration-panel" class="card-etoms registration-panel">
+            <form id="registration-form" class="registration-form" novalidate>
+                <div class="field">
+                    <label for="team-select">Đội tuyển</label>
+                    <select id="team-select" class="select" required></select>
+                    <span class="field-hint" id="roster-rules"></span>
+                </div>
+                <section class="field" aria-labelledby="lineup-title">
+                    <h2 id="lineup-title">Danh sách thi đấu</h2>
+                    <p class="field-hint">Chọn vai trò của từng thành viên. Thành viên không được chọn sẽ không có trong lineup của đơn.</p>
+                    <div id="roster-list" class="feature-list"></div>
+                    <div class="field-error" id="lineup-error"></div>
+                </section>
+                <section class="field" id="rulebook-section">
+                    <h2>Thể lệ giải</h2>
+                    <div id="rulebook-content" class="card-etoms"></div>
+                    <label class="d-flex align-items-start gap-2 mt-3">
+                        <input id="accept-rulebook" type="checkbox" required />
+                        <span>Tôi đã đọc và đồng ý với thể lệ giải ở phiên bản <strong id="rulebook-version"></strong>.</span>
+                    </label>
+                </section>
+                <section class="field" id="payment-section" hidden>
+                    <h2>Biên lai lệ phí</h2>
+                    <p class="field-hint">Giải yêu cầu biên lai trước khi gửi đơn. ETOMS chỉ lưu bằng chứng, không thực hiện hoặc xác minh giao dịch.</p>
+                    <label for="payment-amount">Số tiền khai báo</label>
+                    <input id="payment-amount" class="input" type="number" min="0" step="0.01" />
+                    <label for="payment-proof" class="mt-3">Ảnh/PDF biên lai <span class="req">*</span></label>
+                    <input id="payment-proof" class="input" type="file" accept=".jpg,.jpeg,.png,.pdf" />
+                    <span class="field-hint">JPG, PNG hoặc PDF; tối đa 10 MB.</span>
+                </section>
+                <div class="registration-actions">
+                    <a class="btn btn-ghost" href="/registration/mine.html">Đơn của tôi</a>
+                    <button class="btn btn-primary" type="submit">Gửi đơn đăng ký</button>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/registration-register.js" defer></script>
+</body>
+</html>

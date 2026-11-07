@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đơn đăng ký của tôi · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Đội trưởng</div>
+            <h1>Đơn đăng ký của tôi</h1>
+            <p>Theo dõi trạng thái xét duyệt, lineup, xác nhận thể lệ và lệ phí của các đội bạn quản lý.</p>
+        </div>
+        <div class="dev-banner" role="note">Biên lai và giấy tờ là dữ liệu riêng tư. Không gửi thông tin thanh toán thật vào môi trường thử nghiệm.</div>
+        <div id="registration-flash" aria-live="polite"></div>
+        <div id="my-registrations" class="feature-list" aria-live="polite">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải đơn đăng ký...</h3></div></div>
+        </div>
+    </main>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/registration-mine.js" defer></script>
+</body>
+</html>
