@@ -132,6 +132,7 @@
             '<div class="btn-row" style="margin-bottom:22px">' +
             '<a class="btn btn-ghost" href="/registration/pending.html?tournamentId=' + tree.tournamentId + '">Duyệt đơn đăng ký</a>' +
             '<a class="btn btn-ghost" href="/bracket/view.html?id=' + tree.tournamentId + '">Xem công khai</a>' +
+            '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định</a>' +
             '</div>' +
             (!tree.isLocked ? generateFormHtml(tree, teams) : '') +
             bracketContentHtml(tree);

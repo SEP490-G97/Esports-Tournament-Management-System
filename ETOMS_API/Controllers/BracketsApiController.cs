@@ -56,4 +56,21 @@ public class BracketsApiController : ApiControllerBase
         if (!_currentUser.IsAuthenticated) return Unauthorized();
         return FromResult(await _bracketService.LockBracketAsync(tournamentId, _currentUser.UserId!.Value));
     }
+
+    // GET /api/tournaments/{tournamentId}/bracket/tiebreaker — BRK-07, công khai (hiện cho mọi người xem).
+    [HttpGet("tiebreaker")]
+    public async Task<IActionResult> GetTieBreaker(int tournamentId)
+    {
+        var config = await _bracketService.GetTieBreakerConfigAsync(tournamentId);
+        return config is null ? NotFound() : Ok(config);
+    }
+
+    // PUT /api/tournaments/{tournamentId}/bracket/tiebreaker — BRK-07, chỉ organizer.
+    [HttpPut("tiebreaker")]
+    public async Task<IActionResult> SetTieBreaker(int tournamentId, [FromBody] SetTieBreakerRequest model)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        return FromResult(await _bracketService.SetTieBreakerConfigAsync(tournamentId, model.Order, _currentUser.UserId!.Value));
+    }
 }
