@@ -104,7 +104,8 @@
         try {
             rulebook = await Api.get('/api/tournaments/' + tournamentId + '/rulebook');
         } catch (err) {
-            showEmpty('Không tìm thấy giải đấu', err.status === 404 ? 'Giải không tồn tại hoặc chưa được công khai.' : err.message);
+            if (err.status === 404) showEmpty('Không tìm thấy giải đấu', 'Giải không tồn tại hoặc chưa được công khai.');
+            else showEmpty('Không tải được thể lệ', err.message);
             return;
         }
 
