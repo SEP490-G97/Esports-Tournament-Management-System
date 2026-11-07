@@ -46,6 +46,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 // Service của từng module đăng ký ở đây — thêm dòng khi module đó có code.
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IRulebookService, RulebookService>();
+builder.Services.AddScoped<ITournamentPublishService, TournamentPublishService>();
 
 var app = builder.Build();
 
