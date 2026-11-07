@@ -223,15 +223,10 @@ public sealed class ProfileService : IProfileService
             return Result.Failure<IdentityDocumentDownload>("Không tìm thấy giấy tờ định danh.", StatusCodes.Status404NotFound);
         }
 
-        var isOwner = accountId == requesterAccountId;
-        var isTournamentOrganizer = !isOwner && await _unitOfWork.Repository<RegistrationLineup>().Query()
-            .AnyAsync(lineup => lineup.AccountId == accountId
-                && lineup.Registration.Tournament.OrganizerAccountId == requesterAccountId,
-                cancellationToken);
-        if (!isOwner && !isTournamentOrganizer)
+        if (accountId != requesterAccountId)
         {
             return Result.Failure<IdentityDocumentDownload>(
-                "Bạn không có quyền xem giấy tờ định danh này.",
+                "Chỉ chủ tài khoản mới có thể tải giấy tờ tại hồ sơ cá nhân. Ban tổ chức cần dùng đường dẫn hồ sơ đăng ký của giải.",
                 StatusCodes.Status403Forbidden);
         }
 

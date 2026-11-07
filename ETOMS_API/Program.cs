@@ -44,9 +44,11 @@ builder.Services.AddScoped<ETOMS_API.Repositories.IUnitOfWork, ETOMS_API.Reposit
 builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IProfileService, ETOMS_API.Services.Impl.ProfileService>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ETOMS_API.Services.Impl.OrganizationService>();
+builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
 builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddHostedService<WaitlistExpirationWorker>();
 
 var app = builder.Build();
 
