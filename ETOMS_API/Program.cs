@@ -47,6 +47,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IRulebookService, RulebookService>();
 builder.Services.AddScoped<ITournamentPublishService, TournamentPublishService>();
+builder.Services.AddScoped<ITournamentDashboardService, TournamentDashboardService>();
 
 var app = builder.Build();
 

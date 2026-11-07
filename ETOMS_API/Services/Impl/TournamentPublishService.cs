@@ -35,8 +35,8 @@ public class TournamentPublishService : ITournamentPublishService
             TournamentId = tournament.TournamentId,
             TournamentName = tournament.Name,
             Status = tournament.Status,
-            StatusLabel = StatusLabel(tournament.Status),
-            StatusClass = StatusClass(tournament.Status),
+            StatusLabel = StatusText.Tournament(tournament.Status),
+            StatusClass = StatusText.TournamentClass(tournament.Status),
             CanPublish = tournament.Status == "DRAFT" && checks.All(c => c.IsOk),
             CanUnpublish = isPublished && !hasRegistration,
             UnpublishBlockedReason = hasRegistration ? UnpublishBlockedMessage : null,
@@ -111,22 +111,4 @@ public class TournamentPublishService : ITournamentPublishService
 
     private static PublishCheckDto Check(string key, string label, bool isOk, string message)
         => new() { Key = key, Label = label, IsOk = isOk, Message = isOk ? null : message };
-
-    private static string StatusLabel(string status) => status switch
-    {
-        "DRAFT" => "Nháp",
-        "PUBLISHED" => "Đã xuất bản",
-        "ONGOING" => "Đang diễn ra",
-        "COMPLETED" => "Đã kết thúc",
-        "CANCELLED" => "Đã hủy",
-        _ => status
-    };
-
-    private static string StatusClass(string status) => status switch
-    {
-        "PUBLISHED" or "ONGOING" => "badge-active",
-        "COMPLETED" => "badge-gold",
-        "CANCELLED" => "badge-danger",
-        _ => "badge-soft"
-    };
 }
