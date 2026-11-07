@@ -45,6 +45,11 @@ Entity trong `ETOMS_API/Models/` và `ETOMS_API/Repositories/EtomsDbContext.cs` 
 khớp schema MySQL do nhóm cung cấp (tên bảng/cột, kiểu dữ liệu, khóa ngoại và views).
 File local `ETOMS_Database.sql` là cú pháp SQL Server cũ, **không chạy file đó trên
 MySQL**. Dự án dùng database-first, không tự tạo hoặc nâng cấp schema khi khởi động.
+Trước khi chạy các luồng đăng ký Iteration 2 trên môi trường khác, sao lưu database
+và áp dụng `database/mysql/iteration2-registration-upgrade.sql`. Bản nâng cấp thêm
+thời hạn xác nhận waitlist và mở rộng các CHECK constraint cho trạng thái hết hạn,
+biên lai/hoàn tiền và audit. Trong EF Core, `Tournament.RequireStudentCard` ánh xạ
+tới cột MySQL `RequireIdentityDocument`.
 Connection của API được đặt rõ charset `utf8mb4`. Nếu dữ liệu seed cũ đã mất dấu, có
 thể áp dụng có điều kiện script `database/mysql/fix-vietnamese-seed-data.sql`; script
 chỉ sửa đúng các giá trị đã bị mất dấu như nội dung trong ảnh.
@@ -57,12 +62,13 @@ kết nối MySQL cùng định dạng trước khi chạy API. Provider Oracle 
 GPL-2.0 kèm Universal-FOSS exception; nhóm cần xác nhận giấy phép này phù hợp với
 cách phân phối dự án.
 
-Các API Profile và Organization hiện chưa tích hợp xác thực/ủy quyền; chỉ chạy trong
-môi trường phát triển cục bộ cho đến khi module AUTH được tích hợp. Tệp định danh và
-giấy tờ tổ chức được lưu dưới `ETOMS_API/App_Data/private-uploads/`, không nằm trong
-thư mục tĩnh được phục vụ bởi web server. Hiện chưa có API tải/xem nội dung giấy tờ;
-chỉ có metadata được trả về cho hàng đợi xét duyệt. Không đưa API lên môi trường công
-khai trước khi module AUTH bổ sung kiểm tra quyền, bao gồm quyền đọc các tệp riêng tư.
+Các API Profile, Organization và Registration chưa tích hợp xác thực thật; hiện dùng
+đăng nhập demo trong môi trường Development. Tệp riêng tư được lưu dưới
+`ETOMS_API/App_Data/private-uploads/`, ngoài thư mục tĩnh. API Profile giới hạn tài
+liệu cá nhân cho chủ tài khoản; API Registration giới hạn giấy tờ và biên lai cho
+đội trưởng/ban tổ chức tương ứng. Tài liệu tổ chức hiện chỉ có metadata trong hàng
+đợi xét duyệt. Không đưa API lên môi trường công khai trước khi module AUTH tích hợp
+xong và kiểm thử quyền truy cập các tệp riêng tư.
 
 ### API được triển khai — Iteration 1 (Profile, Organization)
 
@@ -130,6 +136,8 @@ không inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`.
    tạo/đổi schema. Schema MySQL do nhóm quản lý; cập nhật entity/context theo schema
    MySQL đã thống nhất. Không chạy `ETOMS_Database.sql` (script SQL Server cũ) trên
    MySQL. Bảo toàn các ràng buộc nghiệp vụ bằng các constraint/index MySQL tương đương.
+   Luồng waitlist Iteration 2 cần chạy `database/mysql/iteration2-registration-upgrade.sql`
+   trên schema MySQL trước khi triển khai API phiên bản này.
 6. **Phân công module** (ai đụng module nào hỏi người đó trước khi đổi logic chung):
 
    | Thành viên | Module |
