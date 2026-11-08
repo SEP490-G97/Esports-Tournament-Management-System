@@ -37,6 +37,7 @@
                 '<div class="d-flex gap-2">' +
                 '<button type="button" class="btn btn-ghost" data-edit="' + r.gameId + '">Sửa luật</button>' +
                 '<button type="button" class="btn btn-ghost" data-maps="' + r.gameId + '">Bản đồ</button>' +
+                '<button type="button" class="btn btn-ghost" data-positions="' + r.gameId + '">Vị trí</button>' +
                 '</div></div>';
         }).join('');
 
@@ -47,6 +48,12 @@
             btn.addEventListener('click', function () {
                 var game = rules.find(function (r) { return r.gameId === parseInt(btn.dataset.maps, 10); });
                 if (game) GameMaps.open(game);
+            });
+        });
+        document.querySelectorAll('[data-positions]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var game = rules.find(function (r) { return r.gameId === parseInt(btn.dataset.positions, 10); });
+                if (game) GamePositions.open(game);
             });
         });
     }

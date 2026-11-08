@@ -105,6 +105,25 @@
                 </form>
             </div>
         </div>
+        <div class="card-etoms form-narrow" id="position-card" hidden style="margin-top:18px">
+            <div class="body">
+                <div class="section-title" style="margin-top:0" id="position-title">Vị trí trong đội</div>
+                <p class="hint" style="margin:6px 0 16px">Đội trưởng chọn vị trí cho từng người khi khai đội hình, theo đúng thứ tự dưới đây. Vị trí không xóa được, chỉ chuyển sang "Đã loại".</p>
+                <div id="position-list"></div>
+                <form id="position-form" novalidate style="margin-top:18px">
+                    <div class="field">
+                        <label for="PositionName" id="position-form-title">Thêm vị trí</label>
+                        <input id="PositionName" class="input" maxlength="50" placeholder="Ví dụ: Đi rừng" />
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" id="save-position">Thêm vị trí</button>
+                        <button type="button" class="btn btn-ghost" id="reset-position" hidden>Hủy sửa</button>
+                        <button type="button" class="btn btn-ghost" id="close-positions">Đóng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </main>
 
     <div id="confirm-modal-root"></div>
@@ -114,6 +133,7 @@
     <script src="/js/ui.js"></script>
     <script src="/js/layout.js"></script>
     <script src="/js/pages/admin-game-maps.js" defer></script>
+    <script src="/js/pages/admin-game-positions.js" defer></script>
     <script src="/js/pages/admin-game-rules.js" defer></script>
 </body>
 </html>
