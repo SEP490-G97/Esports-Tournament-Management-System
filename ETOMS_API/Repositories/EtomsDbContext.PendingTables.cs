@@ -3,9 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Repositories;
 
-// Ánh xạ các bảng code đã dùng nhưng CHƯA có trong database chung: GameMap (GRL-02),
-// GamePosition (GRL-03). Tách khỏi file scaffold để không đụng EtomsDbContext.cs.
-// Khi nhóm tạo bảng và scaffold lại context: xóa file này.
+// Ánh xạ các bảng và cột code đã dùng nhưng CHƯA có trong database chung: bảng GameMap (GRL-02),
+// bảng GamePosition (GRL-03), cột RegistrationLineup.GamePositionID (GRL-04).
+// Tách khỏi file scaffold để không đụng EtomsDbContext.cs.
+// Khi nhóm tạo bảng, thêm cột và scaffold lại context: xóa file này và Models/RegistrationLineup.Position.cs.
 public partial class EtomsDbContext
 {
     public virtual DbSet<GameMap> GameMaps { get; set; }
@@ -47,6 +48,17 @@ public partial class EtomsDbContext
                 .HasForeignKey(d => d.GameId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_GamePosition_Game");
+        });
+
+        // Cột mới trên bảng có sẵn: khi database chưa có cột, MỌI truy vấn đọc entity RegistrationLineup
+        // sẽ lỗi "Unknown column". Nhóm đã chọn cách này thay vì tạo bảng riêng.
+        modelBuilder.Entity<RegistrationLineup>(entity =>
+        {
+            entity.Property(e => e.GamePositionId).HasColumnName("GamePositionID");
+
+            entity.HasOne(d => d.GamePosition).WithMany()
+                .HasForeignKey(d => d.GamePositionId)
+                .HasConstraintName("FK_RegistrationLineup_Position");
         });
     }
 }
