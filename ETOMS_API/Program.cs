@@ -55,6 +55,7 @@ builder.Services.AddScoped<IGameMapService, GameMapService>();
 builder.Services.AddScoped<IGamePositionService, GamePositionService>();
 builder.Services.AddScoped<ILineupPositionService, LineupPositionService>();
 builder.Services.AddScoped<ITournamentRulesetService, TournamentRulesetService>();
+builder.Services.AddScoped<IMatchPickBanService, MatchPickBanService>();
 
 var app = builder.Build();
 

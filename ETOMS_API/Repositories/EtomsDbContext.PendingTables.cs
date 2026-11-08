@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 namespace ETOMS_API.Repositories;
 
 // Ánh xạ các bảng và cột code đã dùng nhưng CHƯA có trong database chung:
-//   bảng GameRuleset (GRL-01), GameMap (GRL-02), GamePosition (GRL-03), TournamentRuleset (GRL-06)
-//   cột RegistrationLineup.GamePositionID (GRL-04).
+//   bảng GameRuleset (GRL-01), GameMap (GRL-02), GamePosition (GRL-03), TournamentRuleset (GRL-06),
+//   MatchPickBan (GRL-07), cột RegistrationLineup.GamePositionID (GRL-04).
 // Tách khỏi file scaffold để không đụng EtomsDbContext.cs.
 // Khi nhóm tạo bảng, thêm cột và scaffold lại context: xóa file này và Models/RegistrationLineup.Position.cs.
 public partial class EtomsDbContext
@@ -17,6 +17,8 @@ public partial class EtomsDbContext
     public virtual DbSet<GamePosition> GamePositions { get; set; }
 
     public virtual DbSet<TournamentRuleset> TournamentRulesets { get; set; }
+
+    public virtual DbSet<MatchPickBan> MatchPickBans { get; set; }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
@@ -94,6 +96,39 @@ public partial class EtomsDbContext
                 .HasForeignKey(d => d.GameRulesetId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TournamentRuleset_Ruleset");
+        });
+
+        modelBuilder.Entity<MatchPickBan>(entity =>
+        {
+            entity.ToTable("MatchPickBan");
+
+            entity.HasIndex(e => new { e.MatchId, e.StepNo }, "UQ_MatchPickBan_Step").IsUnique();
+
+            entity.Property(e => e.MatchPickBanId).HasColumnName("MatchPickBanID");
+            entity.Property(e => e.MatchId).HasColumnName("MatchID");
+            entity.Property(e => e.Action).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.TeamId).HasColumnName("TeamID");
+            entity.Property(e => e.GameMapId).HasColumnName("GameMapID");
+            entity.Property(e => e.RecordedByAccountId).HasColumnName("RecordedByAccountID");
+
+            entity.HasOne(d => d.Match).WithMany()
+                .HasForeignKey(d => d.MatchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MatchPickBan_Match");
+
+            entity.HasOne(d => d.Team).WithMany()
+                .HasForeignKey(d => d.TeamId)
+                .HasConstraintName("FK_MatchPickBan_Team");
+
+            entity.HasOne(d => d.GameMap).WithMany()
+                .HasForeignKey(d => d.GameMapId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MatchPickBan_Map");
+
+            entity.HasOne(d => d.RecordedByAccount).WithMany()
+                .HasForeignKey(d => d.RecordedByAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MatchPickBan_Account");
         });
 
         // Cột mới trên bảng có sẵn: khi database chưa có cột, MỌI truy vấn đọc entity RegistrationLineup

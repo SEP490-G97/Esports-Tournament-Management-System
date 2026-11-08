@@ -50,7 +50,8 @@
             '<div class="rl">' + Ui.escapeHtml(m.roundLabel + ' · ' + formatTime(m.scheduledAt)) + '</div>' +
             '<div class="rl">' + Ui.escapeHtml(referee) + '</div></div>' +
             '<span class="badge ' + Ui.escapeHtml(m.statusClass) + '">' + Ui.escapeHtml(m.statusLabel) + '</span>' +
-            '<div class="d-flex gap-2">' + actions + '</div></div>';
+            '<div class="d-flex gap-2">' + actions +
+            '<a class="btn btn-ghost" href="/match/pick-ban.html?id=' + m.matchId + '">Cấm chọn</a></div></div>';
     }
 
     function render(board) {
