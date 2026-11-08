@@ -47,6 +47,8 @@ builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ET
 builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
 builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<IRecruitmentService, RecruitmentService>();
+builder.Services.AddScoped<ITournamentSetupService, TournamentSetupService>();
 
 var app = builder.Build();
 
