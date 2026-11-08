@@ -7,6 +7,7 @@ public class LineupPositionBoardDto
     public string TournamentName { get; set; } = string.Empty;
     public string TeamName { get; set; } = string.Empty;
     public string GameTitle { get; set; } = string.Empty;
+    public string? RulesetName { get; set; }
     public string RegistrationStatusLabel { get; set; } = string.Empty;
     public bool CanEdit { get; set; }
     public string? BlockedReason { get; set; }

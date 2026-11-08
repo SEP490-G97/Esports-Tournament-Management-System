@@ -5,8 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;
 
-// API JSON cho GRL-01: luật thi đấu của từng tựa game. Chỉ System Admin.
-[Route("api/game-rules")]
+// API JSON cho GRL-01: các bộ luật thi đấu của từng tựa game. Chỉ System Admin.
 public class GameRulesApiController : ApiControllerBase
 {
     private readonly IGameRuleService _gameRuleService;
@@ -18,22 +17,31 @@ public class GameRulesApiController : ApiControllerBase
         _currentUser = currentUser;
     }
 
-    // GET /api/game-rules
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
+    // GET /api/game-rules — mọi tựa game kèm bộ luật.
+    [HttpGet("api/game-rules")]
+    public async Task<IActionResult> GetBoard()
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
-        return Ok(await _gameRuleService.GetRulesAsync());
+        return Ok(await _gameRuleService.GetBoardAsync());
     }
 
-    // PUT /api/game-rules/{gameId}
-    [HttpPut("{gameId:int}")]
-    public async Task<IActionResult> Update(int gameId, [FromBody] UpdateGameRuleRequest request)
+    // POST /api/game-rules/{gameId}/rulesets
+    [HttpPost("api/game-rules/{gameId:int}/rulesets")]
+    public async Task<IActionResult> Create(int gameId, [FromBody] SaveGameRulesetRequest request)
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
-        return FromResult(await _gameRuleService.UpdateRuleAsync(gameId, request));
+        return FromResult(await _gameRuleService.CreateRulesetAsync(gameId, request));
+    }
+
+    // PUT /api/game-rulesets/{rulesetId}
+    [HttpPut("api/game-rulesets/{rulesetId:int}")]
+    public async Task<IActionResult> Update(int rulesetId, [FromBody] SaveGameRulesetRequest request)
+    {
+        var denied = await CheckAdminAsync();
+        if (denied is not null) return denied;
+        return FromResult(await _gameRuleService.UpdateRulesetAsync(rulesetId, request));
     }
 
     private async Task<IActionResult?> CheckAdminAsync()

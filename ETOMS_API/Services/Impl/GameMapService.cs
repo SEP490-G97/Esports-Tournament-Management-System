@@ -8,25 +8,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
-// Module GRL-02. Bảng GameMap chưa chắc đã có trong database chung, nên lỗi truy cập bảng được
-// trả thành thông báo thay vì lỗi 500.
+// Module GRL-02. Bản đồ thuộc một bộ luật. Bảng GameRuleset và GameMap chưa chắc đã có trong
+// database chung, nên lỗi truy cập bảng được trả thành thông báo thay vì lỗi 500.
 public class GameMapService : IGameMapService
 {
-    private const string TableMissingMessage = "Không truy cập được dữ liệu bản đồ. Có thể bảng GameMap chưa được tạo trong database.";
+    private const string TableMissingMessage = "Không truy cập được dữ liệu bản đồ. Có thể bảng GameRuleset hoặc GameMap chưa được tạo trong database.";
 
     private readonly IUnitOfWork _uow;
 
     public GameMapService(IUnitOfWork uow) => _uow = uow;
 
-    public async Task<Result<IReadOnlyList<GameMapDto>>> GetMapsAsync(int gameId)
+    public async Task<Result<IReadOnlyList<GameMapDto>>> GetMapsAsync(int rulesetId)
     {
-        if (!await _uow.Repository<Game>().AnyAsync(g => g.GameId == gameId))
-            return Result<IReadOnlyList<GameMapDto>>.Failure("Không tìm thấy tựa game.");
-
         try
         {
+            if (!await RulesetExistsAsync(rulesetId))
+                return Result<IReadOnlyList<GameMapDto>>.Failure("Không tìm thấy bộ luật.");
+
             var maps = await _uow.Repository<GameMap>().Query()
-                .Where(m => m.GameId == gameId)
+                .Where(m => m.GameRulesetId == rulesetId)
                 .OrderBy(m => m.Status == "ACTIVE" ? 0 : 1).ThenBy(m => m.Name)
                 .ToListAsync();
             return Result<IReadOnlyList<GameMapDto>>.Success(maps.Select(ToDto).ToList());
@@ -38,21 +38,19 @@ public class GameMapService : IGameMapService
     }
 
     // ===== GRL-02: Thêm bản đồ =====
-    public async Task<Result<GameMapDto>> AddMapAsync(int gameId, SaveGameMapRequest request, string? imageUrl)
+    public async Task<Result<GameMapDto>> AddMapAsync(int rulesetId, SaveGameMapRequest request, string? imageUrl)
     {
-        if (!await _uow.Repository<Game>().AnyAsync(g => g.GameId == gameId))
-            return Result<GameMapDto>.Failure("Không tìm thấy tựa game.");
-
         var name = request.Name.Trim();
         if (name.Length == 0)
             return Result<GameMapDto>.FieldFailure(nameof(request.Name), "Vui lòng nhập đầy đủ thông tin bắt buộc.");
 
         try
         {
-            if (await NameTakenAsync(gameId, name, null))
-                return Result<GameMapDto>.FieldFailure(nameof(request.Name), "Tựa game này đã có bản đồ cùng tên.");
+            if (!await RulesetExistsAsync(rulesetId)) return Result<GameMapDto>.Failure("Không tìm thấy bộ luật.");
+            if (await NameTakenAsync(rulesetId, name, null))
+                return Result<GameMapDto>.FieldFailure(nameof(request.Name), "Bộ luật này đã có bản đồ cùng tên.");
 
-            var map = new GameMap { GameId = gameId, Name = name, ImageUrl = imageUrl, Status = "ACTIVE", CreatedAt = DateTime.UtcNow };
+            var map = new GameMap { GameRulesetId = rulesetId, Name = name, ImageUrl = imageUrl, Status = "ACTIVE", CreatedAt = DateTime.UtcNow };
             await _uow.Repository<GameMap>().AddAsync(map);
             await _uow.SaveChangesAsync();
             return Result<GameMapDto>.Success(ToDto(map), "Đã thêm bản đồ.");
@@ -64,7 +62,7 @@ public class GameMapService : IGameMapService
     }
 
     // ===== GRL-02: Sửa tên, ảnh hoặc chuyển còn dùng / đã loại =====
-    public async Task<Result<GameMapDto>> UpdateMapAsync(int gameId, int mapId, SaveGameMapRequest request, string? newImageUrl)
+    public async Task<Result<GameMapDto>> UpdateMapAsync(int rulesetId, int mapId, SaveGameMapRequest request, string? newImageUrl)
     {
         var name = request.Name.Trim();
         if (name.Length == 0)
@@ -77,11 +75,11 @@ public class GameMapService : IGameMapService
         try
         {
             var map = await _uow.Repository<GameMap>().Query()
-                .FirstOrDefaultAsync(m => m.GameMapId == mapId && m.GameId == gameId);
-            if (map is null) return Result<GameMapDto>.Failure("Không tìm thấy bản đồ của tựa game này.");
+                .FirstOrDefaultAsync(m => m.GameMapId == mapId && m.GameRulesetId == rulesetId);
+            if (map is null) return Result<GameMapDto>.Failure("Không tìm thấy bản đồ của bộ luật này.");
 
-            if (await NameTakenAsync(gameId, name, mapId))
-                return Result<GameMapDto>.FieldFailure(nameof(request.Name), "Tựa game này đã có bản đồ cùng tên.");
+            if (await NameTakenAsync(rulesetId, name, mapId))
+                return Result<GameMapDto>.FieldFailure(nameof(request.Name), "Bộ luật này đã có bản đồ cùng tên.");
 
             map.Name = name;
             if (newImageUrl is not null) map.ImageUrl = newImageUrl;
@@ -95,17 +93,20 @@ public class GameMapService : IGameMapService
         }
     }
 
-    private Task<bool> NameTakenAsync(int gameId, string name, int? exceptMapId)
+    private Task<bool> RulesetExistsAsync(int rulesetId)
+        => _uow.Repository<GameRuleset>().AnyAsync(r => r.GameRulesetId == rulesetId);
+
+    private Task<bool> NameTakenAsync(int rulesetId, string name, int? exceptMapId)
     {
         var lower = name.ToLower();
         return _uow.Repository<GameMap>().AnyAsync(m =>
-            m.GameId == gameId && m.Name.ToLower() == lower && (exceptMapId == null || m.GameMapId != exceptMapId));
+            m.GameRulesetId == rulesetId && m.Name.ToLower() == lower && (exceptMapId == null || m.GameMapId != exceptMapId));
     }
 
     private static GameMapDto ToDto(GameMap m) => new()
     {
         GameMapId = m.GameMapId,
-        GameId = m.GameId,
+        GameRulesetId = m.GameRulesetId,
         Name = m.Name,
         ImageUrl = m.ImageUrl,
         Status = m.Status,

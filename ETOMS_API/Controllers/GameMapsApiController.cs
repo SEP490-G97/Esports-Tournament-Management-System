@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;
 
-// API JSON cho GRL-02: kho bản đồ của tựa game. Chỉ System Admin.
-[Route("api/game-rules/{gameId:int}/maps")]
+// API JSON cho GRL-02: kho bản đồ của một bộ luật. Chỉ System Admin.
+[Route("api/game-rulesets/{rulesetId:int}/maps")]
 public class GameMapsApiController : ApiControllerBase
 {
     private readonly IGameMapService _mapService;
@@ -23,18 +23,18 @@ public class GameMapsApiController : ApiControllerBase
         _env = env;
     }
 
-    // GET /api/game-rules/{gameId}/maps
+    // GET /api/game-rulesets/{rulesetId}/maps
     [HttpGet]
-    public async Task<IActionResult> GetAll(int gameId)
+    public async Task<IActionResult> GetAll(int rulesetId)
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
-        return FromResult(await _mapService.GetMapsAsync(gameId));
+        return FromResult(await _mapService.GetMapsAsync(rulesetId));
     }
 
-    // POST /api/game-rules/{gameId}/maps — multipart: Name, Image (tùy chọn).
+    // POST /api/game-rulesets/{rulesetId}/maps — multipart: Name, Image (tùy chọn).
     [HttpPost]
-    public async Task<IActionResult> Add(int gameId, [FromForm] SaveGameMapRequest request, IFormFile? image)
+    public async Task<IActionResult> Add(int rulesetId, [FromForm] SaveGameMapRequest request, IFormFile? image)
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
@@ -42,15 +42,15 @@ public class GameMapsApiController : ApiControllerBase
         var upload = ImageUploader.Save(image, _env, "maps");
         if (!upload.Ok) return FromResult(Result.FieldFailure("Image", upload.Error!));
 
-        var result = await _mapService.AddMapAsync(gameId, request, upload.Url);
+        var result = await _mapService.AddMapAsync(rulesetId, request, upload.Url);
         if (!result.IsSuccess) DeleteUpload(upload.Url);
         return FromResult(result);
     }
 
-    // POST /api/game-rules/{gameId}/maps/{mapId} — multipart: Name, Status, Image (tùy chọn).
+    // POST /api/game-rulesets/{rulesetId}/maps/{mapId} — multipart: Name, Status, Image (tùy chọn).
     // Dùng POST vì api.js dùng chung chỉ có postForm cho multipart.
     [HttpPost("{mapId:int}")]
-    public async Task<IActionResult> Update(int gameId, int mapId, [FromForm] SaveGameMapRequest request, IFormFile? image)
+    public async Task<IActionResult> Update(int rulesetId, int mapId, [FromForm] SaveGameMapRequest request, IFormFile? image)
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
@@ -58,7 +58,7 @@ public class GameMapsApiController : ApiControllerBase
         var upload = ImageUploader.Save(image, _env, "maps");
         if (!upload.Ok) return FromResult(Result.FieldFailure("Image", upload.Error!));
 
-        var result = await _mapService.UpdateMapAsync(gameId, mapId, request, upload.Url);
+        var result = await _mapService.UpdateMapAsync(rulesetId, mapId, request, upload.Url);
         if (!result.IsSuccess) DeleteUpload(upload.Url);
         return FromResult(result);
     }

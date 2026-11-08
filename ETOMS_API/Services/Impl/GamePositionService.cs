@@ -8,23 +8,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
-// Module GRL-03. Bảng GamePosition chưa chắc đã có trong database chung, nên lỗi truy cập bảng được
-// trả thành thông báo thay vì lỗi 500.
+// Module GRL-03. Vị trí thuộc một bộ luật. Bảng GameRuleset và GamePosition chưa chắc đã có trong
+// database chung, nên lỗi truy cập bảng được trả thành thông báo thay vì lỗi 500.
 public class GamePositionService : IGamePositionService
 {
-    private const string TableMissingMessage = "Không truy cập được dữ liệu vị trí. Có thể bảng GamePosition chưa được tạo trong database.";
+    private const string TableMissingMessage = "Không truy cập được dữ liệu vị trí. Có thể bảng GameRuleset hoặc GamePosition chưa được tạo trong database.";
 
     private readonly IUnitOfWork _uow;
 
     public GamePositionService(IUnitOfWork uow) => _uow = uow;
 
-    public async Task<Result<IReadOnlyList<GamePositionDto>>> GetPositionsAsync(int gameId)
+    public async Task<Result<IReadOnlyList<GamePositionDto>>> GetPositionsAsync(int rulesetId)
     {
-        if (!await GameExistsAsync(gameId)) return Result<IReadOnlyList<GamePositionDto>>.Failure("Không tìm thấy tựa game.");
-
         try
         {
-            return Result<IReadOnlyList<GamePositionDto>>.Success(await LoadAsync(gameId));
+            if (!await RulesetExistsAsync(rulesetId)) return Result<IReadOnlyList<GamePositionDto>>.Failure("Không tìm thấy bộ luật.");
+            return Result<IReadOnlyList<GamePositionDto>>.Success(await LoadAsync(rulesetId));
         }
         catch (DbException)
         {
@@ -33,24 +32,23 @@ public class GamePositionService : IGamePositionService
     }
 
     // ===== GRL-03: Thêm vị trí, xếp cuối danh sách =====
-    public async Task<Result<GamePositionDto>> AddPositionAsync(int gameId, SaveGamePositionRequest request)
+    public async Task<Result<GamePositionDto>> AddPositionAsync(int rulesetId, SaveGamePositionRequest request)
     {
-        if (!await GameExistsAsync(gameId)) return Result<GamePositionDto>.Failure("Không tìm thấy tựa game.");
-
         var name = request.Name.Trim();
         if (name.Length == 0)
             return Result<GamePositionDto>.FieldFailure(nameof(request.Name), "Vui lòng nhập đầy đủ thông tin bắt buộc.");
 
         try
         {
-            if (await NameTakenAsync(gameId, name, null))
-                return Result<GamePositionDto>.FieldFailure(nameof(request.Name), "Tựa game này đã có vị trí cùng tên.");
+            if (!await RulesetExistsAsync(rulesetId)) return Result<GamePositionDto>.Failure("Không tìm thấy bộ luật.");
+            if (await NameTakenAsync(rulesetId, name, null))
+                return Result<GamePositionDto>.FieldFailure(nameof(request.Name), "Bộ luật này đã có vị trí cùng tên.");
 
             var maxOrder = await _uow.Repository<GamePosition>().Query()
-                .Where(p => p.GameId == gameId)
+                .Where(p => p.GameRulesetId == rulesetId)
                 .MaxAsync(p => (int?)p.SortOrder) ?? 0;
 
-            var position = new GamePosition { GameId = gameId, Name = name, SortOrder = maxOrder + 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow };
+            var position = new GamePosition { GameRulesetId = rulesetId, Name = name, SortOrder = maxOrder + 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow };
             await _uow.Repository<GamePosition>().AddAsync(position);
             await _uow.SaveChangesAsync();
             return Result<GamePositionDto>.Success(ToDto(position), "Đã thêm vị trí.");
@@ -62,7 +60,7 @@ public class GamePositionService : IGamePositionService
     }
 
     // ===== GRL-03: Đổi tên hoặc chuyển còn dùng / đã loại =====
-    public async Task<Result<GamePositionDto>> UpdatePositionAsync(int gameId, int positionId, SaveGamePositionRequest request)
+    public async Task<Result<GamePositionDto>> UpdatePositionAsync(int rulesetId, int positionId, SaveGamePositionRequest request)
     {
         var name = request.Name.Trim();
         if (name.Length == 0)
@@ -74,11 +72,12 @@ public class GamePositionService : IGamePositionService
 
         try
         {
-            var position = await FindAsync(gameId, positionId);
-            if (position is null) return Result<GamePositionDto>.Failure("Không tìm thấy vị trí của tựa game này.");
+            var position = await _uow.Repository<GamePosition>().Query()
+                .FirstOrDefaultAsync(p => p.GamePositionId == positionId && p.GameRulesetId == rulesetId);
+            if (position is null) return Result<GamePositionDto>.Failure("Không tìm thấy vị trí của bộ luật này.");
 
-            if (await NameTakenAsync(gameId, name, positionId))
-                return Result<GamePositionDto>.FieldFailure(nameof(request.Name), "Tựa game này đã có vị trí cùng tên.");
+            if (await NameTakenAsync(rulesetId, name, positionId))
+                return Result<GamePositionDto>.FieldFailure(nameof(request.Name), "Bộ luật này đã có vị trí cùng tên.");
 
             position.Name = name;
             if (status is not null) position.Status = status;
@@ -92,7 +91,7 @@ public class GamePositionService : IGamePositionService
     }
 
     // ===== GRL-03: Đổi chỗ với vị trí liền trên hoặc liền dưới =====
-    public async Task<Result<IReadOnlyList<GamePositionDto>>> MovePositionAsync(int gameId, int positionId, string direction)
+    public async Task<Result<IReadOnlyList<GamePositionDto>>> MovePositionAsync(int rulesetId, int positionId, string direction)
     {
         var dir = direction.Trim().ToLowerInvariant();
         if (dir is not ("up" or "down")) return Result<IReadOnlyList<GamePositionDto>>.Failure("Hướng di chuyển không hợp lệ.");
@@ -100,12 +99,12 @@ public class GamePositionService : IGamePositionService
         try
         {
             var all = await _uow.Repository<GamePosition>().Query()
-                .Where(p => p.GameId == gameId)
+                .Where(p => p.GameRulesetId == rulesetId)
                 .OrderBy(p => p.SortOrder).ThenBy(p => p.GamePositionId)
                 .ToListAsync();
 
             var index = all.FindIndex(p => p.GamePositionId == positionId);
-            if (index < 0) return Result<IReadOnlyList<GamePositionDto>>.Failure("Không tìm thấy vị trí của tựa game này.");
+            if (index < 0) return Result<IReadOnlyList<GamePositionDto>>.Failure("Không tìm thấy vị trí của bộ luật này.");
 
             var target = dir == "up" ? index - 1 : index + 1;
             if (target < 0 || target >= all.Count)
@@ -123,29 +122,27 @@ public class GamePositionService : IGamePositionService
         }
     }
 
-    private Task<bool> GameExistsAsync(int gameId) => _uow.Repository<Game>().AnyAsync(g => g.GameId == gameId);
+    private Task<bool> RulesetExistsAsync(int rulesetId)
+        => _uow.Repository<GameRuleset>().AnyAsync(r => r.GameRulesetId == rulesetId);
 
-    private Task<GamePosition?> FindAsync(int gameId, int positionId)
-        => _uow.Repository<GamePosition>().Query().FirstOrDefaultAsync(p => p.GamePositionId == positionId && p.GameId == gameId);
-
-    private async Task<IReadOnlyList<GamePositionDto>> LoadAsync(int gameId)
+    private async Task<IReadOnlyList<GamePositionDto>> LoadAsync(int rulesetId)
         => (await _uow.Repository<GamePosition>().Query()
-                .Where(p => p.GameId == gameId)
+                .Where(p => p.GameRulesetId == rulesetId)
                 .OrderBy(p => p.SortOrder).ThenBy(p => p.GamePositionId)
                 .ToListAsync())
             .Select(ToDto).ToList();
 
-    private Task<bool> NameTakenAsync(int gameId, string name, int? exceptId)
+    private Task<bool> NameTakenAsync(int rulesetId, string name, int? exceptId)
     {
         var lower = name.ToLower();
         return _uow.Repository<GamePosition>().AnyAsync(p =>
-            p.GameId == gameId && p.Name.ToLower() == lower && (exceptId == null || p.GamePositionId != exceptId));
+            p.GameRulesetId == rulesetId && p.Name.ToLower() == lower && (exceptId == null || p.GamePositionId != exceptId));
     }
 
     private static GamePositionDto ToDto(GamePosition p) => new()
     {
         GamePositionId = p.GamePositionId,
-        GameId = p.GameId,
+        GameRulesetId = p.GameRulesetId,
         Name = p.Name,
         SortOrder = p.SortOrder,
         Status = p.Status,

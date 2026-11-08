@@ -1,10 +1,10 @@
-// GRL-02: Kho bản đồ của một tựa game, mở từ nút "Bản đồ" trên trang luật thi đấu.
+// GRL-02: Kho bản đồ của một bộ luật, mở từ nút "Bản đồ" trên trang bộ luật thi đấu.
 var GameMaps = (function () {
-    var game = null;      // { gameId, title }
+    var game = null;      // { rulesetId, title } — bộ luật đang mở
     var maps = [];
     var editingId = null; // null = đang thêm mới
 
-    function base() { return '/api/game-rules/' + game.gameId + '/maps'; }
+    function base() { return '/api/game-rulesets/' + game.rulesetId + '/maps'; }
     function flash() { return document.getElementById('flash'); }
 
     function thumb(m) {
@@ -17,7 +17,7 @@ var GameMaps = (function () {
     function renderList() {
         var list = document.getElementById('map-list');
         if (!maps.length) {
-            list.innerHTML = '<div class="hint">Tựa game này chưa có bản đồ nào.</div>';
+            list.innerHTML = '<div class="hint">Bộ luật này chưa có bản đồ nào.</div>';
             return;
         }
         // Cùng thứ tự với server: còn dùng trước, rồi theo tên.

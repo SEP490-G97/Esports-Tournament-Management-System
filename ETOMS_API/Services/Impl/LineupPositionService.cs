@@ -9,10 +9,12 @@ using Microsoft.EntityFrameworkCore;
 namespace ETOMS_API.Services.Impl;
 
 // Module GRL-04. Chỉ gán vị trí cho đội hình đã khai; thêm bớt người trong đội hình là việc của
-// form đăng ký (REG-02). Vị trí lấy từ GRL-03, theo tựa game của giải.
+// form đăng ký (REG-02). Vị trí lấy từ GRL-03, theo bộ luật giải đã chọn ở GRL-06.
 public class LineupPositionService : ILineupPositionService
 {
-    private const string SchemaMissingMessage = "Không truy cập được dữ liệu vị trí. Có thể bảng GamePosition hoặc cột RegistrationLineup.GamePositionID chưa được tạo trong database.";
+    private const string SchemaMissingMessage = "Không truy cập được dữ liệu vị trí. Có thể bảng GameRuleset, TournamentRuleset, GamePosition hoặc cột RegistrationLineup.GamePositionID chưa được tạo trong database.";
+    private const string NoRulesetMessage = "Giải chưa chọn bộ luật nên chưa chọn được vị trí.";
+    private const string NoPositionMessage = "Bộ luật của giải chưa khai vị trí nên không cần chọn.";
     private static readonly string[] EditableStatuses = { "DRAFT", "PENDING", "APPROVED", "WAITLISTED" };
 
     private readonly IUnitOfWork _uow;
@@ -54,11 +56,14 @@ public class LineupPositionService : ILineupPositionService
             var blocked = BlockedReason(registration, registration.Tournament);
             if (blocked is not null) return Result<LineupPositionBoardDto>.Failure(blocked);
 
+            var rulesetId = await RulesetIdOfAsync(registration.TournamentId);
+            if (rulesetId is null) return Result<LineupPositionBoardDto>.Failure(NoRulesetMessage);
+
             var positions = await _uow.Repository<GamePosition>().Query()
-                .Where(p => p.GameId == registration.Tournament.GameId)
+                .Where(p => p.GameRulesetId == rulesetId)
                 .ToListAsync();
             if (!positions.Any(p => p.Status == "ACTIVE"))
-                return Result<LineupPositionBoardDto>.Failure("Tựa game của giải chưa khai vị trí nên không cần chọn.");
+                return Result<LineupPositionBoardDto>.Failure(NoPositionMessage);
 
             var lineups = registration.RegistrationLineups.ToDictionary(l => l.RegistrationLineupId);
             var chosen = lineups.ToDictionary(kv => kv.Key, kv => kv.Value.GamePositionId);
@@ -70,7 +75,7 @@ public class LineupPositionService : ILineupPositionService
                 if (item.GamePositionId is int positionId && positionId != lineup.GamePositionId)
                 {
                     var position = positions.FirstOrDefault(p => p.GamePositionId == positionId);
-                    if (position is null) return Result<LineupPositionBoardDto>.Failure("Vị trí không thuộc tựa game của giải.");
+                    if (position is null) return Result<LineupPositionBoardDto>.Failure("Vị trí không thuộc bộ luật của giải.");
                     if (position.Status != "ACTIVE") return Result<LineupPositionBoardDto>.Failure($"Vị trí {position.Name} đã bị loại, vui lòng chọn vị trí khác.");
                 }
                 chosen[item.RegistrationLineupId] = item.GamePositionId;
@@ -126,10 +131,17 @@ public class LineupPositionService : ILineupPositionService
             })
             .ToListAsync();
 
-        var positions = await _uow.Repository<GamePosition>().Query()
-            .Where(p => p.GameId == registration.Tournament.GameId)
-            .OrderBy(p => p.SortOrder).ThenBy(p => p.GamePositionId)
-            .ToListAsync();
+        var ruleset = await _uow.Repository<TournamentRuleset>().Query()
+            .Where(tr => tr.TournamentId == registration.Tournament.TournamentId)
+            .Select(tr => new { tr.GameRulesetId, tr.GameRuleset.Name })
+            .FirstOrDefaultAsync();
+
+        var positions = ruleset is null
+            ? new List<GamePosition>()
+            : await _uow.Repository<GamePosition>().Query()
+                .Where(p => p.GameRulesetId == ruleset.GameRulesetId)
+                .OrderBy(p => p.SortOrder).ThenBy(p => p.GamePositionId)
+                .ToListAsync();
 
         // Vị trí đã loại vẫn hiện nếu còn người đang giữ, để không mất dữ liệu đã chọn.
         var assigned = members.Where(m => m.GamePositionId is not null).Select(m => m.GamePositionId!.Value).ToHashSet();
@@ -139,7 +151,8 @@ public class LineupPositionService : ILineupPositionService
             .ToList();
 
         var blocked = BlockedReason(registration.Registration, registration.Tournament)
-            ?? (positions.Any(p => p.Status == "ACTIVE") ? null : "Tựa game của giải chưa khai vị trí nên không cần chọn.");
+            ?? (ruleset is null ? NoRulesetMessage : null)
+            ?? (positions.Any(p => p.Status == "ACTIVE") ? null : NoPositionMessage);
 
         return new LineupPositionBoardDto
         {
@@ -147,6 +160,7 @@ public class LineupPositionService : ILineupPositionService
             TournamentName = registration.Tournament.Name,
             TeamName = registration.TeamName,
             GameTitle = registration.GameTitle,
+            RulesetName = ruleset?.Name,
             RegistrationStatusLabel = StatusText.Registration(registration.Registration.Status),
             CanEdit = blocked is null,
             BlockedReason = blocked,
@@ -163,6 +177,12 @@ public class LineupPositionService : ILineupPositionService
         if (tournament.Status is "COMPLETED" or "CANCELLED") return "Giải đã kết thúc hoặc đã hủy.";
         return tournament.BracketLockedAt is null ? null : "Nhánh đấu đã khóa nên đội hình đã chốt.";
     }
+
+    private Task<int?> RulesetIdOfAsync(int tournamentId)
+        => _uow.Repository<TournamentRuleset>().Query()
+            .Where(tr => tr.TournamentId == tournamentId)
+            .Select(tr => (int?)tr.GameRulesetId)
+            .FirstOrDefaultAsync();
 
     private static bool StarterPositionRequired(IEnumerable<GamePosition> positions, int starterCount)
         => starterCount > 0 && positions.Count(p => p.Status == "ACTIVE") >= starterCount;

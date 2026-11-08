@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;
 
-// API JSON cho GRL-03: vị trí trong đội của tựa game. Chỉ System Admin.
-[Route("api/game-rules/{gameId:int}/positions")]
+// API JSON cho GRL-03: vị trí trong đội của một bộ luật. Chỉ System Admin.
+[Route("api/game-rulesets/{rulesetId:int}/positions")]
 public class GamePositionsApiController : ApiControllerBase
 {
     private readonly IGamePositionService _positionService;
@@ -20,40 +20,40 @@ public class GamePositionsApiController : ApiControllerBase
         _currentUser = currentUser;
     }
 
-    // GET /api/game-rules/{gameId}/positions
+    // GET /api/game-rulesets/{rulesetId}/positions
     [HttpGet]
-    public async Task<IActionResult> GetAll(int gameId)
+    public async Task<IActionResult> GetAll(int rulesetId)
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
-        return FromResult(await _positionService.GetPositionsAsync(gameId));
+        return FromResult(await _positionService.GetPositionsAsync(rulesetId));
     }
 
-    // POST /api/game-rules/{gameId}/positions
+    // POST /api/game-rulesets/{rulesetId}/positions
     [HttpPost]
-    public async Task<IActionResult> Add(int gameId, [FromBody] SaveGamePositionRequest request)
+    public async Task<IActionResult> Add(int rulesetId, [FromBody] SaveGamePositionRequest request)
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
-        return FromResult(await _positionService.AddPositionAsync(gameId, request));
+        return FromResult(await _positionService.AddPositionAsync(rulesetId, request));
     }
 
-    // PUT /api/game-rules/{gameId}/positions/{positionId}
+    // PUT /api/game-rulesets/{rulesetId}/positions/{positionId}
     [HttpPut("{positionId:int}")]
-    public async Task<IActionResult> Update(int gameId, int positionId, [FromBody] SaveGamePositionRequest request)
+    public async Task<IActionResult> Update(int rulesetId, int positionId, [FromBody] SaveGamePositionRequest request)
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
-        return FromResult(await _positionService.UpdatePositionAsync(gameId, positionId, request));
+        return FromResult(await _positionService.UpdatePositionAsync(rulesetId, positionId, request));
     }
 
-    // POST /api/game-rules/{gameId}/positions/{positionId}/move — { direction: "up" | "down" }
+    // POST /api/game-rulesets/{rulesetId}/positions/{positionId}/move — { direction: "up" | "down" }
     [HttpPost("{positionId:int}/move")]
-    public async Task<IActionResult> Move(int gameId, int positionId, [FromBody] MoveGamePositionRequest request)
+    public async Task<IActionResult> Move(int rulesetId, int positionId, [FromBody] MoveGamePositionRequest request)
     {
         var denied = await CheckAdminAsync();
         if (denied is not null) return denied;
-        return FromResult(await _positionService.MovePositionAsync(gameId, positionId, request.Direction));
+        return FromResult(await _positionService.MovePositionAsync(rulesetId, positionId, request.Direction));
     }
 
     private async Task<IActionResult?> CheckAdminAsync()

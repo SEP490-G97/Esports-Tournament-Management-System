@@ -17,7 +17,8 @@
 
     function render(board) {
         document.getElementById('page-title').textContent = 'Đội hình ' + board.teamName;
-        document.getElementById('page-sub').textContent = board.tournamentName + ' · ' + board.gameTitle + ' · Đơn ' + board.registrationStatusLabel.toLowerCase();
+        document.getElementById('page-sub').textContent = board.tournamentName + ' · ' + board.gameTitle +
+            (board.rulesetName ? ' (' + board.rulesetName + ')' : '') + ' · Đơn ' + board.registrationStatusLabel.toLowerCase();
 
         if (!board.members.length) {
             showEmpty('Đơn chưa có đội hình', 'Hãy khai đội hình trong đơn đăng ký trước.');

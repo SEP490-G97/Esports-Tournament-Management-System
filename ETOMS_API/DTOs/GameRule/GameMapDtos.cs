@@ -2,11 +2,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ETOMS_API.DTOs.GameRule;
 
-// GRL-02: Một bản đồ trong kho bản đồ của tựa game.
+// GRL-02: Một bản đồ trong kho bản đồ của một bộ luật.
 public class GameMapDto
 {
     public int GameMapId { get; set; }
-    public int GameId { get; set; }
+    public int GameRulesetId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public string Status { get; set; } = string.Empty;

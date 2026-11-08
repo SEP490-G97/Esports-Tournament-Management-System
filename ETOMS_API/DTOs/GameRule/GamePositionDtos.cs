@@ -2,11 +2,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ETOMS_API.DTOs.GameRule;
 
-// GRL-03: Một vị trí trong đội của tựa game, ví dụ Đi rừng.
+// GRL-03: Một vị trí trong đội của một bộ luật, ví dụ Đi rừng.
 public class GamePositionDto
 {
     public int GamePositionId { get; set; }
-    public int GameId { get; set; }
+    public int GameRulesetId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int SortOrder { get; set; }
     public string Status { get; set; } = string.Empty;

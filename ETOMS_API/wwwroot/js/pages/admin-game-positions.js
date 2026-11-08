@@ -1,16 +1,16 @@
-// GRL-03: Vị trí trong đội của một tựa game, mở từ nút "Vị trí" trên trang luật thi đấu.
+// GRL-03: Vị trí trong đội của một bộ luật, mở từ nút "Vị trí" trên trang bộ luật thi đấu.
 var GamePositions = (function () {
-    var game = null;      // { gameId, title }
+    var game = null;      // { rulesetId, title } — bộ luật đang mở
     var positions = [];   // đã xếp theo sortOrder từ server
     var editingId = null; // null = đang thêm mới
 
-    function base() { return '/api/game-rules/' + game.gameId + '/positions'; }
+    function base() { return '/api/game-rulesets/' + game.rulesetId + '/positions'; }
     function flash() { return document.getElementById('flash'); }
 
     function renderList() {
         var list = document.getElementById('position-list');
         if (!positions.length) {
-            list.innerHTML = '<div class="hint">Tựa game này chưa khai vị trí nào. Khi đó đội hình chỉ phân biệt chính thức và dự bị.</div>';
+            list.innerHTML = '<div class="hint">Bộ luật này chưa khai vị trí nào. Khi đó đội hình chỉ phân biệt chính thức và dự bị.</div>';
             return;
         }
         var last = positions.length - 1;

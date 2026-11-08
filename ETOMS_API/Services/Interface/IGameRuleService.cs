@@ -3,12 +3,14 @@ using ETOMS_API.Utils;
 
 namespace ETOMS_API.Services.Interface;
 
-// GRL-01 / UC-43 bước 5: System Admin khai luật thi đấu của từng tựa game.
+// GRL-01: System Admin tạo và sửa các bộ luật thi đấu của từng tựa game.
 public interface IGameRuleService
 {
     Task<bool> IsAdminAsync(int accountId);
 
-    Task<IReadOnlyList<GameRuleDto>> GetRulesAsync();
+    Task<GameRuleBoardDto> GetBoardAsync();
 
-    Task<Result<GameRuleDto>> UpdateRuleAsync(int gameId, UpdateGameRuleRequest request);
+    Task<Result<GameRulesetDto>> CreateRulesetAsync(int gameId, SaveGameRulesetRequest request);
+
+    Task<Result<GameRulesetDto>> UpdateRulesetAsync(int rulesetId, SaveGameRulesetRequest request);
 }
