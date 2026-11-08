@@ -1,8 +1,10 @@
+using System.Data.Common;
 using ETOMS_API.DTOs.Tournament;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
@@ -57,7 +59,34 @@ public class TournamentCloneService : ITournamentCloneService
 
         await _uow.Repository<Tournament>().AddAsync(clone);
         await _uow.SaveChangesAsync();
+
+        await CopyRulesetAsync(sourceTournamentId, clone.TournamentId);
         return Result<int>.Success(clone.TournamentId, "Đã nhân bản giải. Giải mới đang ở trạng thái nháp.");
+    }
+
+    // Bộ luật đã chọn (GRL-06) là một phần cấu hình. Bảng TournamentRuleset chưa chắc đã có trong
+    // database chung; thiếu bảng thì bỏ qua để việc nhân bản giải vẫn thành công.
+    private async Task CopyRulesetAsync(int sourceTournamentId, int cloneTournamentId)
+    {
+        try
+        {
+            var rulesetId = await _uow.Repository<TournamentRuleset>().Query()
+                .Where(tr => tr.TournamentId == sourceTournamentId)
+                .Select(tr => (int?)tr.GameRulesetId)
+                .FirstOrDefaultAsync();
+            if (rulesetId is null) return;
+
+            await _uow.Repository<TournamentRuleset>().AddAsync(new TournamentRuleset
+            {
+                TournamentId = cloneTournamentId,
+                GameRulesetId = rulesetId.Value,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _uow.SaveChangesAsync();
+        }
+        catch (Exception ex) when (ex is DbException or DbUpdateException)
+        {
+        }
     }
 
     // Chép mọi cột dữ liệu (bỏ qua navigation) để cột cấu hình thêm sau này tự được chép theo.

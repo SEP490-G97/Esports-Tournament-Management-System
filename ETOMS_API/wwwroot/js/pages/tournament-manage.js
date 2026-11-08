@@ -45,6 +45,7 @@
             checks + blocked +
             '<div class="btn-row">' + actionsHtml(s) +
             '<a class="btn btn-ghost" href="/tournament/rulebook.html?id=' + tournamentId + '">Thể lệ giải</a>' +
+            '<a class="btn btn-ghost" href="/tournament/ruleset.html?id=' + tournamentId + '">Bộ luật</a>' +
             '<a class="btn btn-ghost" href="/tournament/dashboard.html?id=' + tournamentId + '">Bảng điều hành</a>' +
             '<a class="btn btn-ghost" href="/tournament/clone.html?id=' + tournamentId + '">Nhân bản giải</a></div>' +
             '</div></div>';
