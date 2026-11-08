@@ -51,6 +51,7 @@ builder.Services.AddScoped<ITournamentDashboardService, TournamentDashboardServi
 builder.Services.AddScoped<IRefereeAssignmentService, RefereeAssignmentService>();
 builder.Services.AddScoped<ITournamentCloneService, TournamentCloneService>();
 builder.Services.AddScoped<IGameRuleService, GameRuleService>();
+builder.Services.AddScoped<IGameMapService, GameMapService>();
 
 var app = builder.Build();
 

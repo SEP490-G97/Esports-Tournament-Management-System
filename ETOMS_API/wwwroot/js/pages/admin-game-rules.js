@@ -34,12 +34,20 @@
                 '<div class="rl">' + Ui.escapeHtml(rosterText(r)) + ' · ' + Ui.escapeHtml(FORMAT_LABELS[r.defaultFormat] || r.defaultFormat) + '</div>' +
                 '<div class="rl">File: ' + Ui.escapeHtml(r.allowedEvidenceTypes) + ' · tối đa ' + r.maxEvidenceFileSizeMb + ' MB</div></div>' +
                 (r.isActive ? '' : '<span class="badge badge-danger">Ngừng hoạt động</span>') +
+                '<div class="d-flex gap-2">' +
                 '<button type="button" class="btn btn-ghost" data-edit="' + r.gameId + '">Sửa luật</button>' +
-                '</div>';
+                '<button type="button" class="btn btn-ghost" data-maps="' + r.gameId + '">Bản đồ</button>' +
+                '</div></div>';
         }).join('');
 
         document.querySelectorAll('[data-edit]').forEach(function (btn) {
             btn.addEventListener('click', function () { openEditor(parseInt(btn.dataset.edit, 10)); });
+        });
+        document.querySelectorAll('[data-maps]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var game = rules.find(function (r) { return r.gameId === parseInt(btn.dataset.maps, 10); });
+                if (game) GameMaps.open(game);
+            });
         });
     }
 

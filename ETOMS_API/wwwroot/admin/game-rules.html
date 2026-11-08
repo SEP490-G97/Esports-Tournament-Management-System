@@ -78,6 +78,33 @@
                 </form>
             </div>
         </div>
+
+        <div class="card-etoms" id="map-card" hidden style="margin-top:18px">
+            <div class="body">
+                <div class="section-title" style="margin-top:0" id="map-title">Kho bản đồ</div>
+                <p class="hint" style="margin:6px 0 16px">Bản đồ không xóa được, chỉ chuyển sang "Đã loại" để giữ lịch sử các trận đã đấu.</p>
+                <div id="map-list"></div>
+                <form id="map-form" novalidate style="margin-top:18px">
+                    <div class="section-title" style="margin:0 0 12px;font-size:1rem" id="map-form-title">Thêm bản đồ</div>
+                    <div class="field">
+                        <label for="MapName">Tên bản đồ <span class="req">*</span></label>
+                        <input id="MapName" class="input" maxlength="100" placeholder="Ví dụ: Ascent" />
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+                    <div class="field">
+                        <label for="MapImage">Ảnh bản đồ</label>
+                        <input id="MapImage" type="file" class="input" accept=".jpg,.jpeg,.png,.webp" />
+                        <div class="hint">JPG, PNG hoặc WEBP, tối đa 2MB. Khi sửa, để trống thì giữ ảnh cũ.</div>
+                        <span class="field-error" data-field-error="Image"></span>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" id="save-map">Thêm bản đồ</button>
+                        <button type="button" class="btn btn-ghost" id="reset-map" hidden>Hủy sửa</button>
+                        <button type="button" class="btn btn-ghost" id="close-maps">Đóng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </main>
 
     <div id="confirm-modal-root"></div>
@@ -86,6 +113,7 @@
     <script src="/js/api.js"></script>
     <script src="/js/ui.js"></script>
     <script src="/js/layout.js"></script>
+    <script src="/js/pages/admin-game-maps.js" defer></script>
     <script src="/js/pages/admin-game-rules.js" defer></script>
 </body>
 </html>
