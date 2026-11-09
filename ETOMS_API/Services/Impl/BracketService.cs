@@ -376,4 +376,62 @@ public class BracketService : IBracketService
 
         return dto;
     }
+
+    // ===== BRK-03: Khóa nhánh đấu =====
+    public async Task<Result> LockBracketAsync(int tournamentId, int organizerAccountId)
+    {
+        var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
+        if (tournament is null) return Result.Failure("Không tìm thấy giải đấu.");
+        if (tournament.OrganizerAccountId != organizerAccountId) return Result.Failure("Chỉ ban tổ chức của giải được khóa nhánh đấu.");
+        if (tournament.BracketLockedAt != null) return Result.Failure("Nhánh đấu đã được khóa trước đó.");
+
+        var hasBracket = await _uow.Repository<BracketNode>().AnyAsync(n => n.TournamentId == tournamentId);
+        if (!hasBracket) return Result.Failure("Chưa sinh nhánh đấu, không thể khóa.");
+
+        tournament.BracketLockedAt = DateTime.UtcNow;
+        tournament.BracketLockedByAccountId = organizerAccountId;
+        _uow.Repository<Tournament>().Update(tournament);
+
+        var nodes = await _uow.Repository<BracketNode>().Query().Where(n => n.TournamentId == tournamentId).ToListAsync();
+        foreach (var n in nodes) { n.Status = "LOCKED"; _uow.Repository<BracketNode>().Update(n); }
+
+        await _uow.SaveChangesAsync();
+        return Result.Success("Đã khóa nhánh đấu. Roster các đội và cổng đăng ký đã đóng.");
+    }
+
+    // Cầu nối tạm PickWinner đã bị xóa (Iteration 3) — kết quả giờ vào hệ thống qua module RES
+    // thật (IResultService: RES-01 báo cáo mù + RES-02 đối chiếu tự động + RES-07 phán quyết VAR),
+    // đúng LI-01. AdvanceWinner sau khi có kết quả nằm trong ResultService (dùng chung logic này).
+
+    // BRK-07: chưa cấu hình thì trả về thứ tự mặc định (IsDefault = true), không tự lưu vào DB.
+    public async Task<TieBreakerConfigDto?> GetTieBreakerConfigAsync(int tournamentId)
+    {
+        var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
+        if (tournament is null) return null;
+
+        var isDefault = string.IsNullOrWhiteSpace(tournament.TieBreakerOrder);
+        var order = isDefault
+            ? TieBreakerCriteria.DefaultOrder.ToList()
+            : tournament.TieBreakerOrder!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+        return new TieBreakerConfigDto { TournamentId = tournamentId, IsDefault = isDefault, Order = order };
+    }
+
+    public async Task<Result> SetTieBreakerConfigAsync(int tournamentId, List<string> order, int organizerAccountId)
+    {
+        var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
+        if (tournament is null) return Result.Failure("Không tìm thấy giải đấu.");
+        if (tournament.OrganizerAccountId != organizerAccountId)
+            return Result.Failure("Chỉ ban tổ chức của giải được cấu hình tiêu chí phân định.");
+
+        var distinctValid = order.Distinct().ToList();
+        if (distinctValid.Count != TieBreakerCriteria.DefaultOrder.Count
+            || !TieBreakerCriteria.DefaultOrder.All(distinctValid.Contains))
+            return Result.FieldFailure(nameof(order), "Phải chọn đủ 4 tiêu chí, mỗi tiêu chí đúng một lần.");
+
+        tournament.TieBreakerOrder = string.Join(',', order);
+        _uow.Repository<Tournament>().Update(tournament);
+        await _uow.SaveChangesAsync();
+        return Result.Success("Đã lưu thứ tự ưu tiên tiêu chí phân định.");
+    }
 }

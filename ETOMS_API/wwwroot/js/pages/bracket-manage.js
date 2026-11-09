@@ -72,7 +72,8 @@
             '<div id="manualList" class="d-grid gap-2 mb-3">' + manualRows + '</div></div>' +
             '<div class="btn-row"><button type="submit" class="btn btn-primary" ' + disabled + '>' + (tree.hasBracket ? 'Sinh lại nhánh đấu' : 'Sinh nhánh đấu') + '</button></div>' +
             warn +
-            '</form></div></div>';
+            '</form></div></div>' +
+            (tree.hasBracket ? '<button type="button" class="btn btn-ghost" style="color:var(--gold);margin-bottom:28px" id="lock-btn">🔒 Khóa nhánh đấu</button>' : '');
     }
 
     function bracketContentHtml(tree) {
@@ -131,6 +132,7 @@
             '<div class="btn-row" style="margin-bottom:22px">' +
             '<a class="btn btn-ghost" href="/registration/pending.html?tournamentId=' + tree.tournamentId + '">Duyệt đơn đăng ký</a>' +
             '<a class="btn btn-ghost" href="/bracket/view.html?id=' + tree.tournamentId + '">Xem công khai</a>' +
+            '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định</a>' +
             '</div>' +
             (!tree.isLocked ? generateFormHtml(tree, teams) : '') +
             bracketContentHtml(tree);
@@ -159,6 +161,21 @@
                 }
                 try {
                     var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket/generate', { SeedingMethod: method, ManualOrder: manualOrder });
+                    Ui.showAlert(document.getElementById('flash'), 'success', res.message);
+                    await load();
+                } catch (err) {
+                    Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+                }
+            });
+        }
+
+        var lockBtn = document.getElementById('lock-btn');
+        if (lockBtn) {
+            lockBtn.addEventListener('click', async function () {
+                var ok = await window.etomsConfirm('Khóa nhánh đấu? Sau khi khóa sẽ không thể sửa thể thức, roster các đội bị khóa và đóng cổng đăng ký.');
+                if (!ok) return;
+                try {
+                    var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket/lock');
                     Ui.showAlert(document.getElementById('flash'), 'success', res.message);
                     await load();
                 } catch (err) {

@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;
 
-// API JSON cho module BRK (BRK-01,02,04,06) — song song với BracketController (MVC).
-// GetTree công khai (Guest xem được, giống BRK-10 bản MVC). Generate chỉ organizer.
+// API JSON cho module BRK (BRK-01,02,03,04,06) — song song với BracketController (MVC).
+// GetTree công khai (Guest xem được, giống BRK-10 bản MVC). Generate/Lock chỉ organizer.
 //
 // KHÔNG đưa PickWinner (BracketController.PickWinner, MVC) lên API: đó chỉ là cầu nối tạm
 // để demo BRK trong lúc module kết quả chưa code — theo LI-01, tỉ số CHỈ được vào hệ thống
@@ -47,5 +47,30 @@ public class BracketsApiController : ApiControllerBase
         if (!_currentUser.IsAuthenticated) return Unauthorized();
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
         return FromResult(await _bracketService.GenerateBracketAsync(tournamentId, model, _currentUser.UserId!.Value));
+    }
+
+    // POST /api/tournaments/{tournamentId}/bracket/lock — BRK-03.
+    [HttpPost("lock")]
+    public async Task<IActionResult> Lock(int tournamentId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _bracketService.LockBracketAsync(tournamentId, _currentUser.UserId!.Value));
+    }
+
+    // GET /api/tournaments/{tournamentId}/bracket/tiebreaker — BRK-07, công khai (hiện cho mọi người xem).
+    [HttpGet("tiebreaker")]
+    public async Task<IActionResult> GetTieBreaker(int tournamentId)
+    {
+        var config = await _bracketService.GetTieBreakerConfigAsync(tournamentId);
+        return config is null ? NotFound() : Ok(config);
+    }
+
+    // PUT /api/tournaments/{tournamentId}/bracket/tiebreaker — BRK-07, chỉ organizer.
+    [HttpPut("tiebreaker")]
+    public async Task<IActionResult> SetTieBreaker(int tournamentId, [FromBody] SetTieBreakerRequest model)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        return FromResult(await _bracketService.SetTieBreakerConfigAsync(tournamentId, model.Order, _currentUser.UserId!.Value));
     }
 }

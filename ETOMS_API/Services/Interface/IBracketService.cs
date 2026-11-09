@@ -14,5 +14,12 @@ public interface IBracketService
 
     Task<BracketTreeDto?> GetBracketAsync(int tournamentId);
 
+    // BRK-03: khóa nhánh đấu.
+    Task<Result> LockBracketAsync(int tournamentId, int organizerAccountId);
+
+    // BRK-07: thứ tự ưu tiên tiêu chí phân định khi bằng điểm vòng bảng.
+    Task<TieBreakerConfigDto?> GetTieBreakerConfigAsync(int tournamentId);
+    Task<Result> SetTieBreakerConfigAsync(int tournamentId, List<string> order, int organizerAccountId);
+
     Task<bool> IsOrganizerAsync(int tournamentId, int accountId);
 }
