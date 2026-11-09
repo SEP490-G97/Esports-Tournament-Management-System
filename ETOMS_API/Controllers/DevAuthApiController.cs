@@ -56,10 +56,19 @@ public class DevAuthApiController : ApiControllerBase
         return Ok(new { message = "Đã đăng xuất." });
     }
 
-    // GET /api/dev-auth/me — ai đang đăng nhập (dùng cho widget nav + check captain/member phía client).
+    // GET /api/dev-auth/me — ai đang đăng nhập (dùng cho widget nav + check captain/member phía client,
+    // và để ẩn/hiện mục menu theo Role — PLAYER/ORGANIZER/ADMIN).
     [HttpGet("me")]
-    public IActionResult Me()
-        => Ok(new { isAuthenticated = _currentUser.IsAuthenticated, userId = _currentUser.UserId, displayName = _currentUser.DisplayName });
+    public async Task<IActionResult> Me()
+    {
+        string? role = null;
+        if (_currentUser.IsAuthenticated)
+        {
+            var account = await _uow.Repository<Account>().GetByIdAsync(_currentUser.UserId!.Value);
+            role = account?.Role;
+        }
+        return Ok(new { isAuthenticated = _currentUser.IsAuthenticated, userId = _currentUser.UserId, displayName = _currentUser.DisplayName, role });
+    }
 }
 
 public class DevAuthLoginRequest { public int AccountId { get; set; } }
