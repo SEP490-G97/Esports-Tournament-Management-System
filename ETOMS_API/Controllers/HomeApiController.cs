@@ -1,7 +1,7 @@
 using ETOMS_API.DTOs.Home;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
-using ETOMS_API.Services;
+using ETOMS_API.Repositories.Interface;
+using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SubscribeRequest = ETOMS_API.DTOs.Home.SubscribeRequest;

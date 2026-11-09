@@ -1,5 +1,8 @@
 using ETOMS_API.Repositories;
-using ETOMS_API.Services;
+using ETOMS_API.Repositories.Interface;
+using ETOMS_API.Repositories.Impl;
+using ETOMS_API.Services.Interface;
+using ETOMS_API.Services.Impl;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,6 +62,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 
 // Service của từng module đăng ký ở đây.
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 
 var app = builder.Build();
 

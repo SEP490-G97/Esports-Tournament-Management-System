@@ -1,5 +1,7 @@
+using ETOMS_API.Services.Interface;
 
-namespace ETOMS_API.Services;
+
+namespace ETOMS_API.Services.Impl;
 
 // STUB TẠM — lấy người dùng hiện tại từ session do trang "Đăng nhập demo" đặt vào.
 // THAY THẾ khi có AUTH thật (đọc từ Claims/JWT của HttpContext.User).

@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace ETOMS_API.Repositories;
+namespace ETOMS_API.Repositories.Interface;
 
 // Repository chung cho mọi entity. Service inject cái này để CRUD, không viết SQL/EF thẳng.
 public interface IGenericRepository<TEntity> where TEntity : class
