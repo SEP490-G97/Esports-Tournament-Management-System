@@ -126,6 +126,35 @@ public class TeamService : ITeamService
         if (dto is null) return null;
 
         dto.Members = await LoadMembersAsync(teamId, dto.CaptainAccountId);
+
+        // TEAM-09: tỉ lệ thắng/thua — chỉ tính trận đã VERIFIED (có kết quả chính thức, LI-01).
+        var verifiedMatches = await _uow.Repository<Match>().Query()
+            .Where(m => m.Status == "VERIFIED" && (m.TeamAid == teamId || m.TeamBid == teamId))
+            .Select(m => m.WinnerTeamId)
+            .ToListAsync();
+        dto.Wins = verifiedMatches.Count(w => w == teamId);
+        dto.Losses = verifiedMatches.Count(w => w != null && w != teamId);
+
+        // TEAM-09: danh hiệu + điểm xếp hạng, gộp mọi mùa (vw_Leaderboard).
+        var leaderboardRows = await _uow.Repository<VwLeaderboard>().Query()
+            .Where(v => v.TeamId == teamId).ToListAsync();
+        dto.TitleCount = (int)leaderboardRows.Sum(v => v.TitleCount ?? 0);
+        dto.RankingPoint = (int)leaderboardRows.Sum(v => v.AchievementPoint ?? 0);
+
+        // TEAM-09: lịch sử giải đã tham gia (đơn đã duyệt trở đi, không tính đơn bị từ chối/rút).
+        dto.TournamentHistory = await _uow.Repository<Registration>().Query()
+            .Where(r => r.TeamId == teamId && r.Status != "PENDING" && r.Status != "REJECTED" && r.Status != "WITHDRAWN")
+            .OrderByDescending(r => r.SubmittedAt)
+            .Select(r => new TeamTournamentHistoryDto
+            {
+                TournamentId = r.TournamentId,
+                TournamentName = r.Tournament.Name,
+                TournamentStatus = r.Tournament.Status,
+                FinalPlacement = r.FinalPlacement,
+                FinalRank = r.FinalRank
+            })
+            .ToListAsync();
+
         return dto;
     }
 
