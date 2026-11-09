@@ -83,6 +83,11 @@
         }).join('');
 
         loadDisciplineHistory(items);
+        if (window.RegistrationReviewTieBreakers) {
+            window.RegistrationReviewTieBreakers.render(
+                summary.tieBreakerOrder || [],
+                context);
+        }
         if (window.RegistrationReviewDecisions) {
             window.RegistrationReviewDecisions.render(root, items, context);
         }
