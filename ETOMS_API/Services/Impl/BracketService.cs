@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ETOMS_API.Services.Impl;
 
 // Module BRK của Dũng (Iteration 2): BRK-01 (sinh nhánh + byes), BRK-02 (xếp hạt giống),
-// BRK-04 (thuật toán Single Elimination), BRK-06 (thuật toán Round Robin).
+// BRK-03 (khóa nhánh), BRK-04 (thuật toán Single Elimination), BRK-06 (thuật toán Round Robin).
 //
 // Mô hình: 1 BracketNode = 1 TRẬN (MATCH_SLOT). Khi 1 trận chỉ có đúng 1 đội do số đội không
 // tròn lũy thừa 2 (bye), node đó IsBye=true và SeedTeamID lưu đội duy nhất — KHÔNG tạo Match,
