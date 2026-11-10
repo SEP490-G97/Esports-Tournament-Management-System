@@ -57,6 +57,10 @@
             var withdraw = canWithdraw(item.status)
                 ? '<button type="button" class="btn btn-ghost" data-withdraw="' + item.registrationId + '">Rút đơn</button>'
                 : '';
+            var editDraft = item.status === 'DRAFT'
+                ? '<a class="btn btn-primary" href="/registration/register.html?tournamentId=' +
+                    item.tournamentId + '&draftRegistrationId=' + item.registrationId + '">Tiếp tục chỉnh sửa nháp</a>'
+                : '';
             return '<article class="feature-card">' +
                 '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>' + Ui.escapeHtml(item.tournamentName) + '</h2>' +
                 '<div class="muted-copy">' + Ui.escapeHtml(item.teamName) + ' [' + Ui.escapeHtml(item.teamTag) + ']</div></div>' +
@@ -69,7 +73,7 @@
                 '<div class="mt-3"><strong>Lệ phí: ' +
                 (item.entryFee > 0 ? Number(item.entryFee).toLocaleString('vi-VN') + ' đ · ' + Ui.escapeHtml(paymentLabel(item.paymentStatus)) : 'Miễn phí') +
                 '</strong>' + paymentRecords + '</div>' +
-                offer + proof + '<div class="btn-row mt-3">' + withdraw + '</div></article>';
+                offer + proof + '<div class="btn-row mt-3">' + editDraft + withdraw + '</div></article>';
         }).join('');
 
         root.querySelectorAll('[data-accept-offer]').forEach(function (button) {

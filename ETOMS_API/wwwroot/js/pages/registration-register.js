@@ -1,6 +1,7 @@
 (function () {
     var tournamentId = Number(new URLSearchParams(location.search).get('tournamentId'));
     var options;
+    var draftRegistrationId = Number(new URLSearchParams(location.search).get('draftRegistrationId')) || null;
     var flash = document.getElementById('registration-flash');
 
     function showFailure(error, fallback) {
@@ -59,13 +60,37 @@
                 return '<option value="' + team.teamId + '">' + Ui.escapeHtml(team.teamName) + ' [' + Ui.escapeHtml(team.teamTag) + ']</option>';
             }).join('')
             : '<option value="">Không có đội đủ điều kiện</option>';
-        document.querySelector('#registration-form [type="submit"]').disabled = options.teams.length === 0;
+        document.querySelectorAll('#registration-form [type="submit"]').forEach(function (button) {
+            button.disabled = options.teams.length === 0;
+        });
+        var draft;
+        if (draftRegistrationId) {
+            var draftResponse = await Api.get('/api/registrations/' + draftRegistrationId);
+            draft = draftResponse.data;
+            if (draft.tournamentId !== tournamentId || draft.status !== 'DRAFT') {
+                throw new Error('Bản nháp không thuộc giải này hoặc không còn chỉnh sửa được.');
+            }
+            document.getElementById('team-select').value = draft.teamId;
+        }
         var paymentSection = document.getElementById('payment-section');
-        paymentSection.hidden = !(options.requirePaymentProof && options.entryFee > 0);
+        paymentSection.hidden = options.entryFee <= 0;
         if (!paymentSection.hidden) {
+            document.getElementById('payment-proof-hint').textContent = options.requirePaymentProof
+                ? 'Giải yêu cầu biên lai trước khi gửi đơn. ETOMS chỉ lưu bằng chứng, không thực hiện hoặc xác minh giao dịch.'
+                : 'Tải biên lai nếu có. ETOMS chỉ lưu bằng chứng, không thực hiện hoặc xác minh giao dịch.';
+            var bankInfo = document.getElementById('payment-bank-info');
+            bankInfo.textContent = options.bankAccountInfo || 'Ban tổ chức chưa cung cấp thông tin tài khoản nhận lệ phí.';
             document.getElementById('payment-amount').value = options.entryFee;
+            document.getElementById('payment-proof').required = options.requirePaymentProof;
+            document.getElementById('payment-proof-required').hidden = !options.requirePaymentProof;
         }
         renderRoster();
+        if (draft) {
+            (draft.lineup || []).forEach(function (member) {
+                var slot = document.querySelector('.lineup-slot[data-account-id="' + member.accountId + '"]');
+                if (slot) slot.value = member.slot;
+            });
+        }
         document.getElementById('team-select').addEventListener('change', renderRoster);
     }
 
@@ -86,21 +111,24 @@
                 .map(function (select) {
                     return { accountId: Number(select.dataset.accountId), slot: select.value };
                 });
-            var starters = lineup.filter(function (member) { return member.slot === 'STARTER'; }).length;
-            if (starters !== options.starterCount) {
-                document.getElementById('lineup-error').textContent =
-                    'Chọn chính xác ' + options.starterCount + ' tuyển thủ chính thức.';
-                return;
-            }
-            if (!document.getElementById('accept-rulebook').checked) {
-                Ui.showAlert(flash, 'danger', 'Bạn cần đồng ý với thể lệ giải trước khi gửi.');
-                document.getElementById('accept-rulebook').focus();
-                return;
+            var isDraft = event.submitter && event.submitter.name === 'saveAsDraft';
+            if (!isDraft) {
+                var starters = lineup.filter(function (member) { return member.slot === 'STARTER'; }).length;
+                if (starters !== options.starterCount) {
+                    document.getElementById('lineup-error').textContent =
+                        'Chọn chính xác ' + options.starterCount + ' tuyển thủ chính thức.';
+                    return;
+                }
+                if (!document.getElementById('accept-rulebook').checked) {
+                    Ui.showAlert(flash, 'danger', 'Bạn cần đồng ý với thể lệ giải trước khi gửi.');
+                    document.getElementById('accept-rulebook').focus();
+                    return;
+                }
             }
 
             var proofInput = document.getElementById('payment-proof');
             var file = proofInput.files[0];
-            if (!document.getElementById('payment-section').hidden && !file) {
+            if (!isDraft && options.requirePaymentProof && !file) {
                 Ui.showAlert(flash, 'danger', 'Giải yêu cầu tải biên lai lệ phí.');
                 proofInput.focus();
                 return;
@@ -116,19 +144,27 @@
             var body = new FormData();
             body.append('teamId', document.getElementById('team-select').value);
             body.append('lineupJson', JSON.stringify(lineup));
+            body.append('saveAsDraft', isDraft ? 'true' : 'false');
             body.append('acceptRulebook', 'true');
             var amount = document.getElementById('payment-amount').value;
             if (amount) body.append('declaredAmount', amount);
-            if (file) body.append('paymentProof', file);
+            if (file && !isDraft) body.append('paymentProof', file);
 
             var button = event.currentTarget.querySelector('[type="submit"]');
             button.disabled = true;
             try {
                 var response = await Api.postForm('/api/tournaments/' + tournamentId + '/registrations', body);
-                Ui.showAlert(flash, 'success', response.message || 'Đã gửi đơn đăng ký.');
+                var resultMessage = response.message || (isDraft ? 'Đã lưu bản nháp.' : 'Đã gửi đơn đăng ký.');
+                if (isDraft) draftRegistrationId = response.data.registrationId;
+                Ui.showAlert(flash, 'success', resultMessage);
                 document.getElementById('registration-panel').innerHTML =
-                    '<div class="empty"><h2>Đã tiếp nhận đơn</h2><p>' + Ui.escapeHtml(response.message || 'Theo dõi tiến độ tại mục đơn đăng ký của bạn.') +
-                    '</p><a class="btn btn-primary" href="/registration/mine.html">Xem đơn đăng ký</a></div>';
+                    '<div class="empty"><h2>' + (isDraft ? 'Đã lưu bản nháp' : 'Đã tiếp nhận đơn') +
+                    '</h2><p>' + Ui.escapeHtml(resultMessage) +
+                    '</p>' + (isDraft
+                        ? '<a class="btn btn-primary" href="/registration/register.html?tournamentId=' + tournamentId +
+                            '&draftRegistrationId=' + draftRegistrationId + '">Tiếp tục chỉnh sửa</a> '
+                        : '') +
+                    '<a class="btn btn-ghost" href="/registration/mine.html">Xem đơn đăng ký</a></div>';
             } catch (error) {
                 showFailure(error, 'Không thể gửi đơn đăng ký.');
                 button.disabled = false;
