@@ -58,6 +58,8 @@ builder.Services.AddScoped<ITournamentRulesetService, TournamentRulesetService>(
 builder.Services.AddScoped<IMatchPickBanService, MatchPickBanService>();
 builder.Services.AddScoped<IStageTransitionService, StageTransitionService>();
 builder.Services.AddHostedService<StageTransitionWorker>();
+builder.Services.AddScoped<IThirdPlaceService, ThirdPlaceService>();
+builder.Services.AddHostedService<ThirdPlaceWorker>();
 
 var app = builder.Build();
 

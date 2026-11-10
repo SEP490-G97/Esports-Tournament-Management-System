@@ -35,7 +35,10 @@ public class RefereeAssignmentService : IRefereeAssignmentService
             {
                 m.MatchId,
                 m.BracketNode.StageNo,
+                m.BracketNode.StageType,
                 m.BracketNode.RoundNo,
+                m.BracketNode.PositionInRound,
+                m.BracketNode.ParentNodeId,
                 m.BracketNode.GroupLabel,
                 TeamA = m.TeamA != null ? m.TeamA.Name : null,
                 TeamB = m.TeamB != null ? m.TeamB.Name : null,
@@ -45,6 +48,11 @@ public class RefereeAssignmentService : IRefereeAssignmentService
                 RefereeName = m.RefereeAccount != null ? m.RefereeAccount.FullName : null
             })
             .ToListAsync();
+
+        // BRK-09: trận tranh hạng Ba cùng vòng với chung kết, cần nhãn riêng.
+        var knockout = rows.Where(m => m.StageType == "KNOCKOUT").ToList();
+        var lastStage = knockout.Count == 0 ? 0 : knockout.Max(m => m.StageNo);
+        var finalRound = knockout.Where(m => m.StageNo == lastStage).Select(m => m.RoundNo ?? 0).DefaultIfEmpty(0).Max();
 
         return new RefereeBoardDto
         {
@@ -61,7 +69,9 @@ public class RefereeAssignmentService : IRefereeAssignmentService
             Matches = rows.Select(m => new RefereeMatchDto
             {
                 MatchId = m.MatchId,
-                RoundLabel = RoundLabel(m.RoundNo, m.GroupLabel),
+                RoundLabel = ThirdPlaceMatch.IsNode(m.StageType, m.StageNo, m.RoundNo, m.PositionInRound, m.ParentNodeId, lastStage, finalRound)
+                    ? ThirdPlaceMatch.Label
+                    : RoundLabel(m.RoundNo, m.GroupLabel),
                 TeamAName = m.TeamA ?? UnknownTeam,
                 TeamBName = m.TeamB ?? UnknownTeam,
                 ScheduledAt = m.ScheduledAt,

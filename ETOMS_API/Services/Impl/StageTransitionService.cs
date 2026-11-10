@@ -13,11 +13,17 @@ namespace ETOMS_API.Services.Impl;
 // Cây mới cùng kiểu với BRK-04: node vị trí lẻ đưa đội thắng vào ô A của trận cha, vị trí chẵn vào ô B
 // (ResultService đẩy đội thắng theo đúng quy tắc này).
 // Chạy tự động bằng StageTransitionWorker; Ban tổ chức bấm tay khi có đội hòa cần xếp (UC-18 A2).
+// Giải bật tranh hạng Ba thì tạo luôn trận đó sau khi có cây (BRK-09).
 public class StageTransitionService : IStageTransitionService
 {
     private readonly IUnitOfWork _uow;
+    private readonly IThirdPlaceService _thirdPlace;
 
-    public StageTransitionService(IUnitOfWork uow) => _uow = uow;
+    public StageTransitionService(IUnitOfWork uow, IThirdPlaceService thirdPlace)
+    {
+        _uow = uow;
+        _thirdPlace = thirdPlace;
+    }
 
     private sealed class Analysis
     {
@@ -311,6 +317,10 @@ public class StageTransitionService : IStageTransitionService
         });
 
         await _uow.SaveChangesAsync();
+
+        // UC-18 A1: tạo luôn trận tranh hạng Ba khi giải có (BRK-09). Lỗi ở đây không làm mất cây vừa tạo;
+        // ThirdPlaceWorker sẽ tạo lại ở lần chạy sau.
+        if (t.HasThirdPlaceMatch) await _thirdPlace.SyncAsync(t.TournamentId);
         return a.Slots.Count(s => s is not null);
     }
 
