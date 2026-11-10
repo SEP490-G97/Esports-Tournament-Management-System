@@ -24,7 +24,7 @@ public sealed class WaitlistExpirationWorker : BackgroundService
             try
             {
                 await using var scope = _scopeFactory.CreateAsyncScope();
-                var registrationService = scope.ServiceProvider.GetRequiredService<IRegistrationService>();
+                var registrationService = scope.ServiceProvider.GetRequiredService<ITournamentRegistrationService>();
                 await registrationService.ProcessWaitlistsAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

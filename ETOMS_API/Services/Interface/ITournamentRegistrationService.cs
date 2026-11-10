@@ -3,7 +3,7 @@ using ETOMS_API.Utils;
 
 namespace ETOMS_API.Services.Interface;
 
-public interface IRegistrationService
+public interface ITournamentRegistrationService
 {
     Task<Result<RegistrationOptionsResponse>> GetOptionsAsync(int tournamentId, int accountId, CancellationToken cancellationToken);
     Task<Result<RegistrationResponse>> CreateAsync(int tournamentId, int accountId, CreateRegistrationRequest request, IFormFile? paymentProof, decimal? declaredAmount, CancellationToken cancellationToken);

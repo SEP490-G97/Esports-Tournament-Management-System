@@ -7,16 +7,16 @@ using System.Text.Json;
 namespace ETOMS_API.Controllers;
 
 [Route("api")]
-public sealed class RegistrationsController : ApiControllerBase
+public sealed class TournamentRegistrationsController : ApiControllerBase
 {
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
 
-    private readonly IRegistrationService _registrationService;
+    private readonly ITournamentRegistrationService _registrationService;
     private readonly ICurrentUser _currentUser;
     private readonly PrivateFileStorage _fileStorage;
 
-    public RegistrationsController(
-        IRegistrationService registrationService,
+    public TournamentRegistrationsController(
+        ITournamentRegistrationService registrationService,
         ICurrentUser currentUser,
         PrivateFileStorage fileStorage)
     {

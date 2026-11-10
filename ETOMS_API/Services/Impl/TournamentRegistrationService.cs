@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
-public sealed class RegistrationService : IRegistrationService
+public sealed class TournamentRegistrationService : ITournamentRegistrationService
 {
     private const string InGameNameType = "IN_GAME_NAME";
     private const string IdentityDocumentType = "IDENTITY_DOCUMENT";
@@ -17,7 +17,7 @@ public sealed class RegistrationService : IRegistrationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly PrivateFileStorage _fileStorage;
 
-    public RegistrationService(IUnitOfWork unitOfWork, PrivateFileStorage fileStorage)
+    public TournamentRegistrationService(IUnitOfWork unitOfWork, PrivateFileStorage fileStorage)
     {
         _unitOfWork = unitOfWork;
         _fileStorage = fileStorage;
