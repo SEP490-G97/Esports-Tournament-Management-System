@@ -38,6 +38,7 @@ public sealed class RegistrationsController : ApiControllerBase
         int tournamentId,
         [FromForm] int teamId,
         [FromForm] string lineupJson,
+        [FromForm] bool saveAsDraft,
         [FromForm] bool acceptRulebook,
         [FromForm] decimal? declaredAmount,
         [FromForm] IFormFile? paymentProof,
@@ -66,6 +67,7 @@ public sealed class RegistrationsController : ApiControllerBase
             {
                 TeamId = teamId,
                 Lineup = lineup,
+                SaveAsDraft = saveAsDraft,
                 AcceptRulebook = acceptRulebook
             },
             paymentProof,
@@ -174,7 +176,9 @@ public sealed class RegistrationsController : ApiControllerBase
         int tournamentId,
         int registrationId,
         [FromForm] decimal? amount,
-        [FromForm] string note,
+        [FromForm] DateOnly? refundDate,
+        [FromForm] string refundMethod,
+        [FromForm] string? note,
         [FromForm] IFormFile? evidence,
         CancellationToken cancellationToken)
     {
@@ -183,7 +187,13 @@ public sealed class RegistrationsController : ApiControllerBase
             tournamentId,
             registrationId,
             accountId,
-            new RefundRegistrationRequest { Amount = amount, Note = note },
+            new RefundRegistrationRequest
+            {
+                Amount = amount,
+                RefundDate = refundDate,
+                RefundMethod = refundMethod,
+                Note = note
+            },
             evidence,
             cancellationToken));
     }

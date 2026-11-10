@@ -19,6 +19,8 @@ public sealed record CreateRegistrationRequest
     [Required]
     public IReadOnlyList<RegistrationLineupRequest> Lineup { get; init; } = [];
 
+    public bool SaveAsDraft { get; init; }
+
     public bool AcceptRulebook { get; init; }
 }
 
@@ -48,11 +50,16 @@ public sealed record UploadPaymentProofRequest
 
 public sealed record RefundRegistrationRequest
 {
-    [Range(0, double.MaxValue)]
+    [Range(0.01, double.MaxValue)]
     public decimal? Amount { get; init; }
 
-    [Required, StringLength(500)]
-    public string Note { get; init; } = string.Empty;
+    public DateOnly? RefundDate { get; init; }
+
+    [Required, StringLength(100)]
+    public string RefundMethod { get; init; } = string.Empty;
+
+    [StringLength(300)]
+    public string? Note { get; init; }
 }
 
 public sealed record SetTieBreakerOrderRequest
@@ -87,6 +94,7 @@ public sealed record RegistrationOptionsResponse(
     bool RequireIdentityDocument,
     bool RequirePaymentProof,
     decimal EntryFee,
+    string? BankAccountInfo,
     int RulebookVersion,
     string? RulebookContent,
     int AvailableSlots,
@@ -129,6 +137,7 @@ public sealed record RegistrationResponse(
     DateTime? ConsentAt,
     string? ReviewNote,
     DateTime? ReviewedAt,
+    bool CanRecordRefund,
     IReadOnlyList<RegistrationLineupResponse> Lineup,
     IReadOnlyList<PaymentRecordResponse> PaymentRecords);
 
