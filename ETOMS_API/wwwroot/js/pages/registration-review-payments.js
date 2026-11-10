@@ -39,13 +39,14 @@
                     item.registrationId + '">Ghi nhận đã nộp</button><button type="button" class="btn btn-ghost" data-payment-status="UNPAID" data-registration-id="' +
                     item.registrationId + '">Ghi nhận chưa nộp</button></div></div>'
                 : '';
-            var canRecordRefund = ['REJECTED', 'WITHDRAWN'].includes(item.status)
-                && item.paymentStatus === 'CONFIRMED';
-            var refundForm = canRecordRefund
+            var refundForm = item.canRecordRefund
                 ? '<form class="refund-form field mt-3" data-registration-id="' + item.registrationId + '">' +
-                    '<label>Số tiền hoàn được ghi nhận (nếu có) <input class="input" name="amount" type="number" min="0" step="0.01" /></label>' +
-                    '<label>Ghi chú <input class="input" name="note" maxlength="500" required /></label>' +
-                    '<label>Minh chứng hoàn (không bắt buộc) <input class="input" name="evidence" type="file" accept=".jpg,.jpeg,.png,.pdf" /></label>' +
+                    '<label>Số tiền hoàn <input class="input" name="amount" type="number" min="0.01" max="' + Number(item.entryFee) + '" step="0.01" required /></label>' +
+                    '<label>Ngày hoàn <input class="input" name="refundDate" type="date" max="' +
+                    new Date().toISOString().slice(0, 10) + '" required /></label>' +
+                    '<label>Phương thức hoàn <input class="input" name="refundMethod" maxlength="100" required placeholder="Ví dụ: chuyển khoản ngân hàng" /></label>' +
+                    '<label>Ghi chú thêm <input class="input" name="note" maxlength="300" /></label>' +
+                    '<label>Minh chứng hoàn (nếu có) <input class="input" name="evidence" type="file" accept=".jpg,.jpeg,.png,.pdf" /></label>' +
                     '<button class="btn btn-ghost" type="submit">Ghi nhận trạng thái hoàn</button></form>' +
                     '<p class="field-hint">Chỉ lưu trạng thái và minh chứng; ETOMS không thực hiện giao dịch hoặc chuyển tiền.</p>'
                 : '';
@@ -92,8 +93,10 @@
         event.preventDefault();
         var form = event.currentTarget;
         var body = new FormData();
-        if (form.elements.amount.value) body.append('amount', form.elements.amount.value);
-        body.append('note', form.elements.note.value);
+        body.append('amount', form.elements.amount.value);
+        body.append('refundDate', form.elements.refundDate.value);
+        body.append('refundMethod', form.elements.refundMethod.value);
+        if (form.elements.note.value.trim()) body.append('note', form.elements.note.value.trim());
         if (form.elements.evidence.files[0]) body.append('evidence', form.elements.evidence.files[0]);
         var button = form.querySelector('[type="submit"]');
         button.disabled = true;
