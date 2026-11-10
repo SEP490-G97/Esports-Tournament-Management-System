@@ -60,6 +60,7 @@ builder.Services.AddScoped<IStageTransitionService, StageTransitionService>();
 builder.Services.AddHostedService<StageTransitionWorker>();
 builder.Services.AddScoped<IThirdPlaceService, ThirdPlaceService>();
 builder.Services.AddHostedService<ThirdPlaceWorker>();
+builder.Services.AddScoped<IMatchScheduleService, MatchScheduleService>();
 
 var app = builder.Build();
 

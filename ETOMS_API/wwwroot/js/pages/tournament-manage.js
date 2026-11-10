@@ -48,7 +48,8 @@
             '<a class="btn btn-ghost" href="/tournament/ruleset.html?id=' + tournamentId + '">Bộ luật</a>' +
             '<a class="btn btn-ghost" href="/tournament/dashboard.html?id=' + tournamentId + '">Bảng điều hành</a>' +
             '<a class="btn btn-ghost" href="/tournament/clone.html?id=' + tournamentId + '">Nhân bản giải</a>' +
-            '<a class="btn btn-ghost" href="/tournament/stage-transition.html?id=' + tournamentId + '">Chuyển sang knockout</a></div>' +
+            '<a class="btn btn-ghost" href="/tournament/stage-transition.html?id=' + tournamentId + '">Chuyển sang knockout</a>' +
+            '<a class="btn btn-ghost" href="/tournament/schedule.html?id=' + tournamentId + '">Xếp lịch</a></div>' +
             '</div></div>';
 
         wireAction('publish-btn', 'Xuất bản giải đấu? Sau khi xuất bản, mọi người đều xem được trang giải.', 'publish');

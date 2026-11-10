@@ -110,7 +110,10 @@
             ? '<div class="btn-row"><button type="button" class="btn btn-primary" id="advance-btn">Tạo nhánh knockout</button></div>' : '';
         var links = '<div class="btn-row">' +
             '<a class="btn btn-ghost" href="/tournament/manage.html?id=' + tournamentId + '">Quản lý giải</a>' +
-            (board.state === 'DONE' ? '<a class="btn btn-ghost" href="/tournament/referees.html?id=' + tournamentId + '">Gán trọng tài</a>' : '') +
+            (board.state === 'DONE'
+                ? '<a class="btn btn-primary" href="/tournament/schedule.html?id=' + tournamentId + '">Xếp lịch</a>' +
+                  '<a class="btn btn-ghost" href="/tournament/referees.html?id=' + tournamentId + '">Gán trọng tài</a>'
+                : '') +
             '</div>';
 
         document.getElementById('transition-root').innerHTML =
