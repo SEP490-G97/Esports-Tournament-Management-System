@@ -1,7 +1,7 @@
 using System.Data;
 using ETOMS_API.DTOs.Registration;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
+using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -14,21 +14,27 @@ public sealed class RegistrationService : IRegistrationService
     private const string IdentityDocumentType = "IDENTITY_DOCUMENT";
     private static readonly TimeSpan WaitlistConfirmationWindow = TimeSpan.FromHours(24);
 
-    private readonly EtomsDbContext _db;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly PrivateFileStorage _fileStorage;
 
-    public RegistrationService(EtomsDbContext db, PrivateFileStorage fileStorage)
+    public RegistrationService(IUnitOfWork unitOfWork, PrivateFileStorage fileStorage)
     {
-        _db = db;
+        _unitOfWork = unitOfWork;
         _fileStorage = fileStorage;
     }
+
+    private IQueryable<TEntity> Query<TEntity>() where TEntity : class
+        => _unitOfWork.Repository<TEntity>().Query();
+
+    private void Add<TEntity>(TEntity entity) where TEntity : class
+        => _unitOfWork.Repository<TEntity>().Add(entity);
 
     public async Task<Result<RegistrationOptionsResponse>> GetOptionsAsync(
         int tournamentId,
         int accountId,
         CancellationToken cancellationToken)
     {
-        var tournament = await _db.Tournaments.AsNoTracking()
+        var tournament = await Query<Tournament>().AsNoTracking()
             .Include(item => item.Game)
             .FirstOrDefaultAsync(item => item.TournamentId == tournamentId, cancellationToken);
         if (tournament is null)
@@ -36,7 +42,7 @@ public sealed class RegistrationService : IRegistrationService
             return Result.Failure<RegistrationOptionsResponse>("Không tìm thấy giải đấu.", StatusCodes.Status404NotFound);
         }
 
-        var account = await _db.Accounts.AsNoTracking()
+        var account = await Query<Account>().AsNoTracking()
             .FirstOrDefaultAsync(item => item.AccountId == accountId, cancellationToken);
         if (account is null || account.EmailVerifiedAt is null || account.Status != "ACTIVE")
         {
@@ -50,15 +56,16 @@ public sealed class RegistrationService : IRegistrationService
             return Result.Failure<RegistrationOptionsResponse>("Giải hiện không nhận đăng ký.", StatusCodes.Status409Conflict);
         }
 
-        var registeredTeamIds = await _db.Registrations.AsNoTracking()
+        var registeredTeamIds = await Query<Registration>().AsNoTracking()
             .Where(item => item.TournamentId == tournamentId
+                && item.Status != "DRAFT"
                 && item.Status != "WITHDRAWN"
                 && item.Status != "REJECTED"
                 && item.Status != "EXPIRED")
             .Select(item => item.TeamId)
             .Distinct()
             .ToArrayAsync(cancellationToken);
-        var teams = await _db.Teams.AsNoTracking()
+        var teams = await Query<Team>().AsNoTracking()
             .Where(item => item.CaptainAccountId == accountId
                 && item.GameId == tournament.GameId
                 && item.Status == "ACTIVE"
@@ -66,7 +73,7 @@ public sealed class RegistrationService : IRegistrationService
             .OrderBy(item => item.Name)
             .ToListAsync(cancellationToken);
         var teamIds = teams.Select(item => item.TeamId).ToArray();
-        var members = await _db.TeamMembers.AsNoTracking()
+        var members = await Query<TeamMember>().AsNoTracking()
             .Where(item => teamIds.Contains(item.TeamId) && item.Status == "ACTIVE")
             .Select(item => new
             {
@@ -78,7 +85,7 @@ public sealed class RegistrationService : IRegistrationService
             })
             .ToListAsync(cancellationToken);
         var memberIds = members.Select(item => item.AccountId).Distinct().ToArray();
-        var credentials = await _db.PlayerCredentials.AsNoTracking()
+        var credentials = await Query<PlayerCredential>().AsNoTracking()
             .Where(item => memberIds.Contains(item.AccountId)
                 && ((item.CredentialType == InGameNameType && item.GameId == tournament.GameId)
                     || (item.CredentialType == IdentityDocumentType && item.FileUrl != null)))
@@ -120,6 +127,7 @@ public sealed class RegistrationService : IRegistrationService
             tournament.RequireStudentCard,
             tournament.RequirePaymentProof,
             tournament.EntryFee,
+            tournament.BankAccountInfo,
             tournament.RulebookVersion,
             tournament.RulebookContent,
             Math.Max(0, tournament.MaxTeams - occupied),
@@ -134,12 +142,13 @@ public sealed class RegistrationService : IRegistrationService
         decimal? declaredAmount,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(
             IsolationLevel.Serializable,
             cancellationToken);
 
+        var requestedLineup = request.Lineup ?? [];
         var now = DateTime.UtcNow;
-        var account = await _db.Accounts.FirstOrDefaultAsync(item => item.AccountId == accountId, cancellationToken);
+        var account = await Query<Account>().FirstOrDefaultAsync(item => item.AccountId == accountId, cancellationToken);
         if (account is null || account.EmailVerifiedAt is null || account.Status != "ACTIVE")
         {
             return Result.Failure<RegistrationResponse>(
@@ -147,7 +156,7 @@ public sealed class RegistrationService : IRegistrationService
                 StatusCodes.Status403Forbidden);
         }
 
-        var tournament = await _db.Tournaments.Include(item => item.Game)
+        var tournament = await Query<Tournament>().Include(item => item.Game)
             .FirstOrDefaultAsync(item => item.TournamentId == tournamentId, cancellationToken);
         if (tournament is null)
         {
@@ -157,15 +166,11 @@ public sealed class RegistrationService : IRegistrationService
         {
             return Result.Failure<RegistrationResponse>("Giải hiện không nhận đăng ký.", StatusCodes.Status409Conflict);
         }
-        if (!request.AcceptRulebook)
+        if (!request.SaveAsDraft && !request.AcceptRulebook)
         {
             return Result<RegistrationResponse>.FieldFailure(nameof(request.AcceptRulebook), "Bạn cần xác nhận đồng ý với thể lệ giải.");
         }
-        if (request.Lineup is null)
-        {
-            return Result<RegistrationResponse>.FieldFailure(nameof(request.Lineup), "Cần chọn đội hình đăng ký.");
-        }
-        if (tournament.RequirePaymentProof && tournament.EntryFee > 0 && paymentProof is null)
+        if (!request.SaveAsDraft && tournament.RequirePaymentProof && tournament.EntryFee > 0 && paymentProof is null)
         {
             return Result<RegistrationResponse>.FieldFailure(nameof(paymentProof), "Giải yêu cầu tải biên lai lệ phí trước khi gửi đơn.");
         }
@@ -174,7 +179,7 @@ public sealed class RegistrationService : IRegistrationService
             return Result<RegistrationResponse>.FieldFailure(nameof(declaredAmount), "Số tiền khai báo không được âm.");
         }
 
-        var team = await _db.Teams.FirstOrDefaultAsync(item => item.TeamId == request.TeamId, cancellationToken);
+        var team = await Query<Team>().FirstOrDefaultAsync(item => item.TeamId == request.TeamId, cancellationToken);
         if (team is null || team.CaptainAccountId != accountId || team.Status != "ACTIVE")
         {
             return Result.Failure<RegistrationResponse>("Bạn không phải đội trưởng của đội hợp lệ.", StatusCodes.Status403Forbidden);
@@ -184,9 +189,16 @@ public sealed class RegistrationService : IRegistrationService
             return Result<RegistrationResponse>.FieldFailure(nameof(request.TeamId), "Đội và giải phải thuộc cùng một tựa game.");
         }
 
-        var duplicate = await _db.Registrations.AnyAsync(item =>
+        var existingDraft = await Query<Registration>()
+            .Include(item => item.RegistrationLineups)
+            .FirstOrDefaultAsync(item => item.TournamentId == tournamentId
+                && item.TeamId == team.TeamId
+                && item.Status == "DRAFT",
+                cancellationToken);
+        var duplicate = await Query<Registration>().AnyAsync(item =>
             item.TournamentId == tournamentId
             && item.TeamId == team.TeamId
+            && item.Status != "DRAFT"
             && item.Status != "WITHDRAWN"
             && item.Status != "REJECTED"
             && item.Status != "EXPIRED",
@@ -196,7 +208,9 @@ public sealed class RegistrationService : IRegistrationService
             return Result.Failure<RegistrationResponse>("Đội đã có đơn còn hiệu lực trong giải này.", StatusCodes.Status409Conflict);
         }
 
-        var lineupValidation = await ValidateLineupAsync(tournament, team.TeamId, request.Lineup, cancellationToken);
+        var lineupValidation = request.SaveAsDraft
+            ? await ValidateDraftLineupAsync(tournament, team.TeamId, requestedLineup, cancellationToken)
+            : await ValidateLineupAsync(tournament, team.TeamId, requestedLineup, cancellationToken);
         if (!lineupValidation.IsSuccess)
         {
             return Result<RegistrationResponse>.Failure(
@@ -204,21 +218,64 @@ public sealed class RegistrationService : IRegistrationService
                 lineupValidation.StatusCode);
         }
 
-        var selectedAccountIds = request.Lineup.Select(item => item.AccountId).Distinct().ToArray();
-        var playersAlreadyRegistered = await _db.RegistrationLineups.AsNoTracking()
-            .Where(lineup => selectedAccountIds.Contains(lineup.AccountId)
-                && lineup.Registration.TournamentId == tournamentId
-                && (lineup.Registration.Status == "PENDING"
-                    || lineup.Registration.Status == "APPROVED"
-                    || lineup.Registration.Status == "WAITLISTED"))
-            .Select(lineup => lineup.AccountId)
-            .Distinct()
-            .ToArrayAsync(cancellationToken);
-        if (playersAlreadyRegistered.Length > 0)
+        if (!request.SaveAsDraft)
         {
-            return Result<RegistrationResponse>.FieldFailure(
-                nameof(request.Lineup),
-                $"Thành viên {playersAlreadyRegistered[0]} đã có mặt trong đội hình đăng ký khác của giải.");
+            var selectedAccountIds = requestedLineup.Select(item => item.AccountId).Distinct().ToArray();
+            var playersAlreadyRegistered = await Query<RegistrationLineup>().AsNoTracking()
+                .Where(lineup => selectedAccountIds.Contains(lineup.AccountId)
+                    && lineup.Registration.TournamentId == tournamentId
+                    && (lineup.Registration.Status == "PENDING"
+                        || lineup.Registration.Status == "APPROVED"
+                        || lineup.Registration.Status == "WAITLISTED"))
+                .Select(lineup => lineup.AccountId)
+                .Distinct()
+                .ToArrayAsync(cancellationToken);
+            if (playersAlreadyRegistered.Length > 0)
+            {
+                return Result<RegistrationResponse>.FieldFailure(
+                    nameof(request.Lineup),
+                    $"Thành viên {playersAlreadyRegistered[0]} đã có mặt trong đội hình đăng ký khác của giải.");
+            }
+        }
+
+        if (request.SaveAsDraft)
+        {
+            var draft = existingDraft ?? new Registration
+            {
+                TournamentId = tournamentId,
+                TeamId = team.TeamId,
+                SubmittedByAccountId = accountId,
+                FinalPlacement = "NONE"
+            };
+            draft.Status = "DRAFT";
+            draft.RulebookVersionAccepted = null;
+            draft.ConsentAt = null;
+            draft.WaitlistPosition = null;
+            draft.WaitlistExpiresAt = null;
+            draft.PaymentStatus = "UNPAID";
+            draft.SubmittedAt = null;
+            draft.ReviewNote = null;
+            draft.ReviewedAt = null;
+            draft.RegistrationLineups.Clear();
+            foreach (var member in lineupValidation.Lineup)
+            {
+                draft.RegistrationLineups.Add(new RegistrationLineup
+                {
+                    AccountId = member.AccountId,
+                    Slot = member.Slot,
+                    PlayerCredentialId = member.CredentialId,
+                    InGameNameSnapshot = member.InGameName
+                });
+            }
+            if (existingDraft is null)
+            {
+                Add(draft);
+            }
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return Result.Success(
+                await GetRegistrationResponseAsync(draft.RegistrationId, cancellationToken),
+                "Đã lưu bản nháp riêng cho đội trưởng; bản nháp chưa được gửi cho ban tổ chức.");
         }
 
         var occupied = await CountOccupiedSlotsAsync(tournamentId, now, cancellationToken);
@@ -235,24 +292,28 @@ public sealed class RegistrationService : IRegistrationService
                 return Result<RegistrationResponse>.FieldFailure(nameof(paymentProof), exception.Message);
             }
         }
-        var registration = new Registration
+        var registration = existingDraft ?? new Registration
         {
             TournamentId = tournamentId,
             TeamId = team.TeamId,
             SubmittedByAccountId = accountId,
-            RulebookVersionAccepted = tournament.RulebookVersion,
-            ConsentAt = now,
-            Status = isWaitlisted ? "WAITLISTED" : "PENDING",
-            WaitlistPosition = isWaitlisted
-                ? (await _db.Registrations
-                    .Where(item => item.TournamentId == tournamentId && item.Status == "WAITLISTED")
-                    .Select(item => (int?)item.WaitlistPosition)
-                    .MaxAsync(cancellationToken) ?? 0) + 1
-                : null,
-            PaymentStatus = storedPaymentProof is null ? "UNPAID" : "PROOF_SUBMITTED",
-            FinalPlacement = "NONE",
-            SubmittedAt = now
+            FinalPlacement = "NONE"
         };
+        registration.RulebookVersionAccepted = tournament.RulebookVersion;
+        registration.ConsentAt = now;
+        registration.Status = isWaitlisted ? "WAITLISTED" : "PENDING";
+        registration.WaitlistPosition = isWaitlisted
+            ? (await Query<Registration>()
+                .Where(item => item.TournamentId == tournamentId && item.Status == "WAITLISTED")
+                .Select(item => (int?)item.WaitlistPosition)
+                .MaxAsync(cancellationToken) ?? 0) + 1
+            : null;
+        registration.WaitlistExpiresAt = null;
+        registration.PaymentStatus = storedPaymentProof is null ? "UNPAID" : "PROOF_SUBMITTED";
+        registration.ReviewNote = null;
+        registration.ReviewedAt = null;
+        registration.SubmittedAt = now;
+        registration.RegistrationLineups.Clear();
 
         foreach (var member in lineupValidation.Lineup)
         {
@@ -277,7 +338,10 @@ public sealed class RegistrationService : IRegistrationService
             });
         }
 
-        _db.Registrations.Add(registration);
+        if (existingDraft is null)
+        {
+            Add(registration);
+        }
         await AddNotificationAsync(
             tournament.OrganizerAccountId,
             "Đơn đăng ký mới",
@@ -295,7 +359,7 @@ public sealed class RegistrationService : IRegistrationService
 
         try
         {
-            await _db.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch
@@ -344,6 +408,10 @@ public sealed class RegistrationService : IRegistrationService
         {
             return Result.Failure<RegistrationResponse>("Bạn không có quyền xem đơn đăng ký này.", StatusCodes.Status403Forbidden);
         }
+        if (registration.Status == "DRAFT" && registration.Team.CaptainAccountId != accountId)
+        {
+            return Result.Failure<RegistrationResponse>("Không tìm thấy đơn đăng ký.", StatusCodes.Status404NotFound);
+        }
         return Result.Success(await MapRegistrationAsync(
             registration,
             registration.Tournament.OrganizerAccountId == accountId,
@@ -363,7 +431,8 @@ public sealed class RegistrationService : IRegistrationService
             return Result.Failure<RegistrationListResponse>("Không tìm thấy giải hoặc bạn không có quyền quản lý giải này.", StatusCodes.Status404NotFound);
         }
 
-        var query = FullRegistrationQuery().Where(item => item.TournamentId == tournamentId);
+        var query = FullRegistrationQuery()
+            .Where(item => item.TournamentId == tournamentId && item.Status != "DRAFT");
         if (!string.IsNullOrWhiteSpace(status) && status.Trim().ToUpperInvariant() != "ALL")
         {
             var normalizedStatus = status.Trim().ToUpperInvariant();
@@ -390,7 +459,7 @@ public sealed class RegistrationService : IRegistrationService
         }
 
         var occupied = await CountOccupiedSlotsAsync(tournamentId, DateTime.UtcNow, cancellationToken);
-        var waitlistCount = await _db.Registrations.CountAsync(
+        var waitlistCount = await Query<Registration>().CountAsync(
             item => item.TournamentId == tournamentId && item.Status == "WAITLISTED",
             cancellationToken);
         return Result.Success(new RegistrationListResponse(
@@ -421,8 +490,12 @@ public sealed class RegistrationService : IRegistrationService
         {
             return Result.Failure<RegistrationReviewResponse>("Không tìm thấy đơn đăng ký.", StatusCodes.Status404NotFound);
         }
+        if (registration.Status == "DRAFT")
+        {
+            return Result.Failure<RegistrationReviewResponse>("Không tìm thấy đơn đăng ký.", StatusCodes.Status404NotFound);
+        }
 
-        var discipline = await _db.Penalties.AsNoTracking()
+        var discipline = await Query<Penalty>().AsNoTracking()
             .Where(item => item.TeamId == registration.TeamId)
             .OrderByDescending(item => item.IssuedAt)
             .Select(item => new TeamDisciplineResponse(
@@ -447,8 +520,8 @@ public sealed class RegistrationService : IRegistrationService
         decimal? declaredAmount,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-        var registration = await _db.Registrations.Include(item => item.Tournament).Include(item => item.Team)
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var registration = await Query<Registration>().Include(item => item.Tournament).Include(item => item.Team)
             .Include(item => item.PaymentRecords)
             .FirstOrDefaultAsync(item => item.RegistrationId == registrationId, cancellationToken);
         if (registration is null)
@@ -501,12 +574,15 @@ public sealed class RegistrationService : IRegistrationService
         registration.PaymentStatus = "PROOF_SUBMITTED";
         try
         {
-            await _db.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch
         {
-            await _fileStorage.DeleteAsync(stored.RelativePath);
+            if (stored is not null)
+            {
+                await _fileStorage.DeleteAsync(stored.RelativePath);
+            }
             throw;
         }
 
@@ -520,13 +596,13 @@ public sealed class RegistrationService : IRegistrationService
         ReviewRegistrationRequest request,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var tournament = await GetOrganizerTournamentAsync(tournamentId, accountId, cancellationToken);
         if (tournament is null)
         {
             return Result.Failure<RegistrationResponse>("Không tìm thấy giải hoặc bạn không có quyền quản lý giải này.", StatusCodes.Status404NotFound);
         }
-        var registration = await _db.Registrations.Include(item => item.Team)
+        var registration = await Query<Registration>().Include(item => item.Team)
             .FirstOrDefaultAsync(item => item.TournamentId == tournamentId && item.RegistrationId == registrationId, cancellationToken);
         if (registration is null)
         {
@@ -552,7 +628,7 @@ public sealed class RegistrationService : IRegistrationService
         registration.Status = decision == "APPROVE" ? "APPROVED" : "REJECTED";
         registration.ReviewNote = reason;
         registration.ReviewedAt = DateTime.UtcNow;
-        _db.AuditLogs.Add(new AuditLog
+        Add(new AuditLog
         {
             ActorAccountId = accountId,
             TournamentId = tournamentId,
@@ -575,10 +651,10 @@ public sealed class RegistrationService : IRegistrationService
 
         if (decision == "REJECT")
         {
-            await _db.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await PromoteAvailableSlotsAsync(tournament, null, cancellationToken);
         }
-        await _db.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Result.Success(
             await GetRegistrationResponseAsync(registrationId, cancellationToken),
@@ -592,13 +668,13 @@ public sealed class RegistrationService : IRegistrationService
         VerifyRegistrationPaymentRequest request,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var tournament = await GetOrganizerTournamentAsync(tournamentId, accountId, cancellationToken);
         if (tournament is null)
         {
             return Result.Failure<RegistrationResponse>("Không tìm thấy giải hoặc bạn không có quyền quản lý giải này.", StatusCodes.Status404NotFound);
         }
-        var registration = await _db.Registrations.Include(item => item.Team)
+        var registration = await Query<Registration>().Include(item => item.Team)
             .Include(item => item.PaymentRecords)
             .FirstOrDefaultAsync(item => item.TournamentId == tournamentId && item.RegistrationId == registrationId, cancellationToken);
         if (registration is null)
@@ -658,7 +734,7 @@ public sealed class RegistrationService : IRegistrationService
             currentProof.Note = note;
         }
 
-        _db.AuditLogs.Add(new AuditLog
+        Add(new AuditLog
         {
             ActorAccountId = accountId,
             TournamentId = tournamentId,
@@ -676,7 +752,7 @@ public sealed class RegistrationService : IRegistrationService
             $"Lệ phí đơn đăng ký của đội {registration.Team.Name}: {PaymentStatusLabel(status)}.",
             "/registration/mine.html",
             cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Result.Success(
             await GetRegistrationResponseAsync(registrationId, cancellationToken),
@@ -691,13 +767,13 @@ public sealed class RegistrationService : IRegistrationService
         IFormFile? evidence,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var tournament = await GetOrganizerTournamentAsync(tournamentId, accountId, cancellationToken);
         if (tournament is null)
         {
             return Result.Failure<RegistrationResponse>("Không tìm thấy giải hoặc bạn không có quyền quản lý giải này.", StatusCodes.Status404NotFound);
         }
-        var registration = await _db.Registrations.Include(item => item.Team)
+        var registration = await Query<Registration>().Include(item => item.Team)
             .FirstOrDefaultAsync(item => item.TournamentId == tournamentId && item.RegistrationId == registrationId, cancellationToken);
         if (registration is null)
         {
@@ -716,15 +792,26 @@ public sealed class RegistrationService : IRegistrationService
         {
             return Result.Failure<RegistrationResponse>("Chỉ ghi nhận hoàn cho khoản phí đã được xác nhận.", StatusCodes.Status409Conflict);
         }
-        if (request.Amount < 0)
+        if (request.Amount is null || request.Amount <= 0)
         {
-            return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount), "Số tiền hoàn không được âm.");
+            return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount), "Nhập số tiền hoàn lớn hơn 0.");
+        }
+        if (request.Amount > tournament.EntryFee)
+        {
+            return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount), "Số tiền hoàn không được vượt quá lệ phí đăng ký.");
+        }
+        if (request.RefundDate is null || request.RefundDate > DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            return Result<RegistrationResponse>.FieldFailure(nameof(request.RefundDate), "Ngày hoàn phải được nhập và không được ở tương lai.");
+        }
+        var refundMethod = NormalizeOptional(request.RefundMethod);
+        if (refundMethod is null)
+        {
+            return Result<RegistrationResponse>.FieldFailure(nameof(request.RefundMethod), "Nhập phương thức hoàn lệ phí.");
         }
         var note = NormalizeOptional(request.Note);
-        if (note is null)
-        {
-            return Result<RegistrationResponse>.FieldFailure(nameof(request.Note), "Ghi rõ thông tin về khoản hoàn.");
-        }
+        var refundRecordNote = $"Ngày hoàn: {request.RefundDate:dd/MM/yyyy}; Phương thức: {refundMethod}"
+            + (note is null ? string.Empty : $"; Ghi chú: {note}");
 
         StoredPrivateFile? stored = null;
         if (evidence is not null)
@@ -746,12 +833,12 @@ public sealed class RegistrationService : IRegistrationService
             RecordKind = "REFUND",
             FileUrl = stored?.RelativePath,
             DeclaredAmount = request.Amount,
-            Note = note,
+            Note = refundRecordNote,
             IsCurrent = true,
             RecordedByAccountId = accountId,
             RecordedAt = DateTime.UtcNow
         });
-        _db.AuditLogs.Add(new AuditLog
+        Add(new AuditLog
         {
             ActorAccountId = accountId,
             TournamentId = tournamentId,
@@ -760,7 +847,7 @@ public sealed class RegistrationService : IRegistrationService
             ObjectId = registrationId,
             BeforeValue = "CONFIRMED",
             AfterValue = "REFUNDED",
-            Reason = note,
+            Reason = refundRecordNote,
             CreatedAt = DateTime.UtcNow
         });
         await AddNotificationAsync(
@@ -771,7 +858,7 @@ public sealed class RegistrationService : IRegistrationService
             cancellationToken);
         try
         {
-            await _db.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch
@@ -793,9 +880,10 @@ public sealed class RegistrationService : IRegistrationService
         int accountId,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-        var registration = await _db.Registrations.Include(item => item.Team)
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var registration = await Query<Registration>().Include(item => item.Team)
             .Include(item => item.Tournament)
+                .ThenInclude(item => item.Game)
             .FirstOrDefaultAsync(item => item.RegistrationId == registrationId, cancellationToken);
         if (registration is null)
         {
@@ -824,9 +912,9 @@ public sealed class RegistrationService : IRegistrationService
             $"Đội {registration.Team.Name} đã rút đơn khỏi giải {registration.Tournament.Name}.",
             $"/registration/review.html?tournamentId={registration.TournamentId}",
             cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         await PromoteAvailableSlotsAsync(registration.Tournament, null, cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Result.Success(
             await GetRegistrationResponseAsync(registrationId, cancellationToken),
@@ -838,8 +926,8 @@ public sealed class RegistrationService : IRegistrationService
         int accountId,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-        var registration = await _db.Registrations.Include(item => item.Team)
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var registration = await Query<Registration>().Include(item => item.Team)
             .Include(item => item.Tournament)
             .FirstOrDefaultAsync(item => item.RegistrationId == registrationId, cancellationToken);
         if (registration is null)
@@ -867,7 +955,7 @@ public sealed class RegistrationService : IRegistrationService
             $"Đội {registration.Team.Name} đã xác nhận lời mời và đang chờ xét duyệt.",
             $"/registration/review.html?tournamentId={registration.TournamentId}",
             cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Result.Success(
             await GetRegistrationResponseAsync(registrationId, cancellationToken),
@@ -880,7 +968,7 @@ public sealed class RegistrationService : IRegistrationService
         int accountId,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var tournament = await GetOrganizerTournamentAsync(tournamentId, accountId, cancellationToken);
         if (tournament is null)
         {
@@ -897,7 +985,7 @@ public sealed class RegistrationService : IRegistrationService
             return Result.Failure<WaitlistPromotionResponse>("Giải hiện không còn suất trống.", StatusCodes.Status409Conflict);
         }
 
-        var candidateQuery = _db.Registrations.Include(item => item.Team)
+        var candidateQuery = Query<Registration>().Include(item => item.Team)
             .Where(item => item.TournamentId == tournamentId && item.Status == "WAITLISTED");
         var firstCandidate = await candidateQuery
             .OrderBy(item => item.WaitlistPosition)
@@ -910,7 +998,7 @@ public sealed class RegistrationService : IRegistrationService
         {
             return Result.Failure<WaitlistPromotionResponse>("Không còn đội trong danh sách chờ.", StatusCodes.Status404NotFound);
         }
-        if (firstCandidate?.RegistrationId != candidate.RegistrationId)
+        if (!registrationId.HasValue && firstCandidate?.RegistrationId != candidate.RegistrationId)
         {
             return Result.Failure<WaitlistPromotionResponse>(
                 "Chỉ có thể đôn theo đúng thứ tự FIFO của danh sách chờ.",
@@ -922,14 +1010,15 @@ public sealed class RegistrationService : IRegistrationService
         {
             return Result.Failure<WaitlistPromotionResponse>("Đội hình không còn đáp ứng luật roster/IGN/định danh; hãy cập nhật đội hình trước khi đôn.", StatusCodes.Status409Conflict);
         }
+        var formerWaitlistPosition = candidate.WaitlistPosition;
         await PromoteRegistrationAsync(candidate, tournament, accountId, now, cancellationToken);
         await ReindexWaitlistAsync(tournamentId, cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Result.Success(new WaitlistPromotionResponse(
             candidate.RegistrationId,
             tournamentId,
-            candidate.WaitlistPosition,
+            formerWaitlistPosition,
             candidate.WaitlistExpiresAt),
             "Đã gửi lời mời suất chờ; đội trưởng có 24 giờ để xác nhận.");
     }
@@ -937,7 +1026,7 @@ public sealed class RegistrationService : IRegistrationService
     public async Task ProcessWaitlistsAsync(CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
-        var tournamentIds = await _db.Registrations.AsNoTracking()
+        var tournamentIds = await Query<Registration>().AsNoTracking()
             .Where(item => item.Status == "WAITLISTED" || item.WaitlistExpiresAt != null)
             .Select(item => item.TournamentId)
             .Distinct()
@@ -945,8 +1034,8 @@ public sealed class RegistrationService : IRegistrationService
 
         foreach (var tournamentId in tournamentIds)
         {
-            await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-            var tournament = await _db.Tournaments.FirstOrDefaultAsync(
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            var tournament = await Query<Tournament>().Include(item => item.Game).FirstOrDefaultAsync(
                 item => item.TournamentId == tournamentId,
                 cancellationToken);
             if (tournament is null)
@@ -954,9 +1043,10 @@ public sealed class RegistrationService : IRegistrationService
                 continue;
             }
 
-            var closed = tournament.Status == "CANCELLED"
+            var closed = tournament.Status != "PUBLISHED"
+                || tournament.BracketLockedAt is not null
                 || tournament.RegCloseAt <= now;
-            var expiredOffers = await _db.Registrations.Include(item => item.Team)
+            var expiredOffers = await Query<Registration>().Include(item => item.Team)
                 .Where(item => item.TournamentId == tournamentId
                     && item.Status == "PENDING"
                     && item.WaitlistExpiresAt != null
@@ -977,8 +1067,8 @@ public sealed class RegistrationService : IRegistrationService
 
             if (closed)
             {
-                await _db.SaveChangesAsync(cancellationToken);
-                var waiting = await _db.Registrations.Include(item => item.Team)
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var waiting = await Query<Registration>().Include(item => item.Team)
                     .Where(item => item.TournamentId == tournamentId
                         && (item.Status == "WAITLISTED"
                             || (item.Status == "PENDING" && item.WaitlistExpiresAt != null)))
@@ -999,12 +1089,12 @@ public sealed class RegistrationService : IRegistrationService
             }
             else
             {
-                await _db.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await PromoteAvailableSlotsAsync(tournament, null, cancellationToken);
             }
 
             await ReindexWaitlistAsync(tournamentId, cancellationToken);
-            await _db.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
     }
@@ -1025,6 +1115,12 @@ public sealed class RegistrationService : IRegistrationService
             return Result.Failure<IReadOnlyList<string>>("Không thể đổi tie-breaker sau khi khóa nhánh đấu.", StatusCodes.Status409Conflict);
         }
 
+        if (order is null || order.Any(string.IsNullOrWhiteSpace))
+        {
+            return Result<IReadOnlyList<string>>.FieldFailure(
+                "order",
+                "Thứ tự phải chứa đúng một lần mỗi tiêu chí: đối đầu, hiệu số ván, tổng ván thắng và bốc thăm.");
+        }
         var normalized = order.Select(item => item.Trim().ToUpperInvariant()).ToArray();
         if (normalized.Length != TieBreakerCriteria.DefaultOrder.Length
             || normalized.Distinct(StringComparer.Ordinal).Count() != TieBreakerCriteria.DefaultOrder.Length
@@ -1036,7 +1132,7 @@ public sealed class RegistrationService : IRegistrationService
         }
 
         tournament.TieBreakerOrder = string.Join(',', normalized);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success<IReadOnlyList<string>>(normalized, "Đã lưu thứ tự tie-breaker cho giải.");
     }
 
@@ -1047,7 +1143,7 @@ public sealed class RegistrationService : IRegistrationService
         int requesterAccountId,
         CancellationToken cancellationToken)
     {
-        var registration = await _db.Registrations.AsNoTracking()
+        var registration = await Query<Registration>().AsNoTracking()
             .Include(item => item.Tournament)
             .FirstOrDefaultAsync(item => item.RegistrationId == registrationId, cancellationToken);
         if (registration is null)
@@ -1058,14 +1154,14 @@ public sealed class RegistrationService : IRegistrationService
         {
             return Result.Failure<PrivateRegistrationFileResponse>("Bạn không có quyền xem giấy tờ của giải này.", StatusCodes.Status403Forbidden);
         }
-        var playerIsInLineup = await _db.RegistrationLineups.AnyAsync(
+        var playerIsInLineup = await Query<RegistrationLineup>().AnyAsync(
             item => item.RegistrationId == registrationId && item.AccountId == playerAccountId,
             cancellationToken);
         if (!playerIsInLineup)
         {
             return Result.Failure<PrivateRegistrationFileResponse>("Người chơi không thuộc đội hình đăng ký này.", StatusCodes.Status404NotFound);
         }
-        var document = await _db.PlayerCredentials.AsNoTracking()
+        var document = await Query<PlayerCredential>().AsNoTracking()
             .Where(item => item.PlayerCredentialId == credentialId
                 && item.AccountId == playerAccountId
                 && item.CredentialType == IdentityDocumentType
@@ -1087,7 +1183,7 @@ public sealed class RegistrationService : IRegistrationService
         int requesterAccountId,
         CancellationToken cancellationToken)
     {
-        var record = await _db.PaymentRecords.AsNoTracking()
+        var record = await Query<PaymentRecord>().AsNoTracking()
             .Where(item => item.RegistrationId == registrationId
                 && item.PaymentRecordId == paymentRecordId
                 && item.FileUrl != null)
@@ -1147,7 +1243,7 @@ public sealed class RegistrationService : IRegistrationService
         }
 
         var accountIds = normalized.Select(item => item.AccountId).ToArray();
-        var activeRoster = await _db.TeamMembers.AsNoTracking()
+        var activeRoster = await Query<TeamMember>().AsNoTracking()
             .Where(item => item.TeamId == teamId && item.Status == "ACTIVE" && accountIds.Contains(item.AccountId))
             .Select(item => new { item.AccountId, item.Account.Status })
             .ToListAsync(cancellationToken);
@@ -1157,7 +1253,7 @@ public sealed class RegistrationService : IRegistrationService
             return LineupValidation.Failure("Mọi thành viên đăng ký phải thuộc roster đang hoạt động của đội.");
         }
 
-        var credentials = await _db.PlayerCredentials.AsNoTracking()
+        var credentials = await Query<PlayerCredential>().AsNoTracking()
             .Where(item => accountIds.Contains(item.AccountId)
                 && ((item.CredentialType == InGameNameType && item.GameId == tournament.GameId)
                     || item.CredentialType == IdentityDocumentType))
@@ -1196,32 +1292,113 @@ public sealed class RegistrationService : IRegistrationService
         }).ToArray());
     }
 
+    private async Task<LineupValidation> ValidateDraftLineupAsync(
+        Tournament tournament,
+        int teamId,
+        IReadOnlyList<RegistrationLineupRequest> requestedLineup,
+        CancellationToken cancellationToken)
+    {
+        if (requestedLineup.Count == 0)
+        {
+            return LineupValidation.Success([]);
+        }
+        if (requestedLineup.Any(item => item is null)
+            || requestedLineup.Select(item => item.AccountId).Distinct().Count() != requestedLineup.Count)
+        {
+            return LineupValidation.Failure("Đội hình nháp không được chứa thành viên trùng nhau.");
+        }
+
+        var normalized = requestedLineup.Select(item => new
+        {
+            item.AccountId,
+            Slot = item.Slot?.Trim().ToUpperInvariant()
+        }).ToArray();
+        if (normalized.Any(item => item.Slot is not ("STARTER" or "SUBSTITUTE")))
+        {
+            return LineupValidation.Failure("Vị trí chỉ được là STARTER hoặc SUBSTITUTE.");
+        }
+
+        var accountIds = normalized.Select(item => item.AccountId).ToArray();
+        var activeRoster = await Query<TeamMember>().AsNoTracking()
+            .Where(item => item.TeamId == teamId
+                && item.Status == "ACTIVE"
+                && item.Account.Status == "ACTIVE"
+                && accountIds.Contains(item.AccountId))
+            .Select(item => item.AccountId)
+            .ToListAsync(cancellationToken);
+        if (activeRoster.Distinct().Count() != accountIds.Length)
+        {
+            return LineupValidation.Failure("Thành viên trong bản nháp phải thuộc roster đang hoạt động của đội.");
+        }
+
+        var credentials = await Query<PlayerCredential>().AsNoTracking()
+            .Where(item => accountIds.Contains(item.AccountId)
+                && item.CredentialType == InGameNameType
+                && item.GameId == tournament.GameId
+                && !string.IsNullOrWhiteSpace(item.Value))
+            .Select(item => new { item.PlayerCredentialId, item.AccountId, item.Value })
+            .ToListAsync(cancellationToken);
+        return LineupValidation.Success(normalized.Select(member =>
+        {
+            var credential = credentials.FirstOrDefault(item => item.AccountId == member.AccountId);
+            return new ValidatedLineupMember(
+                member.AccountId,
+                member.Slot!,
+                credential?.PlayerCredentialId,
+                credential?.Value);
+        }).ToArray());
+    }
+
     private async Task<bool> IsCurrentLineupEligibleAsync(
         Registration registration,
         Tournament tournament,
         CancellationToken cancellationToken)
     {
-        var lineups = await _db.RegistrationLineups.AsNoTracking()
+        var lineups = await Query<RegistrationLineup>().AsNoTracking()
             .Where(item => item.RegistrationId == registration.RegistrationId)
             .Select(item => new { item.AccountId, item.Slot })
             .ToListAsync(cancellationToken);
-        if (lineups.Count(item => item.Slot == "STARTER") != tournament.StarterCount
-            || lineups.Count(item => item.Slot == "SUBSTITUTE") > tournament.MaxSubstitutes)
+        if (tournament.StarterCount < tournament.Game.MinStarters
+            || tournament.StarterCount > tournament.Game.MaxStarters
+            || lineups.Count(item => item.Slot == "STARTER") != tournament.StarterCount
+            || lineups.Count(item => item.Slot == "SUBSTITUTE")
+                > Math.Min(tournament.MaxSubstitutes, tournament.Game.MaxSubstitutes))
         {
             return false;
         }
+        if (!await Query<Team>().AnyAsync(
+            item => item.TeamId == registration.TeamId && item.Status == "ACTIVE",
+            cancellationToken))
+        {
+            return false;
+        }
+
         var accountIds = lineups.Select(item => item.AccountId).ToArray();
-        var activeIds = await _db.TeamMembers.AsNoTracking()
+        var activeMembers = await Query<TeamMember>().AsNoTracking()
             .Where(item => item.TeamId == registration.TeamId
                 && item.Status == "ACTIVE"
                 && accountIds.Contains(item.AccountId))
-            .Select(item => item.AccountId)
+            .Select(item => new { item.AccountId, AccountStatus = item.Account.Status })
             .ToListAsync(cancellationToken);
-        if (activeIds.Count != accountIds.Length)
+        if (activeMembers.Select(item => item.AccountId).Distinct().Count() != accountIds.Length
+            || activeMembers.Any(item => item.AccountStatus != "ACTIVE"))
         {
             return false;
         }
-        var credentials = await _db.PlayerCredentials.AsNoTracking()
+
+        var playerAlreadyRegistered = await Query<RegistrationLineup>().AsNoTracking()
+            .AnyAsync(item => item.RegistrationId != registration.RegistrationId
+                && accountIds.Contains(item.AccountId)
+                && item.Registration.TournamentId == tournament.TournamentId
+                && (item.Registration.Status == "PENDING"
+                    || item.Registration.Status == "APPROVED"
+                    || item.Registration.Status == "WAITLISTED"),
+                cancellationToken);
+        if (playerAlreadyRegistered)
+        {
+            return false;
+        }
+        var credentials = await Query<PlayerCredential>().AsNoTracking()
             .Where(item => accountIds.Contains(item.AccountId)
                 && ((item.CredentialType == InGameNameType && item.GameId == tournament.GameId)
                     || (item.CredentialType == IdentityDocumentType && item.FileUrl != null)))
@@ -1251,7 +1428,7 @@ public sealed class RegistrationService : IRegistrationService
         var skippedRegistrationIds = new HashSet<int>();
         while (await CountOccupiedSlotsAsync(tournament.TournamentId, now, cancellationToken) < tournament.MaxTeams)
         {
-            var candidate = await _db.Registrations.Include(item => item.Team)
+            var candidate = await Query<Registration>().Include(item => item.Team)
                 .Where(item => item.TournamentId == tournament.TournamentId
                     && item.Status == "WAITLISTED"
                     && !skippedRegistrationIds.Contains(item.RegistrationId))
@@ -1279,7 +1456,7 @@ public sealed class RegistrationService : IRegistrationService
             }
 
             await PromoteRegistrationAsync(candidate, tournament, actorAccountId, now, cancellationToken);
-            await _db.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             skippedRegistrationIds.Clear();
         }
         await ReindexWaitlistAsync(tournament.TournamentId, cancellationToken);
@@ -1297,7 +1474,7 @@ public sealed class RegistrationService : IRegistrationService
         registration.WaitlistPosition = null;
         registration.WaitlistExpiresAt = now.Add(WaitlistConfirmationWindow);
         registration.ReviewNote = null;
-        _db.AuditLogs.Add(new AuditLog
+        Add(new AuditLog
         {
             ActorAccountId = actorAccountId,
             TournamentId = tournament.TournamentId,
@@ -1324,7 +1501,7 @@ public sealed class RegistrationService : IRegistrationService
 
     private async Task ReindexWaitlistAsync(int tournamentId, CancellationToken cancellationToken)
     {
-        var waiting = await _db.Registrations
+        var waiting = await Query<Registration>()
             .Where(item => item.TournamentId == tournamentId && item.Status == "WAITLISTED")
             .OrderBy(item => item.WaitlistPosition)
             .ThenBy(item => item.SubmittedAt)
@@ -1339,7 +1516,7 @@ public sealed class RegistrationService : IRegistrationService
         int tournamentId,
         DateTime now,
         CancellationToken cancellationToken)
-        => await _db.Registrations.CountAsync(item =>
+        => await Query<Registration>().CountAsync(item =>
             item.TournamentId == tournamentId
             && (item.Status == "APPROVED"
                 || (item.Status == "PENDING"
@@ -1350,12 +1527,12 @@ public sealed class RegistrationService : IRegistrationService
         int tournamentId,
         int accountId,
         CancellationToken cancellationToken)
-        => await _db.Tournaments.FirstOrDefaultAsync(
+        => await Query<Tournament>().Include(item => item.Game).FirstOrDefaultAsync(
             item => item.TournamentId == tournamentId && item.OrganizerAccountId == accountId,
             cancellationToken);
 
     private IQueryable<Registration> FullRegistrationQuery()
-        => _db.Registrations.AsNoTracking()
+        => Query<Registration>().AsNoTracking()
             .Include(item => item.Tournament)
             .Include(item => item.Team)
             .Include(item => item.RegistrationLineups)
@@ -1378,7 +1555,7 @@ public sealed class RegistrationService : IRegistrationService
     {
         var accountIds = registration.RegistrationLineups.Select(item => item.AccountId).Distinct().ToArray();
         var identityDocuments = includeIdentityDocumentIds
-            ? await _db.PlayerCredentials.AsNoTracking()
+            ? await Query<PlayerCredential>().AsNoTracking()
                 .Where(item => accountIds.Contains(item.AccountId)
                     && item.CredentialType == IdentityDocumentType
                     && item.FileUrl != null)
@@ -1419,6 +1596,10 @@ public sealed class RegistrationService : IRegistrationService
             registration.ConsentAt,
             registration.ReviewNote,
             registration.ReviewedAt,
+            registration.PaymentStatus == "CONFIRMED"
+                && registration.Tournament.EntryFee > 0
+                && (registration.Status is "REJECTED" or "WITHDRAWN"
+                    || registration.Tournament.Status == "CANCELLED"),
             lineups,
             registration.PaymentRecords
                 .OrderByDescending(item => item.RecordedAt)
@@ -1433,12 +1614,12 @@ public sealed class RegistrationService : IRegistrationService
         string linkUrl,
         CancellationToken cancellationToken)
     {
-        var account = await _db.Accounts.FirstOrDefaultAsync(item => item.AccountId == accountId, cancellationToken);
+        var account = await Query<Account>().FirstOrDefaultAsync(item => item.AccountId == accountId, cancellationToken);
         if (account?.NotifyInApp != true)
         {
             return;
         }
-        _db.Notifications.Add(new Notification
+        Add(new Notification
         {
             AccountId = accountId,
             NotificationType = "REGISTRATION",

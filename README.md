@@ -110,15 +110,23 @@ public interface IGenericRepository<T> where T : class
     void Save();
 }
 
+using System.Data;
+using Microsoft.EntityFrameworkCore.Storage;
+
 public interface IUnitOfWork : IDisposable
 {
     IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class;
-    Task<int> SaveChangesAsync();
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task<IDbContextTransaction> BeginTransactionAsync(
+        IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default);
 }
 ```
 
 `Controller → Service → IUnitOfWork.Repository<TEntity>() → DbContext → DB`. Service
-không inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`.
+không inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`. Với nghiệp vụ nhiều bước
+cần tính nguyên tử, Service mở transaction qua `IUnitOfWork`, lưu thay đổi tại các
+ranh giới cần thiết rồi commit transaction.
 
 ## Luật để code — áp dụng cho TOÀN BỘ dự án ETOMS (rút từ `CLAUDE.md`)
 
