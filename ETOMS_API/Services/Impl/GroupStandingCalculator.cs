@@ -29,7 +29,11 @@ public static class GroupStandingCalculator
         public int Position { get; set; }
         // Các đội cùng TieKey là chưa phân định được thứ hạng với nhau.
         public string? TieKey { get; set; }
+        // Tiêu chí đã tách đội này khỏi các đội bằng điểm (BRK-13: "Tie-breaker đã áp dụng").
+        public string? DecidedBy { get; set; }
     }
+
+    public const string OrganizerDecision = "Ban tổ chức xếp";
 
     public static bool IsDecided(GroupMatch m) => m.Status is "VERIFIED" or "WALKOVER" && m.WinnerTeamId is not null;
 
@@ -69,7 +73,7 @@ public static class GroupStandingCalculator
 
         var blocks = new List<List<Row>>();
         foreach (var byPoints in rows.Values.GroupBy(r => r.Points).OrderByDescending(g => g.Key))
-            blocks.AddRange(Separate(byPoints.ToList(), order, 0, decided));
+            blocks.AddRange(Separate(byPoints.ToList(), order, 0, decided, null));
 
         // Áp quyết định của Ban tổ chức cho nhóm hòa khớp đúng tập đội.
         foreach (var decision in decidedOrder ?? Enumerable.Empty<IReadOnlyList<int>>())
@@ -79,6 +83,7 @@ public static class GroupStandingCalculator
             if (i < 0) continue;
             var byId = blocks[i].ToDictionary(r => r.TeamId);
             blocks.RemoveAt(i);
+            foreach (var r in byId.Values) r.DecidedBy = OrganizerDecision;
             blocks.InsertRange(i, decision.Select(id => new List<Row> { byId[id] }));
         }
 
@@ -100,9 +105,16 @@ public static class GroupStandingCalculator
     }
 
     // Chia một nhóm bằng điểm thành các khối theo từng tiêu chí; khối còn nhiều đội là hòa.
-    private static IEnumerable<List<Row>> Separate(List<Row> tied, IReadOnlyList<string> order, int index, List<GroupMatch> decided)
+    // decidedBy: tiêu chí vừa tách ra nhóm này (null khi nhóm đến thẳng từ điểm số).
+    private static IEnumerable<List<Row>> Separate(List<Row> tied, IReadOnlyList<string> order, int index, List<GroupMatch> decided, string? decidedBy)
     {
-        if (tied.Count == 1 || index >= order.Count)
+        if (tied.Count == 1)
+        {
+            tied[0].DecidedBy = decidedBy;
+            yield return tied;
+            yield break;
+        }
+        if (index >= order.Count)
         {
             yield return tied;
             yield break;
@@ -124,12 +136,12 @@ public static class GroupStandingCalculator
         };
         if (value is null)
         {
-            foreach (var b in Separate(tied, order, index + 1, decided)) yield return b;
+            foreach (var b in Separate(tied, order, index + 1, decided, decidedBy)) yield return b;
             yield break;
         }
 
         foreach (var sub in tied.GroupBy(value).OrderByDescending(g => g.Key))
-            foreach (var b in Separate(sub.ToList(), order, index + 1, decided))
+            foreach (var b in Separate(sub.ToList(), order, index + 1, decided, criterion))
                 yield return b;
     }
 
