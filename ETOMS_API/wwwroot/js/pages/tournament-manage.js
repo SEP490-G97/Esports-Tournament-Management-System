@@ -53,6 +53,14 @@
             '<a class="btn btn-ghost" href="/tournament/schedule.html?id=' + tournamentId + '">Xếp lịch</a>' +
             '<a class="btn btn-ghost" href="/tournament/standings.html?id=' + tournamentId + '">Bảng xếp hạng</a>' +
             '<a class="btn btn-ghost" href="/tournament/bracket.html?id=' + tournamentId + '">Nhánh đấu</a></div>' +
+            '</div></div>' +
+            // Khu vực cảnh báo: thao tác không hoàn tác (TOUR-11).
+            '<div class="card-etoms" id="danger-zone" style="margin-top:16px;border-color:var(--danger)"><div class="body">' +
+            '<div class="section-title" style="margin-top:0;color:var(--danger-ink)">Khu vực cảnh báo</div>' +
+            '<p class="hint" style="margin:6px 0 12px">' + (s.status === 'CANCELLED'
+                ? 'Giải đã bị hủy. Xem lý do và danh sách đội cần hoàn lệ phí.'
+                : 'Hủy giải không hoàn tác được, cần lý do và được báo tới mọi đội trưởng. Không hủy được sau khi nhánh đấu đã khóa.') + '</p>' +
+            '<a class="btn btn-ghost" href="/tournament/cancel.html?id=' + tournamentId + '">' + (s.status === 'CANCELLED' ? 'Xem việc hủy giải' : 'Hủy giải…') + '</a>' +
             '</div></div>';
 
         wireAction('publish-btn', 'Xuất bản giải đấu? Sau khi xuất bản, mọi người đều xem được trang giải.', 'publish');

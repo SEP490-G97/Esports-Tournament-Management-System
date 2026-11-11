@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hủy giải đấu · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <style>
+        .danger-card { border-color: var(--danger); }
+        .danger-card .section-title { color: var(--danger-ink); }
+        .btn-cancel-tour { background: var(--danger); border-color: var(--danger); color: #fff; }
+        .btn-cancel-tour:hover { filter: brightness(1.1); color: #fff; }
+        .refund-wrap { overflow-x: auto; }
+        .refund { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 620px; }
+        .refund th, .refund td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); text-align: left; }
+        .refund th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+        .refund td.num { text-align: right; white-space: nowrap; }
+        textarea.input { min-height: 110px; resize: vertical; }
+        .consequences li { margin-bottom: 6px; }
+    </style>
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Giải đấu · Hủy giải</div>
+            <h1 id="page-title">Hủy giải đấu</h1>
+            <p id="page-sub">Hủy giải không hoàn tác được. Lý do hủy được gửi tới mọi đội trưởng đã đăng ký.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="cancel-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-cancel.js" defer></script>
+</body>
+</html>

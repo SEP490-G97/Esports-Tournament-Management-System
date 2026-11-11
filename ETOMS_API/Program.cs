@@ -64,6 +64,7 @@ builder.Services.AddScoped<IMatchScheduleService, MatchScheduleService>();
 builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
 builder.Services.AddScoped<IBracketViewService, BracketViewService>();
 builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
+builder.Services.AddScoped<ITournamentCancelService, TournamentCancelService>();
 
 var app = builder.Build();
 
