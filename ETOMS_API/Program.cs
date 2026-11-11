@@ -63,6 +63,7 @@ builder.Services.AddHostedService<ThirdPlaceWorker>();
 builder.Services.AddScoped<IMatchScheduleService, MatchScheduleService>();
 builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
 builder.Services.AddScoped<IBracketViewService, BracketViewService>();
+builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
 
 var app = builder.Build();
 

@@ -44,6 +44,7 @@
             '<div style="margin-bottom:18px">Trạng thái: <span class="badge ' + Ui.escapeHtml(s.statusClass) + '" id="status-badge">' + Ui.escapeHtml(s.statusLabel) + '</span></div>' +
             checks + blocked +
             '<div class="btn-row">' + actionsHtml(s) +
+            '<a class="btn btn-ghost" href="/tournament/edit.html?id=' + tournamentId + '">Sửa thông tin giải</a>' +
             '<a class="btn btn-ghost" href="/tournament/rulebook.html?id=' + tournamentId + '">Thể lệ giải</a>' +
             '<a class="btn btn-ghost" href="/tournament/ruleset.html?id=' + tournamentId + '">Bộ luật</a>' +
             '<a class="btn btn-ghost" href="/tournament/dashboard.html?id=' + tournamentId + '">Bảng điều hành</a>' +
