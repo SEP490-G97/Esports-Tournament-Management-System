@@ -1,0 +1,215 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>ETOMS - Khởi Tạo Giải Đấu Mới</title>
+    <!-- Trỏ đúng đường dẫn CSS hệ thống site.css -->
+    <link rel="stylesheet" href="../css/site.css">
+</head>
+<body>
+    <!-- Thanh điều hướng chuẩn của hệ thống ETOMS -->
+    <header class="etoms-nav">
+        <div class="inner">
+            <a class="brand" href="/">
+                <div class="mark">E</div>
+                <div class="txt"><b>ETOMS</b><span>Esports Platform</span></div>
+            </a>
+            <nav>
+                <a href="/">Trang chủ</a>
+                <a href="/free-agent/index.html">Tuyển quân</a>
+                <a href="/tournament-setup/index.html" class="active">Tạo giải đấu</a>
+            </nav>
+            <div class="spacer"></div>
+            <div class="nav-user">
+                <span class="who" id="currentUserName">Thành viên</span>
+                <div class="av" id="currentUserAvt">E</div>
+            </div>
+            <button class="theme-toggle" id="themeToggleBtn" title="Đổi giao diện sáng/tối">
+                <span class="icon-moon">🌙</span>
+                <span class="icon-sun">☀️</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container-etoms" style="max-width: 900px;">
+        <div class="page-head">
+            <div class="eyebrow">Quản lý sự kiện</div>
+            <h1>Trình Tạo Giải Đấu (Tournament Setup Wizard)</h1>
+            <p class="muted-copy">Quy trình 5 bước để thiết lập, cấu hình thể thức và công bố giải đấu thể thao điện tử lên hệ thống.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <!-- Thanh Tabs các bước (Đồng bộ style chuẩn ETOMS) -->
+        <div class="wizard-steps" style="display: flex; gap: 10px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px; font-size: 0.9rem; flex-wrap: wrap;">
+            <div id="tabStep1" class="step-tab" style="color: var(--primary); font-weight: bold;">1. Thông tin chung</div>
+            <div id="tabStep2" class="step-tab" style="color: var(--muted);">2. Timeline & Quy mô</div>
+            <div id="tabStep3" class="step-tab" style="color: var(--muted);">3. Thể thức BO</div>
+            <div id="tabStep4" class="step-tab" style="color: var(--muted);">4. Tài chính</div>
+            <div id="tabStep5" class="step-tab" style="color: var(--muted);">5. Công bố</div>
+        </div>
+
+        <!-- BƯỚC 1: Thông tin chung (TOUR-01) -->
+        <div id="panelStep1" class="card-etoms">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 1: Thông Tin Cơ Bản Giải Đấu</h3>
+                <p class="muted-copy" style="margin-bottom: 20px;">Cung cấp tên định danh, mô tả sơ lược và tựa game tổ chức.</p>
+
+                <form id="step1Form">
+                    <div class="field">
+                        <label>Tên giải đấu <span class="req">*</span></label>
+                        <input type="text" id="tName" class="input" required placeholder="Ví dụ: Đại chiến FPT Arena 2026">
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+                    <div class="field">
+                        <label>Mô tả chi tiết</label>
+                        <textarea id="tDesc" class="input" rows="3" placeholder="Giới thiệu về quy mô, luật lệ sơ bộ của giải đấu..."></textarea>
+                    </div>
+                    <div class="field">
+                        <label>ID Tựa Game (GameId) <span class="req">*</span></label>
+                        <input type="number" id="tGameId" class="input" value="1" required>
+                        <span class="field-error" data-field-error="GameId"></span>
+                    </div>
+                    <div class="field">
+                        <label>Đơn vị tổ chức / Tên ban tổ chức</label>
+                        <input type="text" id="tOrganizerName" class="input" placeholder="Ví dụ: Khoa CNTT FPT">
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary">Lưu & Sang Bước 2 ➔</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- BƯỚC 2: Timeline & Quy mô (TOUR-02) -->
+        <div id="panelStep2" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 2: Cài Đặt Thời Gian & Số Đội</h3>
+                <p style="color: var(--gold); font-size: 0.85rem; margin-bottom: 20px;">Đang thiết lập cho Giải đấu ID: <span id="lblTournamentId" style="font-weight: bold;">--</span></p>
+
+                <form id="step2Form">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="field">
+                            <label>Mở đăng ký <span class="req">*</span></label>
+                            <input type="datetime-local" id="tRegOpen" class="input" required>
+                        </div>
+                        <div class="field">
+                            <label>Đóng đăng ký <span class="req">*</span></label>
+                            <input type="datetime-local" id="tRegClose" class="input" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="field">
+                            <label>Ngày bắt đầu giải <span class="req">*</span></label>
+                            <input type="datetime-local" id="tStart" class="input" required>
+                        </div>
+                        <div class="field">
+                            <label>Ngày kết thúc giải <span class="req">*</span></label>
+                            <input type="datetime-local" id="tEnd" class="input" required>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Số đội tối đa (Bắt buộc là lũy thừa của 2: 4, 8, 16, 32, 64...) <span class="req">*</span></label>
+                        <input type="number" id="tMaxTeams" class="input" value="16" required>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary">Lưu & Sang Bước 3 ➔</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- BƯỚC 3: Cấu hình Best-of theo vòng (TOUR-05) -->
+        <div id="panelStep3" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 3: Cấu Hình Thể Thức Đấu (Best of X)</h3>
+                <p class="muted-copy" style="margin-bottom: 20px;">Hệ thống tự động áp dụng cấu hình tiêu chuẩn: Tứ kết (BO1), Bán kết (BO3), Chung kết (BO5). Bấm xác nhận để tiếp tục.</p>
+                <div class="btn-row">
+                    <button onclick="submitStep3()" class="btn btn-primary">Lưu Thể Thức & Sang Bước 4 ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BƯỚC 4: Tài chính - Lệ phí & Giải thưởng (TOUR-06) -->
+        <div id="panelStep4" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 4: Lệ Phí Tham Gia & Cơ Cấu Giải Thưởng</h3>
+                <p class="muted-copy" style="margin-bottom: 20px;">Khai báo thông tin tài khoản ngân hàng nhận lệ phí và cơ cấu phần thưởng.</p>
+
+                <form id="step4Form">
+                    <div class="field">
+                        <label>Lệ phí tham gia (VNĐ)</label>
+                        <input type="number" id="tEntryFee" class="input" value="0">
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="field">
+                            <label>Tên ngân hàng nhận phí</label>
+                            <input type="text" id="tBankName" class="input" placeholder="Ví dụ: MBBank">
+                        </div>
+                        <div class="field">
+                            <label>Số tài khoản</label>
+                            <input type="text" id="tAccountNumber" class="input" placeholder="Ví dụ: 0987654321">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Chủ tài khoản</label>
+                        <input type="text" id="tAccountName" class="input" placeholder="Ví dụ: NGUYEN VAN A">
+                    </div>
+                    <div class="field">
+                        <label>Mô tả giải thưởng (Prize Pool)</label>
+                        <textarea id="tPrize" class="input" rows="2" placeholder="Ví dụ: Top 1: 5 Triệu VNĐ, Top 2: 2 Triệu VNĐ..."></textarea>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary">Lưu Tài Chính & Sang Bước 5 ➔</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- BƯỚC 5: Yêu cầu hồ sơ & Công bố (TOUR-07) -->
+        <div id="panelStep5" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--success);">Bước 5: Yêu Cầu Hồ Sơ & Công Bố Giải Đấu</h3>
+                <p class="muted-copy" style="margin-bottom: 20px;">Xác định các giấy tờ kiểm duyệt trước khi chính thức mở cổng cho các đội tham gia.</p>
+
+                <form id="step5Form">
+                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+                        <input type="checkbox" id="chkStudentCard" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <label for="chkStudentCard" style="margin-bottom: 0; cursor: pointer;">Yêu cầu bắt buộc Thẻ Sinh Viên</label>
+                    </div>
+                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+                        <input type="checkbox" id="chkPaymentProof" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <label for="chkPaymentProof" style="margin-bottom: 0; cursor: pointer;">Yêu cầu Biên lai chuyển khoản lệ phí</label>
+                    </div>
+                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                        <input type="checkbox" id="chkIgn" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <label for="chkIgn" style="margin-bottom: 0; cursor: pointer;">Yêu cầu xác thực tên In-game (IGN)</label>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--success), #1b9d57); width: 100%; font-size: 1.05rem; padding: 14px;">🚀 Hoàn Tất & Công Bố Giải Đấu (Publish)</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Script kết nối hệ thống -->
+    <script src="../js/api.js"></script>
+    <script src="../js/ui.js"></script>
+    <script src="../js/pages/tournament-setup.js"></script>
+    <script>
+        // Xử lý nút đổi theme sáng / tối đồng bộ toàn hệ thống
+        document.getElementById('themeToggleBtn').addEventListener('click', function () {
+            var html = document.documentElement;
+            var current = html.getAttribute('data-theme');
+            var next = current === 'light' ? '' : 'light';
+            if (next) html.setAttribute('data-theme', 'light');
+            else html.removeAttribute('data-theme');
+            localStorage.setItem('etoms-theme', next);
+        });
+        if (localStorage.getItem('etoms-theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
+</body>
+</html>
