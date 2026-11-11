@@ -263,13 +263,7 @@ public class MatchScheduleService : IMatchScheduleService
     {
         if (node.StageType == "GROUP") return $"Vòng bảng · Lượt {node.RoundNo}";
         var final = ctx.FinalRoundByStage.TryGetValue(node.StageNo, out var f) ? f : 0;
-        return (final - (node.RoundNo ?? 0)) switch
-        {
-            0 => "Chung kết",
-            1 => "Bán kết",
-            2 => "Tứ kết",
-            _ => $"Vòng {node.RoundNo}"
-        };
+        return BracketLabels.KnockoutRound(final, node.RoundNo);
     }
 
     private static string MatchLabel(Context ctx, Item item)

@@ -113,6 +113,7 @@
             '<a class="btn btn-ghost" href="/tournament/standings.html?id=' + tournamentId + '">Bảng xếp hạng công khai</a>' +
             (board.state === 'DONE'
                 ? '<a class="btn btn-primary" href="/tournament/schedule.html?id=' + tournamentId + '">Xếp lịch</a>' +
+                  '<a class="btn btn-ghost" href="/tournament/bracket.html?id=' + tournamentId + '">Xem nhánh đấu</a>' +
                   '<a class="btn btn-ghost" href="/tournament/referees.html?id=' + tournamentId + '">Gán trọng tài</a>'
                 : '') +
             '</div>';

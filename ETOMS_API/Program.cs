@@ -62,6 +62,7 @@ builder.Services.AddScoped<IThirdPlaceService, ThirdPlaceService>();
 builder.Services.AddHostedService<ThirdPlaceWorker>();
 builder.Services.AddScoped<IMatchScheduleService, MatchScheduleService>();
 builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
+builder.Services.AddScoped<IBracketViewService, BracketViewService>();
 
 var app = builder.Build();
 

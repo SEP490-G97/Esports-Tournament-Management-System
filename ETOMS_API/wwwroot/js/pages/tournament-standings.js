@@ -80,7 +80,9 @@
             '<p style="margin:0" id="state-message">' + Ui.escapeHtml(b.stateMessage) + '</p>' +
             (b.isLocked || !b.groups.length ? '' : '<div class="pending-banner" style="margin-top:10px">Nhánh đấu chưa khóa, các bảng có thể còn thay đổi.</div>') +
             '<div class="hint" style="margin-top:8px" id="updated-at">Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN') + '</div>' +
-            (b.groups.length ? '<div class="btn-row"><button type="button" class="btn btn-ghost" id="export-btn">Xuất báo cáo (CSV)</button></div>' : '') +
+            '<div class="btn-row">' +
+            (b.groups.length ? '<button type="button" class="btn btn-ghost" id="export-btn">Xuất báo cáo (CSV)</button>' : '') +
+            '<a class="btn btn-ghost" href="/tournament/bracket.html?id=' + tournamentId + '">Xem nhánh đấu</a></div>' +
             '</div></div>';
 
         if (!b.groups.length) {

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nhánh đấu · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <style>
+        .bk-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .bk-toolbar .grow { flex: 1 1 auto; }
+        .bk-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .bk-seg button { border: 0; background: transparent; color: var(--ink); padding: 8px 14px; font-weight: 600; }
+        .bk-seg button[aria-pressed="true"] { background: var(--primary); color: #fff; }
+        .bk-viewport { position: relative; overflow: hidden; height: 70vh; min-height: 380px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); touch-action: none; cursor: grab; outline: none; }
+        .bk-viewport:focus-visible { box-shadow: 0 0 0 3px var(--primary-050); border-color: var(--primary); }
+        .bk-viewport.dragging { cursor: grabbing; }
+        .bk-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+        .bk-lines { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+        .bk-lines path { fill: none; stroke: var(--border); stroke-width: 2; }
+        .bk-lines path.hl { stroke: var(--primary); stroke-width: 3; }
+        .bk-lines path.dim { opacity: .25; }
+        .bk-stage-title { position: absolute; left: 0; font-weight: 700; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+        .bk-round-title { position: absolute; font-weight: 600; color: var(--muted-2); font-size: .78rem; }
+        .bk-match { position: absolute; width: 220px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: opacity .15s; }
+        .bk-match.third { border-style: dashed; }
+        .bk-match.bye { opacity: .75; }
+        .bk-match.hl { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-050); }
+        .bk-match.dim, .bk-card.dim { opacity: .25; }
+        .bk-head { display: block; width: 100%; text-align: left; border: 0; background: var(--panel-2); color: var(--muted); font-size: .72rem; padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bk-team { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 6px; border: 0; border-top: 1px solid var(--border-soft); background: transparent; color: var(--ink); padding: 6px 8px; font-size: .86rem; text-align: left; }
+        .bk-team:disabled { color: var(--muted-2); cursor: default; }
+        .bk-team .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bk-team.win { font-weight: 700; }
+        .bk-team.sel { background: var(--primary-050); }
+        .bk-team .sc { min-width: 18px; text-align: right; font-weight: 700; }
+        .bk-list-round { margin-top: 16px; }
+        .bk-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; background: var(--panel); overflow: hidden; }
+        .bk-card .bk-head { font-size: .78rem; padding: 6px 10px; display: flex; justify-content: space-between; gap: 8px; }
+        .bk-card .bk-team { padding: 9px 10px; font-size: .92rem; }
+        .bk-detail table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .bk-detail th, .bk-detail td { padding: 6px 8px; border-bottom: 1px solid var(--border-soft); text-align: center; }
+        .bk-mini { width: 100%; border-collapse: collapse; font-size: .88rem; }
+        .bk-mini td { padding: 4px 6px; border-bottom: 1px solid var(--border-soft); }
+        .bk-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    </style>
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Giải đấu · Nhánh đấu</div>
+            <h1 id="page-title">Nhánh đấu</h1>
+            <p id="page-sub">Kéo để di chuyển, dùng nút hoặc Ctrl + lăn chuột để phóng to. Bấm tên đội để xem hành trình, bấm đầu trận để xem chi tiết.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="bracket-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-bracket.js" defer></script>
+</body>
+</html>
