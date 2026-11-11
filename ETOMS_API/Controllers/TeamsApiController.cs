@@ -32,6 +32,14 @@ public class TeamsApiController : ApiControllerBase
     public async Task<IActionResult> GetGames()
         => Ok(await _teamService.GetActiveGamesAsync());
 
+    // GET /api/teams/mine — đội của tài khoản đang đăng nhập (null nếu chưa ở đội nào). Cho widget nav.
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine()
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return Ok(await _teamService.GetMyTeamAsync(_currentUser.UserId!.Value));
+    }
+
     // GET /api/teams/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetDetail(int id)
@@ -177,3 +185,6 @@ public class TeamsApiController : ApiControllerBase
 // Body nhỏ cho 2 action không có DTO sẵn ở tầng Application (vì MVC truyền thẳng qua route/form).
 public class ChangeSlotRequest { public string NewSlot { get; set; } = string.Empty; }
 public class TransferCaptainRequest { public int NewCaptainAccountId { get; set; } }
+
+
+

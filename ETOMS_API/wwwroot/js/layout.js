@@ -35,15 +35,8 @@
         try {
             var me = await Api.get('/api/dev-auth/me');
             if (me.isAuthenticated) {
-                slot.innerHTML =
-                    '<span>Xin chào, <span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span></span>' +
-                    '<span class="av">' + Ui.escapeHtml((me.displayName || '?').substring(0, 1)) + '</span>' +
-                    '<a class="btn btn-ghost" style="padding:8px 14px" href="#" id="nav-logout">Đăng xuất</a>';
-                document.getElementById('nav-logout').addEventListener('click', async function (e) {
-                    e.preventDefault();
-                    try { await Api.post('/api/dev-auth/logout'); } catch (err) {}
-                    location.href = '/';
-                });
+                renderUserDropdown(slot, me);
+                await loadMyTeam();
             } else {
                 slot.innerHTML = loggedOutHtml;
             }
@@ -54,9 +47,63 @@
         }
     }
 
+    // Khung "Xin chào, X" giờ là 1 dropdown: bấm avatar/tên để mở, bên trong có "Đội của tôi"
+    // (nối thẳng tới team/details.html?id=, hoặc báo "Không có đội" nếu chưa ở đội nào) + Đăng xuất.
+    function renderUserDropdown(slot, me) {
+        slot.innerHTML =
+            '<div class="nav-user-dd" id="nav-user-dd">' +
+            '  <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-expanded="false">' +
+            '    <span class="av">' + Ui.escapeHtml((me.displayName || '?').substring(0, 1)) + '</span>' +
+            '    <span>Xin chào, <span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span></span>' +
+            '    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="nav-user-caret"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            '  </button>' +
+            '  <div class="nav-user-menu" id="nav-user-menu">' +
+            '    <div class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam">Đang tải đội…</div>' +
+            '    <a class="nav-user-menu-item" href="#" id="nav-logout">Đăng xuất</a>' +
+            '  </div>' +
+            '</div>';
+
+        var trigger = document.getElementById('nav-user-trigger');
+        var menu = document.getElementById('nav-user-menu');
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = menu.classList.toggle('show');
+            trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', function (e) {
+            if (!menu.classList.contains('show')) return;
+            if (!menu.contains(e.target) && e.target !== trigger) {
+                menu.classList.remove('show');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+        document.getElementById('nav-logout').addEventListener('click', async function (e) {
+            e.preventDefault();
+            try { await Api.post('/api/dev-auth/logout'); } catch (err) {}
+            location.href = '/';
+        });
+    }
+
+    async function loadMyTeam() {
+        var box = document.getElementById('nav-user-myteam');
+        if (!box) return;
+        try {
+            var team = await Api.get('/api/teams/mine');
+            if (team && team.teamId) {
+                box.innerHTML = 'Đội của tôi: <a href="/team/details.html?id=' + team.teamId + '">' +
+                    Ui.escapeHtml(team.name) + '</a>';
+            } else {
+                box.textContent = 'Đội của tôi: Không có';
+            }
+        } catch (e) {
+            box.textContent = 'Đội của tôi: Không có';
+        }
+    }
+
     // Ẩn mục menu dành riêng cho vai trò Ban tổ chức/Admin (hàng đợi tranh chấp — RES-06) với
     // khách (Guest) và tài khoản PLAYER thường — tránh Guest/User trông giống hệt nhau trên nav.
     // Đây chỉ là gợi ý hiển thị: quyền thật vẫn được chặn ở API/trang đích dù có thấy nút hay không.
+    // Mặc định link đã ẩn sẵn trong nav.html (tránh hiện rồi mất khi fetch /me chạy xong).
     function applyRoleVisibility(me) {
         var canSeeDisputes = !!me.isAuthenticated && (me.role === 'ORGANIZER' || me.role === 'ADMIN');
         var link = document.querySelector('#etomsNavCollapse nav a[data-nav="result"]');

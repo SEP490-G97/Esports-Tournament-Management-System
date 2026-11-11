@@ -479,6 +479,13 @@ public class TeamService : ITeamService
             .Select(g => new GameOptionDto { GameId = g.GameId, Title = g.Title })
             .ToListAsync();
 
+    public async Task<MyTeamDto?> GetMyTeamAsync(int accountId)
+        => await _uow.Repository<TeamMember>().Query()
+            .Where(m => m.AccountId == accountId && m.Status == "ACTIVE")
+            .OrderBy(m => m.TeamId)
+            .Select(m => new MyTeamDto { TeamId = m.Team.TeamId, Name = m.Team.Name, Tag = m.Team.Tag })
+            .FirstOrDefaultAsync();
+
     // ===== Helpers =====
     private async Task<List<TeamMemberDto>> LoadMembersAsync(int teamId, int captainAccountId)
     {
