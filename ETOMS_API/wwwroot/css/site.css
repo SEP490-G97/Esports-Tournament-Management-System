@@ -468,3 +468,120 @@ body { overflow-x: hidden; }
   .feature-card { padding: 20px; }
   .feature-list-item { flex-direction: column; }
 }
+
+/* ===== Widget đăng nhập trên navbar ===== */
+#nav-auth-slot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+}
+
+    /* Avatar tròn */
+    #nav-auth-slot .av {
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(59, 130, 246, .15);
+        color: #60A5FA;
+        border: 1px solid rgba(59, 130, 246, .35);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    /* "Xin chào, Tên": chữ chào mờ, tên nổi bật, tên dài thì cắt bằng dấu ... */
+    #nav-auth-slot .nav-auth-hello {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 4px;
+        min-width: 0;
+        max-width: 200px;
+    }
+
+    #nav-auth-slot .nav-auth-hi {
+        color: #94A3B8;
+        font-weight: 400;
+    }
+
+    #nav-auth-slot .who {
+        color: #E2E8F0;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Nút Đăng xuất: nhỏ gọn, viền mảnh */
+    #nav-auth-slot .nav-auth-logout {
+        flex: 0 0 auto;
+        height: 32px;
+        padding: 0 12px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1;
+        color: #CBD5E1;
+        background: transparent;
+        border: 1px solid #282937;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: background .15s, border-color .15s, color .15s;
+    }
+
+        #nav-auth-slot .nav-auth-logout:hover {
+            background: rgba(248, 113, 113, .1);
+            border-color: rgba(248, 113, 113, .45);
+            color: #F87171; /* hover đỏ nhẹ, báo hiệu hành động thoát */
+        }
+
+    /* Nút Đăng nhập (khi chưa đăng nhập) */
+    #nav-auth-slot .nav-auth-login {
+        height: 36px;
+        padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+
+/* Giao diện sáng (theme-toggle đặt data-theme="light" trên <html>) */
+[data-theme="light"] #nav-auth-slot .av {
+    background: #DBEAFE;
+    color: #1D4ED8;
+    border-color: #BFDBFE;
+}
+
+[data-theme="light"] #nav-auth-slot .nav-auth-hi {
+    color: #64748B;
+}
+
+[data-theme="light"] #nav-auth-slot .who {
+    color: #0F172A;
+}
+
+[data-theme="light"] #nav-auth-slot .nav-auth-logout {
+    color: #334155;
+    border-color: #CBD5E1;
+}
+
+/* Điện thoại: bỏ chữ "Xin chào," cho gọn, căn giữa khi menu thu gọn */
+@media (max-width: 767.98px) {
+    #nav-auth-slot {
+        justify-content: center;
+        padding: 8px 0;
+    }
+
+        #nav-auth-slot .nav-auth-hi {
+            display: none;
+        }
+}

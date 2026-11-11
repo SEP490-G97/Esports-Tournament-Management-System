@@ -46,3 +46,5 @@ var Api = (function () {
         del: function (url, body) { return request('DELETE', url, body, false); }
     };
 })();
+
+res = await Auth.apiFetch(url, opts);

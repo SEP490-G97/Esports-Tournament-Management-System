@@ -56,17 +56,13 @@ var Ui = (function () {
         return isNaN(n) ? null : n;
     }
 
-    // Bắt buộc đăng nhập: gọi /api/dev-auth/me, nếu chưa đăng nhập thì chuyển hướng sang trang
-    // đăng nhập demo kèm returnUrl (y hệt RedirectToLogin() của MVC cũ). Trả về null khi đang
-    // chuyển hướng (trang sẽ unload nên không cần code gọi tiếp xử lý gì thêm).
-    async function requireAuth() {
-        var me;
-        try { me = await Api.get('/api/dev-auth/me'); } catch (e) { me = { isAuthenticated: false }; }
-        if (!me.isAuthenticated) {
-            var returnUrl = encodeURIComponent(location.pathname + location.search);
-            location.href = '/auth/login.html?returnUrl=' + returnUrl;
-            return null;
-        }
+    async function requireAuth(roles) {
+        var me = await Auth.requireAuth(roles);
+        if (!me) return null;
+
+        me.isAuthenticated = true;
+        me.accountId = me.id;
+        me.fullName = me.name;
         return me;
     }
 
