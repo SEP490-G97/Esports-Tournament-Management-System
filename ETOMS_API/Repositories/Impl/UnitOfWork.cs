@@ -1,3 +1,7 @@
+using System.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+
 namespace ETOMS_API.Repositories.Impl;
 
 public sealed class UnitOfWork : ETOMS_API.Repositories.Interface.IUnitOfWork
@@ -14,6 +18,11 @@ public sealed class UnitOfWork : ETOMS_API.Repositories.Interface.IUnitOfWork
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         => _dbContext.SaveChangesAsync(cancellationToken);
+
+    public Task<IDbContextTransaction> BeginTransactionAsync(
+        IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default)
+        => _dbContext.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
 
     public void Dispose() => _dbContext.Dispose();
 }

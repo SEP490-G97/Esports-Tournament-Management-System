@@ -45,6 +45,11 @@ Entity trong `ETOMS_API/Models/` và `ETOMS_API/Repositories/EtomsDbContext.cs` 
 khớp schema MySQL do nhóm cung cấp (tên bảng/cột, kiểu dữ liệu, khóa ngoại và views).
 File local `ETOMS_Database.sql` là cú pháp SQL Server cũ, **không chạy file đó trên
 MySQL**. Dự án dùng database-first, không tự tạo hoặc nâng cấp schema khi khởi động.
+Trước khi chạy các luồng đăng ký Iteration 2 trên môi trường khác, sao lưu database
+và áp dụng `database/mysql/iteration2-registration-upgrade.sql`. Bản nâng cấp thêm
+thời hạn xác nhận waitlist và mở rộng các CHECK constraint cho trạng thái hết hạn,
+biên lai/hoàn tiền và audit. Trong EF Core, `Tournament.RequireStudentCard` ánh xạ
+tới cột MySQL `RequireIdentityDocument`.
 Connection của API được đặt rõ charset `utf8mb4`. Nếu dữ liệu seed cũ đã mất dấu, có
 thể áp dụng có điều kiện script `database/mysql/fix-vietnamese-seed-data.sql`; script
 chỉ sửa đúng các giá trị đã bị mất dấu như nội dung trong ảnh.
@@ -56,6 +61,41 @@ Nếu dùng biến môi trường thay cho User Secrets, đặt `ETOMS_DB_CONNEC
 kết nối MySQL cùng định dạng trước khi chạy API. Provider Oracle có giấy phép
 GPL-2.0 kèm Universal-FOSS exception; nhóm cần xác nhận giấy phép này phù hợp với
 cách phân phối dự án.
+
+Các API Profile, Organization và Registration chưa tích hợp xác thực thật; hiện dùng
+đăng nhập demo trong môi trường Development. Tệp riêng tư được lưu dưới
+`ETOMS_API/App_Data/private-uploads/`, ngoài thư mục tĩnh. API Profile giới hạn tài
+liệu cá nhân cho chủ tài khoản; API Registration giới hạn giấy tờ và biên lai cho
+đội trưởng/ban tổ chức tương ứng. Tài liệu tổ chức hiện chỉ có metadata trong hàng
+đợi xét duyệt. Không đưa API lên môi trường công khai trước khi module AUTH tích hợp
+xong và kiểm thử quyền truy cập các tệp riêng tư.
+
+### API được triển khai — Iteration 1 (Profile, Organization)
+
+- `GET/PUT /api/profiles/{accountId}` — đọc/cập nhật hồ sơ.
+- `PUT /api/profiles/{accountId}/games/{gameId}` — lưu tên trong game.
+- `GET /api/profiles/{accountId}/public`, `GET /api/profiles/{accountId}/match-history` —
+  hồ sơ công khai và lịch sử thi đấu.
+- `GET/PUT /api/profiles/{accountId}/notification-preferences` — cài đặt thông báo.
+- `POST/GET /api/profiles/{accountId}/identity-documents` — tải lên/liệt kê metadata
+  giấy tờ định danh.
+- `POST /api/organizations` — đăng ký đơn vị; `POST /api/organizations/{organizationId}/documents`
+  — tải giấy tờ.
+- `GET /api/organizations/review-queue`, `POST /api/organizations/{organizationId}/review`
+  — hàng đợi và kết quả xét duyệt.
+- `GET /api/organizations`, `GET /api/organizations/{organizationId}` — danh sách và
+  hồ sơ công khai của đơn vị.
+- `GET/POST /api/organizations/{organizationId}/members`,
+  `POST /api/organizations/{organizationId}/members/{memberId}/accept`,
+  `PATCH /api/organizations/{organizationId}/members/{memberId}` — thành viên, lời mời,
+  chấp nhận lời mời và vai trò.
+- `POST /api/organizations/{organizationId}/chair-transfer`,
+  `GET /api/organizations/{organizationId}/reputation`,
+  `POST /api/organizations/{organizationId}/suspension` — chuyển chủ nhiệm, uy tín và
+  đình chỉ.
+
+Trong giai đoạn chưa có AUTH, các ID tài khoản/người xét duyệt nhận từ request chỉ là
+đầu vào phát triển, không chứng minh danh tính hoặc quyền hạn của người gọi.
 
 ### Pattern: Generic Repository + Unit of Work
 
@@ -70,15 +110,23 @@ public interface IGenericRepository<T> where T : class
     void Save();
 }
 
+using System.Data;
+using Microsoft.EntityFrameworkCore.Storage;
+
 public interface IUnitOfWork : IDisposable
 {
     IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class;
-    Task<int> SaveChangesAsync();
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task<IDbContextTransaction> BeginTransactionAsync(
+        IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default);
 }
 ```
 
 `Controller → Service → IUnitOfWork.Repository<TEntity>() → DbContext → DB`. Service
-không inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`.
+không inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`. Với nghiệp vụ nhiều bước
+cần tính nguyên tử, Service mở transaction qua `IUnitOfWork`, lưu thay đổi tại các
+ranh giới cần thiết rồi commit transaction.
 
 ## Luật để code — áp dụng cho TOÀN BỘ dự án ETOMS (rút từ `CLAUDE.md`)
 
@@ -96,6 +144,8 @@ không inject `DbContext` trực tiếp, luôn qua `IUnitOfWork`.
    tạo/đổi schema. Schema MySQL do nhóm quản lý; cập nhật entity/context theo schema
    MySQL đã thống nhất. Không chạy `ETOMS_Database.sql` (script SQL Server cũ) trên
    MySQL. Bảo toàn các ràng buộc nghiệp vụ bằng các constraint/index MySQL tương đương.
+   Luồng waitlist Iteration 2 cần chạy `database/mysql/iteration2-registration-upgrade.sql`
+   trên schema MySQL trước khi triển khai API phiên bản này.
 6. **Phân công module** (ai đụng module nào hỏi người đó trước khi đổi logic chung):
 
    | Thành viên | Module |

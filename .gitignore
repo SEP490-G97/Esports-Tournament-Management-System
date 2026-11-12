@@ -17,6 +17,9 @@ appsettings.*.local.json
 .env
 .env.*
 
+# Uploaded identity and organization documents
+ETOMS_API/App_Data/private-uploads/
+
 # NuGet
 *.nupkg
 packages/

@@ -88,16 +88,17 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
 
-
-
 builder.Services.AddScoped(typeof(ETOMS_API.Repositories.IGenericRepository<>), typeof(ETOMS_API.Repositories.GenericRepository<>));
+builder.Services.AddScoped(typeof(ETOMS_API.Repositories.Interface.IGenericRepository<>), typeof(ETOMS_API.Repositories.Impl.GenericRepository<>));
 builder.Services.AddScoped<ETOMS_API.Repositories.IUnitOfWork, ETOMS_API.Repositories.UnitOfWork>();
 builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IProfileService, ETOMS_API.Services.Impl.ProfileService>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ETOMS_API.Services.Impl.OrganizationService>();
+builder.Services.AddScoped<ITournamentRegistrationService, TournamentRegistrationService>();
 builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
 builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddHostedService<WaitlistExpirationWorker>();
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -121,9 +122,6 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
     branch.UseExceptionHandler("/errors/500.html");
     branch.UseStatusCodePagesWithReExecute("/errors/{0}.html");
 });
-
-
-
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

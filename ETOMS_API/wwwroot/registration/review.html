@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Duyệt đăng ký giải · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="registration-review-head">
+            <div class="page-head">
+                <a class="back-link" href="/registration/index.html">← Trung tâm đăng ký</a>
+                <div class="eyebrow mt-3">Không gian ban tổ chức</div>
+                <h1 id="tournament-name">Xét duyệt đăng ký</h1>
+                <p>Ưu tiên xử lý đơn đang chờ, kiểm tra hồ sơ và theo dõi suất còn lại.</p>
+            </div>
+            <a class="btn btn-ghost" href="/">Trang chủ</a>
+        </div>
+        <div class="dev-banner" role="note">Chỉ người tạo giải được phép thao tác. Tài liệu định danh chỉ hiển thị trong phạm vi đơn đăng ký của giải đó.</div>
+        <div id="registration-flash" aria-live="polite"></div>
+        <section class="card-etoms registration-review-toolbar mb-4" aria-label="Tình trạng và bộ lọc đơn">
+            <div id="registration-capacity" class="registration-capacity"></div>
+            <div class="registration-field-grid mt-3">
+                <div class="field">
+                    <label for="status-filter">Trạng thái</label>
+                    <select id="status-filter" class="select">
+                        <option value="ALL">Tất cả</option>
+                        <option value="PENDING">Chờ xét duyệt</option>
+                        <option value="APPROVED">Đã duyệt</option>
+                        <option value="REJECTED">Từ chối</option>
+                        <option value="WAITLISTED">Danh sách chờ</option>
+                        <option value="WITHDRAWN">Đã rút</option>
+                        <option value="EXPIRED">Hết hạn</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="team-search">Tìm đội</label>
+                    <input id="team-search" class="input" type="search" placeholder="Tên hoặc tag đội" />
+                </div>
+            </div>
+        </section>
+        <section class="registration-review-list">
+            <div class="registration-review-list-heading">
+                <div><span class="profile-overline">Hàng đợi xét duyệt</span><h2>Đơn đăng ký</h2></div>
+                <span class="field-hint">Mở từng hồ sơ để xem chi tiết và thao tác.</span>
+            </div>
+            <div id="registration-list" class="feature-list" aria-live="polite">
+                <div class="card-etoms"><div class="empty"><h3>Đang tải đơn...</h3></div></div>
+            </div>
+        </section>
+        <details class="registration-tiebreaker-settings">
+            <summary><span><strong>Cấu hình tie-breaker</strong><small>Thứ tự xử lý khi các đội bằng điểm</small></span></summary>
+            <div class="registration-tiebreaker-body">
+                <p class="field-hint">Ưu tiên tiêu chí đứng trước khi các đội bằng điểm. Không thể thay đổi sau khi khóa nhánh.</p>
+                <ol id="tie-breaker-list" class="feature-list"></ol>
+                <button id="save-tie-breakers" class="btn btn-primary" type="button">Lưu thứ tự</button>
+            </div>
+        </details>
+    </main>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-registration-review.js" defer></script>
+    <script src="/js/pages/tournament-registration-review-decisions.js" defer></script>
+    <script src="/js/pages/tournament-registration-review-payments.js" defer></script>
+    <script src="/js/pages/tournament-registration-review-waitlist.js" defer></script>
+    <script src="/js/pages/tournament-registration-review-tiebreakers.js" defer></script>
+</body>
+</html>

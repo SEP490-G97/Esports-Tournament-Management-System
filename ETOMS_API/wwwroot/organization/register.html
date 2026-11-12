@@ -9,47 +9,124 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
 </head>
 <body>
     <div id="site-header"></div>
     <main class="container-etoms">
         <div class="page-head">
-            <div class="eyebrow">Hồ sơ tổ chức</div>
-            <h1>Đăng ký đơn vị</h1>
-            <p>Gửi thông tin pháp nhân hoặc đơn vị cộng đồng để được xét duyệt.</p>
+            <div class="eyebrow">Cộng đồng tổ chức giải đấu</div>
+            <h1>Tạo hồ sơ tổ chức</h1>
+            <p>Đăng ký câu lạc bộ, doanh nghiệp tổ chức sự kiện hoặc hồ sơ cá nhân hoạt động trong cộng đồng esports.</p>
         </div>
-        <div class="dev-banner">Đây là chức năng thử nghiệm. Không gửi giấy tờ thật: hiện chưa có cơ chế xác thực và phân quyền thật.</div>
+        <div class="dev-banner" role="note">
+            <strong>Môi trường thử nghiệm:</strong> đăng ký ở đây tạo hồ sơ tổ chức và tư cách chủ nhiệm của hồ sơ,
+            không tự cấp quyền Organizer để tạo/vận hành giải. Chưa có phân quyền máy chủ; chỉ dùng dữ liệu giả và giấy tờ mẫu.
+        </div>
         <div id="register-flash" aria-live="polite"></div>
-        <section id="register-panel" class="card-etoms form-narrow">
-            <div class="body">
-                <form id="organization-form" novalidate>
-                    <div class="field"><label for="org-name">Tên đơn vị <span class="req">*</span></label><input id="org-name" name="Name" class="input" maxlength="150" required /><span class="field-error" data-field-error="Name"></span></div>
-                    <div class="field"><label for="org-type">Loại đơn vị <span class="req">*</span></label><select id="org-type" name="OrganizationType" class="select" required><option value="">Chọn loại đơn vị</option><option value="UNIVERSITY_CLUB">Câu lạc bộ cấp trường</option><option value="EVENT_COMPANY">Công ty tổ chức sự kiện</option><option value="INDIVIDUAL">Cá nhân</option></select><span class="field-error" data-field-error="OrganizationType"></span></div>
-                    <div class="field"><label for="parent-org">Đơn vị chủ quản</label><input id="parent-org" name="ParentOrganization" class="input" maxlength="150" /></div>
-                    <div class="row">
-                        <div class="col-md-6 field"><label for="contact-email">Email liên hệ</label><input id="contact-email" name="ContactEmail" type="email" class="input" maxlength="256" /><span class="field-error" data-field-error="ContactEmail"></span></div>
-                        <div class="col-md-6 field"><label for="contact-phone">Số điện thoại</label><input id="contact-phone" name="ContactPhone" class="input" maxlength="20" /></div>
+
+        <ol class="registration-steps" aria-label="Các bước đăng ký đơn vị">
+            <li class="registration-step active" data-registration-step="1" aria-current="step">
+                <span class="registration-step-number">01</span>
+                <span><strong>Thông tin đơn vị</strong><small>Thông tin cơ bản và liên hệ</small></span>
+            </li>
+            <li class="registration-step" data-registration-step="2">
+                <span class="registration-step-number">02</span>
+                <span><strong>Giấy tờ minh chứng</strong><small>Tải tệp để bổ sung hồ sơ</small></span>
+            </li>
+        </ol>
+
+        <section id="register-panel" class="card-etoms registration-panel">
+            <div class="registration-panel-head">
+                <span class="profile-overline">Bước 1 / 2</span>
+                <h2>Thông tin đơn vị</h2>
+                <p class="muted-copy mb-0">Các trường có dấu <span class="req">*</span> là bắt buộc. Thông tin liên hệ có thể xuất hiện trên hồ sơ công khai sau khi được duyệt.</p>
+            </div>
+            <form id="organization-form" class="registration-form" novalidate>
+                <div class="field">
+                    <label for="org-name">Tên hiển thị của đơn vị <span class="req">*</span></label>
+                    <input id="org-name" name="Name" class="input" maxlength="150" autocomplete="organization" required aria-describedby="org-name-hint org-name-error" />
+                    <span id="org-name-hint" class="field-hint">Dùng tên mà cộng đồng sẽ nhận biết trên ETOMS.</span>
+                    <span id="org-name-error" class="field-error" data-field-error="Name"></span>
+                </div>
+                <div class="field">
+                    <label for="org-type">Loại hình đơn vị <span class="req">*</span></label>
+                    <select id="org-type" name="OrganizationType" class="select" required aria-describedby="org-type-error">
+                        <option value="">Chọn loại hình</option>
+                        <option value="UNIVERSITY_CLUB">Câu lạc bộ cấp trường</option>
+                        <option value="EVENT_COMPANY">Công ty tổ chức sự kiện</option>
+                        <option value="INDIVIDUAL">Cá nhân</option>
+                    </select>
+                    <span id="org-type-error" class="field-error" data-field-error="OrganizationType"></span>
+                </div>
+                <div class="field">
+                    <label for="parent-org">Đơn vị chủ quản <span class="optional-label">Không bắt buộc</span></label>
+                    <input id="parent-org" name="ParentOrganization" class="input" maxlength="150" placeholder="Ví dụ: Trường Đại học ..." autocomplete="organization" />
+                    <span class="field-hint">Điền trường, doanh nghiệp hoặc tổ chức cấp trên nếu có.</span>
+                </div>
+                <div class="registration-field-grid">
+                    <div class="field">
+                        <label for="contact-email">Email liên hệ</label>
+                        <input id="contact-email" name="ContactEmail" type="email" class="input" maxlength="256" placeholder="ten@tochuc.vn" autocomplete="email" aria-describedby="contact-email-error" />
+                        <span id="contact-email-error" class="field-error" data-field-error="ContactEmail"></span>
                     </div>
-                    <div class="field"><label for="website-url">Website</label><input id="website-url" name="WebsiteUrl" type="url" class="input" maxlength="500" placeholder="https://..." /><span class="field-error" data-field-error="WebsiteUrl"></span></div>
-                    <div class="field"><label for="logo-url">Đường dẫn logo</label><input id="logo-url" name="LogoUrl" type="url" class="input" maxlength="500" placeholder="https://..." /><span class="field-error" data-field-error="LogoUrl"></span></div>
-                    <div class="field"><label for="org-description">Giới thiệu</label><textarea id="org-description" name="Description" class="input" rows="4" maxlength="1000"></textarea><span class="field-error" data-field-error="Description"></span></div>
-                    <button class="btn btn-primary" type="submit">Gửi hồ sơ đăng ký</button>
-                </form>
-            </div>
+                    <div class="field">
+                        <label for="contact-phone">Số điện thoại liên hệ</label>
+                        <input id="contact-phone" name="ContactPhone" type="tel" class="input" maxlength="20" autocomplete="tel" />
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="website-url">Website hoặc trang cộng đồng</label>
+                    <input id="website-url" name="WebsiteUrl" type="url" class="input" maxlength="500" placeholder="https://..." autocomplete="url" aria-describedby="website-url-error" />
+                    <span id="website-url-error" class="field-error" data-field-error="WebsiteUrl"></span>
+                </div>
+                <div class="field">
+                    <label for="logo-url">Liên kết ảnh logo</label>
+                    <input id="logo-url" name="LogoUrl" type="url" class="input" maxlength="500" aria-describedby="logo-hint logo-url-error" placeholder="https://..." />
+                    <span id="logo-hint" class="field-hint">Dán URL ảnh công khai; hiện chưa hỗ trợ tải logo trực tiếp.</span>
+                    <span id="logo-url-error" class="field-error" data-field-error="LogoUrl"></span>
+                </div>
+                <div class="field">
+                    <label for="org-description">Giới thiệu về đơn vị</label>
+                    <textarea id="org-description" name="Description" class="input" rows="4" maxlength="1000" placeholder="Bạn tổ chức hoạt động hoặc giải đấu nào?"></textarea>
+                    <span class="field-error" data-field-error="Description"></span>
+                </div>
+                <div class="registration-actions">
+                    <a class="btn btn-ghost" href="/organization/index.html">Hủy</a>
+                    <button class="btn btn-primary" type="submit">Tạo hồ sơ và tiếp tục</button>
+                </div>
+            </form>
         </section>
-        <section id="document-panel" class="card-etoms form-narrow mt-4" hidden>
-            <div class="body">
-                <h2 class="mb-2">Bổ sung giấy tờ</h2>
-                <p class="muted-copy">Hồ sơ đã được tạo. Tải giấy tờ lên kho riêng tư trước khi gửi xét duyệt.</p>
-                <form id="document-form" novalidate>
-                    <div class="field"><label for="document-type">Loại giấy tờ</label><input id="document-type" name="documentType" class="input" maxlength="100" required placeholder="Ví dụ: Quyết định thành lập" /><span class="field-error" data-field-error="documentType"></span></div>
-                    <div class="field"><label for="organization-document">Tệp giấy tờ</label><input id="organization-document" name="file" type="file" class="input" required /><span class="field-error" data-field-error="file"></span></div>
-                    <button class="btn btn-primary" type="submit">Tải giấy tờ lên</button>
-                </form>
-                <div id="uploaded-documents" class="feature-list mt-3"></div>
-                <a id="organization-link" class="btn btn-ghost mt-3" href="#">Xem hồ sơ đơn vị</a>
+
+        <section id="document-panel" class="card-etoms registration-panel" hidden>
+            <div class="registration-panel-head">
+                <span class="profile-overline">Bước 2 / 2</span>
+                <h2>Bổ sung giấy tờ minh chứng</h2>
+                <p class="muted-copy mb-0">Hồ sơ đang chờ xét duyệt. Cần tải đủ giấy tờ theo loại đơn vị trước khi quản trị viên có thể duyệt. Tệp được lưu riêng tư, nhưng bản thử nghiệm chưa hỗ trợ mở/xem lại nội dung sau khi gửi.</p>
             </div>
+            <div class="feature-list mb-3" id="required-documents" aria-live="polite"></div>
+            <form id="document-form" class="registration-form" novalidate>
+                <div class="field">
+                    <label for="document-type">Loại giấy tờ cần bổ sung <span class="req">*</span></label>
+                    <select id="document-type" name="documentType" class="select" required aria-describedby="document-type-hint document-type-error">
+                        <option value="">Chọn loại giấy tờ</option>
+                    </select>
+                    <span id="document-type-hint" class="field-hint">Chọn đúng loại giấy tờ đang cần bổ sung trong danh sách.</span>
+                    <span id="document-type-error" class="field-error" data-field-error="documentType"></span>
+                </div>
+                <div class="field">
+                    <label for="organization-document">Tệp giấy tờ <span class="req">*</span></label>
+                    <input id="organization-document" name="file" type="file" class="input" accept=".jpg,.jpeg,.png,.pdf" required aria-describedby="organization-file-hint organization-file-error" />
+                    <span id="organization-file-hint" class="field-hint">Chỉ JPG, PNG hoặc PDF · tối đa 10 MB mỗi tệp.</span>
+                    <span id="organization-file-error" class="field-error" data-field-error="file"></span>
+                </div>
+                <div class="registration-actions">
+                    <button class="btn btn-primary" type="submit">Tải giấy tờ lên</button>
+                </div>
+            </form>
+            <div id="document-upload-status" class="field-hint mt-3" role="status" aria-live="polite"></div>
+            <div id="uploaded-documents" class="feature-list mt-3" aria-live="polite"></div>
+            <p class="field-hint mt-3">Hồ sơ đang chờ xét duyệt sẽ chưa xuất hiện trong danh sách công khai. Bản hiện tại chưa có màn hình mở lại hồ sơ đang chờ sau khi rời trang này.</p>
         </section>
     </main>
     <div id="confirm-modal-root"></div>
@@ -57,6 +134,6 @@
     <script src="/js/api.js?v=profile-org"></script>
     <script src="/js/ui.js?v=profile-org"></script>
     <script src="/js/layout.js"></script>
-    <script src="/js/pages/organization-register.js" defer></script>
+    <script src="/js/pages/organization-register.js?v=iteration1-ux-2" defer></script>
 </body>
 </html>

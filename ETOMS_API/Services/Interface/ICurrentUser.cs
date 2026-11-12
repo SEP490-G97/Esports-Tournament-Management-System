@@ -1,4 +1,4 @@
-namespace ETOMS_API.Services;
+namespace ETOMS_API.Services.Interface;
 
 // Đại diện cho người dùng đang đăng nhập. Hiện tạm lấy từ session (stub).
 // Khi Vũ Đức Hải làm xong AUTH thì thay phần cài đặt bằng đọc từ JWT/Claims,

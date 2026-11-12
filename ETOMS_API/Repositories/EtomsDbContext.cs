@@ -748,8 +748,8 @@ public partial class EtomsDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PaymentRecord_By");
 
-            entity.HasOne(d => d.Registration).WithOne(p => p.PaymentRecord)
-                .HasForeignKey<PaymentRecord>(d => d.RegistrationId)
+            entity.HasOne(d => d.Registration).WithMany(p => p.PaymentRecords)
+                .HasForeignKey(d => d.RegistrationId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PaymentRecord_Reg");
         });
@@ -911,6 +911,7 @@ public partial class EtomsDbContext : DbContext
                 .HasDefaultValue("UNPAID");
             entity.Property(e => e.ReviewNote).HasMaxLength(500);
             entity.Property(e => e.ReviewedAt).HasPrecision(0);
+            entity.Property(e => e.WaitlistExpiresAt).HasPrecision(0);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
@@ -1081,7 +1082,9 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.Region).HasMaxLength(100);
             entity.Property(e => e.RequireInGameName).HasDefaultValue(true);
             entity.Property(e => e.RequirePaymentProof).HasDefaultValue(true);
-            entity.Property(e => e.RequireStudentCard).HasDefaultValue(true);
+            entity.Property(e => e.RequireStudentCard)
+                .HasColumnName("RequireIdentityDocument")
+                .HasDefaultValue(true);
             entity.Property(e => e.RulebookVersion).HasDefaultValue(1);
             entity.Property(e => e.StartAt).HasPrecision(0);
             entity.Property(e => e.Status)

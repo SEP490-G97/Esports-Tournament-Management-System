@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đơn đăng ký của tôi · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="registration-mine-head">
+            <div class="page-head">
+                <div class="eyebrow">Khu vực đội trưởng</div>
+                <h1>Đơn đăng ký của đội tôi</h1>
+                <p>Theo dõi tiến độ xét duyệt, đội hình, xác nhận suất chờ và trạng thái lệ phí tại một nơi.</p>
+            </div>
+            <a class="btn btn-primary" href="/">Tìm giải để đăng ký</a>
+        </div>
+        <div class="dev-banner" role="note">Biên lai và giấy tờ là dữ liệu riêng tư. Không gửi thông tin thanh toán thật vào môi trường thử nghiệm.</div>
+        <div id="registration-flash" aria-live="polite"></div>
+        <section class="registration-mine-toolbar" aria-label="Tìm và lọc đơn đăng ký">
+            <div id="registration-summary" class="registration-summary" aria-live="polite"></div>
+            <div class="registration-mine-filters">
+                <label class="visually-hidden" for="registration-status-filter">Lọc theo trạng thái</label>
+                <select id="registration-status-filter" class="select">
+                    <option value="ALL">Tất cả trạng thái</option>
+                    <option value="DRAFT">Bản nháp</option>
+                    <option value="PENDING">Chờ xét duyệt</option>
+                    <option value="WAITLISTED">Danh sách chờ</option>
+                    <option value="APPROVED">Đã duyệt</option>
+                    <option value="REJECTED">Bị từ chối</option>
+                    <option value="WITHDRAWN">Đã rút</option>
+                    <option value="DISQUALIFIED">Bị loại</option>
+                    <option value="EXPIRED">Hết hạn</option>
+                </select>
+                <label class="visually-hidden" for="registration-search">Tìm giải hoặc đội</label>
+                <input id="registration-search" class="input" type="search" placeholder="Tìm theo giải hoặc đội..." autocomplete="off" />
+            </div>
+        </section>
+        <div id="my-registrations" class="feature-list" aria-live="polite">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải đơn đăng ký...</h3></div></div>
+        </div>
+    </main>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-registration-mine.js" defer></script>
+</body>
+</html>

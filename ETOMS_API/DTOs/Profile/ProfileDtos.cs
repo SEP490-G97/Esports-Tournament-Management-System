@@ -48,6 +48,8 @@ public sealed record CredentialResponse(
     string? Value,
     DateTime CreatedAt);
 
+public sealed record IdentityDocumentDownload(string RelativePath, string FileName);
+
 public sealed record NotificationPreferencesResponse(bool NotifyInApp, bool NotifyEmail);
 
 public sealed record PublicProfileResponse(

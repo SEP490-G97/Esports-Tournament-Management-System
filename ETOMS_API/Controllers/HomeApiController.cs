@@ -1,7 +1,7 @@
 using ETOMS_API.DTOs.Home;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
-using ETOMS_API.Services;
+using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SubscribeRequest = ETOMS_API.DTOs.Home.SubscribeRequest;
@@ -43,12 +43,14 @@ public class HomeApiController : ApiControllerBase
 
         // Giải đấu nổi bật — từ bảng Tournament THẬT.
         var statuses = new[] { "PUBLISHED", "ONGOING" };
+        var now = DateTime.UtcNow;
         var featured = await _uow.Repository<Tournament>().Query()
             .Where(t => statuses.Contains(t.Status))
             .OrderBy(t => t.StartAt)
             .Select(t => new
             {
-                t.TournamentId, t.Name, Game = t.Game.Title, t.Status, t.MaxTeams, t.BannerUrl, t.PrizeStructure, t.RegCloseAt,
+                t.TournamentId, t.Name, Game = t.Game.Title, t.Status, t.MaxTeams, t.BannerUrl, t.PrizeStructure,
+                t.RegOpenAt, t.RegCloseAt, t.BracketLockedAt,
                 Teams = t.Registrations.Count(r => r.Status != "DRAFT" && r.Status != "REJECTED" && r.Status != "WITHDRAWN")
             })
             .Take(6).ToListAsync();
@@ -60,6 +62,9 @@ public class HomeApiController : ApiControllerBase
             Prize = string.IsNullOrWhiteSpace(t.PrizeStructure) ? "Chưa công bố" : t.PrizeStructure,
             Teams = t.Teams, MaxTeams = t.MaxTeams,
             Status = StatusLabel(t.Status), StatusClass = StatusClass(t.Status),
+            RegistrationOpen = t.Status == "PUBLISHED"
+                && t.BracketLockedAt is null
+                && t.RegOpenAt <= now && now < t.RegCloseAt,
             ImageUrl = string.IsNullOrWhiteSpace(t.BannerUrl) ? "/images/tournament-cover.svg" : t.BannerUrl!
         }).ToList();
 
@@ -90,8 +95,6 @@ public class HomeApiController : ApiControllerBase
 
     private static string StatusLabel(string s) => s switch
     {
-        "REGISTRATION_OPEN" => "Đang mở đăng ký",
-        "REGISTRATION_CLOSED" => "Đã đóng đăng ký",
         "ONGOING" => "Đang diễn ra",
         "PUBLISHED" => "Sắp diễn ra",
         _ => s
@@ -99,7 +102,7 @@ public class HomeApiController : ApiControllerBase
 
     private static string StatusClass(string s) => s switch
     {
-        "REGISTRATION_OPEN" or "ONGOING" => "badge-active",
+        "ONGOING" => "badge-active",
         "PUBLISHED" => "badge-gold",
         _ => "badge-soft"
     };

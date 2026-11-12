@@ -21,6 +21,8 @@ public partial class Registration
 
     public int? WaitlistPosition { get; set; }
 
+    public DateTime? WaitlistExpiresAt { get; set; }
+
     public string PaymentStatus { get; set; } = null!;
 
     public string? ReviewNote { get; set; }
@@ -33,7 +35,7 @@ public partial class Registration
 
     public DateTime? ReviewedAt { get; set; }
 
-    public virtual PaymentRecord? PaymentRecord { get; set; }
+    public virtual ICollection<PaymentRecord> PaymentRecords { get; set; } = new List<PaymentRecord>();
 
     public virtual ICollection<RegistrationLineup> RegistrationLineups { get; set; } = new List<RegistrationLineup>();
 
