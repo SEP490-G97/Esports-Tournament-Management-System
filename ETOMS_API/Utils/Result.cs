@@ -2,6 +2,8 @@ namespace ETOMS_API.Utils;
 
 // Bọc kết quả trả về của Service: thành công/thất bại + thông báo (tiếng Việt) + mã HTTP + lỗi theo field.
 // Gộp từ các nhánh: hỗ trợ cả Result.Success(data) và Result<T>.Success(data).
+// FieldFailure: message = nội dung lỗi cụ thể (như bản gốc main-dev) để trang chỉ hiện err.message vẫn thấy lý do;
+// fieldErrors vẫn gắn lỗi vào đúng ô.
 public class Result
 {
     protected Result(bool isSuccess, string message, int statusCode, IReadOnlyDictionary<string, string[]>? fieldErrors)
@@ -24,7 +26,7 @@ public class Result
         => new(false, message, statusCode, null);
 
     public static Result FieldFailure(string field, string message)
-        => new(false, "Thông tin chưa hợp lệ.", StatusCodes.Status400BadRequest,
+        => new(false, message, StatusCodes.Status400BadRequest,
             new Dictionary<string, string[]> { [field] = [message] });
 
     public static Result<T> Success<T>(T data, string message = "Thao tác thành công.")
@@ -55,6 +57,6 @@ public sealed class Result<T> : Result
         => new(default, false, message, statusCode, null);
 
     public new static Result<T> FieldFailure(string field, string message)
-        => new(default, false, "Thông tin chưa hợp lệ.", StatusCodes.Status400BadRequest,
+        => new(default, false, message, StatusCodes.Status400BadRequest,
             new Dictionary<string, string[]> { [field] = [message] });
 }
