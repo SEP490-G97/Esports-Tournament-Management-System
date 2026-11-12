@@ -204,7 +204,30 @@
         });
     }
 
+    function wireSectionNavigation() {
+        var links = Array.from(document.querySelectorAll('.profile-section-nav a'));
+        var sections = links.map(function (link) {
+            return document.querySelector(link.getAttribute('href'));
+        }).filter(Boolean);
+        if (!('IntersectionObserver' in window)) return;
+
+        var observer = new IntersectionObserver(function (entries) {
+            var visible = entries.filter(function (entry) { return entry.isIntersecting; })
+                .sort(function (left, right) { return left.boundingClientRect.top - right.boundingClientRect.top; })[0];
+            if (!visible) return;
+            links.forEach(function (link) {
+                var active = link.getAttribute('href') === '#' + visible.target.id;
+                link.classList.toggle('active', active);
+                if (active) link.setAttribute('aria-current', 'location');
+                else link.removeAttribute('aria-current');
+            });
+        }, { rootMargin: '-18% 0px -68% 0px' });
+
+        sections.forEach(function (section) { observer.observe(section); });
+    }
+
     document.addEventListener('DOMContentLoaded', async function () {
+        wireSectionNavigation();
         flash = document.getElementById('profile-flash');
         var me = await Ui.requireAuth();
         if (!me) return;

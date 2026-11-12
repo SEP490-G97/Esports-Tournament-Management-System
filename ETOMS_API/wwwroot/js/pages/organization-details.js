@@ -26,14 +26,15 @@
             return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(item.name) + '</div><div class="item-sub">' + Ui.escapeHtml(item.statusLabel) + ' · ' + Ui.escapeHtml(new Date(item.startAt).toLocaleDateString('vi-VN')) + '</div></div></div>';
         }).join('');
         root.innerHTML = '<section class="feature-card"><div class="team-hero">' + logo + '<div><span class="badge badge-soft">' + Ui.escapeHtml(org.organizationTypeLabel) + '</span><h2 class="mt-2 mb-1">' + Ui.escapeHtml(org.name) + '</h2><div class="team-hero sub">' + (org.parentOrganization ? '<span>Trực thuộc: ' + Ui.escapeHtml(org.parentOrganization) + '</span>' : '') + '<span>' + Ui.escapeHtml(org.contactEmail || 'Chưa có email liên hệ') + '</span></div></div></div>' +
-            '<p class="mt-4 mb-2">' + Ui.escapeHtml(org.description || 'Đơn vị chưa có mô tả.') + '</p><div class="muted-copy">Website: ' + link + (org.contactPhone ? ' · Điện thoại: ' + Ui.escapeHtml(org.contactPhone) : '') + '</div></section>' +
-            '<div class="row g-3 mt-2"><div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Giải đã hoàn thành</div><div class="num accent">' + Number(reputation.completedTournamentCount) + '<small> / ' + Number(reputation.totalTournamentCount) + '</small></div></div></div>' +
+            '<p class="mt-4 mb-2">' + Ui.escapeHtml(org.description || 'Đơn vị chưa có mô tả.') + '</p><div class="muted-copy">Website: ' + link + (org.contactPhone ? ' · Điện thoại: ' + Ui.escapeHtml(org.contactPhone) : '') + '</div>' +
+            '<nav class="org-public-nav" aria-label="Các nội dung trong hồ sơ"><a href="#organization-reputation">Chỉ số hoạt động</a><a href="#organization-tournaments">Giải đấu</a></nav></section>' +
+            '<div id="organization-reputation" class="row g-3 mt-2"><div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Giải đã hoàn thành</div><div class="num accent">' + Number(reputation.completedTournamentCount) + '<small> / ' + Number(reputation.totalTournamentCount) + '</small></div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Tỷ lệ hoàn thành</div><div class="num">' + Math.round(Number(reputation.completionRate || 0)) + '%</div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Trận tranh chấp</div><div class="num">' + Number(reputation.disputedMatchCount) + '<small> / ' + Number(reputation.totalMatchCount) + '</small></div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Tỷ lệ trận tranh chấp</div><div class="num">' + Math.round(Number(reputation.disputeRate || 0)) + '%</div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Thời gian xử lý tranh chấp TB</div><div class="num">' + (reputation.averageDisputeResolutionHours === null ? '—' : Number(reputation.averageDisputeResolutionHours).toFixed(1)) + '<small>' + (reputation.averageDisputeResolutionHours === null ? '' : ' giờ') + '</small></div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Hoàn tiền ghi nhận</div><div class="num">' + Number(reputation.recordedRefundCount) + '</div></div></div></div>' +
-            '<section class="feature-card mt-4"><h2>Giải đấu của đơn vị</h2>' + (tournaments ? '<div class="feature-list mt-3">' + tournaments + '</div>' : '<p class="muted-copy mt-3">Chưa có giải đấu công khai.</p>') + '</section>';
+            '<section id="organization-tournaments" class="feature-card mt-4"><h2>Giải đấu của đơn vị</h2>' + (tournaments ? '<div class="feature-list mt-3">' + tournaments + '</div>' : '<p class="muted-copy mt-3">Chưa có giải đấu công khai.</p>') + '</section>';
     }
 
     function renderMembers() {
@@ -175,6 +176,8 @@
                 document.getElementById('invite-form').hidden = true;
                 document.getElementById('chair-transfer').hidden = true;
                 document.getElementById('suspension-panel').hidden = true;
+                document.querySelector('.org-management-nav a[href="#chair-transfer"]').hidden = true;
+                document.querySelector('.org-management-nav a[href="#suspension-panel"]').hidden = true;
                 renderMembers();
             }
         } catch (error) {
