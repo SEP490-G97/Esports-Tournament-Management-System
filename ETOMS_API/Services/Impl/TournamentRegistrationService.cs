@@ -124,7 +124,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             tournament.StarterCount,
             tournament.MaxSubstitutes,
             tournament.RequireInGameName,
-            tournament.RequireStudentCard,
+            tournament.RequireIdentityDocument,
             tournament.RequirePaymentProof,
             tournament.EntryFee,
             tournament.BankAccountInfo,
@@ -1269,7 +1269,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             {
                 return LineupValidation.Failure($"Thành viên {member.AccountId} chưa khai báo IGN cho tựa game này.");
             }
-            if (tournament.RequireStudentCard && !credentials.Any(item =>
+            if (tournament.RequireIdentityDocument && !credentials.Any(item =>
                 item.AccountId == member.AccountId
                 && item.CredentialType == IdentityDocumentType
                 && !string.IsNullOrWhiteSpace(item.FileUrl)))
@@ -1409,7 +1409,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 item.AccountId == member.AccountId
                 && item.CredentialType == InGameNameType
                 && !string.IsNullOrWhiteSpace(item.Value)))
-            && (!tournament.RequireStudentCard || credentials.Any(item =>
+            && (!tournament.RequireIdentityDocument || credentials.Any(item =>
                 item.AccountId == member.AccountId
                 && item.CredentialType == IdentityDocumentType
                 && !string.IsNullOrWhiteSpace(item.FileUrl))));

@@ -140,7 +140,7 @@ namespace ETOMS_API.Services.Impl
             if (tournament == null || tournament.Status != "DRAFT")
                 throw new InvalidOperationException("Giải đấu không tồn tại hoặc đã được công bố.");
 
-            tournament.RequireStudentCard = dto.RequireStudentCard;
+            tournament.RequireIdentityDocument = dto.RequireStudentCard;
             tournament.RequirePaymentProof = dto.RequirePaymentBill;
             tournament.RequireInGameName = dto.RequireIgnVerify;
 

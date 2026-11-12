@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using ETOMS_API.Models;
 using Microsoft.EntityFrameworkCore;
@@ -75,6 +75,8 @@ public partial class EtomsDbContext : DbContext
     public virtual DbSet<VwGroupStanding> VwGroupStandings { get; set; }
 
     public virtual DbSet<VwLeaderboard> VwLeaderboards { get; set; }
+
+    public virtual DbSet<VwOrganizationReputation> VwOrganizationReputations { get; set; }
 
     public virtual DbSet<VwTeamPenaltyPoint> VwTeamPenaltyPoints { get; set; }
 
@@ -406,8 +408,8 @@ public partial class EtomsDbContext : DbContext
                 .HasForeignKey(d => d.FlaggedByAccountId)
                 .HasConstraintName("FK_Dispute_Flagger");
 
-            entity.HasOne(d => d.Match).WithOne(p => p.Dispute)
-                .HasForeignKey<Dispute>(d => d.MatchId)
+            entity.HasOne(d => d.Match).WithMany(p => p.Disputes)
+                .HasForeignKey(d => d.MatchId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Dispute_Match");
 
@@ -1082,8 +1084,7 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.Region).HasMaxLength(100);
             entity.Property(e => e.RequireInGameName).HasDefaultValue(true);
             entity.Property(e => e.RequirePaymentProof).HasDefaultValue(true);
-            entity.Property(e => e.RequireStudentCard)
-                .HasColumnName("RequireIdentityDocument")
+            entity.Property(e => e.RequireIdentityDocument)
                 .HasDefaultValue(true);
             entity.Property(e => e.RulebookVersion).HasDefaultValue(1);
             entity.Property(e => e.StartAt).HasPrecision(0);
@@ -1192,6 +1193,20 @@ public partial class EtomsDbContext : DbContext
 
             entity.Property(e => e.GameId).HasColumnName("GameID");
             entity.Property(e => e.TeamId).HasColumnName("TeamID");
+        });
+
+        modelBuilder.Entity<VwOrganizationReputation>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_OrganizationReputation");
+
+            entity.Property(e => e.AvgResolveHours).HasPrecision(9, 1);
+            entity.Property(e => e.CompletedCount).HasPrecision(23);
+            entity.Property(e => e.CompletedPercent).HasPrecision(5, 1);
+            entity.Property(e => e.DisputedPercent).HasPrecision(5, 1);
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.OrganizationId).HasColumnName("OrganizationID");
         });
 
         modelBuilder.Entity<VwTeamPenaltyPoint>(entity =>

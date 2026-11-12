@@ -1,5 +1,5 @@
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
+using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -65,13 +65,20 @@ public class DevAuthApiController : ApiControllerBase
         return Ok(new { message = "Đã đăng xuất." });
     }
 
-    // GET /api/dev-auth/me — ai đang đăng nhập (dùng cho widget nav + check captain/member phía client).
+    // GET /api/dev-auth/me — ai đang đăng nhập (dùng cho widget nav + check captain/member phía client,
+    // và để ẩn/hiện mục menu theo Role — PLAYER/ORGANIZER/ADMIN).
     [HttpGet("me")]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
         if (!_environment.IsDevelopment()) return NotFound();
 
-        return Ok(new { isAuthenticated = _currentUser.IsAuthenticated, userId = _currentUser.UserId, displayName = _currentUser.DisplayName });
+        string? role = null;
+        if (_currentUser.IsAuthenticated)
+        {
+            var account = await _uow.Repository<Account>().GetByIdAsync(_currentUser.UserId!.Value);
+            role = account?.Role;
+        }
+        return Ok(new { isAuthenticated = _currentUser.IsAuthenticated, userId = _currentUser.UserId, displayName = _currentUser.DisplayName, role });
     }
 }
 

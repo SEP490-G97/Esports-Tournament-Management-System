@@ -49,4 +49,8 @@ public interface ITeamService
 
     // Danh sách tựa game đang mở (dropdown).
     Task<IReadOnlyList<GameOptionDto>> GetActiveGamesAsync();
+
+    // Đội mà tài khoản đang là thành viên ACTIVE (đội trưởng cũng tính) — cho widget "Đội của tôi" trên nav.
+    // null nếu chưa ở trong đội nào.
+    Task<MyTeamDto?> GetMyTeamAsync(int accountId);
 }

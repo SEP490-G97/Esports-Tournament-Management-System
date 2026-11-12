@@ -9,7 +9,7 @@ public partial class VwTeamPenaltyPoint
 
     public int TeamId { get; set; }
 
-    public int? ActivePoints { get; set; }
+    public decimal? ActivePoints { get; set; }
 
     public int? PenaltyThreshold { get; set; }
 }

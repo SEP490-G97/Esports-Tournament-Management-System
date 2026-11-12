@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Danh sách đội tuyển · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head d-flex flex-wrap align-items-end justify-content-between gap-3">
+            <div>
+                <div class="eyebrow">Cộng đồng · Đội tuyển</div>
+                <h1>Đội tuyển</h1>
+                <p>Tìm đội theo tên, thẻ đội hoặc tựa game.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-ghost" href="/team/join.html">Gia nhập bằng mã</a>
+                <a class="btn btn-primary" href="/team/create.html">+ Tạo đội mới</a>
+            </div>
+        </div>
+
+        <div id="flash"></div>
+
+        <form method="get" class="filter-bar" id="filter-form">
+            <div class="filter-search">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5.2" stroke="currentColor" stroke-width="1.4"/><path d="M11 11l3.2 3.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                <input type="text" name="Q" class="input" placeholder="Tìm theo tên đội hoặc thẻ đội (vd: SGP)..." autocomplete="off" />
+            </div>
+            <select name="GameId" class="select filter-select" id="game-select" onchange="this.form.submit()">
+                <option value="">Tất cả tựa game</option>
+            </select>
+            <select name="Status" class="select filter-select" onchange="this.form.submit()">
+                <option value="ACTIVE">Đang hoạt động</option>
+                <option value="DISBANDED">Đã giải tán</option>
+                <option value="ALL">Tất cả trạng thái</option>
+            </select>
+            <select name="Sort" class="select filter-select" onchange="this.form.submit()">
+                <option value="newest">Mới nhất</option>
+                <option value="name">Tên A–Z</option>
+                <option value="members">Nhiều thành viên nhất</option>
+            </select>
+            <button type="submit" class="btn btn-primary filter-go">Tìm</button>
+            <a href="/team/index.html" class="btn btn-ghost filter-clear" id="clear-filter" style="display:none">Xóa lọc</a>
+        </form>
+
+        <div id="result-root"></div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/team-index.js" defer></script>
+</body>
+</html>

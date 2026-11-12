@@ -27,29 +27,120 @@
         });
     }
 
+    // Đọc người dùng hiện tại theo 2 nguồn (để nhóm test song song):
+    //   1. Đăng nhập thật bằng JWT (AUTH-02, auth.js) nếu trang có nạp auth.js.
+    //   2. Đăng nhập thử /dev-auth (session, chỉ Development).
+    // Trả về cùng một dạng { isAuthenticated, userId, displayName, role, source }.
+    async function resolveCurrentUser() {
+        if (window.Auth && typeof Auth.tryGetMe === 'function') {
+            var jwtMe = await Auth.tryGetMe();                 // không chuyển hướng khi chưa đăng nhập
+            if (jwtMe) {
+                return {
+                    isAuthenticated: true,
+                    userId: jwtMe.id || jwtMe.accountId,
+                    displayName: jwtMe.name || jwtMe.fullName || jwtMe.email || '',
+                    role: jwtMe.role,
+                    source: 'jwt'
+                };
+            }
+        }
+        try {
+            var devMe = await Api.get('/api/dev-auth/me');
+            if (devMe && devMe.isAuthenticated) { devMe.source = 'dev'; return devMe; }
+        } catch (e) { /* ngoài Development endpoint trả 404 */ }
+        return { isAuthenticated: false };
+    }
+
     async function wireAuthWidget() {
         var slot = document.getElementById('nav-auth-slot');
         if (!slot) return;
         var loggedOutHtml = '<a class="btn btn-primary nav-auth-login" href="/auth/login.html">Đăng nhập</a>';
         try {
-            var me = await Auth.tryGetMe();            // JWT: không chuyển hướng khi chưa đăng nhập
-            if (me) {
-                var name = me.name || me.email || '';
-                slot.innerHTML =
-                    '<span class="av" aria-hidden="true">' + Ui.escapeHtml((name || '?').substring(0, 1).toUpperCase()) + '</span>' +
-                    '<span class="nav-auth-hello"><span class="nav-auth-hi">Xin chào,</span> ' +
-                    '<span class="who">' + Ui.escapeHtml(name) + '</span></span>' +
-                    '<a class="btn btn-ghost nav-auth-logout" href="#" id="nav-logout">Đăng xuất</a>';
-                document.getElementById('nav-logout').addEventListener('click', function (e) {
-                    e.preventDefault();
-                    Auth.logout('/');                  // thu hồi refresh token, xóa cookie, về trang chủ
-                });
+            var me = await resolveCurrentUser();
+            if (me.isAuthenticated) {
+                renderUserDropdown(slot, me);
+                await loadMyTeam(me);
             } else {
                 slot.innerHTML = loggedOutHtml;
             }
+            applyRoleVisibility(me);
         } catch (e) {
             slot.innerHTML = loggedOutHtml;
+            applyRoleVisibility({ isAuthenticated: false });
         }
+    }
+
+    // Khung "Xin chào, X" giờ là 1 dropdown: bấm avatar/tên để mở, bên trong có "Đội của tôi"
+    // (nối thẳng tới team/details.html?id=, hoặc báo "Không có đội" nếu chưa ở đội nào) + Đăng xuất.
+    function renderUserDropdown(slot, me) {
+        slot.innerHTML =
+            '<div class="nav-user-dd" id="nav-user-dd">' +
+            '  <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-expanded="false">' +
+            '    <span class="av">' + Ui.escapeHtml((me.displayName || '?').substring(0, 1).toUpperCase()) + '</span>' +
+            '    <span>Xin chào, <span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span></span>' +
+            '    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="nav-user-caret"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            '  </button>' +
+            '  <div class="nav-user-menu" id="nav-user-menu">' +
+            '    <div class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam">Đang tải đội…</div>' +
+            '    <a class="nav-user-menu-item" href="#" id="nav-logout">Đăng xuất</a>' +
+            '  </div>' +
+            '</div>';
+
+        var trigger = document.getElementById('nav-user-trigger');
+        var menu = document.getElementById('nav-user-menu');
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = menu.classList.toggle('show');
+            trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', function (e) {
+            if (!menu.classList.contains('show')) return;
+            if (!menu.contains(e.target) && e.target !== trigger) {
+                menu.classList.remove('show');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+        document.getElementById('nav-logout').addEventListener('click', async function (e) {
+            e.preventDefault();
+            if (me.source === 'jwt') {
+                Auth.logout('/');                              // thu hồi refresh token, xóa cookie, về trang chủ
+                return;
+            }
+            try { await Api.post('/api/dev-auth/logout'); } catch (err) {}
+            location.href = '/';
+        });
+    }
+
+    async function loadMyTeam(me) {
+        var box = document.getElementById('nav-user-myteam');
+        if (!box) return;
+        try {
+            var team;
+            if (me && me.source === 'jwt') {
+                var res = await Auth.apiFetch('/api/teams/mine');
+                team = res.ok ? await res.json() : null;
+            } else {
+                team = await Api.get('/api/teams/mine');
+            }
+            if (team && team.teamId) {
+                box.innerHTML = 'Đội của tôi: <a href="/team/details.html?id=' + team.teamId + '">' +
+                    Ui.escapeHtml(team.name) + '</a>';
+            } else {
+                box.textContent = 'Đội của tôi: Không có';
+            }
+        } catch (e) {
+            box.textContent = 'Đội của tôi: Không có';
+        }
+    }
+
+    // Ẩn mục menu dành riêng cho vai trò Ban tổ chức/Admin (hàng đợi tranh chấp — RES-06) với
+    // khách (Guest) và tài khoản PLAYER thường — tránh Guest/User trông giống hệt nhau trên nav.
+    // Đây chỉ là gợi ý hiển thị: quyền thật vẫn được chặn ở API/trang đích dù có thấy nút hay không.
+    // Mặc định link đã ẩn sẵn trong nav.html (tránh hiện rồi mất khi fetch /me chạy xong).
+    function applyRoleVisibility(me) {
+        var canSeeDisputes = !!me.isAuthenticated && (me.role === 'ORGANIZER' || me.role === 'ADMIN');
+        var link = document.querySelector('#etomsNavCollapse nav a[data-nav="result"]');
+        if (link) link.style.display = canSeeDisputes ? '' : 'none';
     }
 
     var pendingResolve = null;
