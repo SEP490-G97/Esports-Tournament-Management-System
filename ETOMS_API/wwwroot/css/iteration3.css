@@ -1,0 +1,105 @@
+.i3-hero {
+    overflow: hidden;
+    border-radius: 1.25rem;
+    background: linear-gradient(125deg, #111827, #312e81 58%, #7c2d12);
+    color: #fff;
+    padding: clamp(1.5rem, 5vw, 4rem);
+}
+
+.i3-surface {
+    border: 1px solid var(--etoms-border, #d7dce5);
+    border-radius: 1rem;
+    background: var(--etoms-card, #fff);
+    padding: 1.25rem;
+    height: 100%;
+}
+
+.i3-metric {
+    border-radius: .85rem;
+    background: rgba(99, 102, 241, .1);
+    padding: 1rem;
+}
+
+.i3-table-wrap {
+    overflow-x: auto;
+}
+
+.i3-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.i3-table th,
+.i3-table td {
+    padding: .8rem;
+    border-bottom: 1px solid var(--etoms-border, #d7dce5);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.i3-table th {
+    white-space: nowrap;
+}
+
+.i3-qr {
+    display: block;
+    width: min(100%, 20rem);
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: .75rem;
+}
+
+.i3-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: end;
+}
+
+.i3-toolbar .field {
+    min-width: min(100%, 15rem);
+}
+
+.i3-brand {
+    color: #fdba74;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.i3-cover {
+    width: 100%;
+    max-height: 28rem;
+    object-fit: cover;
+    border-radius: 1rem;
+}
+
+.i3-print-only {
+    display: none;
+}
+
+@media print {
+    #site-header,
+    .i3-no-print,
+    .site-footer {
+        display: none !important;
+    }
+
+    .i3-print-only {
+        display: block;
+    }
+
+    body,
+    .container-etoms {
+        background: #fff !important;
+        color: #111 !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .i3-surface {
+        break-inside: avoid;
+        border-color: #aaa;
+        box-shadow: none !important;
+    }
+}

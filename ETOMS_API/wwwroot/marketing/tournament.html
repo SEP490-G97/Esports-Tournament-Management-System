@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Trang giới thiệu giải đấu ETOMS" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Giải đấu · ETOMS" />
+    <meta property="og:description" content="Xem thông tin và đăng ký giải đấu trên ETOMS." />
+    <title>Giải đấu · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/iteration3.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms py-4">
+        <div id="landing-flash" aria-live="polite"></div>
+        <section id="landing-content" hidden>
+            <div class="i3-hero mb-4">
+                <div class="i3-brand" id="landing-game"></div>
+                <h1 class="display-4 fw-bold mt-3" id="landing-name"></h1>
+                <p class="lead" id="landing-description"></p>
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <a class="btn btn-primary btn-lg" id="landing-register">Đăng ký giải</a>
+                    <button class="btn btn-ghost btn-lg" id="landing-share" type="button">Chia sẻ giải</button>
+                    <a class="btn btn-ghost btn-lg" id="landing-qr" target="_blank" rel="noopener">Mã QR đăng ký</a>
+                </div>
+            </div>
+            <img id="landing-banner" class="i3-cover mb-4" alt="" hidden />
+            <div class="row g-3">
+                <div class="col-12 col-md-4"><div class="i3-surface"><div class="i3-metric"><strong>Thời gian</strong><div id="landing-date"></div></div></div></div>
+                <div class="col-12 col-md-4"><div class="i3-surface"><div class="i3-metric"><strong>Đội đăng ký</strong><div id="landing-capacity"></div></div></div></div>
+                <div class="col-12 col-md-4"><div class="i3-surface"><div class="i3-metric"><strong>Lệ phí</strong><div id="landing-fee"></div></div></div></div>
+                <div class="col-12 col-lg-6"><section class="i3-surface"><h2>Thông tin giải</h2><dl id="landing-details" class="row mb-0"></dl></section></div>
+                <div class="col-12 col-lg-6"><section class="i3-surface"><h2>Giải thưởng</h2><p id="landing-prize"></p><h3>Đơn vị tài trợ</h3><div id="landing-sponsors"></div></section></div>
+            </div>
+        </section>
+    </main>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-landing.js" defer></script>
+</body>
+</html>
