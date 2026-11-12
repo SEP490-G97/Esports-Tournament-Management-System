@@ -8,9 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
-// Module TEAM (v2 schema). Đội trưởng = Team.CaptainAccountId và cũng là một TeamMember
-// (Slot = STARTER). Thành viên lưu ở TeamMember với Slot STARTER/SUBSTITUTE, không có vai trò
-// CAPTAIN trong Slot. Mã mời là MỘT mã nằm trên Team.
+// Đội trưởng = Team.CaptainAccountId, đồng thời là 1 TeamMember Slot=STARTER (không có
+// Slot riêng cho CAPTAIN). Mã mời là một mã duy nhất nằm trên Team.
 public class TeamService : ITeamService
 {
     private readonly IUnitOfWork _uow;

@@ -9,9 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
-// Khóa trong-tiến-trình theo MatchID — chống race condition khi 2 đội trưởng nộp báo cáo gần như
-// cùng lúc (RES-02/UC-28). Ứng dụng chạy 1 tiến trình (không scale ngang) nên khóa trong bộ nhớ
-// là đủ; nếu sau này triển khai nhiều instance thì phải đổi sang khóa ở tầng DB (sp_getapplock).
+// Khóa trong-tiến-trình theo MatchID — chống race khi 2 đội trưởng nộp báo cáo cùng lúc (RES-02).
+// Chỉ chạy 1 instance nên khóa bộ nhớ là đủ; nhiều instance thì phải đổi sang khóa tầng DB.
 internal static class MatchReconcileLock
 {
     private static readonly ConcurrentDictionary<int, SemaphoreSlim> Locks = new();

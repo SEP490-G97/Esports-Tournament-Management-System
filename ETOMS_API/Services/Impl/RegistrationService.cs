@@ -8,9 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
-// Phần CỦA DŨNG: REG-03 (tải minh chứng), REG-04 (theo dõi đơn).
-// Phần STUB TẠM thay REG-01/06/07 (Cấn Việt Hùng): tạo đơn tối thiểu + duyệt/từ chối
-// tối thiểu — chỉ đủ để module BRK (bracket) có đội APPROVED mà sinh nhánh.
+// REG-03 (tải minh chứng), REG-04 (theo dõi đơn) là của Dũng. Tạo đơn + duyệt/từ chối
+// chỉ là stub tạm thay REG-01/06/07 (Cấn Việt Hùng), đủ để BRK có đội APPROVED mà sinh nhánh.
 public class RegistrationService : IRegistrationService
 {
     private readonly IUnitOfWork _uow;

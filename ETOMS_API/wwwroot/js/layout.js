@@ -1,7 +1,5 @@
-// "Layout" dùng chung cho mọi trang tĩnh: chèn nav.html/confirm-modal.html, bật theme-toggle,
-// hiển thị widget đăng nhập (gọi /api/dev-auth/me), và wiring modal xác nhận hành động nguy hiểm.
-// Mọi trang phải có sẵn <div id="site-header"></div> và <div id="confirm-modal-root"></div>,
-// và nạp theo thứ tự: api.js, ui.js, layout.js (theme-init.js nạp riêng trong <head>).
+// Layout dùng chung cho mọi trang tĩnh: chèn nav.html/confirm-modal.html, theme-toggle,
+// widget đăng nhập, modal xác nhận. Nạp theo thứ tự: api.js, ui.js, layout.js.
 (function () {
     function applyActiveNav() {
         var path = location.pathname.toLowerCase();
@@ -100,10 +98,8 @@
         }
     }
 
-    // Ẩn mục menu dành riêng cho vai trò Ban tổ chức/Admin (hàng đợi tranh chấp — RES-06) với
-    // khách (Guest) và tài khoản PLAYER thường — tránh Guest/User trông giống hệt nhau trên nav.
-    // Đây chỉ là gợi ý hiển thị: quyền thật vẫn được chặn ở API/trang đích dù có thấy nút hay không.
-    // Mặc định link đã ẩn sẵn trong nav.html (tránh hiện rồi mất khi fetch /me chạy xong).
+    // Chỉ Ban tổ chức/Admin thấy mục Tranh chấp. Link ẩn sẵn trong nav.html, chỗ này chỉ bật
+    // hiện lên nếu đúng quyền — quyền thật vẫn chặn ở API dù có thấy nút hay không.
     function applyRoleVisibility(me) {
         var canSeeDisputes = !!me.isAuthenticated && (me.role === 'ORGANIZER' || me.role === 'ADMIN');
         var link = document.querySelector('#etomsNavCollapse nav a[data-nav="result"]');

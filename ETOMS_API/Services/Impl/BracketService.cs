@@ -8,12 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
-// Module BRK của Dũng (Iteration 2): BRK-01 (sinh nhánh + byes), BRK-02 (xếp hạt giống),
-// BRK-03 (khóa nhánh), BRK-04 (thuật toán Single Elimination), BRK-06 (thuật toán Round Robin).
+// Module BRK: BRK-01 (sinh nhánh + byes), BRK-02 (xếp hạt giống), BRK-03 (khóa nhánh),
+// BRK-04 (Single Elimination), BRK-06 (Round Robin).
 //
-// Mô hình: 1 BracketNode = 1 TRẬN (MATCH_SLOT). Khi 1 trận chỉ có đúng 1 đội do số đội không
-// tròn lũy thừa 2 (bye), node đó IsBye=true và SeedTeamID lưu đội duy nhất — KHÔNG tạo Match,
-// đội tự động được đẩy thẳng lên node cha (ParentNodeID) lúc dựng cây.
+// 1 BracketNode = 1 trận. Node bye (số đội lẻ) có IsBye=true + SeedTeamId, không tạo Match.
 public class BracketService : IBracketService
 {
     private readonly IUnitOfWork _uow;
@@ -69,9 +67,8 @@ public class BracketService : IBracketService
                 break;
         }
 
-        // Idempotent: xóa cây cũ (chưa khóa) trước khi dựng lại.
-        // Phải xóa các bảng phụ thuộc vào Match trước (MatchReport, Dispute, Livestream,
-        // MatchChatMessage, MatchGame, MatchRequest, Penalty) nếu không sẽ vi phạm khóa ngoại.
+        // Idempotent: xóa cây cũ trước khi dựng lại — phải xóa các bảng phụ thuộc Match trước
+        // (MatchReport, Dispute, Livestream, MatchChatMessage, MatchGame, MatchRequest, Penalty).
         var oldMatches = await _uow.Repository<Match>().Query().Where(m => m.TournamentId == tournamentId).ToListAsync();
         var oldMatchIds = oldMatches.Select(m => m.MatchId).ToList();
         if (oldMatchIds.Count > 0)
@@ -399,9 +396,8 @@ public class BracketService : IBracketService
         return Result.Success("Đã khóa nhánh đấu. Roster các đội và cổng đăng ký đã đóng.");
     }
 
-    // Cầu nối tạm PickWinner đã bị xóa (Iteration 3) — kết quả giờ vào hệ thống qua module RES
-    // thật (IResultService: RES-01 báo cáo mù + RES-02 đối chiếu tự động + RES-07 phán quyết VAR),
-    // đúng LI-01. AdvanceWinner sau khi có kết quả nằm trong ResultService (dùng chung logic này).
+    // Cầu nối tạm PickWinner đã bỏ — kết quả giờ vào qua IResultService (RES-01/02/07), đúng LI-01.
+    // AdvanceWinner sau khi có kết quả nằm trong ResultService.
 
     // BRK-07: chưa cấu hình thì trả về thứ tự mặc định (IsDefault = true), không tự lưu vào DB.
     public async Task<TieBreakerConfigDto?> GetTieBreakerConfigAsync(int tournamentId)
