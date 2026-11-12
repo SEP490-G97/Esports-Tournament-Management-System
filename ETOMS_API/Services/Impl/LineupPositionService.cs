@@ -30,6 +30,7 @@ public class LineupPositionService : ILineupPositionService
 
     public async Task<Result<LineupPositionBoardDto>> GetBoardAsync(int registrationId)
     {
+        if (!PendingSchema.LineupGamePosition) return Result<LineupPositionBoardDto>.Failure(SchemaMissingMessage);
         try
         {
             var board = await BuildBoardAsync(registrationId);
@@ -46,6 +47,7 @@ public class LineupPositionService : ILineupPositionService
     // ===== GRL-04: Lưu vị trí của đội hình =====
     public async Task<Result<LineupPositionBoardDto>> SavePositionsAsync(int registrationId, SaveLineupPositionsRequest request)
     {
+        if (!PendingSchema.LineupGamePosition) return Result<LineupPositionBoardDto>.Failure(SchemaMissingMessage);
         try
         {
             var registration = await _uow.Repository<Registration>().Query()

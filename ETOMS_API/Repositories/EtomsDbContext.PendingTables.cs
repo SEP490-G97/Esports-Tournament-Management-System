@@ -133,8 +133,16 @@ public partial class EtomsDbContext
 
         // Cột mới trên bảng có sẵn: khi database chưa có cột, MỌI truy vấn đọc entity RegistrationLineup
         // sẽ lỗi "Unknown column". Nhóm đã chọn cách này thay vì tạo bảng riêng.
+        // Chưa có cột (PendingSchema dò lúc khởi động) thì bỏ qua để không làm hỏng đăng ký giải/đội hình.
         modelBuilder.Entity<RegistrationLineup>(entity =>
         {
+            if (!PendingSchema.LineupGamePosition)
+            {
+                entity.Ignore(e => e.GamePosition);
+                entity.Ignore(e => e.GamePositionId);
+                return;
+            }
+
             entity.Property(e => e.GamePositionId).HasColumnName("GamePositionID");
 
             entity.HasOne(d => d.GamePosition).WithMany()
