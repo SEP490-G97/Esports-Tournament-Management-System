@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng ký đơn vị · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Hồ sơ tổ chức</div>
+            <h1>Đăng ký đơn vị</h1>
+            <p>Gửi thông tin pháp nhân hoặc đơn vị cộng đồng để được xét duyệt.</p>
+        </div>
+        <div class="dev-banner">Đây là chức năng thử nghiệm. Không gửi giấy tờ thật: hiện chưa có cơ chế xác thực và phân quyền thật.</div>
+        <div id="register-flash" aria-live="polite"></div>
+        <section id="register-panel" class="card-etoms form-narrow">
+            <div class="body">
+                <form id="organization-form" novalidate>
+                    <div class="field"><label for="org-name">Tên đơn vị <span class="req">*</span></label><input id="org-name" name="Name" class="input" maxlength="150" required /><span class="field-error" data-field-error="Name"></span></div>
+                    <div class="field"><label for="org-type">Loại đơn vị <span class="req">*</span></label><select id="org-type" name="OrganizationType" class="select" required><option value="">Chọn loại đơn vị</option><option value="UNIVERSITY_CLUB">Câu lạc bộ cấp trường</option><option value="EVENT_COMPANY">Công ty tổ chức sự kiện</option><option value="INDIVIDUAL">Cá nhân</option></select><span class="field-error" data-field-error="OrganizationType"></span></div>
+                    <div class="field"><label for="parent-org">Đơn vị chủ quản</label><input id="parent-org" name="ParentOrganization" class="input" maxlength="150" /></div>
+                    <div class="row">
+                        <div class="col-md-6 field"><label for="contact-email">Email liên hệ</label><input id="contact-email" name="ContactEmail" type="email" class="input" maxlength="256" /><span class="field-error" data-field-error="ContactEmail"></span></div>
+                        <div class="col-md-6 field"><label for="contact-phone">Số điện thoại</label><input id="contact-phone" name="ContactPhone" class="input" maxlength="20" /></div>
+                    </div>
+                    <div class="field"><label for="website-url">Website</label><input id="website-url" name="WebsiteUrl" type="url" class="input" maxlength="500" placeholder="https://..." /><span class="field-error" data-field-error="WebsiteUrl"></span></div>
+                    <div class="field"><label for="logo-url">Đường dẫn logo</label><input id="logo-url" name="LogoUrl" type="url" class="input" maxlength="500" placeholder="https://..." /><span class="field-error" data-field-error="LogoUrl"></span></div>
+                    <div class="field"><label for="org-description">Giới thiệu</label><textarea id="org-description" name="Description" class="input" rows="4" maxlength="1000"></textarea><span class="field-error" data-field-error="Description"></span></div>
+                    <button class="btn btn-primary" type="submit">Gửi hồ sơ đăng ký</button>
+                </form>
+            </div>
+        </section>
+        <section id="document-panel" class="card-etoms form-narrow mt-4" hidden>
+            <div class="body">
+                <h2 class="mb-2">Bổ sung giấy tờ</h2>
+                <p class="muted-copy">Hồ sơ đã được tạo. Tải giấy tờ lên kho riêng tư trước khi gửi xét duyệt.</p>
+                <form id="document-form" novalidate>
+                    <div class="field"><label for="document-type">Loại giấy tờ</label><input id="document-type" name="documentType" class="input" maxlength="100" required placeholder="Ví dụ: Quyết định thành lập" /><span class="field-error" data-field-error="documentType"></span></div>
+                    <div class="field"><label for="organization-document">Tệp giấy tờ</label><input id="organization-document" name="file" type="file" class="input" required /><span class="field-error" data-field-error="file"></span></div>
+                    <button class="btn btn-primary" type="submit">Tải giấy tờ lên</button>
+                </form>
+                <div id="uploaded-documents" class="feature-list mt-3"></div>
+                <a id="organization-link" class="btn btn-ghost mt-3" href="#">Xem hồ sơ đơn vị</a>
+            </div>
+        </section>
+    </main>
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js?v=profile-org"></script>
+    <script src="/js/ui.js?v=profile-org"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/organization-register.js" defer></script>
+</body>
+</html>

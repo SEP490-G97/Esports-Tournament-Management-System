@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hồ sơ cá nhân · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Tài khoản người chơi</div>
+            <h1>Hồ sơ cá nhân</h1>
+            <p>Quản lý thông tin, tài khoản game, giấy tờ xác minh và tùy chọn thông báo của bạn.</p>
+        </div>
+        <div class="dev-banner">Đăng nhập hiện dùng tài khoản demo để kiểm thử. API Profile chưa có xác thực/phân quyền thật; không sử dụng dữ liệu nhạy cảm trên môi trường này.</div>
+        <div id="profile-flash" aria-live="polite"></div>
+        <div class="feature-grid">
+            <section class="feature-card">
+                <h2>Thông tin cơ bản</h2>
+                <p id="profile-email" class="muted-copy">Đang tải hồ sơ...</p>
+                <form id="profile-form" novalidate>
+                    <div class="field"><label for="profile-full-name">Họ và tên <span class="req">*</span></label><input id="profile-full-name" name="FullName" class="input" maxlength="150" required /><span class="field-error" data-field-error="FullName"></span></div>
+                    <div class="field"><label for="profile-avatar">Đường dẫn ảnh đại diện</label><input id="profile-avatar" name="AvatarUrl" type="url" class="input" maxlength="500" placeholder="https://..." /><span class="field-error" data-field-error="AvatarUrl"></span></div>
+                    <div class="row">
+                        <div class="col-md-6 field"><label for="profile-dob">Ngày sinh</label><input id="profile-dob" name="DateOfBirth" type="date" class="input" /></div>
+                        <div class="col-md-6 field"><label for="profile-phone">Số điện thoại</label><input id="profile-phone" name="Phone" class="input" maxlength="20" /><span class="field-error" data-field-error="Phone"></span></div>
+                    </div>
+                    <div class="field"><label for="profile-social">Liên kết mạng xã hội</label><textarea id="profile-social" name="SocialLinks" class="input" rows="3" maxlength="500" placeholder="https://..."></textarea><span class="field-error" data-field-error="SocialLinks"></span></div>
+                    <button class="btn btn-primary" type="submit">Lưu hồ sơ</button>
+                </form>
+            </section>
+            <section class="feature-card">
+                <h2>Tài khoản trong game</h2>
+                <p>Liên kết tên trong game với một tựa game có trên ETOMS.</p>
+                <form id="game-form" novalidate>
+                    <div class="field"><label for="game-id">Tựa game</label><select id="game-id" name="GameId" class="select" required><option value="">Đang tải danh sách game...</option></select><span class="field-error" data-field-error="GameId"></span></div>
+                    <div class="field"><label for="in-game-name">Tên trong game <span class="req">*</span></label><input id="in-game-name" name="InGameName" class="input" maxlength="150" required /><span class="field-error" data-field-error="InGameName"></span></div>
+                    <button class="btn btn-primary" type="submit">Lưu tài khoản game</button>
+                </form>
+                <h3 class="section-title">Đã liên kết</h3>
+                <div id="profile-games" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
+            </section>
+            <section class="feature-card">
+                <h2>Giấy tờ xác minh</h2>
+                <p>Tệp được tải lên kho riêng tư; trang này chỉ hiển thị thông tin giấy tờ, không cung cấp đường dẫn tải xuống.</p>
+                <form id="identity-form" novalidate>
+                    <div class="field"><label for="identity-file">Chọn tệp</label><input id="identity-file" name="file" type="file" class="input" required /><span class="field-error" data-field-error="file"></span></div>
+                    <button class="btn btn-primary" type="submit">Tải giấy tờ lên</button>
+                </form>
+                <h3 class="section-title">Tệp đã gửi</h3>
+                <div id="identity-documents" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
+            </section>
+            <section class="feature-card">
+                <h2>Tùy chọn thông báo</h2>
+                <p>Chọn cách bạn muốn nhận thông tin về hoạt động tài khoản.</p>
+                <form id="preferences-form">
+                    <label class="form-check"><input class="form-check-input" type="checkbox" name="NotifyInApp" /> Thông báo trong ứng dụng</label>
+                    <label class="form-check"><input class="form-check-input" type="checkbox" name="NotifyEmail" /> Thông báo qua email</label>
+                    <button class="btn btn-primary" type="submit">Lưu tùy chọn</button>
+                </form>
+            </section>
+            <section class="feature-card span-all">
+                <div class="org-toolbar"><div><h2>Hồ sơ công khai &amp; lịch sử thi đấu</h2><p class="muted-copy mb-0">Thông tin được hiển thị công khai cho tài khoản người chơi này.</p></div></div>
+                <div id="public-profile"><p class="muted-copy">Đang tải hồ sơ công khai...</p></div>
+                <h3 class="section-title">Lịch sử trận đấu</h3>
+                <div id="match-history" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
+            </section>
+        </div>
+    </main>
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js?v=profile-org"></script>
+    <script src="/js/ui.js?v=profile-org"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/profile.js" defer></script>
+</body>
+</html>

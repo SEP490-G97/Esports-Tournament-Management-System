@@ -40,8 +40,11 @@ var Api = (function () {
     return {
         get: function (url) { return request('GET', url); },
         post: function (url, body) { return request('POST', url, body, false); },
+        patch: function (url, body) { return request('PATCH', url, body, false); },
         postForm: function (url, formData) { return request('POST', url, formData, true); },
         put: function (url, body) { return request('PUT', url, body, false); },
         del: function (url, body) { return request('DELETE', url, body, false); }
     };
 })();
+
+res = await Auth.apiFetch(url, opts);
