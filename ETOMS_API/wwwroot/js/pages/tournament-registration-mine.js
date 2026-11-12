@@ -1,6 +1,7 @@
 (function () {
     var root = document.getElementById('my-registrations');
     var flash = document.getElementById('registration-flash');
+    var registrations = [];
 
     function statusLabel(status) {
         return {
@@ -30,7 +31,17 @@
 
     function render(items) {
         if (!items.length) {
-            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có đơn đăng ký</h3><p>Khi đội của bạn gửi đơn tham gia giải, trạng thái sẽ hiển thị tại đây.</p></div></div>';
+            var filtered = document.getElementById('registration-status-filter').value !== 'ALL'
+                || document.getElementById('registration-search').value.trim();
+            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>' +
+                (filtered ? 'Không tìm thấy đơn phù hợp' : 'Chưa có đơn đăng ký') +
+                '</h3><p>' + (filtered
+                    ? 'Thử thay đổi trạng thái hoặc từ khóa tìm kiếm.'
+                    : 'Khi đội của bạn gửi đơn tham gia giải, trạng thái sẽ hiển thị tại đây.') +
+                '</p>' + (filtered ? '<button type="button" class="btn btn-ghost" id="clear-registration-filters">Xóa bộ lọc</button>' : '') +
+                '</div></div>';
+            var clearButton = document.getElementById('clear-registration-filters');
+            if (clearButton) clearButton.addEventListener('click', clearFilters);
             return;
         }
         root.innerHTML = items.map(function (item) {
@@ -61,7 +72,7 @@
                 ? '<a class="btn btn-primary" href="/registration/register.html?tournamentId=' +
                     item.tournamentId + '&draftRegistrationId=' + item.registrationId + '">Tiếp tục chỉnh sửa nháp</a>'
                 : '';
-            return '<article class="feature-card">' +
+            return '<article class="feature-card registration-mine-card">' +
                 '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>' + Ui.escapeHtml(item.tournamentName) + '</h2>' +
                 '<div class="muted-copy">' + Ui.escapeHtml(item.teamName) + ' [' + Ui.escapeHtml(item.teamTag) + ']</div></div>' +
                 '<span class="badge badge-soft">' + Ui.escapeHtml(statusLabel(item.status)) + '</span></div>' +
@@ -128,12 +139,41 @@
     async function load() {
         try {
             var response = await Api.get('/api/registrations/mine');
-            render(response.data || []);
+            registrations = response.data || [];
+            applyFilters();
         } catch (error) {
             root.innerHTML = '';
             Ui.showAlert(flash, 'danger', error.message || 'Không thể tải đơn đăng ký.');
         }
     }
 
-    document.addEventListener('DOMContentLoaded', load);
+    function applyFilters() {
+        var status = document.getElementById('registration-status-filter').value;
+        var term = document.getElementById('registration-search').value.trim().toLocaleLowerCase('vi');
+        var filtered = registrations.filter(function (item) {
+            var matchesStatus = status === 'ALL' || item.status === status;
+            var searchable = (item.tournamentName || '') + ' ' + (item.teamName || '') + ' ' + (item.teamTag || '');
+            return matchesStatus && (!term || searchable.toLocaleLowerCase('vi').includes(term));
+        });
+        var actionable = registrations.filter(function (item) {
+            return ['DRAFT', 'PENDING', 'WAITLISTED'].includes(item.status);
+        }).length;
+        document.getElementById('registration-summary').innerHTML =
+            '<strong>' + registrations.length + '</strong> đơn tất cả' +
+            '<span class="registration-summary-separator" aria-hidden="true">·</span>' +
+            '<strong>' + actionable + '</strong> cần theo dõi';
+        render(filtered);
+    }
+
+    function clearFilters() {
+        document.getElementById('registration-status-filter').value = 'ALL';
+        document.getElementById('registration-search').value = '';
+        applyFilters();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('registration-status-filter').addEventListener('change', applyFilters);
+        document.getElementById('registration-search').addEventListener('input', applyFilters);
+        load();
+    });
 })();

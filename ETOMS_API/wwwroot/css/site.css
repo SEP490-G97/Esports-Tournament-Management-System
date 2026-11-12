@@ -489,6 +489,7 @@ body { overflow-x: hidden; }
 .profile-section-nav { display: grid; gap: 4px; padding: 10px; }
 .profile-section-nav a { padding: 10px 12px; border-radius: 9px; color: var(--muted); font-size: .88rem; font-weight: 600; }
 .profile-section-nav a:hover, .profile-section-nav a:focus-visible { color: var(--ink); background: var(--primary-050); outline: none; }
+.profile-section-nav a.active { color: var(--ink); background: var(--primary-050); box-shadow: inset 3px 0 var(--primary); }
 .profile-aside-note { margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .profile-main { display: grid; gap: 18px; min-width: 0; }
 .profile-section { scroll-margin-top: 92px; padding: clamp(20px, 3vw, 30px); }
@@ -581,4 +582,177 @@ body { overflow-x: hidden; }
   .registration-step-number { width: 30px; height: 30px; }
   .registration-step small { line-height: 1.3; }
   .profile-section-heading { align-items: flex-start; }
+}
+
+/* --- Registration and profile usability refinements --- */
+:root[data-theme="light"] .etoms-nav { background: rgba(255,255,255,.94); }
+:root[data-theme="light"] .etoms-nav nav a:hover,
+:root[data-theme="light"] .etoms-nav nav a.active { color: var(--ink); }
+:root[data-theme="light"] .etoms-nav .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(22,27,41,0.9)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.registration-hub-head, .registration-mine-head, .registration-review-head,
+.tournament-registration-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+}
+.registration-hub-head .page-head, .registration-mine-head .page-head,
+.registration-review-head .page-head, .tournament-registration-head .page-head { margin-bottom: 20px; }
+.home-hero-actions { flex-wrap: wrap; }
+.registration-hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 250px;
+  max-width: none;
+  margin: 0;
+  padding: clamp(22px, 3vw, 32px);
+}
+.registration-hub-card h2 { margin: 0; }
+.registration-hub-card p { flex: 1; margin: 0 0 6px; }
+.registration-hub-card .btn { margin-top: 6px; }
+.registration-hub-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--info-ink);
+  background: var(--primary-050);
+  font-size: .76rem;
+  font-weight: 800;
+}
+.registration-hub-card-primary { border-color: rgba(59,108,255,.45); }
+
+.registration-mine-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.registration-summary { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .9rem; }
+.registration-summary strong { color: var(--ink); }
+.registration-summary-separator { color: var(--muted-2); padding: 0 3px; }
+.registration-mine-filters { display: grid; grid-template-columns: minmax(170px, .75fr) minmax(220px, 1fr); gap: 10px; width: min(100%, 520px); }
+.registration-mine-card { min-width: 0; }
+.registration-mine-card h2 { font-size: 1.15rem; }
+.registration-mine-card > .d-flex > div { min-width: 0; }
+.registration-mine-card .payment-proof-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, .55fr) auto; align-items: end; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+.registration-mine-card .payment-proof-form label { display: grid; gap: 6px; font-size: .84rem; font-weight: 600; }
+
+#registration-panel.registration-panel { max-width: none; }
+#registration-form.registration-form { padding: clamp(16px, 2.5vw, 28px); }
+.tournament-registration-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, .8fr); gap: 22px; align-items: start; }
+.tournament-registration-main { display: grid; gap: 18px; min-width: 0; }
+.registration-form-section, .registration-summary-card, .registration-payment-card {
+  min-width: 0;
+  padding: clamp(18px, 2.4vw, 26px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.registration-section-heading { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+.registration-section-number { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 10px; color: #fff; background: var(--primary); font-weight: 800; }
+.registration-section-heading h2, .registration-summary-card h2, .registration-payment-card h2 { margin: 0 0 4px; font-size: 1.1rem; font-weight: 800; }
+.registration-section-heading p { margin: 0; color: var(--muted); font-size: .86rem; }
+.registration-form-section .field:last-child { margin-bottom: 0; }
+.registration-form-section h3 { font-size: .98rem; font-weight: 800; margin: 20px 0 4px; }
+.registration-form-section .feature-list-item { align-items: center; }
+.rulebook-content { max-height: 280px; overflow: auto; padding: 16px; border: 1px solid var(--border-soft); border-radius: 11px; background: var(--bg-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.rulebook-consent { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; padding: 13px 14px; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--bg-2); }
+.rulebook-consent input { flex: none; margin-top: 5px; }
+.tournament-registration-aside { position: sticky; top: 88px; display: grid; gap: 14px; min-width: 0; }
+.registration-summary-card { background: linear-gradient(160deg, var(--primary-050), var(--panel) 65%); }
+.registration-summary-card .profile-overline, .registration-payment-card .profile-overline { display: block; margin-bottom: 7px; }
+.registration-checklist { display: grid; gap: 10px; margin: 16px 0; padding: 0; list-style: none; }
+.registration-checklist li { position: relative; padding-left: 24px; color: var(--muted); font-size: .84rem; }
+.registration-checklist li::before { content: "✓"; position: absolute; left: 0; color: var(--success-ink); font-weight: 800; }
+.registration-payment-card { margin: 0; }
+.payment-recipient { display: grid; gap: 5px; margin: 14px 0; padding: 12px; border-radius: 10px; background: var(--bg-2); overflow-wrap: anywhere; }
+.payment-recipient strong { font-size: .82rem; }
+.payment-recipient span { color: var(--muted); font-size: .84rem; white-space: pre-wrap; }
+.tournament-registration-actions { display: grid; gap: 9px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); }
+.tournament-registration-actions .btn { width: 100%; }
+.registration-cancel-link { padding: 5px; color: var(--muted); text-align: center; font-size: .84rem; font-weight: 600; }
+.registration-cancel-link:hover { color: var(--info-ink); }
+
+.registration-review-toolbar { max-width: none; padding: 22px; }
+.registration-capacity { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.registration-capacity-stat { display: grid; gap: 2px; min-width: 140px; padding: 12px 14px; border: 1px solid var(--border-soft); border-radius: 11px; background: var(--bg-2); }
+.registration-capacity-stat strong { font-size: 1.3rem; line-height: 1.2; }
+.registration-capacity-stat span { color: var(--muted); font-size: .78rem; }
+.registration-capacity #promote-first { margin-left: auto; }
+.registration-review-list { margin-top: 28px; }
+.registration-review-list-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.registration-review-list-heading h2 { margin: 4px 0 0; font-size: 1.35rem; font-weight: 800; }
+.registration-review-list .feature-list { gap: 14px; }
+.registration-review-list .feature-card { min-width: 0; }
+.registration-review-details, .registration-tiebreaker-settings { margin-top: 14px; border: 1px solid var(--border-soft); border-radius: 11px; background: var(--bg-2); }
+.registration-review-details summary, .registration-tiebreaker-settings summary { cursor: pointer; padding: 12px 14px; color: var(--info-ink); font-size: .88rem; font-weight: 700; }
+.registration-review-details[open] { padding-bottom: 12px; }
+.registration-review-details[open] > :not(summary) { margin-left: 12px; margin-right: 12px; }
+.registration-tiebreaker-settings { margin-top: 24px; background: var(--panel); }
+.registration-tiebreaker-settings summary { display: flex; align-items: center; justify-content: space-between; color: var(--ink); }
+.registration-tiebreaker-settings summary span { display: grid; gap: 3px; }
+.registration-tiebreaker-settings summary small { color: var(--muted); font-weight: 400; }
+.registration-tiebreaker-body { padding: 0 18px 18px; }
+.registration-tiebreaker-body .feature-list-item { align-items: center; }
+.org-public-nav, .org-management-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.org-public-nav a, .org-management-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--info-ink);
+  background: var(--bg-2);
+  font-size: .82rem;
+  font-weight: 700;
+}
+.org-public-nav a:hover, .org-management-nav a:hover { border-color: var(--primary); background: var(--primary-050); }
+#organization-reputation, #organization-tournaments, #member-management,
+#chair-transfer, #suspension-panel { scroll-margin-top: 92px; }
+.registration-review-details summary:hover, .registration-tiebreaker-settings summary:hover { color: var(--cyan); }
+.registration-review-details summary:focus-visible, .registration-tiebreaker-settings summary:focus-visible,
+.org-public-nav a:focus-visible, .org-management-nav a:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.btn:focus-visible, .input:focus-visible, .select:focus-visible, summary:focus-visible,
+.registration-cancel-link:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 3px;
+}
+.btn:disabled { cursor: not-allowed; opacity: .58; box-shadow: none; }
+
+@media (max-width: 900px) {
+  .tournament-registration-layout { grid-template-columns: minmax(0, 1.2fr) minmax(250px, .8fr); gap: 14px; }
+}
+@media (max-width: 760px) {
+  .registration-hub-head, .registration-mine-head, .registration-review-head,
+  .tournament-registration-head { align-items: flex-start; flex-direction: column; }
+  .registration-hub-head .page-head, .registration-mine-head .page-head,
+  .registration-review-head .page-head, .tournament-registration-head .page-head { margin-bottom: 8px; }
+  .registration-mine-head > .btn, .tournament-registration-head > .btn { width: 100%; }
+  .registration-mine-toolbar { align-items: stretch; flex-direction: column; }
+  .registration-mine-filters { grid-template-columns: 1fr; width: 100%; }
+  .registration-mine-card .payment-proof-form { grid-template-columns: 1fr; }
+  .tournament-registration-layout { grid-template-columns: 1fr; }
+  .tournament-registration-aside { position: static; }
+  .registration-review-toolbar { padding: 16px; }
+  .registration-capacity #promote-first { width: 100%; margin-left: 0; }
+  .registration-review-list-heading { align-items: flex-start; flex-direction: column; }
+  .org-public-nav, .org-management-nav { display: grid; grid-template-columns: 1fr; }
+  .org-public-nav a, .org-management-nav a { justify-content: center; border-radius: 10px; }
 }

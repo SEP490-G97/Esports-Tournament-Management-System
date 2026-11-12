@@ -55,15 +55,12 @@
         document.getElementById('tournament-name').textContent =
             'Xét duyệt: ' + (summary.tournamentName || (items[0] && items[0].tournamentName) || 'đăng ký giải');
         document.getElementById('registration-capacity').innerHTML =
-            '<div><strong>Suất còn trống:</strong> ' + Number(summary.availableSlots) + '/' + Number(summary.maxTeams) +
-            ' · <strong>Đội trong danh sách chờ:</strong> ' + Number(summary.waitlistCount) + '</div>';
+            '<div class="registration-capacity-stat"><strong>' + Number(summary.availableSlots) + '</strong>' +
+            '<span>suất còn trống / ' + Number(summary.maxTeams) + '</span></div>' +
+            '<div class="registration-capacity-stat"><strong>' + Number(summary.waitlistCount) + '</strong>' +
+            '<span>đội đang chờ</span></div>';
 
-        if (!items.length) {
-            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Không có đơn phù hợp</h3></div></div>';
-            return;
-        }
-
-        root.innerHTML = items.map(function (item) {
+        root.innerHTML = items.length ? items.map(function (item) {
             return '<article class="feature-card" data-registration-id="' + item.registrationId + '">' +
                 '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h3>' +
                 Ui.escapeHtml(item.teamName) + ' [' + Ui.escapeHtml(item.teamTag) + ']</h3>' +
@@ -72,15 +69,17 @@
                 ' · Đồng ý Rulebook v' + Number(item.rulebookVersionAccepted || 0) + '</div></div>' +
                 '<span class="badge badge-soft">' + Ui.escapeHtml(statusLabel(item.status)) + '</span></div>' +
                 (item.reviewNote ? '<p class="field-hint">' + Ui.escapeHtml(item.reviewNote) + '</p>' : '') +
-                '<div class="mt-3"><strong>Đội hình</strong><div class="feature-list">' +
-                renderLineup(item) + '</div></div>' +
-                '<div class="field mt-3"><strong>Lịch sử kỷ luật của đội</strong>' +
-                '<div class="discipline-history">Đang tải...</div></div>' +
+                '<details class="registration-review-details"><summary>Đội hình (' +
+                (item.lineup || []).length + ')</summary><div class="feature-list mt-3">' +
+                renderLineup(item) + '</div></details>' +
+                '<details class="registration-review-details"><summary>Lịch sử kỷ luật của đội</summary>' +
+                '<div class="discipline-history mt-3">Đang tải...</div></details>' +
                 '<div class="registration-decision-actions"></div>' +
                 '<div class="registration-payment-actions"></div>' +
                 '<div class="registration-waitlist-actions"></div>' +
                 '<div class="review-flash mt-3" aria-live="polite"></div></article>';
-        }).join('');
+        }).join('') : '<div class="card-etoms"><div class="empty"><h3>Không có đơn phù hợp</h3>' +
+            '<p>Thử đổi bộ lọc hoặc quay lại sau khi có đội gửi đăng ký.</p></div></div>';
 
         loadDisciplineHistory(items);
         if (window.RegistrationReviewTieBreakers) {
@@ -123,9 +122,14 @@
     };
     window.RegistrationReview = context;
 
+    var searchTimer;
+
     document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('status-filter').addEventListener('change', load);
-        document.getElementById('team-search').addEventListener('input', load);
+        document.getElementById('team-search').addEventListener('input', function () {
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(load, 250);
+        });
         load();
     });
 })();
