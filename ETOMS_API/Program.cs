@@ -107,6 +107,8 @@ builder.Services.AddScoped<IAccountBanService, AccountBanService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
+builder.Services.AddScoped<IRecruitmentService, RecruitmentService>();
+builder.Services.AddScoped<ITournamentSetupService, TournamentSetupService>();
 
 var app = builder.Build();
 
