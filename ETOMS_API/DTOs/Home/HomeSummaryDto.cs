@@ -21,6 +21,7 @@ public class HomeStatsDto
 
 public class GameCardDto
 {
+    public int GameId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string ShortCode { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
