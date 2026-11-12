@@ -39,6 +39,22 @@ namespace ETOMS_API.Tests.Auth
             _db = new EtomsDbContext(new DbContextOptionsBuilder<EtomsDbContext>().UseSqlite(_conn).Options);
             _db.Database.EnsureCreated();
 
+            // AuthToken có khóa ngoại tới Account: tạo sẵn 2 tài khoản mà các test dùng (id 1 và 2).
+            foreach (var id in new[] { 1, 2 })
+            {
+                _db.Accounts.Add(new Account
+                {
+                    AccountId = id,
+                    Email = $"user{id}@test.local",
+                    FullName = $"User {id}",
+                    Role = "PLAYER",
+                    Status = "ACTIVE",
+                    OrganizerRequestStatus = "NONE",
+                    CreatedAt = DateTime.UtcNow,
+                });
+            }
+            _db.SaveChanges();
+
             _tokens = new TokenService(Options.Create(_opt));
             _sut = new RefreshTokenService(_db, _tokens, Options.Create(_opt));
         }
