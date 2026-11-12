@@ -1,5 +1,12 @@
 (function () {
-    var tournamentId = Number(new URLSearchParams(location.search).get('tournamentId'));
+    var query = new URLSearchParams(location.search);
+    var tournamentId = Number(query.get('tournamentId'));
+    var promotionLinkCode = query.get('ref')
+        || localStorage.getItem('etoms-affiliate-code:' + tournamentId);
+    if (promotionLinkCode) {
+        promotionLinkCode = promotionLinkCode.trim().toUpperCase();
+        localStorage.setItem('etoms-affiliate-code:' + tournamentId, promotionLinkCode);
+    }
     var options;
     var draftRegistrationId = Number(new URLSearchParams(location.search).get('draftRegistrationId')) || null;
     var flash = document.getElementById('registration-flash');
@@ -146,6 +153,7 @@
             body.append('lineupJson', JSON.stringify(lineup));
             body.append('saveAsDraft', isDraft ? 'true' : 'false');
             body.append('acceptRulebook', 'true');
+            if (promotionLinkCode) body.append('promotionLinkCode', promotionLinkCode);
             var amount = document.getElementById('payment-amount').value;
             if (amount) body.append('declaredAmount', amount);
             if (file && !isDraft) body.append('paymentProof', file);

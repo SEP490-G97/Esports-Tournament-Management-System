@@ -40,6 +40,7 @@ public sealed class TournamentRegistrationsController : ApiControllerBase
         [FromForm] string lineupJson,
         [FromForm] bool saveAsDraft,
         [FromForm] bool acceptRulebook,
+        [FromForm] string? promotionLinkCode,
         [FromForm] decimal? declaredAmount,
         [FromForm] IFormFile? paymentProof,
         CancellationToken cancellationToken)
@@ -68,7 +69,8 @@ public sealed class TournamentRegistrationsController : ApiControllerBase
                 TeamId = teamId,
                 Lineup = lineup,
                 SaveAsDraft = saveAsDraft,
-                AcceptRulebook = acceptRulebook
+                AcceptRulebook = acceptRulebook,
+                PromotionLinkCode = promotionLinkCode
             },
             paymentProof,
             declaredAmount,

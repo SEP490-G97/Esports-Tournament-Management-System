@@ -22,6 +22,9 @@ public sealed record CreateRegistrationRequest
     public bool SaveAsDraft { get; init; }
 
     public bool AcceptRulebook { get; init; }
+
+    [StringLength(20)]
+    public string? PromotionLinkCode { get; init; }
 }
 
 public sealed record ReviewRegistrationRequest
