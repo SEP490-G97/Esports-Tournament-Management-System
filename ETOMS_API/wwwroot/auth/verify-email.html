@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xác minh email | ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/auth-card.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="reg-card">
+            <div>
+                <div class="reg-brand">ETOMS System</div>
+                <h1 class="reg-title">Xác minh email</h1>
+            </div>
+
+            <p id="msg" class="form-msg" role="status">Đang xác minh...</p>
+
+            <form class="reg-form" id="resend-form" hidden novalidate>
+                <div class="reg-field">
+                    <label class="reg-label" for="email">Gửi lại liên kết xác minh</label>
+                    <div class="reg-box">
+                        <input class="reg-input no-icon" type="email" id="email" name="email" placeholder="name@example.com" autocomplete="email" maxlength="256" required>
+                    </div>
+                </div>
+                <button type="submit" id="resend" class="reg-submit">Gửi lại email xác minh</button>
+            </form>
+
+            <div class="reg-foot">
+                <a id="login-link" href="login.html" hidden>Đi tới trang đăng nhập</a>
+            </div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/auth-forms.js"></script>
+    <script src="/js/pages/verify-email.js"></script>
+</body>
+</html>
