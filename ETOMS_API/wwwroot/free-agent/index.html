@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>ETOMS - Chợ Tuyển Quân & Tìm Đội</title>
-    <!-- Trỏ đúng đường dẫn CSS gốc từ wwwroot/css/style.css -->
     <link rel="stylesheet" href="../css/site.css">
 </head>
 <body>
-    <!-- Thanh điều hướng chuẩn của hệ thống ETOMS -->
     <header class="etoms-nav">
         <div class="inner">
             <a class="brand" href="/">
@@ -40,10 +38,9 @@
 
         <div id="flash"></div>
 
-        <!-- Bố cục lưới 2 cột cho Form Đăng tin LFP và LFT -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-bottom: 34px;">
 
-            <!-- FA-01: Đăng LFP (Đội tìm người) -->
+            <!-- Form LFP đăng tin tuyển người -->
             <div class="card-etoms">
                 <div class="body">
                     <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: var(--cyan);">📢 [LFP] Đội Tuyển Tuyển Thành Viên</h3>
@@ -51,18 +48,23 @@
 
                     <form id="lfpForm">
                         <div class="field">
-                            <label>Mã Đội Tuyển (TeamId) <span class="req">*</span></label>
-                            <input type="number" id="lfpTeamId" class="input" value="1" required />
+                            <label>Chọn Đội Tuyển <span class="req">*</span></label>
+                            <select id="lfpTeamId" class="select" required>
+                                <option value="">-- Đang tải danh sách đội --</option>
+                            </select>
                             <span class="field-error" data-field-error="TeamId"></span>
                         </div>
                         <div class="field">
-                            <label>Tiêu đề tuyển dụng <span class="req">*</span></label>
-                            <input type="text" id="lfpTitle" class="input" placeholder="Ví dụ: Tuyển Mid cứng rank Cao Thủ" required />
-                            <span class="field-error" data-field-error="Title"></span>
+                            <label>Vị trí cần tuyển (RequiredRole) <span class="req">*</span></label>
+                            <input type="text" id="lfpRequiredRole" class="input" placeholder="Ví dụ: Mid, Đường trên, Rừng..." required />
                         </div>
                         <div class="field">
-                            <label>Nội dung chi tiết</label>
-                            <textarea id="lfpContent" class="input" rows="3" placeholder="Yêu cầu cụ thể về lịch tập, thái độ..."></textarea>
+                            <label>Rank yêu cầu (RequiredRank) <span class="req">*</span></label>
+                            <input type="text" id="lfpRequiredRank" class="input" placeholder="Ví dụ: Cao Thủ, Thách Đấu..." required />
+                        </div>
+                        <div class="field">
+                            <label>Mô tả chi tiết (Description)</label>
+                            <textarea id="lfpDescription" class="input" rows="2" placeholder="Yêu cầu cụ thể về thời gian luyện tập, thái độ..."></textarea>
                         </div>
                         <div class="btn-row">
                             <button type="submit" class="btn btn-primary">Đăng Tin LFP</button>
@@ -71,7 +73,7 @@
                 </div>
             </div>
 
-            <!-- FA-02: Đăng LFT (Người tìm đội) -->
+            <!-- Form LFT đăng tin tìm đội -->
             <div class="card-etoms">
                 <div class="body">
                     <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: var(--gold);">🔍 [LFT] Người Chơi Tìm Đội</h3>
@@ -79,18 +81,23 @@
 
                     <form id="lftForm">
                         <div class="field">
-                            <label>Mã Tựa Game (GameId) <span class="req">*</span></label>
-                            <input type="number" id="lftGameId" class="input" value="1" required />
+                            <label>Chọn Tựa Game <span class="req">*</span></label>
+                            <select id="lftGameId" class="select" required>
+                                <option value="">-- Đang tải danh sách game --</option>
+                            </select>
                             <span class="field-error" data-field-error="GameId"></span>
                         </div>
                         <div class="field">
-                            <label>Tiêu đề tìm đội <span class="req">*</span></label>
-                            <input type="text" id="lftTitle" class="input" placeholder="Ví dụ: Free Agent đi rừng tìm team đánh giải" required />
-                            <span class="field-error" data-field-error="Title"></span>
+                            <label>Vị trí sở trường (PreferredRole) <span class="req">*</span></label>
+                            <input type="text" id="lftPreferredRole" class="input" placeholder="Ví dụ: Đi Rừng, Đường Giữa..." required />
                         </div>
                         <div class="field">
-                            <label>Nội dung chi tiết</label>
-                            <textarea id="lftContent" class="input" rows="3" placeholder="Chia sẻ về vị trí sở trường, mức rank hiện tại..."></textarea>
+                            <label>Rank hiện tại (CurrentRank) <span class="req">*</span></label>
+                            <input type="text" id="lftCurrentRank" class="input" placeholder="Ví dụ: Đại Cao Thủ..." required />
+                        </div>
+                        <div class="field">
+                            <label>Mô tả bản thân (Description)</label>
+                            <textarea id="lftDescription" class="input" rows="2" placeholder="Chia sẻ kinh nghiệm thi đấu..."></textarea>
                         </div>
                         <div class="btn-row">
                             <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--cyan), var(--primary));">Đăng Tin LFT</button>
@@ -101,7 +108,7 @@
 
         </div>
 
-        <!-- FA-03: Bảng tin Tuyển quân (Board) -->
+        <!-- Bảng tin -->
         <div class="card-etoms">
             <div class="body">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
@@ -127,12 +134,10 @@
         </div>
     </main>
 
-    <!-- Script hệ thống -->
     <script src="../js/api.js"></script>
     <script src="../js/ui.js"></script>
     <script src="../js/pages/free-agent.js"></script>
     <script>
-        // Xử lý đổi theme sáng / tối đồng bộ
         document.getElementById('themeToggleBtn').addEventListener('click', function () {
             var html = document.documentElement;
             var current = html.getAttribute('data-theme');

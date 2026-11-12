@@ -1,9 +1,40 @@
 ﻿(function () {
-    // Tải danh sách bảng tin tuyển quân (FA-03)
+    // 1. Tải danh sách Đội tuyển & Game từ DB để đổ vào Dropdown
+    async function loadSelectOptions() {
+        try {
+            // Nạp Đội tuyển
+            var teamsRes = await Api.get('/api/Team/my-teams').catch(() => ({ data: [] }));
+            var teams = teamsRes.data || teamsRes || [];
+            var teamSelect = document.getElementById('lfpTeamId');
+            if (teamSelect) {
+                if (teams.length > 0) {
+                    teamSelect.innerHTML = teams.map(t => `<option value="${t.teamId}">${Ui.escapeHtml(t.name)} [${Ui.escapeHtml(t.tag)}]</option>`).join('');
+                } else {
+                    teamSelect.innerHTML = '<option value="1">Đội mặc định (ID: 1)</option>';
+                }
+            }
+
+            // Nạp Tựa game
+            var gamesRes = await Api.get('/api/Game').catch(() => ({ data: [] }));
+            var games = gamesRes.data || gamesRes || [];
+            var gameSelect = document.getElementById('lftGameId');
+            if (gameSelect) {
+                if (games.length > 0) {
+                    gameSelect.innerHTML = games.map(g => `<option value="${g.gameId}">${Ui.escapeHtml(g.title)}</option>`).join('');
+                } else {
+                    gameSelect.innerHTML = '<option value="1">Game mặc định (ID: 1)</option>';
+                }
+            }
+        } catch (e) {
+            console.warn('Lỗi nạp danh sách dropdown:', e);
+        }
+    }
+
+    // 2. Tải bảng tin hiển thị Tên Đội & Tên Game thật
     async function loadBoard() {
         var container = document.getElementById('boardContainer');
         var type = document.getElementById('filterType').value;
-        container.innerHTML = '<div class="empty"><h3>Đang tải...</h3></div>';
+        container.innerHTML = '<div class="empty"><h3>Đang tải dữ liệu từ cơ sở dữ liệu...</h3></div>';
 
         try {
             var res = await Api.get('/api/Recruitment/board?PostType=' + type + '&PageIndex=1&PageSize=10');
@@ -17,16 +48,23 @@
             var html = '<div style="display: grid; gap: 14px;">';
             items.forEach(function (item) {
                 var badgeClass = item.postType === 'LFP' ? 'badge-active' : 'badge-gold';
+                var targetInfo = item.teamName
+                    ? `🛡️ Đội tuyển: <b>${Ui.escapeHtml(item.teamName)}</b>`
+                    : `🎮 Tựa game: <b>${Ui.escapeHtml(item.gameTitle || 'Chung')}</b>`;
+
                 html += '<div style="background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">';
                 html += '<div style="flex: 1; min-width: 260px;">';
+                html += '<div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">';
                 html += '<span class="badge ' + badgeClass + '">' + Ui.escapeHtml(item.postType) + '</span>';
-                html += '<h4 style="color: var(--ink); margin: 8px 0 4px; font-size: 1.05rem; font-weight: 700;">' + Ui.escapeHtml(item.title) + '</h4>';
-                html += '<p style="color: var(--muted); font-size: 0.9rem; margin: 0 0 8px;">' + Ui.escapeHtml(item.content) + '</p>';
-                html += '<small style="color: var(--muted-2); font-size: 0.8rem;">Tác giả: ' + Ui.escapeHtml(item.authorName) + (item.teamName ? ' · Đội tuyển: ' + Ui.escapeHtml(item.teamName) : '') + '</small>';
+                html += '<span style="font-size: 0.82rem; color: var(--cyan);">' + targetInfo + '</span>';
+                html += '</div>';
+                html += '<h4 style="color: var(--ink); margin: 4px 0; font-size: 1.1rem; font-weight: 700;">' + Ui.escapeHtml(item.title) + '</h4>';
+                html += '<p style="color: var(--muted); font-size: 0.9rem; margin: 6px 0; white-space: pre-line;">' + Ui.escapeHtml(item.content) + '</p>';
+                html += '<small style="color: var(--muted-2); font-size: 0.8rem;">✍️ Tác giả: ' + Ui.escapeHtml(item.authorName) + '</small>';
                 html += '</div>';
 
                 if (item.postType === 'LFP') {
-                    html += '<button onclick="applyPost(' + item.postId + ')" class="btn btn-primary" style="padding: 9px 16px; font-size: 0.85rem;">Ứng tuyển</button>';
+                    html += '<button onclick="applyPost(' + item.postId + ')" class="btn btn-primary" style="padding: 9px 16px; font-size: 0.85rem;">Ứng tuyển ngay</button>';
                 }
                 html += '</div>';
             });
@@ -37,7 +75,7 @@
         }
     }
 
-    // Hành động ứng tuyển (FA-04)
+    // 3. Ứng tuyển
     window.applyPost = async function (postId) {
         var msg = prompt('Nhập lời nhắn gửi đến Đội trưởng:');
         if (msg === null) return;
@@ -50,15 +88,16 @@
         }
     };
 
+    // Khởi chạy khi DOM đã sẵn sàng
     document.addEventListener('DOMContentLoaded', async function () {
-        // Kiểm tra xác thực hệ thống chung
         var user = await Ui.requireAuth();
         if (!user) return;
 
         Ui.consumeFlash(document.getElementById('flash'));
-        loadBoard();
+        await loadSelectOptions();
+        await loadBoard();
 
-        // Xử lý sự kiện Submit Form LFP (FA-01)
+        // Submit Form LFP
         var lfpForm = document.getElementById('lfpForm');
         lfpForm.addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -66,8 +105,9 @@
 
             var payload = {
                 teamId: parseInt(document.getElementById('lfpTeamId').value, 10),
-                title: document.getElementById('lfpTitle').value,
-                content: document.getElementById('lfpContent').value
+                requiredRole: document.getElementById('lfpRequiredRole').value,
+                requiredRank: document.getElementById('lfpRequiredRank').value,
+                description: document.getElementById('lfpDescription').value
             };
 
             try {
@@ -76,11 +116,11 @@
                 location.reload();
             } catch (err) {
                 Ui.applyFieldErrors(lfpForm, err.fieldErrors);
-                alert(err.message || 'Có lỗi xảy ra khi tạo tin LFP.');
+                alert(err.message || 'Có lỗi xảy ra.');
             }
         });
 
-        // Xử lý sự kiện Submit Form LFT (FA-02)
+        // Submit Form LFT
         var lftForm = document.getElementById('lftForm');
         lftForm.addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -88,8 +128,9 @@
 
             var payload = {
                 gameId: parseInt(document.getElementById('lftGameId').value, 10),
-                title: document.getElementById('lftTitle').value,
-                content: document.getElementById('lftContent').value
+                preferredRole: document.getElementById('lftPreferredRole').value,
+                currentRank: document.getElementById('lftCurrentRank').value,
+                description: document.getElementById('lftDescription').value
             };
 
             try {
@@ -98,7 +139,7 @@
                 location.reload();
             } catch (err) {
                 Ui.applyFieldErrors(lftForm, err.fieldErrors);
-                alert(err.message || 'Có lỗi xảy ra khi tạo tin LFT.');
+                alert(err.message || 'Có lỗi xảy ra.');
             }
         });
     });

@@ -1,7 +1,6 @@
-﻿// Services/Impl/RecruitmentService.cs
-using ETOMS_API.DTOs.Recruitment;
+﻿using ETOMS_API.DTOs.Recruitment;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
+using ETOMS_API.Repositories; // Thư mục chứa EtomsDbContext
 using ETOMS_API.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,18 +26,15 @@ namespace ETOMS_API.Services.Impl
             if (team == null)
                 throw new KeyNotFoundException("Không tìm thấy thông tin đội tuyển.");
 
-            // 1. Kiểm tra Đội trưởng
             if (team.CaptainAccountId != accountId)
                 throw new UnauthorizedAccessException("Chỉ có Đội trưởng mới được đăng tin tuyển người.");
 
-            // 2. Kiểm tra Roster đã đầy chưa
             int activeMembersCount = team.TeamMembers.Count(tm => tm.Status == "ACTIVE");
             int maxRoster = team.Game.MaxStarters + team.Game.MaxSubstitutes;
 
             if (activeMembersCount >= maxRoster)
                 throw new InvalidOperationException("Đội đã đủ Roster (chính thức & dự bị), không thể đăng tin tuyển thêm.");
 
-            // 3. Tạo bài đăng LFP
             var post = new RecruitmentPost
             {
                 PostType = "LFP",
@@ -59,13 +55,11 @@ namespace ETOMS_API.Services.Impl
         // FA-02: Đăng tin tìm đội (LFT)
         public async Task<int> CreateLFTPostAsync(int accountId, CreateLFTPostDto dto)
         {
-            // 1. Kiểm tra Credential game của Player
             var hasCredential = await _context.PlayerCredentials
                 .AnyAsync(pc => pc.AccountId == accountId && pc.GameId == dto.GameId);
             if (!hasCredential)
                 throw new InvalidOperationException("Bạn chưa cập nhật thông tin In-game (IGN) cho Game này.");
 
-            // 2. Đóng bài đăng LFT cũ nếu có
             var oldPosts = await _context.RecruitmentPosts
                 .Where(p => p.AuthorAccountId == accountId && p.PostType == "LFT" && p.GameId == dto.GameId && p.Status == "OPEN")
                 .ToListAsync();
@@ -75,7 +69,6 @@ namespace ETOMS_API.Services.Impl
                 oldPost.Status = "EXPIRED";
             }
 
-            // 3. Tạo bài LFT mới
             var post = new RecruitmentPost
             {
                 PostType = "LFT",
@@ -92,12 +85,13 @@ namespace ETOMS_API.Services.Impl
             return post.RecruitmentPostId;
         }
 
-        // FA-03: Bảng tin Tuyển quân (Team Finder Board)
+        // FA-03: Bảng tin Tuyển quân - Join trực tiếp bảng Game & Team lấy Tên thật
         public async Task<object> GetRecruitmentBoardAsync(RecruitmentBoardQueryDto query)
         {
             var postsQuery = _context.RecruitmentPosts
                 .Include(p => p.AuthorAccount)
                 .Include(p => p.Team)
+                .Include(p => p.Game) // Join thêm bảng Game
                 .Where(p => p.Status == "OPEN" && p.PostType == query.PostType)
                 .AsQueryable();
 
@@ -127,6 +121,8 @@ namespace ETOMS_API.Services.Impl
                     TeamName = p.Team != null ? p.Team.Name : null,
                     TeamTag = p.Team != null ? p.Team.Tag : null,
                     TeamLogo = p.Team != null ? p.Team.LogoUrl : null,
+                    // Lấy Tên Game trực tiếp từ DB
+                    GameTitle = p.Game != null ? p.Game.Title : (p.Team != null && p.Team.Game != null ? p.Team.Game.Title : "Esports chung"),
                     p.CreatedAt
                 })
                 .ToListAsync();
@@ -144,19 +140,16 @@ namespace ETOMS_API.Services.Impl
             if (post == null || !post.TeamId.HasValue)
                 throw new KeyNotFoundException("Bài đăng tuyển không tồn tại hoặc đã đóng.");
 
-            // Check xem Player đã ở trong một đội tuyển ACTIVE khác của cùng Game này chưa
             var inAnotherTeam = await _context.TeamMembers
                 .AnyAsync(tm => tm.AccountId == accountId && tm.Status == "ACTIVE" && tm.Team.GameId == post.Team.GameId);
             if (inAnotherTeam)
                 throw new InvalidOperationException("Bạn đã tham gia một đội tuyển khác của Game này.");
 
-            // Check xem đã nộp đơn xin gia nhập đội này chưa (qua bảng TeamMember ở trạng thái PENDING)
             var existingMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.TeamId == post.TeamId && tm.AccountId == accountId && tm.Status == "PENDING");
             if (existingMember)
                 throw new InvalidOperationException("Bạn đã nộp đơn ứng tuyển vào đội này và đang chờ duyệt.");
 
-            // Thêm bản ghi TeamMember trạng thái PENDING đại diện cho đơn xin nhập đội
             var pendingMember = new TeamMember
             {
                 TeamId = post.TeamId.Value,
@@ -172,17 +165,15 @@ namespace ETOMS_API.Services.Impl
             return true;
         }
 
-        // FA-05: Duyệt đơn ứng tuyển (Transaction-safe)
+        // FA-05: Duyệt đơn ứng tuyển
         public async Task<bool> ReviewApplicationAsync(int captainAccountId, int teamMemberId, ReviewApplicationDto dto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var member = await _context.TeamMembers
-                    .Include(m => m.Team)
-                        .ThenInclude(t => t.Game)
-                    .Include(m => m.Team)
-                        .ThenInclude(t => t.TeamMembers)
+                    .Include(m => m.Team).ThenInclude(t => t.Game)
+                    .Include(m => m.Team).ThenInclude(t => t.TeamMembers)
                     .FirstOrDefaultAsync(m => m.TeamMemberId == teamMemberId && m.Status == "PENDING");
 
                 if (member == null)
@@ -199,7 +190,6 @@ namespace ETOMS_API.Services.Impl
                     return true;
                 }
 
-                // Xếp loại Slot (STARTER hay SUBSTITUTE)
                 int currentStarters = member.Team.TeamMembers.Count(m => m.Status == "ACTIVE" && m.Slot == "STARTER");
                 int currentSubs = member.Team.TeamMembers.Count(m => m.Status == "ACTIVE" && m.Slot == "SUBSTITUTE");
 
@@ -216,7 +206,6 @@ namespace ETOMS_API.Services.Impl
                 member.Status = "ACTIVE";
                 member.Slot = assignedSlot;
 
-                // Nếu Roster max -> Hủy các đơn PENDING khác & Đóng các LFP Posts của đội
                 int totalActiveAfterAdd = currentStarters + currentSubs + 1;
                 int maxTotalRoster = member.Team.Game.MaxStarters + member.Team.Game.MaxSubstitutes;
 

@@ -8,7 +8,6 @@ namespace ETOMS_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
     public class RecruitmentController : ControllerBase
     {
         private readonly IRecruitmentService _recruitmentService;
@@ -23,7 +22,6 @@ namespace ETOMS_API.Controllers
             return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         }
 
-        // FA-01: Đăng tin tuyển thành viên
         [HttpPost("lfp")]
         public async Task<IActionResult> CreateLFP([FromBody] CreateLFPPostDto dto)
         {
@@ -38,7 +36,6 @@ namespace ETOMS_API.Controllers
             }
         }
 
-        // FA-02: Đăng tin tìm đội
         [HttpPost("lft")]
         public async Task<IActionResult> CreateLFT([FromBody] CreateLFTPostDto dto)
         {
@@ -53,7 +50,6 @@ namespace ETOMS_API.Controllers
             }
         }
 
-        // FA-03: Bảng tin Tuyển quân (Công khai)
         [HttpGet("board")]
         [AllowAnonymous]
         public async Task<IActionResult> GetBoard([FromQuery] RecruitmentBoardQueryDto query)
@@ -62,7 +58,6 @@ namespace ETOMS_API.Controllers
             return Ok(result);
         }
 
-        // FA-04: Nộp đơn ứng tuyển
         [HttpPost("apply")]
         public async Task<IActionResult> Apply([FromBody] ApplyLFPPostDto dto)
         {
@@ -77,7 +72,6 @@ namespace ETOMS_API.Controllers
             }
         }
 
-        // FA-05: Duyệt đơn ứng tuyển
         [HttpPost("applications/{requestId}/review")]
         public async Task<IActionResult> ReviewApplication(int requestId, [FromBody] ReviewApplicationDto dto)
         {
@@ -92,7 +86,6 @@ namespace ETOMS_API.Controllers
             }
         }
 
-        // FA-06: Mời trực tiếp Free Agent
         [HttpPost("invite")]
         public async Task<IActionResult> InvitePlayer([FromBody] InviteFreeAgentDto dto)
         {

@@ -1,5 +1,4 @@
-﻿// DTOs/TournamentSetupDTOs.cs
-namespace ETOMS_API.DTOs.TournamentSetup
+﻿namespace ETOMS_API.DTOs.TournamentSetup
 {
     public class Step1GeneralInfoDto
     {
@@ -10,6 +9,14 @@ namespace ETOMS_API.DTOs.TournamentSetup
         public string Location { get; set; } = string.Empty;
         public string ContactInfo { get; set; } = string.Empty;
         public int GameId { get; set; }
+
+        // TOUR-03: Cấu hình Thể thức (Single, Double, Round Robin, Hybrid)
+        public string Format { get; set; } = "SINGLE_ELIMINATION"; // SINGLE_ELIMINATION, DOUBLE_ELIMINATION, ROUND_ROBIN, HYBRID
+        public bool HasThirdPlaceMatch { get; set; } = true;
+
+        // TOUR-04: Cấu hình Nhiều giai đoạn (Hybrid Stage Config)
+        public int? GroupCount { get; set; } // Số bảng đấu ở Giai đoạn 1 (Vòng tròn)
+        public int? AdvancingPerGroup { get; set; } // Số đội lấy đi tiếp mỗi bảng vào Giai đoạn 2 (Knockout)
     }
 
     public class Step2TimelineDto
