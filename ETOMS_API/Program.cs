@@ -135,6 +135,26 @@ builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddScoped<IRecruitmentService, RecruitmentService>();
 builder.Services.AddScoped<ITournamentSetupService, TournamentSetupService>();
+builder.Services.AddScoped<IRulebookService, RulebookService>();
+builder.Services.AddScoped<ITournamentPublishService, TournamentPublishService>();
+builder.Services.AddScoped<ITournamentDashboardService, TournamentDashboardService>();
+builder.Services.AddScoped<IRefereeAssignmentService, RefereeAssignmentService>();
+builder.Services.AddScoped<ITournamentCloneService, TournamentCloneService>();
+builder.Services.AddScoped<IGameRuleService, GameRuleService>();
+builder.Services.AddScoped<IGameMapService, GameMapService>();
+builder.Services.AddScoped<IGamePositionService, GamePositionService>();
+builder.Services.AddScoped<ILineupPositionService, LineupPositionService>();
+builder.Services.AddScoped<ITournamentRulesetService, TournamentRulesetService>();
+builder.Services.AddScoped<IMatchPickBanService, MatchPickBanService>();
+builder.Services.AddScoped<IStageTransitionService, StageTransitionService>();
+builder.Services.AddHostedService<StageTransitionWorker>();
+builder.Services.AddScoped<IThirdPlaceService, ThirdPlaceService>();
+builder.Services.AddHostedService<ThirdPlaceWorker>();
+builder.Services.AddScoped<IMatchScheduleService, MatchScheduleService>();
+builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
+builder.Services.AddScoped<IBracketViewService, BracketViewService>();
+builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
+builder.Services.AddScoped<ITournamentCancelService, TournamentCancelService>();
 
 var app = builder.Build();
 

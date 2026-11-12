@@ -1,5 +1,7 @@
 namespace ETOMS_API.Utils;
 
+// Bọc kết quả trả về của Service: thành công/thất bại + thông báo (tiếng Việt) + mã HTTP + lỗi theo field.
+// Gộp từ các nhánh: hỗ trợ cả Result.Success(data) và Result<T>.Success(data).
 public class Result
 {
     protected Result(bool isSuccess, string message, int statusCode, IReadOnlyDictionary<string, string[]>? fieldErrors)
@@ -41,6 +43,11 @@ public sealed class Result<T> : Result
     }
 
     public T? Data { get; }
+
+    // Cách gọi Result<T>.Success(data) (nhánh Khanh/Dũng). Mặc định message rỗng như bản gốc của nhánh đó;
+    // cách gọi Result.Success(data) ở lớp cha vẫn giữ mặc định "Thao tác thành công." như cũ.
+    public static Result<T> Success(T data, string message = "")
+        => new(data, true, message, StatusCodes.Status200OK, null);
 
     public new static Result<T> Failure(
         string message,

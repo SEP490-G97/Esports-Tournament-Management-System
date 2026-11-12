@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bộ luật thi đấu · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Quản trị · Luật thi đấu</div>
+            <h1>Bộ luật thi đấu theo tựa game</h1>
+            <p>Mỗi tựa game có thể có nhiều bộ luật, ví dụ Draft Pick và Blind Pick. Ban tổ chức chọn một bộ luật khi tạo giải; giải đã chọn giữ số người của riêng giải.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="rules-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+
+        <div class="card-etoms form-narrow" id="rule-card" hidden style="margin-top:18px">
+            <div class="body">
+                <div class="section-title" style="margin-top:0" id="rule-title">Bộ luật</div>
+                <div class="pending-banner" id="rule-warning" hidden style="margin-top:12px"></div>
+                <form id="rule-form" novalidate style="margin-top:14px">
+                    <div class="field">
+                        <label for="Name">Tên bộ luật <span class="req">*</span></label>
+                        <input id="Name" class="input" maxlength="100" placeholder="Ví dụ: Draft Pick" />
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-4 field">
+                            <label for="MinStarters">Chính thức tối thiểu <span class="req">*</span></label>
+                            <input id="MinStarters" type="number" min="1" max="100" class="input" />
+                            <span class="field-error" data-field-error="MinStarters"></span>
+                        </div>
+                        <div class="col-12 col-sm-4 field">
+                            <label for="MaxStarters">Chính thức tối đa <span class="req">*</span></label>
+                            <input id="MaxStarters" type="number" min="1" max="100" class="input" />
+                            <span class="field-error" data-field-error="MaxStarters"></span>
+                        </div>
+                        <div class="col-12 col-sm-4 field">
+                            <label for="MaxSubstitutes">Dự bị tối đa <span class="req">*</span></label>
+                            <input id="MaxSubstitutes" type="number" min="0" max="100" class="input" />
+                            <span class="field-error" data-field-error="MaxSubstitutes"></span>
+                        </div>
+                    </div>
+                    <div class="hint" style="margin:-8px 0 16px">Đặt chính thức là 1 và dự bị là 0 cho game đối kháng đơn.</div>
+                    <div class="field">
+                        <label for="DefaultFormat">Thể thức mặc định <span class="req">*</span></label>
+                        <select id="DefaultFormat" class="select">
+                            <option value="SINGLE_ELIMINATION">Loại trực tiếp</option>
+                            <option value="DOUBLE_ELIMINATION">Loại kép</option>
+                            <option value="ROUND_ROBIN">Vòng tròn</option>
+                            <option value="HYBRID">Vòng bảng rồi loại trực tiếp</option>
+                        </select>
+                        <span class="field-error" data-field-error="DefaultFormat"></span>
+                    </div>
+                    <div class="field">
+                        <label for="AllowedEvidenceTypes">Định dạng file minh chứng và replay <span class="req">*</span></label>
+                        <input id="AllowedEvidenceTypes" class="input" maxlength="200" placeholder="png,jpg,mp4,rofl" />
+                        <div class="hint">Các đuôi file cách nhau bằng dấu phẩy.</div>
+                        <span class="field-error" data-field-error="AllowedEvidenceTypes"></span>
+                    </div>
+                    <div class="field">
+                        <label for="MaxEvidenceFileSizeMb">Dung lượng file tối đa (MB) <span class="req">*</span></label>
+                        <input id="MaxEvidenceFileSizeMb" type="number" min="1" max="100" class="input" />
+                        <span class="field-error" data-field-error="MaxEvidenceFileSizeMb"></span>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" id="save-rule">Lưu bộ luật</button>
+                        <button type="button" class="btn btn-ghost" id="cancel-rule">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card-etoms" id="map-card" hidden style="margin-top:18px">
+            <div class="body">
+                <div class="section-title" style="margin-top:0" id="map-title">Kho bản đồ</div>
+                <p class="hint" style="margin:6px 0 16px">Bản đồ không xóa được, chỉ chuyển sang "Đã loại" để giữ lịch sử các trận đã đấu.</p>
+                <div id="map-list"></div>
+                <form id="map-form" novalidate style="margin-top:18px">
+                    <div class="section-title" style="margin:0 0 12px;font-size:1rem" id="map-form-title">Thêm bản đồ</div>
+                    <div class="field">
+                        <label for="MapName">Tên bản đồ <span class="req">*</span></label>
+                        <input id="MapName" class="input" maxlength="100" placeholder="Ví dụ: Ascent" />
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+                    <div class="field">
+                        <label for="MapImage">Ảnh bản đồ</label>
+                        <input id="MapImage" type="file" class="input" accept=".jpg,.jpeg,.png,.webp" />
+                        <div class="hint">JPG, PNG hoặc WEBP, tối đa 2MB. Khi sửa, để trống thì giữ ảnh cũ.</div>
+                        <span class="field-error" data-field-error="Image"></span>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" id="save-map">Thêm bản đồ</button>
+                        <button type="button" class="btn btn-ghost" id="reset-map" hidden>Hủy sửa</button>
+                        <button type="button" class="btn btn-ghost" id="close-maps">Đóng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card-etoms form-narrow" id="position-card" hidden style="margin-top:18px">
+            <div class="body">
+                <div class="section-title" style="margin-top:0" id="position-title">Vị trí trong đội</div>
+                <p class="hint" style="margin:6px 0 16px">Đội trưởng chọn vị trí cho từng người khi khai đội hình, theo đúng thứ tự dưới đây. Vị trí không xóa được, chỉ chuyển sang "Đã loại".</p>
+                <div id="position-list"></div>
+                <form id="position-form" novalidate style="margin-top:18px">
+                    <div class="field">
+                        <label for="PositionName" id="position-form-title">Thêm vị trí</label>
+                        <input id="PositionName" class="input" maxlength="50" placeholder="Ví dụ: Đi rừng" />
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" id="save-position">Thêm vị trí</button>
+                        <button type="button" class="btn btn-ghost" id="reset-position" hidden>Hủy sửa</button>
+                        <button type="button" class="btn btn-ghost" id="close-positions">Đóng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/admin-game-maps.js" defer></script>
+    <script src="/js/pages/admin-game-positions.js" defer></script>
+    <script src="/js/pages/admin-game-rules.js" defer></script>
+</body>
+</html>

@@ -56,13 +56,39 @@ var Ui = (function () {
         return isNaN(n) ? null : n;
     }
 
+    // Bắt buộc đăng nhập. Giữ cả 2 nguồn để nhóm test song song:
+    //   1. Đăng nhập thật bằng JWT (AUTH-02) nếu trang có nạp auth.js và đã đăng nhập.
+    //   2. Đăng nhập thử /dev-auth (session, chỉ Development).
+    // Chưa đăng nhập thì chuyển sang trang đăng nhập kèm returnUrl và trả về null.
+    // roles (tùy chọn): chỉ cho phép các vai trò này, sai vai trò thì về trang chủ.
+    // Kết quả luôn có: isAuthenticated, userId, accountId, displayName, fullName, role.
     async function requireAuth(roles) {
-        var me = await Auth.requireAuth(roles);
-        if (!me) return null;
-
-        me.isAuthenticated = true;
-        me.accountId = me.id;
-        me.fullName = me.name;
+        var hasJwt = !!(window.Auth && typeof Auth.tryGetMe === 'function');
+        var me = null;
+        if (hasJwt) {
+            var jwtMe = await Auth.tryGetMe();
+            if (jwtMe) {
+                me = jwtMe;
+                me.isAuthenticated = true;
+                me.userId = me.accountId = me.id;
+                me.displayName = me.fullName = me.name;
+            }
+        }
+        if (!me) {
+            try { me = await Api.get('/api/dev-auth/me'); } catch (e) { me = null; }
+            if (me && me.isAuthenticated) {
+                me.accountId = me.userId;
+                me.fullName = me.displayName;
+            } else {
+                me = null;
+            }
+        }
+        if (!me) {
+            var returnUrl = encodeURIComponent(location.pathname + location.search);
+            location.href = (hasJwt ? '/auth/login.html' : '/dev-auth/index.html') + '?returnUrl=' + returnUrl;
+            return null;
+        }
+        if (roles && roles.length && roles.indexOf(me.role) < 0) { location.href = '/'; return null; }
         return me;
     }
 

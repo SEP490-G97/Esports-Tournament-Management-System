@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chuyển sang knockout · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <style>
+        .standing-wrap { overflow-x: auto; }
+        .standing { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 520px; }
+        .standing th, .standing td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); text-align: center; }
+        .standing th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; }
+        .standing td.team, .standing th.team { text-align: left; }
+        .standing tr.qualified td { background: var(--success-bg); }
+        .tie-order li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; }
+    </style>
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Giải đấu · Chuyển giai đoạn</div>
+            <h1 id="page-title">Chuyển từ vòng bảng sang knockout</h1>
+            <p id="page-sub">Khi mọi trận vòng bảng đã có kết quả, hệ thống lấy các đội đi tiếp mỗi bảng, xếp chéo và tạo nhánh knockout.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="transition-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-stage-transition.js" defer></script>
+</body>
+</html>

@@ -16,7 +16,11 @@ var Api = (function () {
 
         var res;
         try {
-            res = await fetch(url, opts);
+            // Đã đăng nhập thật (JWT, AUTH-02) thì đi qua Auth.apiFetch để gửi kèm token và tự refresh;
+            // còn lại (khách, đăng nhập thử /dev-auth) gọi fetch như cũ.
+            res = (window.Auth && Auth.getAccessToken && Auth.getAccessToken())
+                ? await Auth.apiFetch(url, opts)
+                : await fetch(url, opts);
         } catch (e) {
             throw { status: 0, message: 'Không kết nối được máy chủ. Vui lòng thử lại.', fieldErrors: {} };
         }
@@ -46,5 +50,3 @@ var Api = (function () {
         del: function (url, body) { return request('DELETE', url, body, false); }
     };
 })();
-
-res = await Auth.apiFetch(url, opts);
