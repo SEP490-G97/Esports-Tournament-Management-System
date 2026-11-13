@@ -12,7 +12,8 @@
         SamePassword,
         NoPassword,
         AccountNotFound,
-        AccountBanned
+        AccountBanned,
+        UnderAge
     }
 
     public record SecurityResult(SecurityError Error)

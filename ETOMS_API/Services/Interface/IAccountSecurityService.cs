@@ -4,7 +4,7 @@ namespace ETOMS_API.Services.Interface
 {
     public interface IAccountSecurityService
     {
-        Task<SecurityResult> RegisterAsync(string email, string password, string fullName, CancellationToken ct = default);
+        Task<SecurityResult> RegisterAsync(string email, string password, string fullName, DateOnly dateOfBirth, CancellationToken ct = default);
         Task<SecurityResult> VerifyEmailAsync(string token, CancellationToken ct = default);
         Task ResendVerificationAsync(string email, CancellationToken ct = default);
         Task ForgotPasswordAsync(string email, CancellationToken ct = default);

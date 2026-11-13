@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace ETOMS_API.Controllers
 {
 
-    public record RegisterRequest(string Email, string Password, string FullName);
+    public record RegisterRequest(string Email, string Password, string FullName, DateOnly DateOfBirth);
     public record EmailRequest(string Email);
     public record TokenRequest(string Token);
     public record ResetPasswordRequest(string Token, string NewPassword);
@@ -23,7 +23,7 @@ namespace ETOMS_API.Controllers
         [EnableRateLimiting("mail")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
         {
-            var r = await _svc.RegisterAsync(req.Email, req.Password, req.FullName, ct);
+            var r = await _svc.RegisterAsync(req.Email, req.Password, req.FullName, req.DateOfBirth, ct);
             return r.Ok
                 ? StatusCode(201, new { message = "Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản." })
                 : Map(r.Error);
@@ -90,6 +90,7 @@ namespace ETOMS_API.Controllers
             SecurityError.SamePassword => BadRequest(new { code = "SAME_PASSWORD", message = "Mật khẩu mới phải khác mật khẩu hiện tại." }),
             SecurityError.NoPassword => BadRequest(new { code = "NO_PASSWORD", message = "Tài khoản này chưa có mật khẩu (đăng nhập bằng Google). Hãy dùng chức năng Quên mật khẩu để tạo mật khẩu." }),
             SecurityError.AccountBanned => StatusCode(403, new { code = "ACCOUNT_BANNED", message = "Tài khoản đã bị khóa." }),
+            SecurityError.UnderAge => BadRequest(new { code = "UNDER_AGE", message = "Bạn phải đủ 18 tuổi trở lên mới được tạo tài khoản." }),
             _ => Unauthorized()
         };
     }

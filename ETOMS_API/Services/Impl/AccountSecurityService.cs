@@ -39,7 +39,7 @@ namespace ETOMS_API.Services.Impl
 
 
         // ---------- AUTH-01 ----------
-        public async Task<SecurityResult> RegisterAsync(string email, string password, string fullName, CancellationToken ct = default)
+        public async Task<SecurityResult> RegisterAsync(string email, string password, string fullName, DateOnly dateOfBirth, CancellationToken ct = default)
         {
             email = (email ?? "").Trim();
             fullName = (fullName ?? "").Trim();
@@ -47,6 +47,12 @@ namespace ETOMS_API.Services.Impl
             if (!PasswordPolicy.IsValidEmail(email)) return SecurityResult.Fail(SecurityError.InvalidEmail);
             if (fullName.Length is < 2 or > 100) return SecurityResult.Fail(SecurityError.InvalidName);
             if (!PasswordPolicy.IsStrong(password)) return SecurityResult.Fail(SecurityError.WeakPassword);
+
+            // Bắt buộc đủ 18 tuổi mới được tạo tài khoản.
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var age = today.Year - dateOfBirth.Year;
+            if (dateOfBirth.AddYears(age) > today) age--;
+            if (age < 18) return SecurityResult.Fail(SecurityError.UnderAge);
 
             // Collation _ci nên so sánh trực tiếp là không phân biệt hoa thường.
             if (await _db.Accounts.AnyAsync(a => a.Email == email, ct))
@@ -57,6 +63,7 @@ namespace ETOMS_API.Services.Impl
                 Email = email,
                 PasswordHash = _passwords.Hash(password),
                 FullName = fullName,
+                DateOfBirth = dateOfBirth,
                 Role = AccountRoles.Player,
                 Status = AccountStatuses.PendingVerify
             };
