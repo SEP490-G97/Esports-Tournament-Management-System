@@ -125,13 +125,8 @@
         var box = document.getElementById('nav-user-myteam');
         if (!box) return;
         try {
-            var team;
-            if (me && me.source === 'jwt') {
-                var res = await Auth.apiFetch('/api/teams/mine');
-                team = res.ok ? await res.json() : null;
-            } else {
-                team = await Api.get('/api/teams/mine');
-            }
+            // Api.get tự gửi kèm JWT khi đã đăng nhập thật, và dùng chung kết quả với trang nếu trang cũng hỏi.
+            var team = await Api.get('/api/teams/mine');
             if (team && team.teamId) {
                 box.innerHTML = 'Đội của tôi: <a href="/team/details.html?id=' + team.teamId + '">' +
                     Ui.escapeHtml(team.name) + '</a>';

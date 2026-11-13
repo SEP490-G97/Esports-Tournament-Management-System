@@ -132,7 +132,10 @@ builder.Services.AddSession(options =>
 // hoặc biến môi trường ETOMS_DB_CONNECTION (KHÔNG commit).
 // Đúng theo Report 4 (Software Design Specification): Controller → Service → IUnitOfWork
 // (phát GenericRepository<T> theo entity, dùng chung 1 EtomsDbContext/request) → DB.
-builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
+// Giữ 1 kết nối cho cả request thay vì mở/đóng quanh từng câu SQL (xem KeepConnectionOpenInterceptor).
+builder.Services.AddDbContext<EtomsDbContext>(options => options
+    .UseMySQL(mysqlConnectionString)
+    .AddInterceptors(new KeepConnectionOpenInterceptor()));
 
 // Dò cột RegistrationLineup.GamePositionID (GRL-04) trước khi EF dựng model; xem Repositories/PendingSchema.cs.
 PendingSchema.Detect(mysqlConnectionString);

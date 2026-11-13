@@ -316,11 +316,8 @@ public sealed class OrganizationService : IOrganizationService
             .OrderBy(item => item.Name)
             .ToListAsync(cancellationToken);
 
-        var responses = new List<PublicOrganizationResponse>(organizations.Count);
-        foreach (var organization in organizations)
-        {
-            responses.Add(await ToPublicResponseAsync(organization, cancellationToken));
-        }
+        var stats = await LoadOrganizationStatsAsync(organizations.Select(item => item.OrganizationId).ToArray(), cancellationToken);
+        var responses = organizations.Select(organization => ToPublicResponse(organization, stats)).ToList();
 
         return Result.Success<IReadOnlyList<PublicOrganizationResponse>>(responses);
     }
@@ -328,21 +325,10 @@ public sealed class OrganizationService : IOrganizationService
     private async Task<PublicOrganizationResponse> ToPublicResponseAsync(
         Organization organization,
         CancellationToken cancellationToken)
-    {
-        var tournaments = await _unitOfWork.Repository<Tournament>().Query()
-            .AsNoTracking()
-            .Where(item => item.OrganizationId == organization.OrganizationId && item.Status != "DRAFT")
-            .OrderByDescending(item => item.StartAt)
-            .Select(item => new OrganizationTournamentResponse(
-                item.TournamentId,
-                item.Name,
-                item.Status,
-                TournamentStatusLabel(item.Status),
-                item.StartAt))
-            .ToListAsync(cancellationToken);
-        var reputation = await CalculateReputationAsync(organization.OrganizationId, cancellationToken);
+        => ToPublicResponse(organization, await LoadOrganizationStatsAsync([organization.OrganizationId], cancellationToken));
 
-        return new PublicOrganizationResponse(
+    private static PublicOrganizationResponse ToPublicResponse(Organization organization, OrganizationStats stats)
+        => new(
             organization.OrganizationId,
             organization.Name,
             organization.OrganizationType,
@@ -353,9 +339,8 @@ public sealed class OrganizationService : IOrganizationService
             organization.WebsiteUrl,
             organization.LogoUrl,
             organization.Description,
-            tournaments,
-            reputation);
-    }
+            stats.TournamentsOf(organization.OrganizationId),
+            stats.ReputationOf(organization.OrganizationId));
 
     public async Task<Result<IReadOnlyList<OrganizationMemberResponse>>> GetMembersAsync(
         int organizationId,
@@ -568,53 +553,99 @@ public sealed class OrganizationService : IOrganizationService
             return Result.Failure<OrganizationReputationResponse>("Không tìm thấy đơn vị đang hoạt động.", StatusCodes.Status404NotFound);
         }
 
-        return Result.Success(await CalculateReputationAsync(organizationId, cancellationToken));
+        var stats = await LoadOrganizationStatsAsync([organizationId], cancellationToken);
+        return Result.Success(stats.ReputationOf(organizationId));
     }
 
-    private async Task<OrganizationReputationResponse> CalculateReputationAsync(
-        int organizationId,
+    // Số liệu giải + uy tín cho nhiều đơn vị cùng lúc: luôn 4 câu SQL dù có bao nhiêu đơn vị
+    // (trước đây mỗi đơn vị 7 câu → danh sách đơn vị bị N+1, rất chậm khi database ở xa).
+    private sealed record TournamentRow(int OrganizationId, int TournamentId, string Name, string Status, DateTime StartAt);
+    private sealed record DisputeRow(int OrganizationId, int MatchId, DateTime OpenedAt, DateTime? ResolvedAt);
+
+    private sealed class OrganizationStats(
+        IReadOnlyList<TournamentRow> tournaments,
+        IReadOnlyDictionary<int, int> matchCounts,
+        IReadOnlyList<DisputeRow> disputes,
+        IReadOnlyDictionary<int, int> refundCounts)
+    {
+        public IReadOnlyList<OrganizationTournamentResponse> TournamentsOf(int organizationId)
+            => tournaments
+                .Where(item => item.OrganizationId == organizationId && item.Status != "DRAFT")
+                .OrderByDescending(item => item.StartAt)
+                .Select(item => new OrganizationTournamentResponse(
+                    item.TournamentId,
+                    item.Name,
+                    item.Status,
+                    TournamentStatusLabel(item.Status),
+                    item.StartAt))
+                .ToList();
+
+        public OrganizationReputationResponse ReputationOf(int organizationId)
+        {
+            var own = tournaments.Where(item => item.OrganizationId == organizationId).ToList();
+            var totalTournaments = own.Count;
+            var completedTournaments = own.Count(item => item.Status == "COMPLETED");
+            var totalMatches = matchCounts.GetValueOrDefault(organizationId);
+            var ownDisputes = disputes.Where(item => item.OrganizationId == organizationId).ToList();
+            var disputedMatches = ownDisputes.Select(item => item.MatchId).Distinct().Count();
+            var resolvedDisputes = ownDisputes.Where(item => item.ResolvedAt != null).ToList();
+            var refundCount = refundCounts.GetValueOrDefault(organizationId);
+
+            var completionRate = totalTournaments == 0
+                ? 0
+                : decimal.Round(completedTournaments * 100m / totalTournaments, 2);
+            var disputeRate = totalMatches == 0
+                ? 0
+                : decimal.Round(disputedMatches * 100m / totalMatches, 2);
+            double? averageResolutionHours = resolvedDisputes.Count == 0
+                ? null
+                : resolvedDisputes.Average(item => (item.ResolvedAt!.Value - item.OpenedAt).TotalHours);
+
+            return new OrganizationReputationResponse(
+                organizationId,
+                completedTournaments,
+                totalTournaments,
+                completionRate,
+                disputedMatches,
+                totalMatches,
+                disputeRate,
+                averageResolutionHours,
+                refundCount);
+        }
+    }
+
+    private async Task<OrganizationStats> LoadOrganizationStatsAsync(
+        int[] organizationIds,
         CancellationToken cancellationToken)
     {
-        var tournaments = _unitOfWork.Repository<Tournament>().Query()
-            .Where(item => item.OrganizationId == organizationId);
-        var totalTournaments = await tournaments.CountAsync(cancellationToken);
-        var completedTournaments = await tournaments.CountAsync(item => item.Status == "COMPLETED", cancellationToken);
-        var totalMatches = await _unitOfWork.Repository<Match>().Query()
-            .CountAsync(item => item.Tournament.OrganizationId == organizationId, cancellationToken);
-        var disputedMatches = await _unitOfWork.Repository<Dispute>().Query()
-            .Where(item => item.Match.Tournament.OrganizationId == organizationId)
-            .Select(item => item.MatchId)
-            .Distinct()
-            .CountAsync(cancellationToken);
-        var resolvedDisputes = await _unitOfWork.Repository<Dispute>().Query()
-            .Where(item => item.Match.Tournament.OrganizationId == organizationId && item.ResolvedAt != null)
-            .Select(item => new { item.OpenedAt, item.ResolvedAt })
+        if (organizationIds.Length == 0)
+        {
+            return new OrganizationStats([], new Dictionary<int, int>(), [], new Dictionary<int, int>());
+        }
+
+        var tournaments = await _unitOfWork.Repository<Tournament>().Query()
+            .AsNoTracking()
+            .Where(item => item.OrganizationId != null && organizationIds.Contains(item.OrganizationId.Value))
+            .Select(item => new TournamentRow(item.OrganizationId!.Value, item.TournamentId, item.Name, item.Status, item.StartAt))
             .ToListAsync(cancellationToken);
-        var refundCount = await _unitOfWork.Repository<PaymentRecord>().Query()
-            .CountAsync(item => item.RecordKind == "REFUND"
-                && item.Registration.Tournament.OrganizationId == organizationId,
-                cancellationToken);
+        var matchCounts = await _unitOfWork.Repository<Match>().Query()
+            .Where(item => item.Tournament.OrganizationId != null && organizationIds.Contains(item.Tournament.OrganizationId.Value))
+            .GroupBy(item => item.Tournament.OrganizationId!.Value)
+            .Select(group => new { OrganizationId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.OrganizationId, item => item.Count, cancellationToken);
+        var disputes = await _unitOfWork.Repository<Dispute>().Query()
+            .Where(item => item.Match.Tournament.OrganizationId != null && organizationIds.Contains(item.Match.Tournament.OrganizationId.Value))
+            .Select(item => new DisputeRow(item.Match.Tournament.OrganizationId!.Value, item.MatchId, item.OpenedAt, item.ResolvedAt))
+            .ToListAsync(cancellationToken);
+        var refundCounts = await _unitOfWork.Repository<PaymentRecord>().Query()
+            .Where(item => item.RecordKind == "REFUND"
+                && item.Registration.Tournament.OrganizationId != null
+                && organizationIds.Contains(item.Registration.Tournament.OrganizationId.Value))
+            .GroupBy(item => item.Registration.Tournament.OrganizationId!.Value)
+            .Select(group => new { OrganizationId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.OrganizationId, item => item.Count, cancellationToken);
 
-        var completionRate = totalTournaments == 0
-            ? 0
-            : decimal.Round(completedTournaments * 100m / totalTournaments, 2);
-        var disputeRate = totalMatches == 0
-            ? 0
-            : decimal.Round(disputedMatches * 100m / totalMatches, 2);
-        double? averageResolutionHours = resolvedDisputes.Count == 0
-            ? null
-            : resolvedDisputes.Average(item => (item.ResolvedAt!.Value - item.OpenedAt).TotalHours);
-
-        return new OrganizationReputationResponse(
-            organizationId,
-            completedTournaments,
-            totalTournaments,
-            completionRate,
-            disputedMatches,
-            totalMatches,
-            disputeRate,
-            averageResolutionHours,
-            refundCount);
+        return new OrganizationStats(tournaments, matchCounts, disputes, refundCounts);
     }
 
     public async Task<Result> SuspendAsync(
