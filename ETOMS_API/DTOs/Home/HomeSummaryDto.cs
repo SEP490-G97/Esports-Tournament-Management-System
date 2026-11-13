@@ -49,6 +49,7 @@ public class FeaturedTournamentDto
     public int MaxTeams { get; set; }
     public string Status { get; set; } = string.Empty;
     public string StatusClass { get; set; } = "badge-soft";
+    public bool RegistrationOpen { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
 }
 

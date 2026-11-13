@@ -21,7 +21,7 @@ public partial class TournamentSponsor
 
     public int DisplayOrder { get; set; }
 
-    public bool? ShowWhenCancelled { get; set; }
+    public bool ShowWhenCancelled { get; set; }
 
     public int CreatedByAccountId { get; set; }
 

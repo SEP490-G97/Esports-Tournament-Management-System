@@ -97,7 +97,11 @@
                 '<div><span class="k">Số đội</span><span class="v">' + t.teams + '/' + t.maxTeams + '</span></div>' +
                 '</div>' +
                 '<div class="feat-bar"><span style="width:' + pct + '%"></span></div>' +
-                '</div></a></div>';
+                '</div></a>' +
+                '<div class="btn-row mt-2">' +
+                (t.registrationOpen ? '<a class="btn btn-primary" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>' : '') +
+                '<a class="btn btn-ghost" href="/registration/review.html?tournamentId=' + Number(t.tournamentId) + '">Quản lý đăng ký</a>' +
+                '</div></div>';
         });
         html += '</div>';
         root.innerHTML = html;

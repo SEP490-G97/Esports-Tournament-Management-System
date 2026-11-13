@@ -1,6 +1,7 @@
 using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,17 +16,21 @@ public class DevAuthApiController : ApiControllerBase
 {
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUser _currentUser;
+    private readonly IWebHostEnvironment _environment;
 
-    public DevAuthApiController(IUnitOfWork uow, ICurrentUser currentUser)
+    public DevAuthApiController(IUnitOfWork uow, ICurrentUser currentUser, IWebHostEnvironment environment)
     {
         _uow = uow;
         _currentUser = currentUser;
+        _environment = environment;
     }
 
     // GET /api/dev-auth/accounts — danh sách tài khoản demo để chọn đăng nhập.
     [HttpGet("accounts")]
     public async Task<IActionResult> GetAccounts()
     {
+        if (!_environment.IsDevelopment()) return NotFound();
+
         var users = await _uow.Repository<Account>().Query()
             .Where(u => u.Status == "ACTIVE")
             .OrderBy(u => u.AccountId)
@@ -38,6 +43,8 @@ public class DevAuthApiController : ApiControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] DevAuthLoginRequest body)
     {
+        if (!_environment.IsDevelopment()) return NotFound();
+
         var user = await _uow.Repository<Account>().GetByIdAsync(body.AccountId);
         if (user is null) return NotFound();
 
@@ -51,6 +58,8 @@ public class DevAuthApiController : ApiControllerBase
     [HttpPost("logout")]
     public IActionResult Logout()
     {
+        if (!_environment.IsDevelopment()) return NotFound();
+
         HttpContext.Session.Remove("DemoUserId");
         HttpContext.Session.Remove("DemoUserName");
         return Ok(new { message = "Đã đăng xuất." });
@@ -61,6 +70,8 @@ public class DevAuthApiController : ApiControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
+        if (!_environment.IsDevelopment()) return NotFound();
+
         string? role = null;
         if (_currentUser.IsAuthenticated)
         {

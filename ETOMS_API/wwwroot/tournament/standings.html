@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bảng xếp hạng vòng bảng · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <style>
+        .standing-wrap { overflow-x: auto; }
+        .standing { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 640px; }
+        .standing th, .standing td { padding: 9px 10px; border-bottom: 1px solid var(--border-soft); text-align: center; }
+        .standing th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+        .standing td.team, .standing th.team, .standing td.tb, .standing th.tb { text-align: left; }
+        .standing tr.in-zone td { background: var(--success-bg); }
+        .standing td.tb { color: var(--muted); font-size: .85rem; }
+        .group-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+        .group-tabs .btn[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .result-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+        .result-row .score { font-weight: 700; min-width: 56px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Giải đấu · Vòng bảng</div>
+            <h1 id="page-title">Bảng xếp hạng vòng bảng</h1>
+            <p id="page-sub">Thắng 3 điểm, thua 0 điểm. Bằng điểm thì xét tiêu chí phân định theo thứ tự Ban tổ chức đã công bố.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="standings-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/tournament-standings.js" defer></script>
+</body>
+</html>

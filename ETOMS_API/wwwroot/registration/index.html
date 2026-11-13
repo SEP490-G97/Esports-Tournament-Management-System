@@ -3,37 +3,51 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Đơn đăng ký của đội · ETOMS</title>
+    <title>Đăng ký giải · ETOMS</title>
     <script src="/js/theme-init.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
 </head>
 <body>
     <div id="site-header"></div>
-
     <main class="container-etoms">
-        <div class="page-head d-flex flex-wrap align-items-end justify-content-between gap-3">
-            <div>
-                <div class="eyebrow">Đăng ký giải · REG-04</div>
-                <h1>Đơn đăng ký của đội tôi</h1>
-                <p>Theo dõi trạng thái các đơn đã nộp cho đội bạn làm đội trưởng.</p>
+        <div class="registration-hub-head">
+            <div class="page-head">
+                <div class="eyebrow">Trung tâm đăng ký</div>
+                <h1>Quản lý đăng ký giải đấu</h1>
+                <p>Chọn lối đi phù hợp: theo dõi đơn của đội bạn hoặc tìm giải để đăng ký tham gia.</p>
             </div>
-            <a class="btn btn-primary" href="/registration/create.html">+ Nộp đơn đăng ký giải</a>
+            <a class="back-link" href="/">← Quay lại trang chủ</a>
         </div>
-
-        <div id="flash"></div>
-        <div id="reg-root"><div class="empty"><h3>Đang tải...</h3></div></div>
+        <div class="row g-3">
+            <div class="col-12 col-lg-6">
+                <section class="card-etoms registration-panel registration-hub-card h-100">
+                    <span class="registration-hub-icon" aria-hidden="true">01</span>
+                    <span class="profile-overline">Dành cho đội trưởng</span>
+                    <h2>Đơn của đội tôi</h2>
+                    <p class="muted-copy">Theo dõi lineup, thể lệ đã đồng ý, trạng thái duyệt và lệ phí của các đội bạn làm đội trưởng.</p>
+                    <a class="btn btn-primary" href="/registration/mine.html">Xem và quản lý đơn</a>
+                </section>
+            </div>
+            <div class="col-12 col-lg-6">
+                <section class="card-etoms registration-panel registration-hub-card registration-hub-card-primary h-100">
+                    <span class="registration-hub-icon" aria-hidden="true">02</span>
+                    <span class="profile-overline">Tìm cơ hội thi đấu</span>
+                    <h2>Khám phá giải đấu</h2>
+                    <p class="muted-copy">Xem các giải đang mở đăng ký trên trang chủ. Bạn sẽ chọn đội hình và xác nhận thể lệ trước khi gửi đơn.</p>
+                    <a class="btn btn-ghost" href="/">Tìm giải đang mở đăng ký</a>
+                </section>
+            </div>
+        </div>
+        <div class="dev-banner mt-4" role="note">
+            <strong>Môi trường thử nghiệm:</strong> demo-auth hiện chỉ hoạt động trong Development. Xác minh email thực tế và email thông báo cần module AUTH/SMTP của nhóm.
+        </div>
     </main>
-
-    <div id="confirm-modal-root"></div>
-
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/ui.js"></script>
     <script src="/js/layout.js"></script>
-    <script src="/js/pages/registration-index.js" defer></script>
 </body>
 </html>

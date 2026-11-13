@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đơn vị tổ chức · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <section class="org-page-hero">
+            <div>
+                <div class="eyebrow">Cộng đồng tổ chức giải đấu</div>
+                <h1>Tổ chức esports</h1>
+                <p>Khám phá các tổ chức và câu lạc bộ đang hoạt động, hoặc tạo hồ sơ tổ chức của bạn trên ETOMS.</p>
+            </div>
+            <a class="btn btn-primary" href="/organization/register.html">Đăng ký đơn vị</a>
+        </section>
+        <div class="dev-banner" role="note">
+            <strong>Môi trường thử nghiệm:</strong> hồ sơ tổ chức và quyền Organizer là hai việc riêng.
+            Tạo hồ sơ tổ chức không tự cấp quyền tạo/vận hành giải; các thao tác quản trị chưa có phân quyền máy chủ.
+            Không dùng dữ liệu thật hoặc môi trường công khai.
+        </div>
+        <div id="organization-flash" aria-live="polite"></div>
+
+        <section aria-labelledby="organizations-title">
+            <div class="org-toolbar org-list-toolbar">
+                <div>
+                    <span class="profile-overline">Khám phá cộng đồng</span>
+                    <h2 id="organizations-title" class="mb-1">Tổ chức đang hoạt động</h2>
+                    <p class="muted-copy mb-0">Hồ sơ công khai và chỉ số hoạt động đã ghi nhận trên ETOMS.</p>
+                </div>
+                <div class="org-filters" role="search">
+                    <label class="visually-hidden" for="organization-search">Tìm theo tên đơn vị</label>
+                    <input id="organization-search" class="input" type="search" placeholder="Tìm đơn vị..." autocomplete="off" />
+                    <label class="visually-hidden" for="organization-type-filter">Lọc theo loại đơn vị</label>
+                    <select id="organization-type-filter" class="select">
+                        <option value="">Tất cả loại hình</option>
+                        <option value="UNIVERSITY_CLUB">Câu lạc bộ cấp trường</option>
+                        <option value="EVENT_COMPANY">Công ty tổ chức sự kiện</option>
+                        <option value="INDIVIDUAL">Cá nhân</option>
+                    </select>
+                </div>
+            </div>
+            <div id="organization-list" aria-live="polite">
+                <div class="card-etoms"><div class="empty"><h3>Đang tải đơn vị...</h3></div></div>
+            </div>
+        </section>
+
+        <section id="review-section" class="review-section" hidden aria-labelledby="review-title">
+            <div class="review-section-heading">
+                <div>
+                    <span class="profile-overline">Công cụ thử nghiệm</span>
+                    <h2 id="review-title" class="mb-1">Hồ sơ tổ chức chờ xét duyệt</h2>
+                    <p class="muted-copy mb-0">Đây là xét duyệt hồ sơ đơn vị, không phải quy trình cấp quyền Organizer.</p>
+                </div>
+            </div>
+            <div id="review-queue"></div>
+        </section>
+    </main>
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js?v=profile-org"></script>
+    <script src="/js/ui.js?v=profile-org"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/organizations.js?v=iteration1-ux-3" defer></script>
+</body>
+</html>

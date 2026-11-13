@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-
 namespace ETOMS_API.Models;
 
 public partial class OrganizationMember

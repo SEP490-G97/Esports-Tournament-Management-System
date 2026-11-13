@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ETOMS_API.Models;
@@ -10,8 +10,6 @@ public partial class Tournament
     public int GameId { get; set; }
 
     public int OrganizerAccountId { get; set; }
-
-    public int? OrganizationId { get; set; }
 
     public string Name { get; set; } = null!;
 
@@ -25,7 +23,7 @@ public partial class Tournament
 
     public string? ContactInfo { get; set; }
 
-    public bool? IsOnline { get; set; }
+    public bool IsOnline { get; set; }
 
     public string? Venue { get; set; }
 
@@ -57,11 +55,11 @@ public partial class Tournament
 
     public string? PrizeStructure { get; set; }
 
-    public bool? RequireIdentityDocument { get; set; }
+    public bool RequireIdentityDocument { get; set; }
 
-    public bool? RequirePaymentProof { get; set; }
+    public bool RequirePaymentProof { get; set; }
 
-    public bool? RequireInGameName { get; set; }
+    public bool RequireInGameName { get; set; }
 
     public string? TieBreakerOrder { get; set; }
 
@@ -85,6 +83,8 @@ public partial class Tournament
 
     public DateTime CreatedAt { get; set; }
 
+    public int? OrganizationId { get; set; }
+
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
 
     public virtual Account? BracketLockedByAccount { get; set; }
@@ -99,9 +99,9 @@ public partial class Tournament
 
     public virtual ICollection<Match> Matches { get; set; } = new List<Match>();
 
-    public virtual Organization? Organization { get; set; }
-
     public virtual Account OrganizerAccount { get; set; } = null!;
+
+    public virtual Organization? Organization { get; set; }
 
     public virtual ICollection<Penalty> Penalties { get; set; } = new List<Penalty>();
 

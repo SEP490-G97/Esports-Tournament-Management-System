@@ -1,20 +1,16 @@
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
-using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
+using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Repositories.Impl;
 
 public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEntity : class
 {
-    private readonly EtomsDbContext _context;
     private readonly DbSet<TEntity> _dbSet;
 
-    public GenericRepository(EtomsDbContext context)
-    {
-        _context = context;
-        _dbSet = context.Set<TEntity>();
-    }
+    public GenericRepository(EtomsDbContext context) => _dbSet = context.Set<TEntity>();
+
+    public GenericRepository(DbSet<TEntity> dbSet) => _dbSet = dbSet;
 
     public async Task<TEntity?> GetByIdAsync(object id) => await _dbSet.FindAsync(id);
 
@@ -29,4 +25,10 @@ public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEnt
     public void Update(TEntity entity) => _dbSet.Update(entity);
 
     public void Remove(TEntity entity) => _dbSet.Remove(entity);
+
+    public TEntity? GetById(object id) => _dbSet.Find(id);
+
+    public void Add(TEntity entity) => _dbSet.Add(entity);
+
+    public void Delete(TEntity entity) => _dbSet.Remove(entity);
 }

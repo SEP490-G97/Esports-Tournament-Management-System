@@ -1,15 +1,81 @@
+using ETOMS_API.Middleware;
+using ETOMS_API.Models;
 using ETOMS_API.Repositories;
-using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Repositories.Impl;
-using ETOMS_API.Services.Interface;
+using ETOMS_API.Repositories.Interface;
+using ETOMS_API.Services;
 using ETOMS_API.Services.Impl;
+using ETOMS_API.Services.Interface;
+using ETOMS_API.Utils;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using MySql.Data.MySqlClient;
+using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+var cfg = builder.Configuration;
+
+var connectionString = builder.Configuration.GetConnectionString("EtomsDatabase")
+    ?? builder.Configuration.GetConnectionString("EtomsDb")
+    ?? builder.Configuration["ETOMS_DB_CONNECTION"];
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Chưa cấu hình kết nối MySQL. Hãy đặt ConnectionStrings:EtomsDatabase hoặc biến môi trường ETOMS_DB_CONNECTION.");
+}
+
+// ---- Options ----
+builder.Services.Configure<JwtOptions>(cfg.GetSection(JwtOptions.Section));
+var jwt = cfg.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
+
+
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.MapInboundClaims = false;
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwt.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwt.Audience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+            NameClaimType = "sub",
+            RoleClaimType = "role",
+        };
+    });
+builder.Services.AddAuthorization();
+
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+});
+
+
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
+    .WithOrigins(cfg["Cors:Origin"]!)
+    .AllowCredentials()
+    .AllowAnyHeader().AllowAnyMethod()));
+
+var mysqlConnectionStringBuilder = new MySqlConnectionStringBuilder(connectionString)
+{
+    CharacterSet = "utf8mb4"
+};
+var mysqlConnectionString = mysqlConnectionStringBuilder.ConnectionString;
 
 // Chỉ Web API (JSON) — không còn Razor View engine. Giao diện là HTML/CSS/JS thuần trong
 // wwwroot/, gọi các Controller này qua fetch().
 builder.Services.AddControllers();
+
+builder.Services.AddOpenApi();
 
 // SignalR cho thông báo/tỉ số trực tiếp (NOT-01, LIVE).
 builder.Services.AddSignalR();
@@ -40,40 +106,69 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
-// EF Core — MySQL (Pomelo). Chuỗi kết nối trong appsettings.Development.json (KHÔNG commit).
+// EF Core — MySQL (MySql.EntityFrameworkCore của Oracle). Chuỗi kết nối lấy từ User Secrets
+// hoặc biến môi trường ETOMS_DB_CONNECTION (KHÔNG commit).
 // Đúng theo Report 4 (Software Design Specification): Controller → Service → IUnitOfWork
 // (phát GenericRepository<T> theo entity, dùng chung 1 EtomsDbContext/request) → DB.
-var connectionString = builder.Configuration.GetConnectionString("EtomsDb");
-if (!string.IsNullOrWhiteSpace(connectionString))
-{
-    // ServerVersion.AutoDetect mở 1 kết nối dò version MySQL — phải dò 1 LẦN DUY NHẤT lúc khởi
-    // động rồi dùng lại. Gọi AutoDetect bên trong lambda AddDbContext sẽ dò lại mỗi khi tạo
-    // EtomsDbContext mới (tức là MỖI REQUEST), tốn thêm ~1 round-trip ẩn không hiện trong log EF Core.
-    var mysqlServerVersion = ServerVersion.AutoDetect(connectionString);
-    builder.Services.AddDbContext<EtomsDbContext>(options =>
-        options.UseMySql(connectionString, mysqlServerVersion));
+builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
 
-    builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-    builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-}
+// Dò cột RegistrationLineup.GamePositionID (GRL-04) trước khi EF dựng model; xem Repositories/PendingSchema.cs.
+PendingSchema.Detect(mysqlConnectionString);
 
-// Người dùng hiện tại (stub tạm — đọc từ session; thay bằng JWT/Claims khi có AUTH).
+builder.Services.AddScoped(typeof(ETOMS_API.Repositories.Interface.IGenericRepository<>), typeof(ETOMS_API.Repositories.Impl.GenericRepository<>));
+builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
+builder.Services.AddScoped<ETOMS_API.Services.Interface.IProfileService, ETOMS_API.Services.Impl.ProfileService>();
+builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ETOMS_API.Services.Impl.OrganizationService>();
+builder.Services.AddScoped<ITournamentRegistrationService, TournamentRegistrationService>();
+builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
 builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 
 // Service của từng module đăng ký ở đây.
 builder.Services.AddScoped<ITeamService, TeamService>();
-builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IBracketService, BracketService>();
 builder.Services.AddScoped<IResultService, ResultService>();
+builder.Services.AddHostedService<WaitlistExpirationWorker>();
+
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccountBanService, AccountBanService>();
+builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddSingleton<IPasswordService, PasswordService>();
+builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
+builder.Services.AddScoped<IRecruitmentService, RecruitmentService>();
+builder.Services.AddScoped<ITournamentSetupService, TournamentSetupService>();
+builder.Services.AddScoped<IRulebookService, RulebookService>();
+builder.Services.AddScoped<ITournamentPublishService, TournamentPublishService>();
+builder.Services.AddScoped<ITournamentDashboardService, TournamentDashboardService>();
+builder.Services.AddScoped<IRefereeAssignmentService, RefereeAssignmentService>();
+builder.Services.AddScoped<ITournamentCloneService, TournamentCloneService>();
+builder.Services.AddScoped<IGameRuleService, GameRuleService>();
+builder.Services.AddScoped<IGameMapService, GameMapService>();
+builder.Services.AddScoped<IGamePositionService, GamePositionService>();
+builder.Services.AddScoped<ILineupPositionService, LineupPositionService>();
+builder.Services.AddScoped<ITournamentRulesetService, TournamentRulesetService>();
+builder.Services.AddScoped<IMatchPickBanService, MatchPickBanService>();
+builder.Services.AddScoped<IStageTransitionService, StageTransitionService>();
+builder.Services.AddHostedService<StageTransitionWorker>();
+builder.Services.AddScoped<IThirdPlaceService, ThirdPlaceService>();
+builder.Services.AddHostedService<ThirdPlaceWorker>();
+builder.Services.AddScoped<IMatchScheduleService, MatchScheduleService>();
+builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
+builder.Services.AddScoped<IBracketViewService, BracketViewService>();
+builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
+builder.Services.AddScoped<ITournamentCancelService, TournamentCancelService>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 // Trang lỗi tĩnh (wwwroot/errors/*.html, KHÔNG dùng trang mặc định của trình duyệt):
 //  - UseExceptionHandler: lỗi 500 chưa bắt được → render /errors/500.html
 //  - UseStatusCodePagesWithReExecute: các mã lỗi (404, 403...) → render /errors/<mã>.html
@@ -86,14 +181,15 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
     branch.UseStatusCodePagesWithReExecute("/errors/{0}.html");
 });
 
-// Phục vụ file tĩnh trong wwwroot (html/css/js) — "/" tự tìm wwwroot/index.html.
 app.UseDefaultFiles();
 app.UseStaticFiles();
-
 app.UseHttpsRedirection();
 app.UseRouting();
-
 app.UseSession();
+app.UseCors();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseMiddleware<BanCheckMiddleware>();
 app.UseAuthorization();
 
 // API controllers (attribute routing [Route("api/...")]) — không còn route quy ước MVC.
