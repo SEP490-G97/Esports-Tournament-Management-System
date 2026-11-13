@@ -13,6 +13,7 @@ public sealed class UpdateProfileRequest
     public DateOnly? DateOfBirth { get; set; }
 
     [StringLength(20)]
+    [RegularExpression(@"^0\d{9,10}$", ErrorMessage = "Số điện thoại không hợp lệ (phải bắt đầu bằng 0, 10-11 chữ số).")]
     public string? Phone { get; set; }
 
     [StringLength(500)]
