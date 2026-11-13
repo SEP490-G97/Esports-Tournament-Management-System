@@ -149,5 +149,20 @@ namespace ETOMS_API.Services.Impl
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> IsOrganizerOrAdminAsync(int accountId)
+        {
+            var account = await _context.Accounts.FindAsync(accountId);
+            return account is not null && (account.Role == "ORGANIZER" || account.Role == "ADMIN");
+        }
+
+        public async Task<bool?> CanManageAsync(int tournamentId, int accountId)
+        {
+            var tournament = await _context.Tournaments.FindAsync(tournamentId);
+            if (tournament is null) return null;
+            if (tournament.OrganizerAccountId == accountId) return true;
+            var account = await _context.Accounts.FindAsync(accountId);
+            return account is not null && account.Role == "ADMIN";
+        }
     }
 }
