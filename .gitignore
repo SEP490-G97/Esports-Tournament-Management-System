@@ -27,3 +27,6 @@ packages/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Ghi chú cá nhân / hướng dẫn demo — chỉ để local, không commit
+DEMO_GUIDE_LOCAL.md

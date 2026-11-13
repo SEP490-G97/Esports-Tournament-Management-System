@@ -16,6 +16,16 @@ namespace ETOMS_API.Controllers
         public async Task<IActionResult> Login(LoginRequest req, CancellationToken ct) =>
             ToResponse(await auth.LoginAsync(req.Email, req.Password, req.Remember, ct), includeUser: true);
 
+        // AUTH-01: STUB TẠM thay Vũ Đức Hải — xem ghi chú ở IAuthService.RegisterAsync.
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(RegisterRequest req, CancellationToken ct)
+        {
+            var result = await auth.RegisterAsync(req, ct);
+            return result.IsSuccess
+                ? Ok(new { message = result.Message })
+                : StatusCode(result.StatusCode, new { message = result.Message, fieldErrors = result.FieldErrors });
+        }
+
         [HttpPost("google")]
         public async Task<IActionResult> Google(GoogleRequest req, CancellationToken ct) =>
             ToResponse(await auth.LoginWithGoogleAsync(req.Credential, ct), includeUser: true);

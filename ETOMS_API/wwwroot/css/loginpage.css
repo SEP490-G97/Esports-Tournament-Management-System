@@ -11,15 +11,15 @@
     max-width: 384px;
     padding: 32px;
     box-sizing: border-box;
-    background: #181922;
+    background: var(--panel);
     border-radius: 12px;
-    outline: 1px #282937 solid;
+    outline: 1px var(--border) solid;
     outline-offset: -1px;
-    box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
     gap: 24px;
-    font-family: Inter, sans-serif;
+    font-family: var(--font-body);
 }
 
 .login-head {
@@ -30,7 +30,7 @@
 }
 
 .login-eyebrow {
-    color: #9BA1B6;
+    color: var(--muted);
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
@@ -39,11 +39,12 @@
 }
 
 .login-title {
-    color: #fff;
+    color: var(--ink);
     font-size: 24px;
     font-weight: 700;
     line-height: 32px;
     margin: 0;
+    font-family: var(--font-display);
 }
 
 .login-form {
@@ -66,14 +67,14 @@
 }
 
 .login-label {
-    color: #CBD5E1;
+    color: var(--ink-2);
     font-size: 14px;
     font-weight: 500;
     line-height: 20px;
 }
 
 .login-link {
-    color: #3B82F6;
+    color: var(--primary-ink);
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
@@ -96,23 +97,23 @@
     height: 44px;
     box-sizing: border-box;
     padding: 0 14px;
-    background: #12131A;
-    color: #E2E8F0;
-    font-family: Inter, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
     font-size: 14px;
     font-weight: 400;
     border: 0;
     border-radius: 8px;
-    outline: 1px #282937 solid;
+    outline: 1px var(--border) solid;
     outline-offset: -1px;
 }
 
     .login-input::placeholder {
-        color: #64748B;
+        color: var(--muted-2);
     }
 
     .login-input:focus {
-        outline: 2px #3B82F6 solid;
+        outline: 2px var(--primary) solid;
         outline-offset: -2px;
     }
 
@@ -130,7 +131,7 @@
     padding: 0;
     border: 0;
     background: transparent;
-    color: #94A3B8;
+    color: var(--muted);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -138,14 +139,14 @@
 }
 
     .login-eye:hover {
-        color: #E2E8F0;
+        color: var(--ink);
     }
 
 .login-remember {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #CBD5E1;
+    color: var(--ink-2);
     font-size: 14px;
     line-height: 20px;
     cursor: pointer;
@@ -155,18 +156,18 @@
     .login-remember input {
         width: 18px;
         height: 18px;
-        accent-color: #3B82F6;
+        accent-color: var(--primary);
         cursor: pointer;
         margin: 0;
     }
 
 .login-submit {
     height: 44px;
-    background: #3B82F6;
-    color: #fff;
+    background: var(--primary);
+    color: var(--on-accent);
     border: 0;
     border-radius: 8px;
-    font-family: Inter, sans-serif;
+    font-family: var(--font-display);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -174,7 +175,7 @@
 }
 
     .login-submit:hover {
-        background: #2563EB;
+        background: var(--primary-600);
     }
 
     .login-submit:disabled {
@@ -184,13 +185,13 @@
 
 .login-error {
     display: none;
-    color: #F87171;
+    color: var(--danger);
     font-size: 13px;
 }
 
 .login-foot {
     padding-top: 24px;
-    border-top: 1px #282937 solid;
+    border-top: 1px var(--border) solid;
     display: flex;
     justify-content: center;
     gap: 4px;
@@ -199,11 +200,11 @@
 }
 
     .login-foot span {
-        color: #94A3B8;
+        color: var(--muted);
     }
 
     .login-foot a {
-        color: #3B82F6;
+        color: var(--primary-ink);
         font-weight: 500;
         text-decoration: none;
     }
@@ -216,7 +217,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    color: #64748B;
+    color: var(--muted-2);
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: .6px;
@@ -227,7 +228,7 @@
         content: "";
         flex: 1;
         height: 1px;
-        background: #282937;
+        background: var(--border);
     }
 
 .login-google {
@@ -237,20 +238,20 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    background: #12131A;
-    color: #E2E8F0;
+    background: var(--bg);
+    color: var(--ink);
     border: 0;
     border-radius: 8px;
-    outline: 1px #282937 solid;
+    outline: 1px var(--border) solid;
     outline-offset: -1px;
-    font-family: Inter, sans-serif;
+    font-family: var(--font-body);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
 }
 
     .login-google:hover {
-        background: #1c1e2a;
+        background: var(--panel-2);
     }
 
 .login-google-icon {

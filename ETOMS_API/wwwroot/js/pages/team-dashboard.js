@@ -45,14 +45,14 @@
             '<div class="section-title">Thao tác quản trị</div>' +
             '<div class="section-sub">Các chức năng điều hành đội.</div>' +
             '<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">' +
-            '<div class="col"><a class="team-card d-block h-100" href="/team/roster.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">R</span><div><div class="name">Quản lý Roster</div><div class="tag">Chính thức / dự bị, loại thành viên</div></div></div><div class="meta"><span>TEAM-03</span><span class="badge badge-active">Mở</span></div></a></div>' +
-            '<div class="col"><a class="team-card d-block h-100" href="/team/invites.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">M</span><div><div class="name">Mã mời</div><div class="tag">Tạo link/mã mời thành viên</div></div></div><div class="meta"><span>TEAM-04</span><span class="badge badge-active">Mở</span></div></a></div>' +
-            '<div class="col"><a class="team-card d-block h-100" href="/team/roster.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">Đ</span><div><div class="name">Chuyển quyền đội trưởng</div><div class="tag">Trao vai trò cho thành viên khác</div></div></div><div class="meta"><span>TEAM-07</span><span class="badge badge-active">Mở</span></div></a></div>' +
+            '<div class="col"><a class="team-card d-block h-100" href="/team/roster.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">R</span><div><div class="name">Quản lý đội hình</div><div class="tag">Chính thức / dự bị, loại thành viên</div></div></div><div class="meta"><span></span><span class="badge badge-active">Mở</span></div></a></div>' +
+            '<div class="col"><a class="team-card d-block h-100" href="/team/invites.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">M</span><div><div class="name">Mã mời</div><div class="tag">Tạo link/mã mời thành viên</div></div></div><div class="meta"><span></span><span class="badge badge-active">Mở</span></div></a></div>' +
+            '<div class="col"><a class="team-card d-block h-100" href="/team/roster.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">Đ</span><div><div class="name">Chuyển quyền đội trưởng</div><div class="tag">Trao vai trò cho thành viên khác</div></div></div><div class="meta"><span></span><span class="badge badge-active">Mở</span></div></a></div>' +
             '<div class="col"><div class="team-card h-100"><div class="top"><span class="team-logo">G</span><div><div class="name">Giải tán đội</div><div class="tag">Xóa mềm, giữ lịch sử thi đấu</div></div></div>' +
-            '<div class="meta"><span>TEAM-08</span><button type="button" class="btn btn-ghost" style="padding:6px 12px;color:var(--danger-ink);font-size:.8rem" id="disband-btn">Giải tán đội</button></div></div></div>' +
+            '<div class="meta"><span></span><button type="button" class="btn btn-ghost" style="padding:6px 12px;color:var(--danger-ink);font-size:.8rem" id="disband-btn">Giải tán đội</button></div></div></div>' +
             '</div>' +
             '<div class="section-title">Thành viên (' + d.activeMemberCount + ')</div>' +
-            '<div class="section-sub">Roster hiện tại của đội.</div>' +
+            '<div class="section-sub">Đội hình hiện tại của đội.</div>' +
             membersHtml +
             '<div class="btn-row" style="margin-top:26px"><a class="btn btn-ghost" href="/team/index.html">← Về danh sách đội</a></div>';
 

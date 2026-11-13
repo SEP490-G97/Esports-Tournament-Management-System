@@ -6,7 +6,7 @@
     var root, flash;
 
     var STATUS_LABEL = {
-        PENDING: 'Chờ check-in', READY: 'Sẵn sàng', LIVE: 'Đang diễn ra',
+        PENDING: 'Chờ điểm danh', READY: 'Sẵn sàng', LIVE: 'Đang diễn ra',
         WAITING_REPORT: 'Chờ báo cáo tỉ số', DISPUTED: 'Đang tranh chấp',
         VERIFIED: 'Đã có kết quả', WALKOVER: 'Thắng trắng / Xử thua', CANCELLED: 'Đã hủy'
     };
@@ -31,19 +31,19 @@
                 Ui.escapeHtml(d.winnerTeamId === d.teamAId ? d.teamAName : d.teamBName) + '</div>';
         }
 
-        html += '<div class="card-etoms" style="margin-bottom:18px"><h3>Check-in</h3>' +
-            '<p>Đội A: ' + (d.teamACheckedIn ? '<span class="badge badge-active">Đã check-in</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>' +
-            '<p>Đội B: ' + (d.teamBCheckedIn ? '<span class="badge badge-active">Đã check-in</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>';
+        html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Điểm danh</h3>' +
+            '<p>Đội A: ' + (d.teamACheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>' +
+            '<p>Đội B: ' + (d.teamBCheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>';
         if (d.canManage) {
             html += '<div class="btn-row">' +
-                (d.teamACheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="A">Check-in thủ công Đội A</button>') +
-                (d.teamBCheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="B">Check-in thủ công Đội B</button>') +
+                (d.teamACheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="A">Điểm danh thủ công Đội A</button>') +
+                (d.teamBCheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="B">Điểm danh thủ công Đội B</button>') +
                 '</div>';
         }
-        html += '</div>';
+        html += '</div></div>';
 
         if (d.canManage || d.myCaptainTeamId) {
-            html += '<div class="card-etoms" style="margin-bottom:18px"><h3>Phòng đấu</h3>';
+            html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Phòng đấu</h3>';
             if (d.roomCode) {
                 html += '<p>Mã phòng: <b>' + Ui.escapeHtml(d.roomCode) + '</b>' +
                     (d.roomPassword ? ' · Mật khẩu: <b>' + Ui.escapeHtml(d.roomPassword) + '</b>' : '') + '</p>';
@@ -56,43 +56,43 @@
                     '<div><label>Mật khẩu (tuỳ chọn)</label><input class="input" name="roomPassword"></div>' +
                     '<button class="btn btn-primary" type="submit">Lưu</button></form>';
             }
-            html += '</div>';
+            html += '</div></div>';
         }
 
         if (d.myCaptainTeamId) {
-            html += '<div class="card-etoms" style="margin-bottom:18px"><h3>Xin thay người dự bị</h3>' +
+            html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Xin thay người dự bị</h3>' +
                 '<form id="subForm" class="btn-row" style="align-items:flex-end">' +
                 '<div><label>Mã tài khoản ra</label><input class="input" name="outAccountId" type="number" required></div>' +
                 '<div><label>Mã tài khoản vào</label><input class="input" name="inAccountId" type="number" required></div>' +
                 '<div style="flex:1"><label>Lý do</label><input class="input" name="reason" required></div>' +
-                '<button class="btn btn-primary" type="submit">Gửi yêu cầu</button></form></div>';
+                '<button class="btn btn-primary" type="submit">Gửi yêu cầu</button></form></div></div>';
         }
 
         if (d.canManage) {
-            html += '<div id="subList" class="card-etoms" style="margin-bottom:18px"><h3>Yêu cầu thay người</h3><p class="muted">Đang tải...</p></div>';
+            html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body" id="subList"><h3>Yêu cầu thay người</h3><p class="muted">Đang tải...</p></div></div>';
         }
 
         if (d.canManage || d.myCaptainTeamId) {
-            html += '<div class="card-etoms" style="margin-bottom:18px"><h3>Phòng chờ trận</h3>' +
+            html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Phòng chờ trận</h3>' +
                 '<div id="chatBox" style="max-height:260px;overflow:auto;margin-bottom:12px"></div>' +
                 '<form id="chatForm" class="btn-row">' +
                 '<input class="input" style="flex:1" name="content" placeholder="Nhập tin nhắn..." required>' +
-                '<button class="btn btn-ghost" type="submit">Gửi</button></form></div>';
+                '<button class="btn btn-ghost" type="submit">Gửi</button></form></div></div>';
         }
 
         if (d.canManage) {
-            html += '<div class="card-etoms"><h3>Xử lý trận (BTC/trọng tài)</h3><div class="btn-row">' +
+            html += '<div class="card-etoms"><div class="body"><h3>Xử lý trận (BTC/trọng tài)</h3><div class="btn-row">' +
                 '<button class="btn btn-ghost" data-act="walkover" data-winner="' + d.teamAId + '">Thắng trắng cho ' + Ui.escapeHtml(d.teamAName) + '</button>' +
                 '<button class="btn btn-ghost" data-act="walkover" data-winner="' + d.teamBId + '">Thắng trắng cho ' + Ui.escapeHtml(d.teamBName) + '</button>' +
-                '<button class="btn btn-ghost" data-act="rematch">Hủy & đấu lại</button>' +
+                '<button class="btn btn-ghost" data-act="rematch">Hủy &amp; đấu lại</button>' +
                 '<button class="btn btn-ghost" data-act="disqualify" data-team="' + d.teamAId + '">Tước quyền ' + Ui.escapeHtml(d.teamAName) + '</button>' +
                 '<button class="btn btn-ghost" data-act="disqualify" data-team="' + d.teamBId + '">Tước quyền ' + Ui.escapeHtml(d.teamBName) + '</button>' +
-                '</div></div>';
+                '</div></div></div>';
         }
 
         if (d.myCaptainTeamId) {
-            html += '<div class="card-etoms" style="margin-top:18px"><h3>Đội tôi bỏ cuộc</h3>' +
-                '<button class="btn btn-ghost" data-act="forfeit" data-team="' + d.myCaptainTeamId + '">Xin bỏ cuộc trận này</button></div>';
+            html += '<div class="card-etoms" style="margin-top:18px"><div class="body"><h3>Đội tôi bỏ cuộc</h3>' +
+                '<button class="btn btn-ghost" data-act="forfeit" data-team="' + d.myCaptainTeamId + '">Xin bỏ cuộc trận này</button></div></div>';
         }
 
         root.innerHTML = html;

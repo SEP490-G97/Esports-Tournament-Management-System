@@ -90,7 +90,7 @@
         var html = '';
         if (knockout.length > 0) {
             html += '<div class="section-title" style="margin-top:0">Sơ đồ nhánh đấu</div>' +
-                '<div class="section-sub">Cây nhánh tĩnh (không kéo/thu phóng). Bản tương tác đầy đủ thuộc BRK-10, phụ trách: Nguyễn Duy Khánh.</div>' +
+                '<div class="section-sub">Cây nhánh dạng tĩnh — bản kéo, phóng to nằm ở trang Nhánh đấu của giải.</div>' +
                 '<div id="knockout-tree"></div>';
         }
         if (groupMatches.length > 0) {

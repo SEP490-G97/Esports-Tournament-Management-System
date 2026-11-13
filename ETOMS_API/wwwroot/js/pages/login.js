@@ -124,5 +124,8 @@
         if (raw) { showBanned(JSON.parse(raw)); sessionStorage.removeItem('ban_info'); }
     } catch { }
 
+    // Thông báo xuyên trang (vd vừa đăng ký xong) — AUTH-01.
+    Ui.consumeFlash(document.getElementById('flash'));
+
     initGoogle();
 })();

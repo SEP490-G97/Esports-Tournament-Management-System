@@ -6,7 +6,7 @@
 
         if (!page.canSubmit) {
             root.innerHTML =
-                '<div class="eyebrow">Kết quả &amp; Khiếu nại · RES-01</div>' +
+                '<div class="eyebrow">Kết quả &amp; Khiếu nại</div>' +
                 '<div class="page-head"><h1>Báo cáo tỉ số mù</h1>' +
                 '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong style="color:var(--ink)">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
                 '<div class="card-etoms"><div class="empty"><h3>Không thể nộp báo cáo</h3><p>' + Ui.escapeHtml(page.cannotSubmitReason) + '</p>' +
@@ -15,7 +15,7 @@
         }
 
         root.innerHTML =
-            '<div class="eyebrow">Kết quả &amp; Khiếu nại · RES-01</div>' +
+            '<div class="eyebrow">Kết quả &amp; Khiếu nại</div>' +
             '<div class="page-head"><h1>Báo cáo tỉ số mù</h1>' +
             '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong style="color:var(--ink)">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
             '<div class="dev-banner">Đây là báo cáo <strong>mù</strong> (Blind Dual-Reporting): bạn sẽ KHÔNG thấy tỉ số, minh chứng hay việc đội kia đã nộp hay chưa ' +

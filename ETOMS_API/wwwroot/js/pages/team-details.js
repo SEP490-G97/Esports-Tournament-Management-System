@@ -80,7 +80,7 @@
             '<div class="section-sub">Các giải đội đã đăng ký và được duyệt.</div>' +
             historyHtml(team.tournamentHistory) +
             '<div class="section-title" style="margin-top:28px">Danh sách thành viên</div>' +
-            '<div class="section-sub">Roster hiện tại của đội (' + team.memberCount + ' người).</div>' +
+            '<div class="section-sub">Đội hình hiện tại của đội (' + team.memberCount + ' người).</div>' +
             membersHtml +
             '<div class="btn-row" style="margin-top:26px">' + actionHtml + '</div>';
 

@@ -132,8 +132,7 @@
                 ContactPhone: data.get('ContactPhone') || null,
                 WebsiteUrl: data.get('WebsiteUrl') || null,
                 LogoUrl: data.get('LogoUrl') || null,
-                Description: data.get('Description') || null,
-                CreatedByAccountId: accountId
+                Description: data.get('Description') || null
             };
             var submitButton = form.querySelector('[type="submit"]');
             submitButton.disabled = true;

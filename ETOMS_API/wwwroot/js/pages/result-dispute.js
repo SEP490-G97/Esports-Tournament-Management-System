@@ -102,7 +102,7 @@
         }
 
         root.innerHTML =
-            '<div class="eyebrow">Trọng tài / Ban tổ chức · RES-06 / RES-07</div>' +
+            '<div class="eyebrow">Trọng tài / Ban tổ chức</div>' +
             '<div class="page-head"><h1>' + Ui.escapeHtml(d.teamAName) + ' vs ' + Ui.escapeHtml(d.teamBName) + '</h1>' +
             '<p>' + reasonLabel(d.openReason) + ' <span class="badge ' + statusBadgeClass(d.status) + '" style="margin-left:8px">' + statusLabel(d.status) + '</span></p></div>' +
             flaggedBanner +

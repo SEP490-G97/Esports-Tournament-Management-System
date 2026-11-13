@@ -1,33 +1,18 @@
 ﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>ETOMS - Chợ Tuyển Quân & Tìm Đội</title>
-    <link rel="stylesheet" href="../css/site.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chợ tuyển quân · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=arena1" />
 </head>
 <body>
-    <header class="etoms-nav">
-        <div class="inner">
-            <a class="brand" href="/">
-                <div class="mark">E</div>
-                <div class="txt"><b>ETOMS</b><span>Esports Platform</span></div>
-            </a>
-            <nav>
-                <a href="/">Trang chủ</a>
-                <a href="/free-agent/index.html" class="active">Tuyển quân</a>
-                <a href="/tournament-setup/index.html">Tạo giải đấu</a>
-            </nav>
-            <div class="spacer"></div>
-            <div class="nav-user">
-                <span class="who" id="currentUserName">Thành viên</span>
-                <div class="av" id="currentUserAvt">E</div>
-            </div>
-            <button class="theme-toggle" id="themeToggleBtn" title="Đổi giao diện sáng/tối">
-                <span class="icon-moon">🌙</span>
-                <span class="icon-sun">☀️</span>
-            </button>
-        </div>
-    </header>
+    <div id="site-header"></div>
 
     <main class="container-etoms">
         <div class="page-head">
@@ -134,21 +119,12 @@
         </div>
     </main>
 
-    <script src="../js/api.js"></script>
-    <script src="../js/ui.js"></script>
-    <script src="../js/pages/free-agent.js"></script>
-    <script>
-        document.getElementById('themeToggleBtn').addEventListener('click', function () {
-            var html = document.documentElement;
-            var current = html.getAttribute('data-theme');
-            var next = current === 'light' ? '' : 'light';
-            if (next) html.setAttribute('data-theme', 'light');
-            else html.removeAttribute('data-theme');
-            localStorage.setItem('etoms-theme', next);
-        });
-        if (localStorage.getItem('etoms-theme') === 'light') {
-            document.documentElement.setAttribute('data-theme', 'light');
-        }
-    </script>
+    <div id="confirm-modal-root"></div>
+    <script src="/js/auth.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/free-agent.js"></script>
 </body>
 </html>

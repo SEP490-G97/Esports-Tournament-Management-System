@@ -62,7 +62,7 @@
         }
 
         root.innerHTML =
-            '<div class="eyebrow">Kết quả &amp; Khiếu nại · RES-04</div>' +
+            '<div class="eyebrow">Kết quả &amp; Khiếu nại</div>' +
             '<div class="page-head"><h1>Minh chứng trận đấu</h1><p><strong style="color:var(--ink)">' + Ui.escapeHtml(ev.teamAName) + '</strong> vs <strong style="color:var(--ink)">' + Ui.escapeHtml(ev.teamBName) + '</strong></p></div>' +
             '<div class="btn-row" style="margin-bottom:22px">' + actions + '</div>' + body;
 

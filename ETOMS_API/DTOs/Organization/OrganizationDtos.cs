@@ -27,9 +27,6 @@ public sealed class CreateOrganizationRequest
 
     [StringLength(1000)]
     public string? Description { get; set; }
-
-    [Range(1, int.MaxValue)]
-    public int CreatedByAccountId { get; set; }
 }
 
 public sealed class ReviewOrganizationRequest
@@ -39,9 +36,6 @@ public sealed class ReviewOrganizationRequest
 
     [StringLength(1000)]
     public string? Reason { get; set; }
-
-    [Range(1, int.MaxValue)]
-    public int ReviewerAccountId { get; set; }
 }
 
 public sealed class InviteOrganizationMemberRequest

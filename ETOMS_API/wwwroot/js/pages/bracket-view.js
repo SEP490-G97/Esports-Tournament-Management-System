@@ -18,7 +18,7 @@
 
         if (!tree.hasBracket) {
             root.innerHTML =
-                '<div class="eyebrow">Nhánh đấu · BRK-10</div>' +
+                '<div class="eyebrow">Nhánh đấu</div>' +
                 '<div class="page-head"><h1>' + Ui.escapeHtml(tree.tournamentName) + '</h1>' +
                 '<p>' + formatLabel(tree.format) + (tree.isLocked ? '<span class="badge badge-active" style="margin-left:8px">Đã khóa nhánh</span>' : '') + '</p></div>' +
                 '<div class="card-etoms"><div class="empty"><h3>Giải chưa sinh nhánh đấu</h3><p>Quay lại khi ban tổ chức đã sinh nhánh.</p></div></div>';
@@ -48,10 +48,10 @@
         });
 
         root.innerHTML =
-            '<div class="eyebrow">Nhánh đấu · BRK-10</div>' +
+            '<div class="eyebrow">Nhánh đấu</div>' +
             '<div class="page-head"><h1>' + Ui.escapeHtml(tree.tournamentName) + '</h1>' +
             '<p>' + formatLabel(tree.format) + (tree.isLocked ? '<span class="badge badge-active" style="margin-left:8px">Đã khóa nhánh</span>' : '') + '</p></div>' +
-            '<div class="dev-banner">Cây nhánh tĩnh (không kéo/thu phóng/highlight hành trình đội). Bản tương tác đầy đủ thuộc BRK-10, phụ trách: Nguyễn Duy Khánh.</div>' +
+            '<div class="dev-banner">Cây nhánh dạng tĩnh. Muốn kéo, phóng to và xem hành trình từng đội, mở <a class="back-link" href="/tournament/bracket.html?id=' + tree.tournamentId + '">nhánh đấu tương tác</a>.</div>' +
             (knockout.length > 0 ? '<div id="knockout-tree"></div>' : '') +
             groupsHtml;
 

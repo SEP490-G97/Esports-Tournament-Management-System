@@ -30,7 +30,20 @@
     //   1. Đăng nhập thật bằng JWT (AUTH-02, auth.js) nếu trang có nạp auth.js.
     //   2. Đăng nhập thử /dev-auth (session, chỉ Development).
     // Trả về cùng một dạng { isAuthenticated, userId, displayName, role, source }.
+    // Đa số trang không tự nạp auth.js → nav luôn hiện "Đăng nhập" dù đã đăng nhập JWT.
+    // Nạp bổ sung ở đây (auth.js không có tác dụng phụ khi nạp) để nav đúng trên mọi trang.
+    function ensureAuthScript() {
+        if (window.Auth) return Promise.resolve();
+        return new Promise(function (resolve) {
+            var s = document.createElement('script');
+            s.src = '/js/auth.js';
+            s.onload = s.onerror = function () { resolve(); };
+            document.head.appendChild(s);
+        });
+    }
+
     async function resolveCurrentUser() {
+        await ensureAuthScript();
         if (window.Auth && typeof Auth.tryGetMe === 'function') {
             var jwtMe = await Auth.tryGetMe();                 // không chuyển hướng khi chưa đăng nhập
             if (jwtMe) {
@@ -72,16 +85,24 @@
     // Khung "Xin chào, X" giờ là 1 dropdown: bấm avatar/tên để mở, bên trong có "Đội của tôi"
     // (nối thẳng tới team/details.html?id=, hoặc báo "Không có đội" nếu chưa ở đội nào) + Đăng xuất.
     function renderUserDropdown(slot, me) {
+        var roleLabel = { ADMIN: 'Quản trị viên', ORGANIZER: 'Ban tổ chức', REFEREE: 'Trọng tài', PLAYER: 'Người chơi' }[me.role] || 'Thành viên';
         slot.innerHTML =
             '<div class="nav-user-dd" id="nav-user-dd">' +
-            '  <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-expanded="false">' +
+            '  <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-expanded="false" aria-haspopup="true">' +
             '    <span class="av">' + Ui.escapeHtml((me.displayName || '?').substring(0, 1).toUpperCase()) + '</span>' +
-            '    <span>Xin chào, <span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span></span>' +
+            '    <span class="nav-user-id"><span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span>' +
+            '      <span class="nav-user-role">' + roleLabel + '</span></span>' +
             '    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="nav-user-caret"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
             '  </button>' +
             '  <div class="nav-user-menu" id="nav-user-menu">' +
+            '    <div class="nav-user-menu-head"><b>' + Ui.escapeHtml(me.displayName || '') + '</b><span>' + roleLabel + '</span></div>' +
             '    <div class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam">Đang tải đội…</div>' +
-            '    <a class="nav-user-menu-item" href="#" id="nav-logout">Đăng xuất</a>' +
+            '    <a class="nav-user-menu-item" href="/profile/index.html">Hồ sơ của tôi</a>' +
+            '    <a class="nav-user-menu-item" href="/registration/mine.html">Đơn đăng ký giải của đội</a>' +
+            '    <a class="nav-user-menu-item" href="/team/join.html">Gia nhập đội bằng mã</a>' +
+            (me.role === 'ADMIN' ? '    <a class="nav-user-menu-item" href="/admin/game-rules.html">Bộ luật theo tựa game</a>' : '') +
+            '    <div class="nav-user-menu-sep"></div>' +
+            '    <a class="nav-user-menu-item nav-user-logout" href="#" id="nav-logout">Đăng xuất</a>' +
             '  </div>' +
             '</div>';
 
@@ -134,10 +155,13 @@
 
     // Chỉ Ban tổ chức/Admin thấy mục Tranh chấp. Link ẩn sẵn trong nav.html, chỗ này chỉ bật
     // hiện lên nếu đúng quyền — quyền thật vẫn chặn ở API dù có thấy nút hay không.
+    // Mục nav có data-role="ORGANIZER ADMIN" (Tạo giải, Tranh chấp) chỉ hiện cho đúng vai trò.
     function applyRoleVisibility(me) {
-        var canSeeDisputes = !!me.isAuthenticated && (me.role === 'ORGANIZER' || me.role === 'ADMIN');
-        var link = document.querySelector('#etomsNavCollapse nav a[data-nav="result"]');
-        if (link) link.style.display = canSeeDisputes ? '' : 'none';
+        document.querySelectorAll('#etomsNavCollapse nav a[data-role]').forEach(function (link) {
+            var roles = link.getAttribute('data-role').split(' ');
+            var allowed = !!me.isAuthenticated && roles.indexOf(me.role) >= 0;
+            link.style.display = allowed ? '' : 'none';
+        });
     }
 
     var pendingResolve = null;
@@ -187,10 +211,23 @@
         } catch (e) { /* thiếu nav/modal vẫn chạy tiếp được, không chặn trang */ }
     }
 
+    // Footer dùng chung: trang chủ tự có footer riêng (.site-footer) nên bỏ qua; mọi trang còn lại
+    // có #site-header thì được chèn footer ngay sau <main>, khỏi phải sửa từng file HTML.
+    async function injectFooter() {
+        if (!document.getElementById('site-header') || document.querySelector('.site-footer')) return;
+        var main = document.querySelector('main');
+        if (!main) return;
+        var holder = document.createElement('div');
+        holder.id = 'site-footer';
+        main.insertAdjacentElement('afterend', holder);
+        await injectPartial('/partials/footer.html', 'site-footer');
+    }
+
     document.addEventListener('DOMContentLoaded', async function () {
         await Promise.all([
             injectPartial('/partials/nav.html', 'site-header'),
-            injectPartial('/partials/confirm-modal.html', 'confirm-modal-root')
+            injectPartial('/partials/confirm-modal.html', 'confirm-modal-root'),
+            injectFooter()
         ]);
         applyActiveNav();
         wireThemeToggle();

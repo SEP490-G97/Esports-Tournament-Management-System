@@ -72,6 +72,7 @@ public sealed class OrganizationService : IOrganizationService
 
     public async Task<Result<OrganizationCreatedResponse>> CreateAsync(
         CreateOrganizationRequest request,
+        int creatorAccountId,
         CancellationToken cancellationToken)
     {
         var type = request.OrganizationType.Trim().ToUpperInvariant();
@@ -83,7 +84,7 @@ public sealed class OrganizationService : IOrganizationService
         }
 
         var creatorExists = await _unitOfWork.Repository<Account>().Query()
-            .AnyAsync(account => account.AccountId == request.CreatedByAccountId, cancellationToken);
+            .AnyAsync(account => account.AccountId == creatorAccountId, cancellationToken);
         if (!creatorExists)
         {
             return Result.Failure<OrganizationCreatedResponse>("Không tìm thấy tài khoản đăng ký.", StatusCodes.Status404NotFound);
@@ -100,11 +101,11 @@ public sealed class OrganizationService : IOrganizationService
             LogoUrl = NormalizeOptional(request.LogoUrl),
             Description = NormalizeOptional(request.Description),
             Status = "PENDING",
-            CreatedByAccountId = request.CreatedByAccountId
+            CreatedByAccountId = creatorAccountId
         };
         var chair = new OrganizationMember
         {
-            AccountId = request.CreatedByAccountId,
+            AccountId = creatorAccountId,
             Role = "CHAIR",
             Status = "ACTIVE",
             JoinedAt = DateTime.UtcNow
@@ -186,6 +187,7 @@ public sealed class OrganizationService : IOrganizationService
     public async Task<Result<OrganizationReviewResponse>> ReviewAsync(
         int organizationId,
         ReviewOrganizationRequest request,
+        int reviewerAccountId,
         CancellationToken cancellationToken)
     {
         var organization = await FindOrganizationAsync(organizationId, cancellationToken);
@@ -203,13 +205,6 @@ public sealed class OrganizationService : IOrganizationService
         if (decision is not ("APPROVE" or "REJECT"))
         {
             return Result<OrganizationReviewResponse>.FieldFailure(nameof(request.Decision), "Quyết định chỉ được là APPROVE hoặc REJECT.");
-        }
-
-        var reviewerExists = await _unitOfWork.Repository<Account>().Query()
-            .AnyAsync(account => account.AccountId == request.ReviewerAccountId, cancellationToken);
-        if (!reviewerExists)
-        {
-            return Result.Failure<OrganizationReviewResponse>("Không tìm thấy tài khoản người xét duyệt.", StatusCodes.Status404NotFound);
         }
 
         var documents = await _unitOfWork.Repository<OrganizationDocument>().Query()
@@ -240,7 +235,7 @@ public sealed class OrganizationService : IOrganizationService
 
         organization.Status = decision == "APPROVE" ? "ACTIVE" : "REJECTED";
         organization.ReviewReason = reason;
-        organization.ReviewedByAccountId = request.ReviewerAccountId;
+        organization.ReviewedByAccountId = reviewerAccountId;
         organization.ReviewedAt = DateTime.UtcNow;
         _unitOfWork.Repository<Organization>().Update(organization);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -444,6 +439,7 @@ public sealed class OrganizationService : IOrganizationService
     public async Task<Result<OrganizationMemberResponse>> AcceptInvitationAsync(
         int organizationId,
         int memberId,
+        int accountId,
         CancellationToken cancellationToken)
     {
         var member = await _unitOfWork.Repository<OrganizationMember>().Query()
@@ -453,6 +449,10 @@ public sealed class OrganizationService : IOrganizationService
         if (member is null)
         {
             return Result.Failure<OrganizationMemberResponse>("Không tìm thấy lời mời đang chờ xác nhận.", StatusCodes.Status404NotFound);
+        }
+        if (member.AccountId != accountId)
+        {
+            return Result.Failure<OrganizationMemberResponse>("Chỉ người được mời mới được tự xác nhận lời mời này.", StatusCodes.Status403Forbidden);
         }
 
         member.Status = "ACTIVE";
@@ -717,4 +717,13 @@ public sealed class OrganizationService : IOrganizationService
 
     private static string? NormalizeOptional(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    public async Task<bool> IsAdminAsync(int accountId)
+        => await _unitOfWork.Repository<Account>().Query()
+            .AnyAsync(a => a.AccountId == accountId && a.Role == "ADMIN");
+
+    public async Task<bool> IsActiveChairAsync(int organizationId, int accountId)
+        => await _unitOfWork.Repository<OrganizationMember>().Query()
+            .AnyAsync(m => m.OrganizationId == organizationId && m.AccountId == accountId
+                && m.Role == "CHAIR" && m.Status == "ACTIVE");
 }

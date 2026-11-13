@@ -89,8 +89,7 @@
                 try {
                     var result = await Api.post('/api/organizations/' + card.dataset.reviewId + '/review', {
                         Decision: decision,
-                        Reason: reason || null,
-                        ReviewerAccountId: Number(button.dataset.reviewer)
+                        Reason: reason || null
                     });
                     Ui.showAlert(cardFlash, 'success', result.message || 'Đã cập nhật kết quả xét duyệt.');
                     await loadReviewQueue(reviewerId);

@@ -43,7 +43,7 @@
         var root = document.getElementById('roster-root');
 
         var lockedAlert = roster.isLocked
-            ? '<div class="alert" style="background:rgba(246,167,35,.1);border:1px solid rgba(246,167,35,.3);color:var(--warn)">🔒 Roster đang <strong>bị khóa</strong> vì đội đang thi đấu trong một giải. Mọi thay đổi thành viên tạm thời bị vô hiệu.</div>'
+            ? '<div class="alert" style="background:rgba(246,167,35,.1);border:1px solid rgba(246,167,35,.3);color:var(--warn)">🔒 Đội hình đang <strong>bị khóa</strong> vì đội đang thi đấu trong một giải. Mọi thay đổi thành viên tạm thời bị vô hiệu.</div>'
             : '';
 
         var pendingHtml = '';
@@ -56,8 +56,8 @@
         var membersHtml = '<div class="d-grid gap-3 mt-2">' + roster.members.map(function (m) { return memberItemHtml(m, roster); }).join('') + '</div>';
 
         root.innerHTML =
-            '<div class="eyebrow">Quản trị đội · Roster</div>' +
-            '<div class="page-head"><h1>Quản lý Roster — ' + Ui.escapeHtml(roster.name) + '</h1>' +
+            '<div class="eyebrow">Quản trị đội · Đội hình</div>' +
+            '<div class="page-head"><h1>Quản lý đội hình — ' + Ui.escapeHtml(roster.name) + '</h1>' +
             '<p>Phân loại thành viên chính thức / dự bị theo luật ' + Ui.escapeHtml(roster.gameTitle) + ', loại thành viên hoặc chuyển quyền đội trưởng.</p></div>' +
             lockedAlert + pendingHtml +
             '<div class="section-title" style="margin-top:0">Thành viên chính thức</div>' +
