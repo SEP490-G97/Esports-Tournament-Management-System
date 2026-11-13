@@ -1,4 +1,4 @@
-﻿.login-wrap {
+.login-wrap {
     width: 100%;
     padding: 16px;
     display: flex;
@@ -15,11 +15,11 @@
     border-radius: 12px;
     outline: 1px var(--border) solid;
     outline-offset: -1px;
-    box-shadow: var(--shadow);
+    box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
     gap: 24px;
-    font-family: var(--font-body);
+    font-family: Inter, sans-serif;
 }
 
 .login-head {
@@ -44,7 +44,6 @@
     font-weight: 700;
     line-height: 32px;
     margin: 0;
-    font-family: var(--font-display);
 }
 
 .login-form {
@@ -67,14 +66,14 @@
 }
 
 .login-label {
-    color: var(--ink-2);
+    color: var(--ink);
     font-size: 14px;
     font-weight: 500;
     line-height: 20px;
 }
 
 .login-link {
-    color: var(--primary-ink);
+    color: var(--primary);
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
@@ -97,9 +96,9 @@
     height: 44px;
     box-sizing: border-box;
     padding: 0 14px;
-    background: var(--bg);
+    background: var(--bg-2);
     color: var(--ink);
-    font-family: var(--font-body);
+    font-family: Inter, sans-serif;
     font-size: 14px;
     font-weight: 400;
     border: 0;
@@ -146,7 +145,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--ink-2);
+    color: var(--ink);
     font-size: 14px;
     line-height: 20px;
     cursor: pointer;
@@ -164,10 +163,10 @@
 .login-submit {
     height: 44px;
     background: var(--primary);
-    color: var(--on-accent);
+    color: #fff;
     border: 0;
     border-radius: 8px;
-    font-family: var(--font-display);
+    font-family: Inter, sans-serif;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -185,7 +184,7 @@
 
 .login-error {
     display: none;
-    color: var(--danger);
+    color: var(--danger-ink);
     font-size: 13px;
 }
 
@@ -204,7 +203,7 @@
     }
 
     .login-foot a {
-        color: var(--primary-ink);
+        color: var(--primary);
         font-weight: 500;
         text-decoration: none;
     }
@@ -238,13 +237,13 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    background: var(--bg);
+    background: var(--bg-2);
     color: var(--ink);
     border: 0;
     border-radius: 8px;
     outline: 1px var(--border) solid;
     outline-offset: -1px;
-    font-family: var(--font-body);
+    font-family: Inter, sans-serif;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -265,3 +264,162 @@
     justify-content: center;
     min-height: 44px;
 }
+
+
+/* ===== Trang đăng ký (chuyển từ <style> trong auth/register.html) ===== */
+.reg-card {
+width: 100%;
+max-width: 400px;
+margin: 16px auto;
+padding: 32px;
+box-sizing: border-box;
+background: var(--panel);
+border-radius: 12px;
+outline: 1px var(--border) solid;
+outline-offset: -1px;
+box-shadow: 0 25px 50px -12px rgba(0,0,0,.25);
+display: flex;
+flex-direction: column;
+gap: 24px;
+font-family: Inter, sans-serif;
+}
+.reg-card * {
+box-sizing: border-box;
+}
+.reg-brand {
+display: flex;
+align-items: center;
+gap: 8px;
+color: var(--primary);
+font-size: 12px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: .6px;
+}
+.reg-title {
+color: var(--ink);
+font-size: 24px;
+font-weight: 700;
+line-height: 32px;
+margin: 8px 0 4px;
+}
+.reg-sub {
+color: var(--muted);
+font-size: 14px;
+line-height: 20px;
+margin: 0;
+}
+.reg-form {
+display: flex;
+flex-direction: column;
+gap: 16px;
+}
+.reg-field {
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+.reg-label {
+color: var(--ink);
+font-size: 12px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: .6px;
+}
+.reg-box {
+position: relative;
+display: flex;
+align-items: center;
+}
+.reg-input {
+width: 100%;
+height: 44px;
+padding: 0 44px 0 14px;
+background: var(--bg-2);
+color: var(--ink);
+font-family: Inter, sans-serif;
+font-size: 14px;
+border: 0;
+border-radius: 8px;
+outline: 1px var(--border) solid;
+outline-offset: -1px;
+}
+.reg-input::placeholder {
+color: var(--muted-2);
+}
+.reg-input:focus {
+outline: 2px var(--primary) solid;
+outline-offset: -2px;
+}
+.reg-icon {
+position: absolute;
+right: 12px;
+top: 50%;
+transform: translateY(-50%);
+color: var(--muted);
+pointer-events: none;
+display: flex;
+}
+.reg-terms {
+display: flex;
+align-items: flex-start;
+gap: 8px;
+color: var(--ink);
+font-size: 14px;
+line-height: 20px;
+cursor: pointer;
+margin: 0;
+}
+.reg-terms input {
+width: 18px;
+height: 18px;
+margin: 1px 0 0;
+flex-shrink: 0;
+accent-color: var(--primary);
+cursor: pointer;
+}
+.reg-terms a, .reg-foot a {
+color: var(--primary);
+font-weight: 500;
+text-decoration: none;
+}
+.reg-terms a:hover, .reg-foot a:hover {
+text-decoration: underline;
+}
+.reg-submit {
+height: 44px;
+background: var(--primary);
+color: #fff;
+border: 0;
+border-radius: 8px;
+font-family: Inter, sans-serif;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+}
+.reg-submit:hover {
+background: var(--primary-600);
+}
+.reg-foot {
+padding-top: 24px;
+border-top: 1px var(--border) solid;
+display: flex;
+justify-content: center;
+gap: 6px;
+font-size: 14px;
+line-height: 20px;
+color: var(--muted);
+}
+
+/* ===== Đồng bộ với khung thẻ của site (card-etoms): viền, bo góc, bóng, nút chính ===== */
+.login-card, .reg-card {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--border);
+    outline: 0;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+.login-wrap { min-height: calc(100vh - 260px); padding: 24px 0; }
+.login-submit, .reg-submit { background: linear-gradient(135deg, var(--primary), #5a82ff); box-shadow: 0 8px 22px rgba(59,108,255,.35); }
+.login-submit:hover, .reg-submit:hover { filter: brightness(1.08); }
+.login-input:focus, .reg-input:focus { box-shadow: 0 0 0 3px rgba(59,108,255,.22); }

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bảng xếp hạng · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=ui-2026-11" />
+    <link rel="stylesheet" href="/css/iteration3.css?v=ui-2026-11" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms py-4">
+        <div class="page-head mb-4">
+            <div class="eyebrow">RNK-01 · RNK-02</div>
+            <h1>Bảng xếp hạng đội tuyển</h1>
+            <p>Điểm Tournament Points được tổng hợp từ các giải đã hoàn tất. Danh hiệu có trọng số cao hơn khi giải có quy mô lớn.</p>
+        </div>
+        <section class="i3-surface mb-4">
+            <div class="i3-toolbar">
+                <div class="field">
+                    <label for="ranking-game">Tựa game</label>
+                    <select id="ranking-game" class="select"><option value="">Tất cả tựa game</option></select>
+                </div>
+                <div class="field">
+                    <label for="ranking-season">Mùa giải (năm)</label>
+                    <select id="ranking-season" class="select"><option value="">Tất cả mùa</option></select>
+                </div>
+                <button id="ranking-apply" class="btn btn-primary" type="button">Lọc bảng</button>
+            </div>
+        </section>
+        <div id="ranking-flash" aria-live="polite"></div>
+        <section class="i3-surface">
+            <div class="i3-table-wrap">
+                <table class="i3-table">
+                    <thead><tr><th>Hạng</th><th>Đội tuyển</th><th>Tựa game</th><th>Mùa</th><th>Giải đã đấu</th><th>Danh hiệu</th><th>Điểm</th></tr></thead>
+                    <tbody id="ranking-list"><tr><td colspan="7">Đang tải bảng xếp hạng…</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/leaderboard.js" defer></script>
+</body>
+</html>

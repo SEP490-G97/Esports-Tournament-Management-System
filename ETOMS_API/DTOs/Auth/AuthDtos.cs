@@ -4,7 +4,6 @@
     {
         public record LoginRequest(string Email, string Password, bool Remember = true);
         public record GoogleRequest(string Credential);
-        public record RegisterRequest(string Email, string Password, string FullName, DateOnly DateOfBirth);
 
         public record AccountDto(int Id, string Email, string Name, string? AvatarUrl, string Role);
 

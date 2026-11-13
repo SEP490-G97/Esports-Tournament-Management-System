@@ -52,7 +52,7 @@ public class HomeApiController : ApiControllerBase
         var games = await _uow.Repository<Game>().Query()
             .Where(g => g.Status == "ACTIVE")
             .OrderBy(g => g.Title)
-            .Select(g => new GameCardDto { Title = g.Title, ShortCode = g.ShortCode, LogoUrl = g.LogoUrl })
+            .Select(g => new GameCardDto { GameId = g.GameId, Title = g.Title, ShortCode = g.ShortCode, LogoUrl = g.LogoUrl })
             .ToListAsync();
 
         var counts = await _db.Database.SqlQuery<HomeCountsRow>($@"

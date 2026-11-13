@@ -25,44 +25,8 @@ namespace ETOMS_API.Services.Impl
             return await IssueAsync(acc!, remember, ct);
         }
 
-        // ---------- AUTH-01: Đăng ký (STUB TẠM thay Vũ Đức Hải — xem ghi chú ở interface) ----------
-        public async Task<Result> RegisterAsync(RegisterRequest req, CancellationToken ct = default)
-        {
-            var email = req.Email.Trim().ToLowerInvariant();
-            if (string.IsNullOrWhiteSpace(email))
-                return Result.FieldFailure(nameof(req.Email), "Vui lòng nhập email.");
-            if (string.IsNullOrWhiteSpace(req.FullName))
-                return Result.FieldFailure(nameof(req.FullName), "Vui lòng nhập họ tên.");
-            if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Length < 8)
-                return Result.FieldFailure(nameof(req.Password), "Mật khẩu phải có ít nhất 8 ký tự.");
-
-            var age = DateOnly.FromDateTime(DateTime.UtcNow).Year - req.DateOfBirth.Year;
-            if (req.DateOfBirth.AddYears(age) > DateOnly.FromDateTime(DateTime.UtcNow)) age--;
-            if (age < 18)
-                return Result.FieldFailure(nameof(req.DateOfBirth), "Bạn phải đủ 18 tuổi trở lên mới được tạo tài khoản.");
-
-            if (await accounts.FindByEmailAsync(email, ct) is not null)
-                return Result.FieldFailure(nameof(req.Email), "Email này đã được đăng ký.");
-
-            var acc = new Account
-            {
-                Email = email,
-                PasswordHash = passwords.Hash(req.Password),
-                FullName = req.FullName.Trim(),
-                DateOfBirth = req.DateOfBirth,
-                Role = "PLAYER",
-                // Chưa có luồng gửi email xác minh thật (cần SMTP của module AUTH) nên kích hoạt
-                // thẳng để demo đăng nhập được ngay. Hải thay bằng PENDING_VERIFY + email thật sau.
-                Status = "ACTIVE",
-                NotifyInApp = true,
-                NotifyEmail = true,
-                OrganizerRequestStatus = "NONE",
-                CreatedAt = DateTime.UtcNow
-            };
-            await accounts.AddAsync(acc, ct);
-            await accounts.SaveChangesAsync(ct);
-            return Result.Success("Đăng ký thành công. Bạn có thể đăng nhập ngay.");
-        }
+        // AUTH-01 thật nằm ở AccountSecurityService.RegisterAsync (Vũ Đức Hải) — bỏ bản stub ở
+        // đây để không đụng route /auth/register khi khởi động.
 
         // ---------- Helpers ----------
         private async Task<AuthResult> IssueAsync(Account acc, bool persistent, CancellationToken ct)

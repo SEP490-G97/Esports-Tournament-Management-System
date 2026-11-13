@@ -29,7 +29,7 @@
         root.innerHTML =
             '<div class="eyebrow">Trang quản trị đội · Chỉ đội trưởng</div>' +
             '<div class="card-etoms"><div class="body"><div class="team-hero">' + logo +
-            '<div style="flex:1;min-width:240px"><h1 style="font-size:1.6rem">' + Ui.escapeHtml(d.name) + ' <span style="color:var(--muted);font-weight:700">[' + Ui.escapeHtml(d.tag) + ']</span></h1>' +
+            '<div style="flex:1;min-width:240px"><h1 style="font-size:1.6rem">' + Ui.escapeHtml(d.name) + ' <span class="text-muted-etoms fw-bold">[' + Ui.escapeHtml(d.tag) + ']</span></h1>' +
             '<div class="sub"><span>' + Ui.escapeHtml(d.gameTitle) + '</span>' + (d.status === 'ACTIVE' ? '<span class="badge badge-active">Đang hoạt động</span>' : '') + '</div></div>' +
             '<a class="btn btn-ghost" href="/team/details.html?id=' + d.teamId + '">Xem hồ sơ công khai</a>' +
             '</div></div>' +
@@ -54,7 +54,7 @@
             '<div class="section-title">Thành viên (' + d.activeMemberCount + ')</div>' +
             '<div class="section-sub">Đội hình hiện tại của đội.</div>' +
             membersHtml +
-            '<div class="btn-row" style="margin-top:26px"><a class="btn btn-ghost" href="/team/index.html">← Về danh sách đội</a></div>';
+            '<div class="btn-row mt-4"><a class="btn btn-ghost" href="/team/index.html">← Về danh sách đội</a></div>';
 
         document.getElementById('disband-btn').addEventListener('click', async function () {
             var ok = await window.etomsConfirm('Giải tán đội ' + d.name + '? Hành động này không thể hoàn tác.');

@@ -19,7 +19,7 @@
             }
             return;
         }
-        var html = '<div style="color:var(--muted);font-size:.86rem;margin-bottom:16px"><strong style="color:var(--ink)">' + list.length + '</strong> đội phù hợp</div>';
+        var html = '<div style="color:var(--muted);font-size:.86rem;margin-bottom:16px"><strong class="text-ink">' + list.length + '</strong> đội phù hợp</div>';
         html += '<div class="row g-3">';
         list.forEach(function (t) {
             var logo = t.logoUrl

@@ -8,7 +8,7 @@
             root.innerHTML =
                 '<div class="eyebrow">Kết quả &amp; Khiếu nại</div>' +
                 '<div class="page-head"><h1>Báo cáo tỉ số mù</h1>' +
-                '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong style="color:var(--ink)">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
+                '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong class="text-ink">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
                 '<div class="card-etoms"><div class="empty"><h3>Không thể nộp báo cáo</h3><p>' + Ui.escapeHtml(page.cannotSubmitReason) + '</p>' +
                 '<a class="btn btn-ghost" href="/result/evidence.html?matchId=' + page.matchId + '">Xem minh chứng trận này</a></div></div>';
             return;
@@ -17,13 +17,13 @@
         root.innerHTML =
             '<div class="eyebrow">Kết quả &amp; Khiếu nại</div>' +
             '<div class="page-head"><h1>Báo cáo tỉ số mù</h1>' +
-            '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong style="color:var(--ink)">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
+            '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong class="text-ink">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
             '<div class="dev-banner">Đây là báo cáo <strong>mù</strong> (Blind Dual-Reporting): bạn sẽ KHÔNG thấy tỉ số, minh chứng hay việc đội kia đã nộp hay chưa ' +
             'cho tới khi cả hai đội cùng nộp xong. Báo cáo sau khi xác nhận <strong>không thể sửa hoặc rút lại</strong>.</div>' +
             '<div id="flash"></div>' +
             '<div class="card-etoms form-narrow"><div class="body">' +
             '<form id="submit-form" novalidate>' +
-            '<div class="field"><label>Tỉ số đội <strong style="color:var(--cyan)">' + Ui.escapeHtml(page.myTeamName) + '</strong> (đội bạn) <span class="req">*</span></label>' +
+            '<div class="field"><label>Tỉ số đội <strong class="text-cyan">' + Ui.escapeHtml(page.myTeamName) + '</strong> (đội bạn) <span class="req">*</span></label>' +
             '<input name="MyScore" type="number" min="0" max="50" class="input" required />' +
             '<span class="field-error" data-field-error="MyScore"></span></div>' +
             '<div class="field"><label>Tỉ số đội đối thủ <span class="req">*</span></label>' +
@@ -33,7 +33,7 @@
             '<input type="file" name="evidenceFiles" class="input" multiple accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,.mov,.rofl,.dem" required />' +
             '<div class="hint">Ảnh tối đa 8MB, video tối đa 100MB, file replay tối đa 30MB. Có thể chọn nhiều file.</div>' +
             '<span class="field-error" data-field-error="evidenceFiles"></span></div>' +
-            '<div class="field" style="margin-bottom:8px"><label>Tỉ số từng ván (tùy chọn, dùng cho Bo3/Bo5)</label>' +
+            '<div class="field mb-2"><label>Tỉ số từng ván (tùy chọn, dùng cho Bo3/Bo5)</label>' +
             '<input name="PerGameScores" class="input" placeholder="Ví dụ: 1-0, 0-1, 1-0" maxlength="200" /></div>' +
             '<div class="alert" style="background:rgba(246,167,35,.1);border:1px solid rgba(246,167,35,.3);color:var(--warn);margin-top:18px">Nộp kết quả? Báo cáo đã nộp không thể sửa hoặc rút lại.</div>' +
             '<div class="btn-row"><button type="submit" class="btn btn-primary">Xác nhận nộp báo cáo</button>' +

@@ -248,9 +248,9 @@
         }).join('');
         return '<div class="card-etoms" id="journey" style="margin-bottom:12px"><div class="body">' +
             '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2">' +
-            '<div class="section-title" style="margin:0">Hành trình của ' + esc(name) + '</div>' +
+            '<div class="section-title m-0">Hành trình của ' + esc(name) + '</div>' +
             '<button type="button" class="btn btn-ghost" id="clear-team">Bỏ chọn đội</button></div>' +
-            (rows ? '<ol style="margin:10px 0 0;padding-left:22px">' + rows + '</ol>' : '<div class="hint" style="margin-top:8px">Đội chưa có trận nào trong nhánh knockout.</div>') +
+            (rows ? '<ol style="margin:10px 0 0;padding-left:22px">' + rows + '</ol>' : '<div class="hint mt-2">Đội chưa có trận nào trong nhánh knockout.</div>') +
             '</div></div>';
     }
 
@@ -273,9 +273,9 @@
         }
         return '<div class="card-etoms bk-detail" id="match-detail" style="margin-bottom:12px"><div class="body">' +
             '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2">' +
-            '<div class="section-title" style="margin:0">' + esc(n.label) + '</div>' +
+            '<div class="section-title m-0">' + esc(n.label) + '</div>' +
             '<button type="button" class="btn btn-ghost" id="close-detail">Đóng</button></div>' +
-            '<div style="margin-top:8px">' + lines.map(function (l) { return '<div>' + l + '</div>'; }).join('') + '</div>' + games +
+            '<div class="mt-2">' + lines.map(function (l) { return '<div>' + l + '</div>'; }).join('') + '</div>' + games +
             (n.matchId ? '<div class="btn-row"><a class="btn btn-ghost" href="/match/pick-ban.html?id=' + n.matchId + '">Cấm chọn bản đồ</a></div>' : '') +
             '</div></div>';
     }
@@ -285,15 +285,15 @@
         if (!board.hasGroupStage || !standings || !standings.groups.length) return '';
         var marks = { QUALIFIED: 'Đi tiếp', PROVISIONAL: 'Tạm đi tiếp', PENDING_DECISION: 'Chờ BTC' };
         return '<div class="card-etoms" id="group-summary" style="margin-top:16px"><div class="body">' +
-            '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2" style="margin-bottom:10px">' +
-            '<div class="section-title" style="margin:0">Vòng bảng</div>' +
+            '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">' +
+            '<div class="section-title m-0">Vòng bảng</div>' +
             '<a class="btn btn-ghost" href="/tournament/standings.html?id=' + tournamentId + '">Xem bảng xếp hạng đầy đủ</a></div>' +
-            '<div class="hint" style="margin-bottom:10px">' + esc(standings.stateMessage) + '</div>' +
+            '<div class="hint mb-2">' + esc(standings.stateMessage) + '</div>' +
             '<div class="bk-groups">' + standings.groups.map(function (g) {
                 return '<div><div class="nm" style="margin-bottom:4px">Bảng ' + esc(g.groupLabel) + '</div><table class="bk-mini"><tbody>' +
                     g.rows.map(function (r) {
                         return '<tr><td>' + r.position + '</td><td>' + esc(r.teamName) + (marks[r.mark] ? ' <span class="badge badge-active">' + marks[r.mark] + '</span>' : '') +
-                            '</td><td style="text-align:right"><strong>' + r.points + '</strong></td></tr>';
+                            '</td><td class="text-end"><strong>' + r.points + '</strong></td></tr>';
                     }).join('') + '</tbody></table></div>';
             }).join('') + '</div></div></div>';
     }
@@ -326,7 +326,7 @@
         document.getElementById('page-sub').textContent = b.formatLabel + ' · ' + b.tournamentStatus +
             (b.isLive ? ' · Tự cập nhật mỗi 30 giây' : '');
 
-        var notice = b.notice ? '<div class="pending-banner" style="margin-bottom:12px">' + esc(b.notice) + '</div>' : '';
+        var notice = b.notice ? '<div class="pending-banner mb-2">' + esc(b.notice) + '</div>' : '';
         var updated = '<div class="hint" id="updated-at" style="margin-bottom:10px">Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN') + '</div>';
 
         if (!b.canViewBracket) {

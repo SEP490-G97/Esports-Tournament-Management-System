@@ -547,6 +547,11 @@ body { overflow-x: hidden; }
   .feature-list-item { flex-direction: column; }
 }
 
+/* Widget đăng nhập trên navbar: CSS thật nằm ở khối "KHUNG DÙNG CHUNG" phía dưới
+   (#nav-auth-slot, .nav-user-trigger, .nav-user-menu...) — khớp đúng markup do
+   layout.js renderUserDropdown() sinh ra. Khối cũ dùng .nav-auth-hello/.av vòng tròn
+   32px từng nằm ở đây đã bỏ vì không còn khớp markup và có thể đè nhầm (ID selector
+   #nav-auth-slot .av thắng specificity so với .nav-user-trigger .av). */
 
 /* --- Iteration 1: profile and organization journeys --- */
 .profile-page-head, .org-page-hero { display: flex; justify-content: space-between; align-items: end; gap: 24px; }
@@ -971,3 +976,235 @@ h1, h2, h3, .section-title, .sec-head h2 { font-family: var(--font-display); fon
 }
 .table-wrap table tbody tr:hover, table.table tbody tr:hover { background: var(--primary-050); }
 .table-wrap table tbody tr:last-child td, table.table tbody tr:last-child td { border-bottom: 0; }
+
+/* =====================================================================
+   KHUNG DÙNG CHUNG (chuẩn theo trang chủ) — footer trang con, menu theo vai trò,
+   thanh tab trong giải, trạng thái đang tải, bảng dữ liệu, tiện ích khoảng cách.
+   Chỉ dùng biến màu ở :root để chế độ sáng/tối luôn đúng.
+   ===================================================================== */
+
+/* ---- Footer trang con (layout.js chèn partials/footer.html nếu trang chưa có footer) ---- */
+.site-footer-compact { padding: 40px 0 22px; margin-top: 24px; }
+.site-footer-compact .foot-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 24px; }
+.site-footer-compact .foot-brand .brand { display: inline-flex; }
+.site-footer-compact .foot-bottom { margin-top: 26px; padding-top: 18px; }
+@media (max-width: 760px) {
+  .site-footer-compact .foot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .site-footer-compact .foot-brand { grid-column: 1 / -1; }
+}
+
+/* ---- Menu: mục theo vai trò ẩn sẵn, layout.js bật theo vai trò ---- */
+.etoms-nav nav a { display: inline-flex; align-items: center; padding: 8px 9px; letter-spacing: .2px; white-space: nowrap; }
+.etoms-nav .inner, .etoms-nav .navbar-collapse { column-gap: 20px; }
+.nav-user-trigger .who { display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.nav-user-trigger .nav-hello { display: none; }
+.etoms-nav.nav-many .inner { max-width: 1320px; }
+@media (min-width: 992px) { .etoms-nav.nav-many nav a { font-size: .85rem; padding: 8px 8px; } }
+@media (min-width: 992px) and (max-width: 1365.98px) { .etoms-nav.nav-many nav a { font-size: .82rem; padding: 8px 7px; } }
+.tour-subnav::-webkit-scrollbar { height: 6px; }
+.tour-subnav::-webkit-scrollbar-track { background: transparent; }
+.tour-subnav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+.tour-subnav { scrollbar-color: var(--border) transparent; }
+.etoms-nav nav a[data-roles] { display: none; }
+.etoms-nav nav a[data-roles].role-visible { display: inline-flex; }
+.nav-user-menu-sep { height: 1px; margin: 6px 4px; background: var(--border-soft); }
+.nav-user-menu a.nav-user-menu-item { color: var(--ink); }
+.nav-user-menu a.nav-user-menu-item:hover { color: var(--ink); }
+.nav-user-role { display: block; padding: 8px 12px 4px; color: var(--muted-2); font-size: .7rem; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
+@media (max-width: 991.98px) {
+  .etoms-nav nav { width: 100%; flex-direction: column; gap: 2px; }
+  .etoms-nav nav a { width: 100%; }
+  .etoms-nav .spacer { display: none; }
+  .etoms-nav .nav-user { width: 100%; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-soft); }
+  .nav-user-menu { right: auto; left: 0; }
+}
+
+/* ---- Thanh tab trong một giải (kiểu nền tảng esports: Tổng quan · Nhánh · Lịch · BXH...) ---- */
+.tour-subnav { display: flex; gap: 4px; margin: -8px 0 24px; padding: 4px; overflow-x: auto; scrollbar-width: thin;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+.tour-subnav a { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 9px;
+  color: var(--muted); font-size: .86rem; font-weight: 700; white-space: nowrap; }
+.tour-subnav a:hover { color: var(--ink); background: var(--primary-050); }
+.tour-subnav a.active { color: var(--ink); background: var(--primary-050); box-shadow: inset 0 -2px 0 var(--cyan); }
+.tour-subnav .sep { flex: none; width: 1px; margin: 6px 4px; background: var(--border); }
+.tour-subnav .tag { flex: none; align-self: center; padding: 0 6px; font-size: .64rem; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--gold); }
+.tour-subnav a:focus-visible { outline: 3px solid var(--cyan); outline-offset: 1px; }
+
+.alert-info-etoms { background: var(--primary-050); color: var(--info-ink); border-color: rgba(59,108,255,.35); }
+.alert-warn-etoms { background: rgba(246,167,35,.1); color: var(--warn); border-color: rgba(246,167,35,.3); }
+
+/* ---- Trạng thái đang tải / rỗng / lỗi ---- */
+.empty.is-loading h3 { display: inline-flex; align-items: center; gap: 12px; color: var(--muted); font-weight: 700; font-size: 1rem; }
+.empty.is-loading h3::before { content: ""; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border);
+  border-top-color: var(--cyan); animation: etomsSpin .8s linear infinite; }
+@keyframes etomsSpin { to { transform: rotate(360deg); } }
+.empty p { max-width: 520px; margin: 6px auto 0; }
+.empty .btn { margin-top: 16px; }
+@media (prefers-reduced-motion: reduce) { .empty.is-loading h3::before { animation: none; } }
+
+/* ---- Bảng dữ liệu: dòng nổi khi rê chuột, số căn phải; điện thoại xếp thành thẻ nếu có data-label ---- */
+.data-table tbody tr { transition: background .12s; }
+.data-table tbody tr:hover { background: var(--primary-050); }
+.data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-table tr:last-child td { border-bottom: 0; }
+@media (max-width: 640px) {
+  .data-table.stack { min-width: 0; }
+  .data-table.stack thead { display: none; }
+  .data-table.stack tr { display: block; padding: 10px 0; border-bottom: 1px solid var(--border-soft); }
+  .data-table.stack td { display: flex; justify-content: space-between; gap: 12px; border: 0; padding: 5px 4px; }
+  .data-table.stack td[data-label]::before { content: attr(data-label); color: var(--muted-2); font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+}
+
+/* ---- Tiện ích dùng chung (thay cho style viết tay lặp lại trong các trang) ---- */
+.text-ink { color: var(--ink) !important; }
+.text-muted-etoms { color: var(--muted) !important; }
+.text-muted-2 { color: var(--muted-2) !important; }
+.text-danger-etoms { color: var(--danger-ink) !important; }
+.text-cyan { color: var(--cyan) !important; }
+.text-small { font-size: .84rem; }
+.text-xs { font-size: .76rem; }
+.fw-800 { font-weight: 800 !important; }
+.minw-0 { min-width: 0; }
+.row-between { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 8px; font-size: .78rem; font-weight: 700;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--ink); }
+.chip-danger { background: var(--danger-bg); border-color: rgba(239,77,90,.35); color: var(--danger-ink); }
+.btn-sm { padding: 8px 14px; font-size: .84rem; border-radius: 9px; }
+.btn-xs { padding: 5px 10px; font-size: .76rem; border-radius: 8px; }
+.btn-danger { background: var(--danger); color: #fff; box-shadow: 0 8px 22px rgba(239,77,90,.28); }
+.btn-danger:hover { filter: brightness(1.08); color: #fff; }
+
+/* ---- Form nhiều bước (tạo giải TOUR-01..05) và lưới form dùng chung ---- */
+.container-narrow { max-width: 900px; }
+.wizard-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 0 0 22px; counter-reset: none; }
+.step-tab { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--panel); color: var(--muted); font-size: .82rem; font-weight: 700; line-height: 1.25; }
+.step-tab .step-no { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 9px; border: 1px solid var(--border);
+  font-size: .78rem; font-weight: 800; color: var(--muted); }
+.step-tab.active { border-color: var(--primary); background: var(--primary-050); color: var(--ink); }
+.step-tab.active .step-no { background: var(--primary); border-color: var(--primary); color: #fff; }
+.step-tab.done { border-color: rgba(39,199,111,.45); color: var(--ink); }
+.step-tab.done .step-no { background: var(--success); border-color: var(--success); color: #fff; }
+.wizard-title { margin: 0 0 6px; font-size: 1.25rem; font-weight: 800; color: var(--cyan); }
+.wizard-title-success { color: var(--success-ink); }
+.panel-title { margin: 0 0 6px; font-size: 1.2rem; font-weight: 800; color: var(--ink); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 16px; }
+.form-grid-sm { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-bottom: 30px; }
+.check-field { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.check-field input[type="checkbox"] { width: 18px; height: 18px; flex: none; accent-color: var(--primary); cursor: pointer; }
+.check-field label { margin: 0 !important; cursor: pointer; }
+.check-field-inline { align-self: end; min-height: 46px; }
+.config-block { margin-top: 14px; padding: 16px; background: var(--bg-2); border: 1px dashed var(--cyan); border-radius: 12px; }
+.config-block h4 { margin: 0 0 12px; color: var(--cyan); font-size: .95rem; font-weight: 800; }
+.select-accent { font-weight: 600; color: var(--cyan); }
+.text-gold { color: var(--gold) !important; }
+.btn-success { background: linear-gradient(135deg, var(--success), #1b9d57); color: #fff; box-shadow: 0 8px 22px rgba(39,199,111,.28); }
+.btn-success:hover { filter: brightness(1.08); color: #fff; }
+@media (max-width: 760px) {
+  .wizard-steps { display: flex; overflow-x: auto; padding-bottom: 4px; }
+  .step-tab { flex: none; }
+  .split-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- Trang quản trị (Admin) ---- */
+.admin-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.admin-tile { display: flex; flex-direction: column; gap: 10px; padding: 22px; min-height: 180px; }
+.admin-tile .num { font-size: 2rem; font-weight: 800; letter-spacing: -1px; color: var(--cyan); line-height: 1; }
+.admin-tile h2 { font-size: 1.05rem; font-weight: 800; margin: 0; }
+.admin-tile p { color: var(--muted); font-size: .88rem; margin: 0; flex: 1; }
+@media (max-width: 980px) { .admin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .admin-grid { grid-template-columns: 1fr; } }
+
+/* ---- Khung nội dung trên điện thoại ---- */
+@media (max-width: 640px) {
+  .container-etoms { padding: 24px 16px 48px; }
+  .page-head h1 { font-size: 1.55rem; }
+  .card-etoms .body { padding: 20px; }
+  .btn-row { flex-wrap: wrap; }
+  .btn-row .btn { flex: 1 1 auto; }
+  .modal-box { padding: 22px 20px; }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn { width: 100%; }
+}
+
+
+/* =====================================================================
+   TRANG GIẢI ĐẤU (chuyển từ <style> riêng của từng trang vào đây để dùng chung)
+   ===================================================================== */
+/* ---- Bảng xếp hạng vòng bảng (BRK-13) và chuyển vòng (BRK-08) ---- */
+.standing-wrap { overflow-x: auto; }
+.standing { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 560px; }
+.standing th, .standing td { padding: 9px 10px; border-bottom: 1px solid var(--border-soft); text-align: center; }
+.standing th { color: var(--muted-2); font-weight: 700; font-size: .76rem; text-transform: uppercase; letter-spacing: .7px; }
+.standing tbody tr:hover td { background: var(--primary-050); }
+.standing td.team, .standing th.team, .standing td.tb, .standing th.tb { text-align: left; }
+.standing tr.in-zone td, .standing tr.qualified td { background: var(--success-bg); }
+.standing tr.in-zone td.team, .standing tr.qualified td.team { box-shadow: inset 3px 0 var(--success); }
+.standing td.tb { color: var(--muted); font-size: .85rem; }
+.group-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+.group-tabs .btn[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+.result-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+.result-row .score { font-weight: 700; min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
+.tie-order li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; }
+
+/* ---- Nhánh đấu tương tác (BRK-10/11) ---- */
+.bk-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.bk-toolbar .grow { flex: 1 1 auto; }
+.bk-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.bk-seg button { border: 0; background: transparent; color: var(--ink); padding: 8px 14px; font-weight: 600; }
+.bk-seg button[aria-pressed="true"] { background: var(--primary); color: #fff; }
+.bk-viewport { position: relative; overflow: hidden; height: 70vh; min-height: 380px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); touch-action: none; cursor: grab; outline: none; }
+.bk-viewport:focus-visible { box-shadow: 0 0 0 3px var(--primary-050); border-color: var(--primary); }
+.bk-viewport.dragging { cursor: grabbing; }
+.bk-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.bk-lines { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.bk-lines path { fill: none; stroke: var(--border); stroke-width: 2; }
+.bk-lines path.hl { stroke: var(--primary); stroke-width: 3; }
+.bk-lines path.dim { opacity: .25; }
+.bk-stage-title { position: absolute; left: 0; font-weight: 700; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+.bk-round-title { position: absolute; font-weight: 600; color: var(--muted-2); font-size: .78rem; }
+.bk-match { position: absolute; width: 220px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: opacity .15s; }
+.bk-match.third { border-style: dashed; }
+.bk-match.bye { opacity: .75; }
+.bk-match.hl { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-050); }
+.bk-match.dim, .bk-card.dim { opacity: .25; }
+.bk-head { display: block; width: 100%; text-align: left; border: 0; background: var(--panel-2); color: var(--muted); font-size: .72rem; padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-team { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 6px; border: 0; border-top: 1px solid var(--border-soft); background: transparent; color: var(--ink); padding: 6px 8px; font-size: .86rem; text-align: left; }
+.bk-team:disabled { color: var(--muted-2); cursor: default; }
+.bk-team .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-team.win { font-weight: 700; }
+.bk-team.sel { background: var(--primary-050); }
+.bk-team .sc { min-width: 18px; text-align: right; font-weight: 700; }
+.bk-list-round { margin-top: 16px; }
+.bk-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; background: var(--panel); overflow: hidden; }
+.bk-card .bk-head { font-size: .78rem; padding: 6px 10px; display: flex; justify-content: space-between; gap: 8px; }
+.bk-card .bk-team { padding: 9px 10px; font-size: .92rem; }
+.bk-detail table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.bk-detail th, .bk-detail td { padding: 6px 8px; border-bottom: 1px solid var(--border-soft); text-align: center; }
+.bk-mini { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.bk-mini td { padding: 4px 6px; border-bottom: 1px solid var(--border-soft); }
+.bk-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+
+/* ---- Hủy giải (TOUR-11) ---- */
+.danger-card { border-color: var(--danger); }
+.danger-card .section-title { color: var(--danger-ink); }
+.btn-cancel-tour { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-cancel-tour:hover { filter: brightness(1.1); color: #fff; }
+.refund-wrap { overflow-x: auto; }
+.refund { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 620px; }
+.refund th, .refund td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); text-align: left; }
+.refund th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+.refund td.num { text-align: right; white-space: nowrap; }
+textarea.input { min-height: 110px; resize: vertical; }
+.consequences li { margin-bottom: 6px; }
+
+/* ---- Sửa thông tin giải (TOUR-10) ---- */
+.edit-section { margin-top: 18px; }
+.edit-section fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.edit-section fieldset:disabled .input, .edit-section fieldset:disabled .select, .edit-section fieldset:disabled textarea { opacity: .6; }
+.check-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.check-row input { width: 18px; height: 18px; }
+.past-tag { color: var(--muted-2); font-weight: 400; font-size: .8rem; }
+textarea.input { min-height: 110px; resize: vertical; }
+#banner-preview { max-width: 100%; max-height: 160px; border-radius: 10px; margin-top: 8px; border: 1px solid var(--border); }

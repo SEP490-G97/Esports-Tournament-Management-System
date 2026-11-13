@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Công cụ truyền thông · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=ui-2026-11" />
+    <link rel="stylesheet" href="/css/iteration3.css?v=ui-2026-11" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms py-4">
+        <div class="page-head mb-4">
+            <div class="eyebrow">MKT-02 · MKT-03 · MKT-04</div>
+            <h1>Công cụ truyền thông giải đấu</h1>
+            <p>Tạo mã QR, link cộng tác viên và tải bộ ảnh giới thiệu giải.</p>
+        </div>
+        <div id="marketing-flash" aria-live="polite"></div>
+        <section class="i3-surface mb-4">
+            <div class="field">
+                <label for="marketing-tournament">Giải đấu</label>
+                <select id="marketing-tournament" class="select"></select>
+            </div>
+        </section>
+        <div class="row g-3">
+            <div class="col-12 col-lg-7">
+                <section class="i3-surface">
+                    <h2>Mã QR đăng ký</h2>
+                    <p class="field-hint">Mã QR mở trang giới thiệu giải, nơi người chơi có thể xem thông tin và đăng ký.</p>
+                    <div class="field">
+                        <label for="qr-affiliate-code">Gắn mã cộng tác viên (không bắt buộc)</label>
+                        <select id="qr-affiliate-code" class="select"><option value="">Link của ban tổ chức</option></select>
+                    </div>
+                    <img id="marketing-qr" class="i3-qr my-3" alt="Mã QR đăng ký giải" hidden />
+                    <a id="download-qr" class="btn btn-ghost" hidden>Tải mã QR dạng SVG</a>
+                </section>
+                <section class="i3-surface mt-3">
+                    <h2>Bộ ảnh truyền thông</h2>
+                    <p class="field-hint">Tải ảnh vector SVG theo kích thước phổ biến. Có thể mở bằng trình duyệt hoặc công cụ thiết kế.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a id="asset-square" class="btn btn-ghost">Ảnh vuông 1080 × 1080</a>
+                        <a id="asset-story" class="btn btn-ghost">Ảnh dọc 1080 × 1920</a>
+                        <a id="asset-landscape" class="btn btn-ghost">Banner 1200 × 630</a>
+                        <a id="asset-logo" class="btn btn-ghost">Logo giải 512 × 512</a>
+                        <a id="asset-avatar-frame" class="btn btn-ghost">Khung avatar 1080 × 1080</a>
+                    </div>
+                </section>
+            </div>
+            <div class="col-12 col-lg-5">
+                <section class="i3-surface">
+                    <h2>Link cộng tác viên</h2>
+                    <form id="affiliate-form" class="i3-toolbar mb-3">
+                        <div class="field flex-grow-1">
+                            <label for="affiliate-label">Tên cộng tác viên</label>
+                            <input id="affiliate-label" class="input" maxlength="150" required />
+                        </div>
+                        <button class="btn btn-primary" type="submit">Tạo liên kết</button>
+                    </form>
+                    <div class="i3-table-wrap">
+                        <table class="i3-table">
+                            <thead><tr><th>Cộng tác viên</th><th>Lượt xem</th><th>Đơn thành công</th><th>Liên kết</th></tr></thead>
+                            <tbody id="affiliate-list"><tr><td colspan="4">Chọn giải để xem liên kết.</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/marketing-tools.js" defer></script>
+</body>
+</html>

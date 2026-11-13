@@ -9,6 +9,7 @@ using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MySql.Data.MySqlClient;
 using System.Text;
@@ -29,8 +30,18 @@ if (string.IsNullOrWhiteSpace(connectionString))
 // ---- Options ----
 builder.Services.Configure<JwtOptions>(cfg.GetSection(JwtOptions.Section));
 var jwt = cfg.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.Configure<AuthLinkOptions>(builder.Configuration.GetSection(AuthLinkOptions.SectionName));
+builder.Services.Configure<SupportOptions>(builder.Configuration.GetSection(SupportOptions.SectionName));
 
 
+
+
+
+// Email: Enabled=false thì chỉ ghi link ra log, test gửi mail trong env dev
+var emailEnabled = builder.Configuration.GetValue<bool>("Email:Enabled");
+if (emailEnabled) builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
+else builder.Services.AddScoped<IEmailSender, LogEmailSender>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
@@ -51,13 +62,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
+/* Rate limiting: giới hạn số lần gửi request (mail, login) trong 1 phút để chống spam, brute-force. 
+ * Dùng IP làm key, nếu có proxy thì cần cấu hình X-Forwarded-For.
+ *  Tạm thời chưa cần proxy, tất cả cấu hình trên Amazon EC2 đều chạy internal   
+ */
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    //login
     o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+    //Mail
+    o.AddPolicy("mail", ctx => RateLimitPartition.GetFixedWindowLimiter(
+    ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+    _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
 });
+
+
 
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
@@ -110,15 +132,23 @@ builder.Services.AddSession(options =>
 // hoặc biến môi trường ETOMS_DB_CONNECTION (KHÔNG commit).
 // Đúng theo Report 4 (Software Design Specification): Controller → Service → IUnitOfWork
 // (phát GenericRepository<T> theo entity, dùng chung 1 EtomsDbContext/request) → DB.
-builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
+// Giữ 1 kết nối cho cả request thay vì mở/đóng quanh từng câu SQL (xem KeepConnectionOpenInterceptor).
+builder.Services.AddDbContext<EtomsDbContext>(options => options
+    .UseMySQL(mysqlConnectionString)
+    .AddInterceptors(new KeepConnectionOpenInterceptor()));
 
 // Dò cột RegistrationLineup.GamePositionID (GRL-04) trước khi EF dựng model; xem Repositories/PendingSchema.cs.
 PendingSchema.Detect(mysqlConnectionString);
 
+builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
+builder.Services.AddScoped<IOneTimeTokenService, OneTimeTokenService>();
+builder.Services.AddScoped<IAccountSecurityService, AccountSecurityService>();
 builder.Services.AddScoped(typeof(ETOMS_API.Repositories.Interface.IGenericRepository<>), typeof(ETOMS_API.Repositories.Impl.GenericRepository<>));
 builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IProfileService, ETOMS_API.Services.Impl.ProfileService>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ETOMS_API.Services.Impl.OrganizationService>();
+builder.Services.AddScoped<ITournamentMarketingService, TournamentMarketingService>();
+builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddScoped<ITournamentRegistrationService, TournamentRegistrationService>();
 builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
 builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
@@ -129,6 +159,7 @@ builder.Services.AddScoped<IBracketService, BracketService>();
 builder.Services.AddScoped<IResultService, ResultService>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IMatchOpsService, ETOMS_API.Services.Impl.MatchOpsService>();
 builder.Services.AddHostedService<WaitlistExpirationWorker>();
+builder.Services.AddHostedService<CompletedTournamentRankingWorker>();
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();

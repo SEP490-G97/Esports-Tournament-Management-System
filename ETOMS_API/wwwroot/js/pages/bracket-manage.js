@@ -23,7 +23,7 @@
     function manualRowHtml(t, idx) {
         return '<div class="manual-row d-flex align-items-center gap-2" data-team="' + t.teamId + '" style="background:var(--panel-2);border-radius:10px;padding:9px 12px">' +
             '<span style="font-weight:800;color:var(--cyan);width:22px">' + (idx + 1) + '</span>' +
-            '<span style="flex:1">' + Ui.escapeHtml(t.name) + ' [' + Ui.escapeHtml(t.tag) + ']</span>' +
+            '<span class="flex-grow-1">' + Ui.escapeHtml(t.name) + ' [' + Ui.escapeHtml(t.tag) + ']</span>' +
             '<button type="button" class="btn btn-ghost" style="padding:4px 9px" data-move="-1">▲</button>' +
             '<button type="button" class="btn btn-ghost" style="padding:4px 9px" data-move="1">▼</button>' +
             '</div>';
@@ -58,7 +58,7 @@
         var warn = tree.approvedTeamCount < 2 ? '<div class="hint" style="color:var(--warn);margin-top:8px">Cần ít nhất 2 đội đã duyệt để sinh nhánh đấu.</div>' : '';
 
         return '<div class="card-etoms form-narrow" style="margin-bottom:28px"><div class="body">' +
-            '<div class="section-title" style="margin-top:0">' + (tree.hasBracket ? 'Sinh lại nhánh đấu' : 'Sinh nhánh đấu') + '</div>' +
+            '<div class="section-title mt-0">' + (tree.hasBracket ? 'Sinh lại nhánh đấu' : 'Sinh nhánh đấu') + '</div>' +
             '<div class="section-sub">' + tree.approvedTeamCount + ' đội đã duyệt. ' + (tree.hasBracket ? 'Sinh lại sẽ xóa cây hiện tại và dựng lại.' : 'Chọn cách xếp hạt giống rồi sinh nhánh.') + '</div>' +
             '<form id="generate-form" style="margin-top:14px">' +
             '<div class="field"><label>Cách xếp hạt giống</label>' +
@@ -68,7 +68,7 @@
             '<option value="MANUAL">Thủ công (sắp xếp tay)</option>' +
             '</select></div>' +
             '<div id="manualBox" style="display:none">' +
-            '<div class="hint" style="margin-bottom:10px">Dùng nút ▲▼ để sắp xếp thứ tự hạt giống (1 = hạt giống cao nhất).</div>' +
+            '<div class="hint mb-2">Dùng nút ▲▼ để sắp xếp thứ tự hạt giống (1 = hạt giống cao nhất).</div>' +
             '<div id="manualList" class="d-grid gap-2 mb-3">' + manualRows + '</div></div>' +
             '<div class="btn-row"><button type="submit" class="btn btn-primary" ' + disabled + '>' + (tree.hasBracket ? 'Sinh lại nhánh đấu' : 'Sinh nhánh đấu') + '</button></div>' +
             warn +
@@ -89,8 +89,8 @@
 
         var html = '';
         if (knockout.length > 0) {
-            html += '<div class="section-title" style="margin-top:0">Sơ đồ nhánh đấu</div>' +
-                '<div class="section-sub">Cây nhánh dạng tĩnh — bản kéo, phóng to nằm ở trang Nhánh đấu của giải.</div>' +
+            html += '<div class="section-title mt-0">Sơ đồ nhánh đấu</div>' +
+                '<div class="section-sub">Sơ đồ tóm tắt; xem bản tương tác ở tab “Nhánh đấu”.</div>' +
                 '<div id="knockout-tree"></div>';
         }
         if (groupMatches.length > 0) {
@@ -109,7 +109,7 @@
                     html += '<div class="card-etoms"><div class="body d-flex flex-wrap align-items-center gap-3" style="padding:14px 18px">' +
                         '<div class="d-flex align-items-center gap-2" style="flex:1;min-width:220px">' +
                         '<span style="font-weight:700;' + aColor + '">' + Ui.escapeHtml(m.teamAName || '— chờ xác định —') + '</span>' +
-                        '<span style="color:var(--muted-2)">vs</span>' +
+                        '<span class="text-muted-2">vs</span>' +
                         '<span style="font-weight:700;' + bColor + '">' + Ui.escapeHtml(m.teamBName || '— chờ xác định —') + '</span></div>' +
                         right + '</div></div>';
                 });
@@ -129,7 +129,7 @@
             '<div class="eyebrow">Ban tổ chức · Nhánh đấu</div>' +
             '<div class="page-head"><h1>' + Ui.escapeHtml(tree.tournamentName) + '</h1>' +
             '<p>' + formatLabel(tree.format) + ' · ' + tree.approvedTeamCount + ' đội đã duyệt' + lockedBadge + '</p></div>' +
-            '<div class="btn-row" style="margin-bottom:22px">' +
+            '<div class="btn-row mb-4">' +
             '<a class="btn btn-ghost" href="/registration/review.html?tournamentId=' + tree.tournamentId + '">Duyệt đơn đăng ký</a>' +
             '<a class="btn btn-ghost" href="/bracket/view.html?id=' + tree.tournamentId + '">Xem công khai</a>' +
             '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định</a>' +

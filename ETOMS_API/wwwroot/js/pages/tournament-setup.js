@@ -163,8 +163,10 @@ function switchStep(stepNum) {
         var tab = document.getElementById('tabStep' + i);
         if (panel) panel.style.display = (i === stepNum) ? 'block' : 'none';
         if (tab) {
-            tab.style.color = (i === stepNum) ? 'var(--primary)' : 'var(--muted)';
-            tab.style.fontWeight = (i === stepNum) ? 'bold' : 'normal';
+            // Giao diện bước (màu, đánh dấu đã xong) nằm trong site.css: .step-tab.active / .step-tab.done
+            tab.classList.toggle('active', i === stepNum);
+            tab.classList.toggle('done', i < stepNum);
+            if (i === stepNum) tab.setAttribute('aria-current', 'step'); else tab.removeAttribute('aria-current');
         }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });

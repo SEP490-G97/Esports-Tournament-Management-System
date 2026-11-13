@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý tài khoản | ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <link rel="stylesheet" href="/css/admin-users.css">
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="au-head">
+            <div>
+                <h1 class="au-title">Quản lý tài khoản</h1>
+                <p class="au-sub">Tìm kiếm, lọc, khóa và mở khóa tài khoản người dùng.</p>
+            </div>
+        </div>
+
+        <div class="au-card">
+            <form class="au-toolbar" id="filter-form" autocomplete="off">
+                <input class="au-input au-search" id="q" type="search" maxlength="100"
+                       placeholder="Tìm theo tên hoặc email..." aria-label="Tìm kiếm">
+                <select class="au-input" id="role" aria-label="Lọc theo vai trò">
+                    <option value="">Mọi vai trò</option>
+                    <option value="PLAYER">Player</option>
+                    <option value="ORGANIZER">Organizer</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+            </form>
+
+            <div class="au-tabs" id="status-tabs" role="tablist">
+                <button type="button" class="au-tab active" data-status="">Tất cả <span class="au-count" data-count="all">0</span></button>
+                <button type="button" class="au-tab" data-status="ACTIVE">Hoạt động <span class="au-count" data-count="active">0</span></button>
+                <button type="button" class="au-tab" data-status="BANNED">Bị khóa <span class="au-count" data-count="banned">0</span></button>
+                <button type="button" class="au-tab" data-status="UNVERIFIED">Chưa xác minh <span class="au-count" data-count="unverified">0</span></button>
+            </div>
+
+            <div class="form-msg" id="list-msg" hidden></div>
+
+            <div class="au-table-wrap">
+                <table class="au-table">
+                    <thead>
+                        <tr>
+                            <th>Người dùng</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                            <th class="au-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows"></tbody>
+                </table>
+                <div class="au-empty" id="empty" hidden>Không có tài khoản nào phù hợp.</div>
+            </div>
+
+            <div class="au-pager">
+                <span id="range" class="au-muted"></span>
+                <div class="au-pager-btns">
+                    <button type="button" class="au-btn" id="prev">‹ Trước</button>
+                    <span id="page-label" class="au-muted"></span>
+                    <button type="button" class="au-btn" id="next">Sau ›</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Dialog Khóa / Mở khóa -->
+    <div class="modal fade" id="ban-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content au-modal">
+                <form id="ban-form" novalidate>
+                    <div class="modal-header">
+                        <h2 class="modal-title" id="modal-title"></h2>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="modal-target" class="au-muted"></p>
+
+                        <div id="ban-fields">
+                            <label class="au-label" for="reason">Lý do vi phạm <span class="au-req">*</span></label>
+                            <div class="au-chips" id="chips"></div>
+                            <textarea class="au-input" id="reason" rows="4" maxlength="500"
+                                      placeholder="Mô tả vi phạm (5 đến 500 ký tự)"></textarea>
+                            <div class="au-hint"><span id="reason-count">0</span>/500 · Hệ thống sẽ gửi email kèm lý do và kênh khiếu nại cho người dùng, đồng thời đăng xuất họ khỏi mọi thiết bị.</div>
+                        </div>
+
+                        <div id="unban-fields" hidden>
+                            <label class="au-label" for="note">Ghi chú (không bắt buộc)</label>
+                            <textarea class="au-input" id="note" rows="3" maxlength="500"
+                                      placeholder="Ví dụ: Khiếu nại thành công, đã xác minh nhầm lẫn."></textarea>
+                            <div class="au-hint">Người dùng sẽ nhận email thông báo đã được mở khóa. Thao tác được ghi vào Audit Log.</div>
+                        </div>
+
+                        <div class="form-msg" id="modal-msg" hidden></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="au-btn" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="au-btn au-btn-danger" id="modal-submit"></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/admin-users.js"></script>
+</body>
+</html>

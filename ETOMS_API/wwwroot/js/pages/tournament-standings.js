@@ -57,7 +57,7 @@
                 var when = m.scheduledAt && !m.isDecided ? ' · ' + formatTime(m.scheduledAt) : '';
                 return '<div class="result-row" data-result="' + m.matchId + '">' +
                     '<span class="rl" style="min-width:64px">Lượt ' + m.roundNo + '</span>' +
-                    '<span class="grow" style="text-align:right">' + Ui.escapeHtml(m.teamAName) + '</span>' +
+                    '<span class="grow text-end">' + Ui.escapeHtml(m.teamAName) + '</span>' +
                     '<span class="score">' + score + '</span>' +
                     '<span class="grow">' + Ui.escapeHtml(m.teamBName) + '</span>' +
                     '<span class="badge ' + Ui.escapeHtml(m.statusClass) + '">' + Ui.escapeHtml(m.statusLabel) + Ui.escapeHtml(when) + '</span>' +
@@ -67,7 +67,7 @@
 
     function legendHtml(b) {
         if (!b.advancePerGroup) return '';
-        return '<div class="hint" style="margin-top:12px">' + b.advancePerGroup + ' đội đầu mỗi bảng đi tiếp vào vòng knockout. ' +
+        return '<div class="hint mt-3">' + b.advancePerGroup + ' đội đầu mỗi bảng đi tiếp vào vòng knockout. ' +
             '"Tạm đi tiếp" là vị trí hiện tại khi vòng bảng chưa xong.</div>';
     }
 
@@ -77,9 +77,9 @@
         document.getElementById('page-sub').textContent = b.formatLabel + ' · Thắng 3 điểm, thua 0 điểm. Bằng điểm xét: ' + b.tieBreakerOrder.join(' > ') + '.';
 
         var head = '<div class="card-etoms"><div class="body">' +
-            '<p style="margin:0" id="state-message">' + Ui.escapeHtml(b.stateMessage) + '</p>' +
-            (b.isLocked || !b.groups.length ? '' : '<div class="pending-banner" style="margin-top:10px">Nhánh đấu chưa khóa, các bảng có thể còn thay đổi.</div>') +
-            '<div class="hint" style="margin-top:8px" id="updated-at">Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN') + '</div>' +
+            '<p class="m-0" id="state-message">' + Ui.escapeHtml(b.stateMessage) + '</p>' +
+            (b.isLocked || !b.groups.length ? '' : '<div class="pending-banner mt-2">Nhánh đấu chưa khóa, các bảng có thể còn thay đổi.</div>') +
+            '<div class="hint mt-2" id="updated-at">Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN') + '</div>' +
             '<div class="btn-row">' +
             (b.groups.length ? '<button type="button" class="btn btn-ghost" id="export-btn">Xuất báo cáo (CSV)</button>' : '') +
             '<a class="btn btn-ghost" href="/tournament/bracket.html?id=' + tournamentId + '">Xem nhánh đấu</a></div>' +
@@ -99,8 +99,8 @@
         }).join('') + '</div>';
 
         document.getElementById('standings-root').innerHTML = head + tabs +
-            '<div class="card-etoms" style="margin-top:10px"><div class="body">' +
-            '<div class="section-title" style="margin-top:0">Bảng ' + Ui.escapeHtml(group.groupLabel) + '</div>' +
+            '<div class="card-etoms mt-2"><div class="body">' +
+            '<div class="section-title mt-0">Bảng ' + Ui.escapeHtml(group.groupLabel) + '</div>' +
             tableHtml(group) + legendHtml(b) + resultsHtml(group) +
             '</div></div>';
 

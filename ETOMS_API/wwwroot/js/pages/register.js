@@ -1,99 +1,57 @@
-// wwwroot/js/pages/register.js
-// AUTH-01: STUB TẠM thay module AUTH (Vũ Đức Hải) — trang này trước đây nạp nhầm script của
-// dev-auth nên không đăng ký được gì cả. Không phải bài làm cá nhân của Hải.
 (function () {
-    var form = document.getElementById('register-form');
-    var fullName = document.getElementById('reg-fullname');
-    var dob = document.getElementById('reg-dob');
-    var email = document.getElementById('reg-email');
-    var password = document.getElementById('reg-password');
-    var confirm = document.getElementById('reg-confirm');
-    var agree = document.getElementById('reg-agree');
-    var submitBtn = form.querySelector('.reg-submit');
-    var errorBox = document.getElementById('reg-error');
+    const F = window.AuthForms;
+    const form = document.getElementById('register-form');
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('submit');
 
     // Không cho chọn ngày sinh trong tương lai.
-    dob.max = new Date().toISOString().slice(0, 10);
+    if (form.dateOfBirth) form.dateOfBirth.max = new Date().toISOString().slice(0, 10);
 
-    function clearErrors() {
-        errorBox.style.display = 'none';
-        errorBox.textContent = '';
-        form.querySelectorAll('[data-field-error]').forEach(function (el) { el.textContent = ''; });
-    }
-
-    function showGeneralError(msg) {
-        errorBox.textContent = msg;
-        errorBox.style.display = 'block';
-    }
-
-    function showFieldError(field, msg) {
-        var el = form.querySelector('[data-field-error="' + field + '"]');
-        if (el) el.textContent = msg; else showGeneralError(msg);
-    }
-
-    function setLoading(on) {
-        submitBtn.disabled = on;
-        submitBtn.textContent = on ? 'Đang đăng ký...' : 'Đăng ký tài khoản';
-    }
-
-    // Tuổi tính theo ngày sinh, không chỉ trừ năm (để đúng cả khi chưa tới sinh nhật năm nay).
     function calcAge(birthIso) {
         var b = new Date(birthIso + 'T00:00:00');
         var now = new Date();
         var age = now.getFullYear() - b.getFullYear();
-        var hasHadBirthdayThisYear = (now.getMonth() > b.getMonth()) ||
+        var hadBirthdayThisYear = (now.getMonth() > b.getMonth()) ||
             (now.getMonth() === b.getMonth() && now.getDate() >= b.getDate());
-        if (!hasHadBirthdayThisYear) age--;
+        if (!hadBirthdayThisYear) age--;
         return age;
     }
 
-    form.addEventListener('submit', async function (e) {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        clearErrors();
 
-        var hasError = false;
-        if (!fullName.value.trim()) { showFieldError('FullName', 'Vui lòng nhập họ tên.'); hasError = true; }
-        if (!dob.value) {
-            showFieldError('DateOfBirth', 'Vui lòng chọn ngày sinh.'); hasError = true;
-        } else if (calcAge(dob.value) < 18) {
-            showFieldError('DateOfBirth', 'Bạn phải đủ 18 tuổi trở lên mới được tạo tài khoản.'); hasError = true;
-        }
-        if (!email.value.trim()) { showFieldError('Email', 'Vui lòng nhập email.'); hasError = true; }
-        if (password.value.length < 8) { showFieldError('Password', 'Mật khẩu phải có ít nhất 8 ký tự.'); hasError = true; }
-        else if (password.value !== confirm.value) { showFieldError('Password', 'Mật khẩu xác nhận không khớp.'); hasError = true; }
-        if (!agree.checked) { showGeneralError('Bạn cần đồng ý với Điều khoản sử dụng và Chính sách bảo mật.'); hasError = true; }
-        if (hasError) return;
+        // Gamertag hiện được lưu vào Account.FullName (cột bắt buộc, 2-100 ký tự).
+        const gamertag = form.gamertag.value.trim();
+        const dateOfBirth = form.dateOfBirth.value;
+        const email = form.email.value.trim();
+        const password = form.password.value;
 
-        setLoading(true);
-        try {
-            var res = await fetch((window.Auth ? Auth.API_BASE : '') + '/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fullName: fullName.value.trim(),
-                    dateOfBirth: dob.value,
-                    email: email.value.trim(),
-                    password: password.value
-                })
-            });
-            var data = await res.json().catch(function () { return {}; });
-            if (res.ok) {
-                Ui.setFlash(data.message || 'Đăng ký thành công. Vui lòng đăng nhập.', 'success');
-                location.href = '/auth/login.html';
-                return;
-            }
-            if (data.fieldErrors) {
-                Object.keys(data.fieldErrors).forEach(function (f) {
-                    var v = data.fieldErrors[f];
-                    showFieldError(f, Array.isArray(v) ? v[0] : v);
-                });
-            } else {
-                showGeneralError(data.message || 'Đăng ký thất bại. Vui lòng thử lại.');
-            }
-        } catch (err) {
-            showGeneralError('Không kết nối được máy chủ. Vui lòng thử lại.');
-        } finally {
-            setLoading(false);
+        if (gamertag.length < 2) return F.showMessage(msg, 'Tên người dùng phải từ 2 ký tự.', 'error');
+        if (!dateOfBirth) return F.showMessage(msg, 'Vui lòng chọn ngày sinh.', 'error');
+        if (calcAge(dateOfBirth) < 18) return F.showMessage(msg, 'Bạn phải đủ 18 tuổi trở lên mới được tạo tài khoản.', 'error');
+        if (!F.validEmail(email)) return F.showMessage(msg, 'Email không hợp lệ.', 'error');
+        const pwErr = F.passwordError(password);
+        if (pwErr) return F.showMessage(msg, pwErr, 'error');
+        if (password !== form.confirm.value) return F.showMessage(msg, 'Mật khẩu xác nhận không khớp.', 'error');
+        if (!form.agree.checked) return F.showMessage(msg, 'Bạn cần đồng ý với Điều khoản sử dụng và Chính sách bảo mật.', 'error');
+
+        F.showMessage(msg, '');
+        F.setBusy(btn, true);
+        const r = await F.post('/auth/register', { email, password, fullName: gamertag, dateOfBirth });
+        F.setBusy(btn, false);
+
+        if (r.ok) {
+            form.reset();
+            btn.hidden = true;
+            F.showMessage(msg,
+                'Đăng ký thành công. Chúng tôi đã gửi email kích hoạt tới ' + email +
+                ' (liên kết có hiệu lực 24 giờ). Chưa nhận được? Vào trang xác minh để gửi lại.', 'success');
+            return;
         }
+        if (r.data && r.data.code === 'EMAIL_TAKEN') {
+            F.showMessage(msg, 'Email này đã được đăng ký. Nếu chưa kích hoạt, hãy mở trang xác minh email để gửi lại liên kết.', 'error');
+            return;
+        }
+        F.showMessage(msg, (r.data && r.data.message) || 'Đăng ký thất bại. Vui lòng thử lại.', 'error');
     });
 })();

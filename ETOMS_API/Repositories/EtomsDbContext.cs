@@ -914,6 +914,7 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.ReviewNote).HasMaxLength(500);
             entity.Property(e => e.ReviewedAt).HasPrecision(0);
             entity.Property(e => e.WaitlistExpiresAt).HasPrecision(0);
+            entity.Property(e => e.PromotionLinkId).HasColumnName("PromotionLinkID");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)

@@ -189,6 +189,21 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             return Result<RegistrationResponse>.FieldFailure(nameof(request.TeamId), "Đội và giải phải thuộc cùng một tựa game.");
         }
 
+        PromotionLink? promotionLink = null;
+        if (!string.IsNullOrWhiteSpace(request.PromotionLinkCode))
+        {
+            promotionLink = await Query<PromotionLink>().FirstOrDefaultAsync(
+                item => item.TournamentId == tournamentId
+                    && item.Code == request.PromotionLinkCode.Trim().ToUpperInvariant(),
+                cancellationToken);
+            if (promotionLink is null)
+            {
+                return Result<RegistrationResponse>.FieldFailure(
+                    nameof(request.PromotionLinkCode),
+                    "Mã cộng tác viên không hợp lệ cho giải đấu này.");
+            }
+        }
+
         var existingDraft = await Query<Registration>()
             .Include(item => item.RegistrationLineups)
             .FirstOrDefaultAsync(item => item.TournamentId == tournamentId
@@ -310,6 +325,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             : null;
         registration.WaitlistExpiresAt = null;
         registration.PaymentStatus = storedPaymentProof is null ? "UNPAID" : "PROOF_SUBMITTED";
+        registration.PromotionLinkId = promotionLink?.PromotionLinkId;
         registration.ReviewNote = null;
         registration.ReviewedAt = null;
         registration.SubmittedAt = now;

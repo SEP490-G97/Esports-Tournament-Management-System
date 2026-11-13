@@ -44,8 +44,8 @@
                 '<td>' + (r.diff > 0 ? '+' : '') + r.diff + '</td>' +
                 '<td><strong>' + r.points + '</strong></td></tr>';
         }).join('');
-        return '<div class="card-etoms" style="margin-top:16px"><div class="body">' +
-            '<div class="section-title" style="margin-top:0">Bảng ' + Ui.escapeHtml(group.groupLabel) + '</div>' +
+        return '<div class="card-etoms mt-3"><div class="body">' +
+            '<div class="section-title mt-0">Bảng ' + Ui.escapeHtml(group.groupLabel) + '</div>' +
             '<div class="standing-wrap"><table class="standing" data-group="' + Ui.escapeHtml(group.groupLabel) + '"><thead><tr>' +
             '<th>#</th><th class="team">Đội</th><th>Trận</th><th>Thắng</th><th>Thua</th><th>Ván</th><th>Hiệu số</th><th>Điểm</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table></div></div></div>';
@@ -54,14 +54,14 @@
     function tieEditorHtml() {
         var ties = blockingTies(undecided);
         if (!ties.length) return '';
-        return '<div class="card-etoms" style="margin-top:16px"><div class="body">' +
-            '<div class="section-title" style="margin-top:0">Xếp thứ tự các đội hòa</div>' +
+        return '<div class="card-etoms mt-3"><div class="body">' +
+            '<div class="section-title mt-0">Xếp thứ tự các đội hòa</div>' +
             '<p class="hint" style="margin:6px 0 14px">Các đội dưới đây vẫn bằng nhau sau mọi tiêu chí phân định đã công bố. Hệ thống không tự bốc thăm; Ban tổ chức xếp thứ tự, đội đứng trên xếp hạng cao hơn.</p>' +
             ties.map(function (x) {
                 var ids = orders[x.tie.tieKey];
                 var names = {};
                 x.tie.teamIds.forEach(function (id, i) { names[id] = x.tie.teamNames[i]; });
-                return '<div style="margin-bottom:14px"><div class="nm">Bảng ' + Ui.escapeHtml(x.group) + ' · ' + Ui.escapeHtml(x.tie.positionsLabel) + '</div>' +
+                return '<div class="mb-3"><div class="nm">Bảng ' + Ui.escapeHtml(x.group) + ' · ' + Ui.escapeHtml(x.tie.positionsLabel) + '</div>' +
                     '<ol class="tie-order" data-tie="' + Ui.escapeHtml(x.tie.tieKey) + '" style="margin:6px 0 0;padding-left:22px">' +
                     ids.map(function (id, i) {
                         return '<li><span>' + Ui.escapeHtml(names[id]) + '</span><span class="d-flex gap-2">' +
@@ -77,8 +77,8 @@
     function pairingsHtml(board) {
         if (!board.pairings.length) return '';
         var title = board.state === 'DONE' ? 'Vòng 1 knockout đã tạo' : 'Vòng 1 knockout dự kiến';
-        return '<div class="card-etoms" style="margin-top:16px"><div class="body">' +
-            '<div class="section-title" style="margin-top:0">' + title + '</div>' +
+        return '<div class="card-etoms mt-3"><div class="body">' +
+            '<div class="section-title mt-0">' + title + '</div>' +
             '<div id="pairing-list">' + board.pairings.map(function (p) {
                 var a = Ui.escapeHtml(p.teamAName) + (p.teamALabel ? ' <span class="rl">(' + Ui.escapeHtml(p.teamALabel) + ')</span>' : '');
                 var b = p.isBye ? '<span class="rl">được miễn vòng 1</span>'
@@ -103,9 +103,9 @@
         document.getElementById('page-sub').textContent = config + 'Tiêu chí phân định: ' + board.tieBreakerOrder.join(' > ');
 
         var badge = STATE_BADGES[board.state] || ['badge-gold', board.state];
-        var progress = board.totalMatches ? '<div class="hint" style="margin-top:8px">' + board.finishedMatches + '/' + board.totalMatches + ' trận vòng bảng đã có kết quả.</div>' : '';
+        var progress = board.totalMatches ? '<div class="hint mt-2">' + board.finishedMatches + '/' + board.totalMatches + ' trận vòng bảng đã có kết quả.</div>' : '';
         var autoNote = board.state === 'READY' && !previewing
-            ? '<div class="hint" style="margin-top:8px">Hệ thống cũng tự tạo trong vòng vài phút nếu Ban tổ chức không bấm.</div>' : '';
+            ? '<div class="hint mt-2">Hệ thống cũng tự tạo trong vòng vài phút nếu Ban tổ chức không bấm.</div>' : '';
         var action = board.canAdvance
             ? '<div class="btn-row"><button type="button" class="btn btn-primary" id="advance-btn">Tạo nhánh knockout</button></div>' : '';
         var links = '<div class="btn-row">' +
@@ -126,7 +126,7 @@
             (undecided && undecided.state === 'NEEDS_DECISION' ? tieEditorHtml() : '') +
             pairingsHtml(board) +
             board.groups.map(function (g) { return tableHtml(g, board); }).join('') +
-            '<div style="margin-top:16px">' + links + '</div>';
+            '<div class="mt-3">' + links + '</div>';
 
         wire();
     }

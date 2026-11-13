@@ -30,7 +30,7 @@
             : 'Hai người chính thức không được trùng vị trí. Có thể để trống.';
         var blocked = board.blockedReason
             ? '<div class="pending-banner">' + Ui.escapeHtml(board.blockedReason) + '</div>'
-            : '<div class="hint" style="margin-bottom:14px">' + Ui.escapeHtml(rule) + '</div>';
+            : '<div class="hint mb-3">' + Ui.escapeHtml(rule) + '</div>';
 
         var rows = board.members.map(function (m) {
             return '<div class="member-card" style="justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">' +

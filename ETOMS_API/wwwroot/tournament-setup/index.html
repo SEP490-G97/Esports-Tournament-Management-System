@@ -7,36 +7,36 @@
     <script src="/js/theme-init.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=arena1" />
+    <link rel="stylesheet" href="/css/site.css?v=ui-2026-11" />
 </head>
 <body>
     <div id="site-header"></div>
 
-    <main class="container-etoms" style="max-width: 900px;">
+    <main class="container-etoms container-narrow">
         <div class="page-head">
             <div class="eyebrow">Quản lý sự kiện</div>
-            <h1>Trình Tạo Giải Đấu (Tournament Setup Wizard)</h1>
-            <p class="muted-copy">Quy trình 5 bước để thiết lập, cấu hình thể thức và công bố giải đấu thể thao điện tử lên hệ thống.</p>
+            <h1>Trình tạo giải đấu</h1>
+            <p>Quy trình 5 bước để thiết lập, cấu hình thể thức và công bố giải đấu thể thao điện tử lên hệ thống.</p>
         </div>
 
         <div id="flash"></div>
 
-        <!-- Thanh Tabs các bước -->
-        <div class="wizard-steps" style="display: flex; gap: 10px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px; font-size: 0.9rem; flex-wrap: wrap;">
-            <div id="tabStep1" class="step-tab" style="color: var(--primary); font-weight: bold;">1. Thông tin & Thể thức</div>
-            <div id="tabStep2" class="step-tab" style="color: var(--muted);">2. Timeline & Quy mô</div>
-            <div id="tabStep3" class="step-tab" style="color: var(--muted);">3. Thể thức BO</div>
-            <div id="tabStep4" class="step-tab" style="color: var(--muted);">4. Tài chính</div>
-            <div id="tabStep5" class="step-tab" style="color: var(--muted);">5. Công bố</div>
-        </div>
+        <!-- Thanh các bước: tournament-setup.js bật class active/done -->
+        <ol class="wizard-steps" aria-label="Các bước tạo giải">
+            <li id="tabStep1" class="step-tab active"><span class="step-no">1</span>Thông tin &amp; Thể thức</li>
+            <li id="tabStep2" class="step-tab"><span class="step-no">2</span>Timeline &amp; Quy mô</li>
+            <li id="tabStep3" class="step-tab"><span class="step-no">3</span>Thể thức BO</li>
+            <li id="tabStep4" class="step-tab"><span class="step-no">4</span>Tài chính</li>
+            <li id="tabStep5" class="step-tab"><span class="step-no">5</span>Công bố</li>
+        </ol>
 
         <!-- BƯỚC 1: Thông tin chung + Cấu hình Thể thức (TOUR-01, TOUR-03, TOUR-04) -->
         <div id="panelStep1" class="card-etoms">
             <div class="body">
-                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 1: Thông Tin & Cấu Hình Thể Thức</h3>
-                <p class="muted-copy" style="margin-bottom: 20px;">Cung cấp thông tin cơ bản, tựa game thi đấu và mô hình thể thức giải đấu.</p>
+                <h3 class="wizard-title">Bước 1: Thông tin &amp; cấu hình thể thức</h3>
+                <p class="muted-copy mb-4">Cung cấp thông tin cơ bản, tựa game thi đấu và mô hình thể thức giải đấu.</p>
 
                 <form id="step1Form">
                     <div class="field">
@@ -45,9 +45,9 @@
                         <span class="field-error" data-field-error="Name"></span>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div class="form-grid">
                         <div class="field">
-                            <label>Tựa Game Thi Đấu <span class="req">*</span></label>
+                            <label>Tựa game thi đấu <span class="req">*</span></label>
                             <!-- Nạp danh sách Game từ DB -->
                             <select id="tGameId" class="select" required>
                                 <option value="">-- Đang tải danh sách game --</option>
@@ -61,45 +61,45 @@
                     </div>
 
                     <!-- TOUR-03: Cấu hình Thể thức -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 10px;">
+                    <div class="form-grid mt-2">
                         <div class="field">
                             <label>Thể thức giải đấu (Format) <span class="req">*</span></label>
-                            <select id="tFormat" class="select" required style="font-weight: 600; color: var(--cyan);">
+                            <select id="tFormat" class="select select-accent" required>
                                 <option value="SINGLE_ELIMINATION">Loại trực tiếp đơn (Single Elimination)</option>
                                 <option value="DOUBLE_ELIMINATION">Loại trực tiếp kép (Double Elimination)</option>
                                 <option value="ROUND_ROBIN">Vòng tròn tính điểm (Round Robin)</option>
                                 <option value="HYBRID">Nhiều giai đoạn (Hybrid: Vòng bảng + Knockout)</option>
                             </select>
                         </div>
-                        <div class="field" style="display: flex; align-items: center; gap: 10px; margin-top: 24px;">
-                            <input type="checkbox" id="chkThirdPlace" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
-                            <label for="chkThirdPlace" style="margin-bottom: 0; cursor: pointer;">Có trận tranh Hạng Ba</label>
+                        <div class="field check-field check-field-inline">
+                            <input type="checkbox" id="chkThirdPlace" checked>
+                            <label for="chkThirdPlace">Có trận tranh hạng Ba</label>
                         </div>
                     </div>
 
-                    <!-- TOUR-04: Khối Cấu hình Nhiều Giai Đoạn (Chỉ hiện khi chọn HYBRID) -->
-                    <div id="hybridConfigBlock" style="display: none; background: var(--bg-2); border: 1px dashed var(--cyan); border-radius: 8px; padding: 16px; margin-top: 14px;">
-                        <h4 style="margin: 0 0 10px 0; color: var(--cyan); font-size: 0.95rem;">⚙️ Cấu hình Giai đoạn 1 (Vòng Bảng)</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
-                            <div class="field" style="margin: 0;">
+                    <!-- TOUR-04: Khối Cấu hình Nhiều Giai Đoạn (Chỉ hiện khi chọn HYBRID; JS đổi style.display) -->
+                    <div id="hybridConfigBlock" class="config-block" style="display: none;">
+                        <h4>Cấu hình giai đoạn 1 (vòng bảng)</h4>
+                        <div class="form-grid form-grid-sm">
+                            <div class="field mb-0">
                                 <label>Số lượng bảng đấu (N bảng)</label>
                                 <input type="number" id="tGroupCount" class="input" value="4" min="2">
                             </div>
-                            <div class="field" style="margin: 0;">
+                            <div class="field mb-0">
                                 <label>Số đội lấy đi tiếp mỗi bảng</label>
                                 <input type="number" id="tAdvancingPerGroup" class="input" value="2" min="1">
                             </div>
                         </div>
-                        <small class="muted-copy" style="display: block; margin-top: 8px;">Ví dụ: 4 bảng đấu, mỗi bảng lấy 2 đội ➔ Sinh cây Knockout 8 đội cho Giai đoạn 2.</small>
+                        <small class="field-hint">Ví dụ: 4 bảng đấu, mỗi bảng lấy 2 đội ➔ Sinh cây Knockout 8 đội cho Giai đoạn 2.</small>
                     </div>
 
-                    <div class="field" style="margin-top: 14px;">
+                    <div class="field mt-3">
                         <label>Mô tả chi tiết giải đấu</label>
                         <textarea id="tDesc" class="input" rows="3" placeholder="Giới thiệu về quy mô, giải thưởng, thể thức..."></textarea>
                     </div>
 
                     <div class="btn-row">
-                        <button type="submit" class="btn btn-primary">Lưu & Sang Bước 2 ➔</button>
+                        <button type="submit" class="btn btn-primary">Lưu &amp; sang bước 2 ➔</button>
                     </div>
                 </form>
             </div>
@@ -108,11 +108,11 @@
         <!-- BƯỚC 2: Timeline & Quy mô -->
         <div id="panelStep2" class="card-etoms" style="display: none;">
             <div class="body">
-                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 2: Cài Đặt Thời Gian & Số Đội</h3>
-                <p style="color: var(--gold); font-size: 0.85rem; margin-bottom: 20px;">Đang thiết lập cho Giải đấu ID: <span id="lblTournamentId" style="font-weight: bold;">--</span></p>
+                <h3 class="wizard-title">Bước 2: Cài đặt thời gian &amp; số đội</h3>
+                <p class="text-gold text-small mb-4">Đang thiết lập cho giải đấu ID: <strong id="lblTournamentId">--</strong></p>
 
                 <form id="step2Form">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div class="form-grid">
                         <div class="field">
                             <label>Mở đăng ký <span class="req">*</span></label>
                             <input type="datetime-local" id="tRegOpen" class="input" required>
@@ -122,7 +122,7 @@
                             <input type="datetime-local" id="tRegClose" class="input" required>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div class="form-grid">
                         <div class="field">
                             <label>Ngày bắt đầu giải <span class="req">*</span></label>
                             <input type="datetime-local" id="tStart" class="input" required>
@@ -137,7 +137,7 @@
                         <input type="number" id="tMaxTeams" class="input" value="16" required>
                     </div>
                     <div class="btn-row">
-                        <button type="submit" class="btn btn-primary">Lưu & Sang Bước 3 ➔</button>
+                        <button type="submit" class="btn btn-primary">Lưu &amp; sang bước 3 ➔</button>
                     </div>
                 </form>
             </div>
@@ -146,10 +146,10 @@
         <!-- BƯỚC 3: Cấu hình Best-of -->
         <div id="panelStep3" class="card-etoms" style="display: none;">
             <div class="body">
-                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 3: Cấu Hình Thể Thức Đấu (Best of X)</h3>
-                <p class="muted-copy" style="margin-bottom: 20px;">Áp dụng cấu hình tiêu chuẩn: Tứ kết (BO1), Bán kết (BO3), Chung kết (BO5). Bấm xác nhận để tiếp tục.</p>
+                <h3 class="wizard-title">Bước 3: Cấu hình thể thức đấu (Best of X)</h3>
+                <p class="muted-copy mb-4">Áp dụng cấu hình tiêu chuẩn: Tứ kết (BO1), Bán kết (BO3), Chung kết (BO5). Bấm xác nhận để tiếp tục.</p>
                 <div class="btn-row">
-                    <button onclick="submitStep3()" class="btn btn-primary">Lưu Thể Thức & Sang Bước 4 ➔</button>
+                    <button onclick="submitStep3()" class="btn btn-primary">Lưu thể thức &amp; sang bước 4 ➔</button>
                 </div>
             </div>
         </div>
@@ -157,13 +157,13 @@
         <!-- BƯỚC 4: Tài chính -->
         <div id="panelStep4" class="card-etoms" style="display: none;">
             <div class="body">
-                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 4: Lệ Phí Tham Gia & Cơ Cấu Giải Thưởng</h3>
+                <h3 class="wizard-title">Bước 4: Lệ phí tham gia &amp; cơ cấu giải thưởng</h3>
                 <form id="step4Form">
                     <div class="field">
                         <label>Lệ phí tham gia (VNĐ)</label>
                         <input type="number" id="tEntryFee" class="input" value="0">
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div class="form-grid">
                         <div class="field">
                             <label>Tên ngân hàng nhận phí</label>
                             <input type="text" id="tBankName" class="input" placeholder="Ví dụ: MBBank">
@@ -182,7 +182,7 @@
                         <textarea id="tPrize" class="input" rows="2" placeholder="Ví dụ: Top 1: 5 Triệu VNĐ, Top 2: 2 Triệu VNĐ..."></textarea>
                     </div>
                     <div class="btn-row">
-                        <button type="submit" class="btn btn-primary">Lưu Tài Chính & Sang Bước 5 ➔</button>
+                        <button type="submit" class="btn btn-primary">Lưu tài chính &amp; sang bước 5 ➔</button>
                     </div>
                 </form>
             </div>
@@ -191,22 +191,22 @@
         <!-- BƯỚC 5: Công bố -->
         <div id="panelStep5" class="card-etoms" style="display: none;">
             <div class="body">
-                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--success);">Bước 5: Yêu Cầu Hồ Sơ & Công Bố Giải Đấu</h3>
+                <h3 class="wizard-title wizard-title-success">Bước 5: Yêu cầu hồ sơ &amp; công bố giải đấu</h3>
                 <form id="step5Form">
-                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
-                        <input type="checkbox" id="chkStudentCard" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
-                        <label for="chkStudentCard" style="margin-bottom: 0; cursor: pointer;">Yêu cầu bắt buộc Thẻ Sinh Viên</label>
+                    <div class="field check-field">
+                        <input type="checkbox" id="chkStudentCard" checked>
+                        <label for="chkStudentCard">Yêu cầu bắt buộc thẻ sinh viên</label>
                     </div>
-                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
-                        <input type="checkbox" id="chkPaymentProof" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
-                        <label for="chkPaymentProof" style="margin-bottom: 0; cursor: pointer;">Yêu cầu Biên lai chuyển khoản lệ phí</label>
+                    <div class="field check-field">
+                        <input type="checkbox" id="chkPaymentProof" checked>
+                        <label for="chkPaymentProof">Yêu cầu biên lai chuyển khoản lệ phí</label>
                     </div>
-                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-                        <input type="checkbox" id="chkIgn" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
-                        <label for="chkIgn" style="margin-bottom: 0; cursor: pointer;">Yêu cầu xác thực tên In-game (IGN)</label>
+                    <div class="field check-field mb-4">
+                        <input type="checkbox" id="chkIgn" checked>
+                        <label for="chkIgn">Yêu cầu xác thực tên in-game (IGN)</label>
                     </div>
                     <div class="btn-row">
-                        <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--success), #1b9d57); width: 100%; font-size: 1.05rem; padding: 14px;">🚀 Hoàn Tất & Công Bố Giải Đấu (Publish)</button>
+                        <button type="submit" class="btn btn-success btn-lg w-100">Hoàn tất &amp; công bố giải đấu</button>
                     </div>
                 </form>
             </div>
@@ -214,7 +214,7 @@
     </main>
 
     <div id="confirm-modal-root"></div>
-    <script src="/js/auth.js"></script>
+
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/ui.js"></script>

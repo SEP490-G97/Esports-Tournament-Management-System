@@ -7,12 +7,10 @@
     <script src="/js/theme-init.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=arena1" />
-    <link rel="stylesheet" href="/css/loginpage.css" />
-    <style>
-    </style>
+    <link rel="stylesheet" href="/css/site.css?v=ui-2026-11" />
+    <link rel="stylesheet" href="/css/loginpage.css?v=ui-2026-11" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -25,8 +23,6 @@
                     <h1 class="login-title">Đăng nhập</h1>
                 </div>
 
-                <div id="flash"></div>
-
                 <form id="login-form" class="login-form" novalidate>
                     <div class="login-field">
                         <label class="login-label" for="login-identity">Email / Tên tài khoản</label>
@@ -38,7 +34,7 @@
                     <div class="login-field">
                         <div class="login-label-row">
                             <label class="login-label" for="login-password">Mật khẩu</label>
-                            <a class="login-link" id="forgot-link" href="#">Quên mật khẩu?</a>
+                            <a class="login-link" id="forgot-link" href="/auth/forget-password.html">Quên mật khẩu?</a>
                         </div>
                         <div class="login-input-box">
                             <input type="password" id="login-password" name="password" class="login-input has-icon"
