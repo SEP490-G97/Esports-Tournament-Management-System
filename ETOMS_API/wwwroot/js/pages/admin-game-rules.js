@@ -49,10 +49,10 @@
         document.getElementById('rules-root').innerHTML = banner + games.map(function (g) {
             var list = g.rulesets.length
                 ? g.rulesets.map(function (r) { return rulesetRow(g, r); }).join('')
-                : '<div class="hint" style="margin-bottom:10px">Chưa có bộ luật nào.</div>';
-            return '<div class="card-etoms" style="margin-bottom:16px"><div class="body">' +
-                '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2" style="margin-bottom:14px">' +
-                '<div class="section-title" style="margin:0">' + Ui.escapeHtml(g.title) + ' <span style="color:var(--muted-2);font-size:.85rem">[' + Ui.escapeHtml(g.shortCode) + ']</span>' +
+                : '<div class="hint mb-2">Chưa có bộ luật nào.</div>';
+            return '<div class="card-etoms mb-3"><div class="body">' +
+                '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">' +
+                '<div class="section-title m-0">' + Ui.escapeHtml(g.title) + ' <span class="text-muted-2 text-small">[' + Ui.escapeHtml(g.shortCode) + ']</span>' +
                 (g.isActive ? '' : ' <span class="badge badge-danger">Game ngừng hoạt động</span>') + '</div>' +
                 (rulesetError ? '' : '<button type="button" class="btn btn-primary" data-add="' + g.gameId + '">+ Thêm bộ luật</button>') +
                 '</div>' + list + '</div></div>';

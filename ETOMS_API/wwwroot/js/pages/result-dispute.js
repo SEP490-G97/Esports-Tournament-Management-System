@@ -30,12 +30,12 @@
         var reportsHtml = '<div class="row g-3">';
         d.reports.forEach(function (r) {
             var filesHtml = (r.files || []).map(function (f) {
-                return '<div style="margin-top:8px"><a href="' + Ui.escapeHtml(f.fileUrl) + '" target="_blank" rel="noopener" class="badge badge-soft" style="text-decoration:none">' + Ui.escapeHtml(f.fileType) + ' — mở file ↗</a></div>';
+                return '<div class="mt-2"><a href="' + Ui.escapeHtml(f.fileUrl) + '" target="_blank" rel="noopener" class="badge badge-soft text-decoration-none">' + Ui.escapeHtml(f.fileType) + ' — mở file ↗</a></div>';
             }).join('');
             reportsHtml += '<div class="col-12 col-md-6"><div class="card-etoms h-100"><div class="body">' +
-                '<div style="font-weight:800">' + Ui.escapeHtml(r.teamName) + '</div>' +
+                '<div class="fw-800">' + Ui.escapeHtml(r.teamName) + '</div>' +
                 '<div style="font-size:1.6rem;font-weight:800;color:var(--cyan);margin:6px 0">' + r.scoreA + ' - ' + r.scoreB + '</div>' +
-                '<div style="color:var(--muted-2);font-size:.82rem">Nộp lúc ' + fmtDateTime(r.submittedAt) + '</div>' +
+                '<div class="text-muted-2 text-small">Nộp lúc ' + fmtDateTime(r.submittedAt) + '</div>' +
                 filesHtml + '</div></div></div>';
         });
         reportsHtml += '</div>';
@@ -48,7 +48,7 @@
             chatHtml = '<div class="section-title">Log chat phòng đấu</div><div class="d-grid gap-2">';
             d.chatLog.forEach(function (c) {
                 chatHtml += '<div style="background:var(--panel-2);border-radius:10px;padding:8px 12px;font-size:.88rem">' +
-                    '<strong>' + Ui.escapeHtml(c.senderName) + '</strong> <span style="color:var(--muted-2)">' + fmtTime(c.sentAt) + '</span>' +
+                    '<strong>' + Ui.escapeHtml(c.senderName) + '</strong> <span class="text-muted-2">' + fmtTime(c.sentAt) + '</span>' +
                     '<div>' + Ui.escapeHtml(c.content) + '</div></div>';
             });
             chatHtml += '</div>';
@@ -58,23 +58,23 @@
         if (d.status === 'RESOLVED' || d.status === 'CLOSED') {
             resolvedHtml = '<div class="section-title">Phán quyết đã ghi nhận</div><div class="card-etoms"><div class="body">' +
                 '<div style="font-weight:800;font-size:1.3rem">' + d.finalScoreA + ' - ' + d.finalScoreB + '</div>' +
-                '<div style="color:var(--muted);margin-top:6px">' + Ui.escapeHtml(d.rulingReason) + '</div>' +
-                '<div style="color:var(--muted-2);font-size:.82rem;margin-top:6px">Bởi ' + Ui.escapeHtml(d.resolvedByName) + (d.resolvedAt ? ' lúc ' + fmtDateTime(d.resolvedAt) : '') + '</div>' +
+                '<div class="text-muted-etoms mt-2">' + Ui.escapeHtml(d.rulingReason) + '</div>' +
+                '<div class="text-muted-2 text-small mt-2">Bởi ' + Ui.escapeHtml(d.resolvedByName) + (d.resolvedAt ? ' lúc ' + fmtDateTime(d.resolvedAt) : '') + '</div>' +
                 '</div></div>';
         }
 
         var ruleFormHtml = '';
         if (d.canRule) {
             ruleFormHtml =
-                '<div class="card-etoms form-narrow" style="margin-top:28px"><div class="body">' +
-                '<div class="section-title" style="margin-top:0">Phán quyết VAR (Force Update)</div>' +
+                '<div class="card-etoms form-narrow mt-4"><div class="body">' +
+                '<div class="section-title mt-0">Phán quyết VAR (Force Update)</div>' +
                 '<div class="section-sub">Đặt tỉ số cuối cùng và lý do — bắt buộc, không lưu được nếu bỏ trống.</div>' +
                 '<form id="force-form">' +
                 '<div class="row g-3"><div class="col-6"><label>Tỉ số ' + Ui.escapeHtml(d.teamAName) + '</label>' +
                 '<input name="ScoreA" type="number" min="0" max="50" class="input" required /></div>' +
                 '<div class="col-6"><label>Tỉ số ' + Ui.escapeHtml(d.teamBName) + '</label>' +
                 '<input name="ScoreB" type="number" min="0" max="50" class="input" required /></div></div>' +
-                '<div class="field" style="margin-top:14px"><label><input type="checkbox" name="IsVoid" /> Không đội nào thắng (hủy kết quả — cả hai vi phạm)</label></div>' +
+                '<div class="field mt-3"><label><input type="checkbox" name="IsVoid" /> Không đội nào thắng (hủy kết quả — cả hai vi phạm)</label></div>' +
                 '<div class="field"><label>Lý do phán quyết <span class="req">*</span></label>' +
                 '<textarea name="Reason" class="input" rows="4" minlength="10" maxlength="1000" required placeholder="Căn cứ vào minh chứng/chat log nào để ra quyết định này"></textarea>' +
                 '<span class="field-error" data-field-error="Reason"></span></div>' +
@@ -85,8 +85,8 @@
         var appealFormHtml = '';
         if (d.appealStatus === 'PENDING') {
             appealFormHtml =
-                '<div class="card-etoms form-narrow" style="margin-top:28px"><div class="body">' +
-                '<div class="section-title" style="margin-top:0">Khiếu nại đang chờ xử lý</div>' +
+                '<div class="card-etoms form-narrow mt-4"><div class="body">' +
+                '<div class="section-title mt-0">Khiếu nại đang chờ xử lý</div>' +
                 '<div class="section-sub">' + Ui.escapeHtml(d.appealReason) + '</div>' +
                 '<form id="appeal-decision-form">' +
                 '<div class="field"><label>Tỉ số mới (nếu chấp nhận khiếu nại)</label><div class="row g-2">' +
@@ -104,10 +104,10 @@
         root.innerHTML =
             '<div class="eyebrow">Trọng tài / Ban tổ chức · RES-06 / RES-07</div>' +
             '<div class="page-head"><h1>' + Ui.escapeHtml(d.teamAName) + ' vs ' + Ui.escapeHtml(d.teamBName) + '</h1>' +
-            '<p>' + reasonLabel(d.openReason) + ' <span class="badge ' + statusBadgeClass(d.status) + '" style="margin-left:8px">' + statusLabel(d.status) + '</span></p></div>' +
+            '<p>' + reasonLabel(d.openReason) + ' <span class="badge ' + statusBadgeClass(d.status) + ' ms-2">' + statusLabel(d.status) + '</span></p></div>' +
             flaggedBanner +
-            '<div class="section-title" style="margin-top:0">Hai báo cáo</div>' + reportsHtml + chatHtml + resolvedHtml + ruleFormHtml + appealFormHtml +
-            '<div class="btn-row" style="margin-top:26px">' +
+            '<div class="section-title mt-0">Hai báo cáo</div>' + reportsHtml + chatHtml + resolvedHtml + ruleFormHtml + appealFormHtml +
+            '<div class="btn-row mt-4">' +
             '<a class="btn btn-ghost" href="/result/disputes.html">← Về hàng đợi tranh chấp</a>' +
             '<a class="btn btn-ghost" href="/result/history.html?matchId=' + d.matchId + '">Xem lịch sử trận</a>' +
             '</div>';

@@ -16,7 +16,7 @@
         if (!history.length) return '<div class="card-etoms"><div class="empty"><h3>Chưa tham gia giải nào</h3></div></div>';
         return '<div class="row g-3">' + history.map(function (h) {
             return '<div class="col-12"><div class="member-card">' +
-                '<div style="flex:1"><a class="nm" href="/bracket/view.html?id=' + h.tournamentId + '">' + Ui.escapeHtml(h.tournamentName) + '</a>' +
+                '<div class="flex-grow-1"><a class="nm" href="/bracket/view.html?id=' + h.tournamentId + '">' + Ui.escapeHtml(h.tournamentName) + '</a>' +
                 '<div class="rl">' + tourStatusLabel(h.tournamentStatus) + '</div></div>' +
                 '<span class="badge badge-soft">' + placementLabel(h.finalPlacement) + (h.finalRank ? ' (#' + h.finalRank + ')' : '') + '</span>' +
                 '</div></div>';
@@ -52,15 +52,15 @@
         if (isCaptain) {
             actionHtml += '<a class="btn btn-primary" href="/team/dashboard.html?id=' + team.teamId + '">Quản trị đội</a>';
         } else if (isMember) {
-            actionHtml += '<button type="button" class="btn btn-ghost" style="color:var(--danger-ink)" id="leave-btn">Rời đội</button>';
+            actionHtml += '<button type="button" class="btn btn-ghost text-danger-etoms" id="leave-btn">Rời đội</button>';
         }
 
         root.innerHTML =
             '<div class="eyebrow">Hồ sơ đội · Mã đội #' + team.teamId + '</div>' +
             '<div class="card-etoms"><div class="body"><div class="team-hero">' + logo +
-            '<div style="flex:1;min-width:260px"><h1>' + Ui.escapeHtml(team.name) + ' <span style="color:var(--muted);font-weight:700">[' + Ui.escapeHtml(team.tag) + ']</span></h1>' +
+            '<div style="flex:1;min-width:260px"><h1>' + Ui.escapeHtml(team.name) + ' <span class="text-muted-etoms fw-bold">[' + Ui.escapeHtml(team.tag) + ']</span></h1>' +
             '<div class="sub"><span>' + Ui.escapeHtml(team.gameTitle) + '</span>' +
-            '<span>· Đội trưởng: <strong style="color:var(--ink)">' + Ui.escapeHtml(team.captainName) + '</strong></span>' +
+            '<span>· Đội trưởng: <strong class="text-ink">' + Ui.escapeHtml(team.captainName) + '</strong></span>' +
             '<span>· Thành lập ' + fmtMonthYear(team.createdAt) + '</span>' + statusBadge +
             '</div></div></div></div></div>' +
             '<div class="row g-3 my-4">' +
@@ -79,10 +79,10 @@
             '<div class="section-title">Lịch sử giải đấu</div>' +
             '<div class="section-sub">Các giải đội đã đăng ký và được duyệt.</div>' +
             historyHtml(team.tournamentHistory) +
-            '<div class="section-title" style="margin-top:28px">Danh sách thành viên</div>' +
+            '<div class="section-title mt-4">Danh sách thành viên</div>' +
             '<div class="section-sub">Roster hiện tại của đội (' + team.memberCount + ' người).</div>' +
             membersHtml +
-            '<div class="btn-row" style="margin-top:26px">' + actionHtml + '</div>';
+            '<div class="btn-row mt-4">' + actionHtml + '</div>';
 
         var leaveBtn = document.getElementById('leave-btn');
         if (leaveBtn) {

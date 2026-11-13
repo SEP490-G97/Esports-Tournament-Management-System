@@ -6,7 +6,7 @@
         return '<div class="manual-row d-flex align-items-center gap-2" data-label="' + Ui.escapeHtml(label) + '" ' +
             'style="background:var(--panel-2);border-radius:10px;padding:10px 14px;margin-bottom:8px">' +
             '<span style="font-weight:800;color:var(--cyan);width:22px">' + (idx + 1) + '</span>' +
-            '<span style="flex:1">' + Ui.escapeHtml(label) + '</span>' +
+            '<span class="flex-grow-1">' + Ui.escapeHtml(label) + '</span>' +
             '<button type="button" class="btn btn-ghost" style="padding:4px 9px" data-move="-1" title="Lên">▲</button>' +
             '<button type="button" class="btn btn-ghost" style="padding:4px 9px" data-move="1" title="Xuống">▼</button>' +
             '</div>';
@@ -37,11 +37,11 @@
     function render(config) {
         var root = document.getElementById('tb-root');
         var badge = config.isDefault
-            ? '<span class="badge badge-soft" style="margin-bottom:12px;display:inline-block">Đang dùng thứ tự mặc định</span>'
-            : '<span class="badge badge-active" style="margin-bottom:12px;display:inline-block">Giải này đã tùy chỉnh</span>';
+            ? '<span class="badge badge-soft mb-2 d-inline-block">Đang dùng thứ tự mặc định</span>'
+            : '<span class="badge badge-active mb-2 d-inline-block">Giải này đã tùy chỉnh</span>';
         root.innerHTML = badge +
             '<div id="tb-list"></div>' +
-            '<div class="btn-row" style="margin-top:16px">' +
+            '<div class="btn-row mt-3">' +
             '<button type="button" class="btn btn-primary" id="tb-save">Lưu thứ tự</button>' +
             '</div>';
         var list = document.getElementById('tb-list');

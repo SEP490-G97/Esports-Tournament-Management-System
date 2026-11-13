@@ -1,73 +1,59 @@
 ﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>ETOMS - Chợ Tuyển Quân & Tìm Đội</title>
-    <link rel="stylesheet" href="../css/site.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tìm đội · Tìm người · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=ui-2026-11" />
 </head>
 <body>
-    <header class="etoms-nav">
-        <div class="inner">
-            <a class="brand" href="/">
-                <div class="mark">E</div>
-                <div class="txt"><b>ETOMS</b><span>Esports Platform</span></div>
-            </a>
-            <nav>
-                <a href="/">Trang chủ</a>
-                <a href="/free-agent/index.html" class="active">Tuyển quân</a>
-                <a href="/tournament-setup/index.html">Tạo giải đấu</a>
-            </nav>
-            <div class="spacer"></div>
-            <div class="nav-user">
-                <span class="who" id="currentUserName">Thành viên</span>
-                <div class="av" id="currentUserAvt">E</div>
-            </div>
-            <button class="theme-toggle" id="themeToggleBtn" title="Đổi giao diện sáng/tối">
-                <span class="icon-moon">🌙</span>
-                <span class="icon-sun">☀️</span>
-            </button>
-        </div>
-    </header>
+    <div id="site-header"></div>
 
     <main class="container-etoms">
         <div class="page-head">
             <div class="eyebrow">Thị trường nhân sự</div>
-            <h1>Chợ Tuyển Quân & Tìm Đội (Free Agent)</h1>
+            <h1>Tìm đội &amp; tuyển thành viên</h1>
             <p>Đăng tin tuyển thành viên cho đội tuyển hoặc tìm kiếm câu lạc bộ phù hợp để tham gia các giải đấu.</p>
         </div>
 
         <div id="flash"></div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-bottom: 34px;">
+        <div class="split-grid">
 
             <!-- Form LFP đăng tin tuyển người -->
             <div class="card-etoms">
                 <div class="body">
-                    <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: var(--cyan);">📢 [LFP] Đội Tuyển Tuyển Thành Viên</h3>
-                    <p class="muted-copy" style="margin-bottom: 20px;">Dành cho Đội trưởng đăng tin tìm vị trí còn thiếu cho Roster.</p>
+                    <span class="badge badge-soft">LFP · Đội tuyển người</span>
+                    <h3 class="panel-title mt-2">Đội tuyển thành viên</h3>
+                    <p class="muted-copy mb-4">Dành cho đội trưởng đăng tin tìm vị trí còn thiếu cho roster.</p>
 
                     <form id="lfpForm">
                         <div class="field">
-                            <label>Chọn Đội Tuyển <span class="req">*</span></label>
+                            <label>Chọn đội tuyển <span class="req">*</span></label>
                             <select id="lfpTeamId" class="select" required>
                                 <option value="">-- Đang tải danh sách đội --</option>
                             </select>
                             <span class="field-error" data-field-error="TeamId"></span>
                         </div>
                         <div class="field">
-                            <label>Vị trí cần tuyển (RequiredRole) <span class="req">*</span></label>
+                            <label>Vị trí cần tuyển <span class="req">*</span></label>
                             <input type="text" id="lfpRequiredRole" class="input" placeholder="Ví dụ: Mid, Đường trên, Rừng..." required />
                         </div>
                         <div class="field">
-                            <label>Rank yêu cầu (RequiredRank) <span class="req">*</span></label>
+                            <label>Rank yêu cầu <span class="req">*</span></label>
                             <input type="text" id="lfpRequiredRank" class="input" placeholder="Ví dụ: Cao Thủ, Thách Đấu..." required />
                         </div>
                         <div class="field">
-                            <label>Mô tả chi tiết (Description)</label>
+                            <label>Mô tả chi tiết</label>
                             <textarea id="lfpDescription" class="input" rows="2" placeholder="Yêu cầu cụ thể về thời gian luyện tập, thái độ..."></textarea>
                         </div>
                         <div class="btn-row">
-                            <button type="submit" class="btn btn-primary">Đăng Tin LFP</button>
+                            <button type="submit" class="btn btn-primary">Đăng tin LFP</button>
                         </div>
                     </form>
                 </div>
@@ -76,31 +62,32 @@
             <!-- Form LFT đăng tin tìm đội -->
             <div class="card-etoms">
                 <div class="body">
-                    <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: var(--gold);">🔍 [LFT] Người Chơi Tìm Đội</h3>
-                    <p class="muted-copy" style="margin-bottom: 20px;">Dành cho Free Agent tự do ứng tuyển vào các tổ chức/đội tuyển.</p>
+                    <span class="badge badge-gold">LFT · Người chơi tìm đội</span>
+                    <h3 class="panel-title mt-2">Người chơi tìm đội</h3>
+                    <p class="muted-copy mb-4">Dành cho tuyển thủ tự do ứng tuyển vào các tổ chức / đội tuyển.</p>
 
                     <form id="lftForm">
                         <div class="field">
-                            <label>Chọn Tựa Game <span class="req">*</span></label>
+                            <label>Chọn tựa game <span class="req">*</span></label>
                             <select id="lftGameId" class="select" required>
                                 <option value="">-- Đang tải danh sách game --</option>
                             </select>
                             <span class="field-error" data-field-error="GameId"></span>
                         </div>
                         <div class="field">
-                            <label>Vị trí sở trường (PreferredRole) <span class="req">*</span></label>
+                            <label>Vị trí sở trường <span class="req">*</span></label>
                             <input type="text" id="lftPreferredRole" class="input" placeholder="Ví dụ: Đi Rừng, Đường Giữa..." required />
                         </div>
                         <div class="field">
-                            <label>Rank hiện tại (CurrentRank) <span class="req">*</span></label>
+                            <label>Rank hiện tại <span class="req">*</span></label>
                             <input type="text" id="lftCurrentRank" class="input" placeholder="Ví dụ: Đại Cao Thủ..." required />
                         </div>
                         <div class="field">
-                            <label>Mô tả bản thân (Description)</label>
+                            <label>Mô tả bản thân</label>
                             <textarea id="lftDescription" class="input" rows="2" placeholder="Chia sẻ kinh nghiệm thi đấu..."></textarea>
                         </div>
                         <div class="btn-row">
-                            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--cyan), var(--primary));">Đăng Tin LFT</button>
+                            <button type="submit" class="btn btn-primary">Đăng tin LFT</button>
                         </div>
                     </form>
                 </div>
@@ -111,17 +98,17 @@
         <!-- Bảng tin -->
         <div class="card-etoms">
             <div class="body">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+                <div class="row-between mb-4">
                     <div>
-                        <h2 style="font-size: 1.3rem; font-weight: 800; margin: 0 0 4px;">📋 Bảng Tin Hoạt Động</h2>
-                        <p class="muted-copy" style="margin: 0;">Danh sách các tin đăng mở cửa từ cộng đồng tuyển thủ.</p>
+                        <h2 class="panel-title mb-1">Bảng tin hoạt động</h2>
+                        <p class="muted-copy mb-0">Danh sách các tin đăng mở cửa từ cộng đồng tuyển thủ.</p>
                     </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <select id="filterType" class="select" style="width: auto;">
+                    <div class="inline-form">
+                        <select id="filterType" class="select filter-select">
                             <option value="LFP">Loại: LFP (Tuyển người)</option>
                             <option value="LFT">Loại: LFT (Tìm đội)</option>
                         </select>
-                        <button onclick="loadBoard()" class="btn btn-ghost" style="padding: 10px 16px;">Lọc dữ liệu</button>
+                        <button onclick="loadBoard()" class="btn btn-ghost btn-sm">Lọc dữ liệu</button>
                     </div>
                 </div>
 
@@ -134,21 +121,12 @@
         </div>
     </main>
 
-    <script src="../js/api.js"></script>
-    <script src="../js/ui.js"></script>
-    <script src="../js/pages/free-agent.js"></script>
-    <script>
-        document.getElementById('themeToggleBtn').addEventListener('click', function () {
-            var html = document.documentElement;
-            var current = html.getAttribute('data-theme');
-            var next = current === 'light' ? '' : 'light';
-            if (next) html.setAttribute('data-theme', 'light');
-            else html.removeAttribute('data-theme');
-            localStorage.setItem('etoms-theme', next);
-        });
-        if (localStorage.getItem('etoms-theme') === 'light') {
-            document.documentElement.setAttribute('data-theme', 'light');
-        }
-    </script>
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/free-agent.js"></script>
 </body>
 </html>

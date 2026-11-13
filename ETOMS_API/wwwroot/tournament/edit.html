@@ -9,17 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <style>
-        .edit-section { margin-top: 18px; }
-        .edit-section fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-        .edit-section fieldset:disabled .input, .edit-section fieldset:disabled .select, .edit-section fieldset:disabled textarea { opacity: .6; }
-        .check-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .check-row input { width: 18px; height: 18px; }
-        .past-tag { color: var(--muted-2); font-weight: 400; font-size: .8rem; }
-        textarea.input { min-height: 110px; resize: vertical; }
-        #banner-preview { max-width: 100%; max-height: 160px; border-radius: 10px; margin-top: 8px; border: 1px solid var(--border); }
-    </style>
+    <link rel="stylesheet" href="/css/site.css?v=ui-2026-11" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -39,7 +29,7 @@
 
         <form id="edit-form" novalidate hidden>
             <div class="card-etoms edit-section" data-section="INFO"><div class="body">
-                <div class="section-title" style="margin-top:0">Thông tin chung</div>
+                <div class="section-title mt-0">Thông tin chung</div>
                 <div class="pending-banner" data-lock="INFO" hidden></div>
                 <fieldset data-group="INFO">
                     <div class="field">
@@ -81,7 +71,7 @@
             </div></div>
 
             <div class="card-etoms edit-section" data-section="SETUP"><div class="body">
-                <div class="section-title" style="margin-top:0">Điều kiện đăng ký</div>
+                <div class="section-title mt-0">Điều kiện đăng ký</div>
                 <p class="hint" style="margin:4px 0 12px">Đội đăng ký dựa trên các điều kiện này nên chỉ sửa được khi giải còn nháp.</p>
                 <div class="pending-banner" data-lock="SETUP" hidden></div>
                 <fieldset data-group="SETUP">
@@ -130,7 +120,7 @@
             </div></div>
 
             <div class="card-etoms edit-section" data-section="TIMELINE"><div class="body">
-                <div class="section-title" style="margin-top:0">Thời gian và quy mô</div>
+                <div class="section-title mt-0">Thời gian và quy mô</div>
                 <div class="pending-banner" data-lock="TIMELINE" hidden></div>
                 <fieldset data-group="TIMELINE">
                     <div class="row g-3">
@@ -165,7 +155,7 @@
             </div></div>
 
             <div class="card-etoms edit-section" data-section="FORMAT"><div class="body">
-                <div class="section-title" style="margin-top:0">Thể thức</div>
+                <div class="section-title mt-0">Thể thức</div>
                 <div class="pending-banner" data-lock="FORMAT" hidden></div>
                 <fieldset data-group="FORMAT">
                     <div class="field">
@@ -201,7 +191,7 @@
                 </fieldset>
             </div></div>
 
-            <div class="btn-row" style="margin-top:18px">
+            <div class="btn-row mt-3">
                 <button type="submit" class="btn btn-primary" id="save-btn">Lưu thay đổi</button>
                 <a class="btn btn-ghost" id="back-link" href="#">Quản lý giải</a>
             </div>

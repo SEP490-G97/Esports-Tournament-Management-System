@@ -64,9 +64,11 @@
                 slot.innerHTML = loggedOutHtml;
             }
             applyRoleVisibility(me);
+            return me;
         } catch (e) {
             slot.innerHTML = loggedOutHtml;
             applyRoleVisibility({ isAuthenticated: false });
+            return { isAuthenticated: false };
         }
     }
 
@@ -77,11 +79,19 @@
             '<div class="nav-user-dd" id="nav-user-dd">' +
             '  <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-expanded="false">' +
             '    <span class="av">' + Ui.escapeHtml((me.displayName || '?').substring(0, 1).toUpperCase()) + '</span>' +
-            '    <span>Xin chào, <span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span></span>' +
+            '    <span><span class="nav-hello">Xin chào, </span><span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span></span>' +
             '    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="nav-user-caret"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
             '  </button>' +
             '  <div class="nav-user-menu" id="nav-user-menu">' +
+            (me.role ? '    <span class="nav-user-role">' + Ui.escapeHtml(roleLabel(me.role)) + '</span>' : '') +
             '    <div class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam">Đang tải đội…</div>' +
+            '    <a class="nav-user-menu-item" href="/profile/index.html">Hồ sơ cá nhân</a>' +
+            '    <a class="nav-user-menu-item" href="/registration/mine.html">Đơn đăng ký của tôi</a>' +
+            (me.role === 'ORGANIZER' || me.role === 'ADMIN'
+                ? '    <a class="nav-user-menu-item" href="/tournament-setup/index.html">Tạo giải mới</a>' +
+                  '    <a class="nav-user-menu-item" href="/marketing/tools.html">Công cụ truyền thông</a>' : '') +
+            (me.role === 'ADMIN' ? '    <a class="nav-user-menu-item" href="/admin/index.html">Bảng quản trị</a>' : '') +
+            '    <div class="nav-user-menu-sep"></div>' +
             '    <a class="nav-user-menu-item" href="#" id="nav-logout">Đăng xuất</a>' +
             '  </div>' +
             '</div>';
@@ -133,14 +143,99 @@
         }
     }
 
-    // Ẩn mục menu dành riêng cho vai trò Ban tổ chức/Admin (hàng đợi tranh chấp — RES-06) với
-    // khách (Guest) và tài khoản PLAYER thường — tránh Guest/User trông giống hệt nhau trên nav.
-    // Đây chỉ là gợi ý hiển thị: quyền thật vẫn được chặn ở API/trang đích dù có thấy nút hay không.
-    // Mặc định link đã ẩn sẵn trong nav.html (tránh hiện rồi mất khi fetch /me chạy xong).
+    function roleLabel(role) {
+        return { ADMIN: 'Quản trị viên', ORGANIZER: 'Ban tổ chức', PLAYER: 'Tuyển thủ' }[role] || role;
+    }
+
+    // Hiện mục menu theo vai trò (data-roles trong nav.html): "auth" = đã đăng nhập, còn lại là danh
+    // sách Role (vd "ORGANIZER,ADMIN" cho hàng đợi tranh chấp RES-06). Mặc định các mục này ẩn bằng CSS
+    // để không hiện rồi mất khi /me chạy xong. Chỉ là gợi ý hiển thị: quyền thật vẫn chặn ở API/trang đích.
     function applyRoleVisibility(me) {
-        var canSeeDisputes = !!me.isAuthenticated && (me.role === 'ORGANIZER' || me.role === 'ADMIN');
-        var link = document.querySelector('#etomsNavCollapse nav a[data-nav="result"]');
-        if (link) link.style.display = canSeeDisputes ? '' : 'none';
+        var extra = 0;
+        document.querySelectorAll('#etomsNavCollapse nav a[data-roles]').forEach(function (a) {
+            var roles = a.getAttribute('data-roles').split(',');
+            var ok = !!me.isAuthenticated && (roles.indexOf('auth') >= 0 || roles.indexOf(me.role) >= 0);
+            a.classList.toggle('role-visible', ok);
+            if (ok) extra++;
+        });
+        // Ban tổ chức/Admin có thêm mục menu: nới khung header để menu nằm trên một dòng.
+        var header = document.querySelector('.etoms-nav');
+        if (header) header.classList.toggle('nav-many', extra >= 2);
+    }
+
+    // Footer dùng chung cho mọi trang chưa có footer riêng (trang chủ giữ footer của nó).
+    async function injectFooter() {
+        if (document.querySelector('.site-footer')) return;
+        var holder = document.createElement('div');
+        holder.id = 'site-footer';
+        var main = document.querySelector('main');
+        if (main && main.parentNode) main.parentNode.insertBefore(holder, main.nextSibling);
+        else document.body.appendChild(holder);
+        await injectPartial('/partials/footer.html', 'site-footer');
+    }
+
+    // Thanh tab trong một giải đấu (giống các nền tảng esports): tab công khai cho mọi người,
+    // tab quản lý chỉ hiện khi tài khoản là ban tổ chức của giải (API publish-status trả 200).
+    var TOUR_PUBLIC = [
+        ['/bracket/view.html', 'Tổng quan'],
+        ['/tournament/bracket.html', 'Nhánh đấu'],
+        ['/tournament/standings.html', 'Bảng xếp hạng'],
+        ['/tournament/rulebook-history.html', 'Thể lệ']
+    ];
+    var TOUR_ORGANIZER = [
+        ['/tournament/manage.html', 'Quản lý'],
+        ['/tournament/dashboard.html', 'Tổng quan'],
+        ['/registration/review.html', 'Đơn đăng ký', 'tournamentId'],
+        ['/bracket/manage.html', 'Chia nhánh'],
+        ['/tournament/schedule.html', 'Lịch thi đấu'],
+        ['/tournament/referees.html', 'Trọng tài'],
+        ['/tournament/stage-transition.html', 'Chuyển vòng'],
+        ['/tournament/ruleset.html', 'Bộ luật'],
+        ['/tournament/rulebook.html', 'Soạn thể lệ'],
+        ['/tournament/edit.html', 'Sửa giải'],
+        ['/tournament/clone.html', 'Nhân bản'],
+        ['/tournament/cancel.html', 'Hủy giải']
+    ];
+
+    function tournamentIdOfPage() {
+        var path = location.pathname.toLowerCase();
+        var q = new URLSearchParams(location.search);
+        if (path === '/registration/review.html') return q.get('tournamentId');
+        if (path.indexOf('/tournament/') === 0 || path === '/bracket/manage.html' || path === '/bracket/view.html' || path === '/bracket/tiebreaker.html') return q.get('id');
+        return null;
+    }
+
+    async function wireTournamentNav(me) {
+        var id = parseInt(tournamentIdOfPage(), 10);
+        var main = document.querySelector('main');
+        if (!id || !main) return;
+        var isOrganizer = false;
+        if (me && me.isAuthenticated && (me.role === 'ORGANIZER' || me.role === 'ADMIN')) {
+            try { await Api.get('/api/tournaments/' + id + '/publish-status'); isOrganizer = true; } catch (e) { isOrganizer = false; }
+        }
+        var path = location.pathname.toLowerCase();
+        function link(item) {
+            var href = item[0] + '?' + (item[2] || 'id') + '=' + id;
+            return '<a href="' + href + '"' + (path === item[0] ? ' class="active" aria-current="page"' : '') + '>' + Ui.escapeHtml(item[1]) + '</a>';
+        }
+        var html = TOUR_PUBLIC.map(link).join('');
+        if (isOrganizer) html += '<span class="sep" aria-hidden="true"></span><span class="tag">Ban tổ chức</span>' + TOUR_ORGANIZER.map(link).join('');
+        var bar = document.createElement('nav');
+        bar.className = 'tour-subnav';
+        bar.setAttribute('aria-label', 'Điều hướng trong giải');
+        bar.innerHTML = html;
+        var head = main.querySelector(':scope > .page-head');
+        if (head) head.parentNode.insertBefore(bar, head.nextSibling);
+        else main.insertBefore(bar, main.firstChild);
+        var active = bar.querySelector('a.active');
+        if (active && active.scrollIntoView) active.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
+
+    // "Đang tải..." trong khung rỗng có vòng xoay nhỏ (trang JS thay nội dung khi tải xong).
+    function markLoadingStates() {
+        document.querySelectorAll('.empty h3').forEach(function (h) {
+            if (/^Đang tải/.test((h.textContent || '').trim())) h.parentElement.classList.add('is-loading');
+        });
     }
 
     var pendingResolve = null;
@@ -198,7 +293,12 @@
         applyActiveNav();
         wireThemeToggle();
         wireConfirmModal();
-        wireAuthWidget();
+        injectFooter();
+        var mePromise = wireAuthWidget();
         document.dispatchEvent(new CustomEvent('etoms:layout-ready'));
+        wireTournamentNav(await mePromise);
     });
+
+    // layout.js nạp ở cuối <body>, trước script trang (defer): lúc này khung "Đang tải..." còn nguyên.
+    markLoadingStates();
 })();

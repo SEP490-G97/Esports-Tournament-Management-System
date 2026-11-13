@@ -8,15 +8,17 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="etomsNavCollapse">
+            <!-- Mục có data-roles ẩn sẵn, layout.js bật theo vai trò: "auth" = mọi người đã đăng nhập.
+                 Chỉ là gợi ý hiển thị; quyền thật vẫn do API/trang đích kiểm tra. -->
             <nav>
                 <a href="/" data-nav="home">Trang chủ</a>
                 <a href="/team/index.html" data-nav="team">Đội tuyển</a>
-                <a href="/organization/index.html" data-nav="organization">Tổ chức</a>
-                <a href="/profile/index.html" data-nav="profile">Hồ sơ</a>
+                <a href="/free-agent/index.html" data-nav="free-agent" data-roles="auth">Tìm đội</a>
                 <a href="/registration/index.html" data-nav="registration">Đăng ký giải</a>
                 <a href="/rankings/index.html" data-nav="rankings">Bảng xếp hạng</a>
-                <a href="/marketing/tools.html" data-nav="marketing">Truyền thông</a>
-                <a href="/result/disputes.html" data-nav="result" style="display:none">Tranh chấp</a>
+                <a href="/organization/index.html" data-nav="organization">Tổ chức</a>
+                <a href="/result/disputes.html" data-nav="result" data-roles="ORGANIZER,ADMIN">Tranh chấp</a>
+                <a href="/admin/index.html" data-nav="admin" data-roles="ADMIN">Quản trị</a>
             </nav>
             <div class="spacer"></div>
             <div class="nav-user">

@@ -5,12 +5,12 @@
         var msg = p.message ? ' · “' + Ui.escapeHtml(p.message) + '”' : '';
         var actions = locked ? '' :
             '<div style="display:flex;gap:8px">' +
-            '<button type="button" class="btn btn-primary" style="padding:8px 14px" data-act="approve" data-target="' + p.accountId + '">Duyệt</button>' +
-            '<button type="button" class="btn btn-ghost" style="padding:8px 14px;color:var(--danger-ink)" data-act="reject" data-target="' + p.accountId + '" data-name="' + Ui.escapeHtml(p.fullName) + '">Từ chối</button>' +
+            '<button type="button" class="btn btn-primary btn-sm" data-act="approve" data-target="' + p.accountId + '">Duyệt</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm text-danger-etoms" data-act="reject" data-target="' + p.accountId + '" data-name="' + Ui.escapeHtml(p.fullName) + '">Từ chối</button>' +
             '</div>';
         return '<div class="card-etoms"><div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px;border-left:3px solid var(--warn);border-radius:0 14px 14px 0">' +
             '<span class="av" style="width:46px;height:46px;border-radius:11px;background:var(--panel-2);border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--warn)">' + Ui.escapeHtml(p.fullName && p.fullName.length > 0 ? p.fullName.substring(0, 1) : '?') + '</span>' +
-            '<div style="flex:1;min-width:160px"><div style="font-weight:700">' + Ui.escapeHtml(p.fullName) + '</div><div style="font-size:.84rem;color:var(--muted)">' + Ui.escapeHtml(p.directionLabel) + msg + '</div></div>' +
+            '<div style="flex:1;min-width:160px"><div class="fw-bold">' + Ui.escapeHtml(p.fullName) + '</div><div class="text-small text-muted-etoms">' + Ui.escapeHtml(p.directionLabel) + msg + '</div></div>' +
             actions + '</div></div>';
     }
 
@@ -23,19 +23,19 @@
         if (!m.isCaptain && !roster.isLocked) {
             actions += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
             if (m.slot === 'SUBSTITUTE' && roster.canAddStarter) {
-                actions += '<button type="button" class="btn btn-ghost" style="padding:8px 12px" data-act="slot-starter" data-target="' + m.accountId + '">Lên chính thức</button>';
+                actions += '<button type="button" class="btn btn-ghost btn-sm" data-act="slot-starter" data-target="' + m.accountId + '">Lên chính thức</button>';
             }
             if (m.slot === 'STARTER' && roster.canAddSub) {
-                actions += '<button type="button" class="btn btn-ghost" style="padding:8px 12px" data-act="slot-sub" data-target="' + m.accountId + '">Xuống dự bị</button>';
+                actions += '<button type="button" class="btn btn-ghost btn-sm" data-act="slot-sub" data-target="' + m.accountId + '">Xuống dự bị</button>';
             }
-            actions += '<button type="button" class="btn btn-ghost" style="padding:8px 12px;color:var(--gold)" data-act="transfer" data-target="' + m.accountId + '" data-name="' + Ui.escapeHtml(m.fullName) + '">Đặt làm đội trưởng</button>';
-            actions += '<button type="button" class="btn btn-ghost" style="padding:8px 12px;color:var(--danger-ink)" data-act="kick" data-target="' + m.accountId + '" data-name="' + Ui.escapeHtml(m.fullName) + '">Loại</button>';
+            actions += '<button type="button" class="btn btn-ghost btn-sm text-gold" data-act="transfer" data-target="' + m.accountId + '" data-name="' + Ui.escapeHtml(m.fullName) + '">Đặt làm đội trưởng</button>';
+            actions += '<button type="button" class="btn btn-ghost btn-sm text-danger-etoms" data-act="kick" data-target="' + m.accountId + '" data-name="' + Ui.escapeHtml(m.fullName) + '">Loại</button>';
             actions += '</div>';
         }
 
         return '<div class="card-etoms"><div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px">' +
             '<span class="av" style="width:46px;height:46px;border-radius:11px;background:var(--panel-2);border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--cyan)">' + Ui.escapeHtml(m.fullName && m.fullName.length > 0 ? m.fullName.substring(0, 1) : '?') + '</span>' +
-            '<div style="flex:1;min-width:160px"><div style="font-weight:700">' + Ui.escapeHtml(m.fullName) + '</div><div style="font-size:.84rem;color:var(--muted)">' + badge + '</div></div>' +
+            '<div style="flex:1;min-width:160px"><div class="fw-bold">' + Ui.escapeHtml(m.fullName) + '</div><div class="text-small text-muted-etoms">' + badge + '</div></div>' +
             actions + '</div></div>';
     }
 
@@ -48,7 +48,7 @@
 
         var pendingHtml = '';
         if (roster.pendingMembers.length) {
-            pendingHtml = '<div class="section-title" style="margin-top:0">Đơn chờ duyệt (' + roster.pendingMembers.length + ')</div>' +
+            pendingHtml = '<div class="section-title mt-0">Đơn chờ duyệt (' + roster.pendingMembers.length + ')</div>' +
                 '<div class="section-sub">Ứng tuyển hoặc lời mời đang chờ đội trưởng xác nhận.</div>' +
                 '<div class="d-grid gap-3 mb-4">' + roster.pendingMembers.map(function (p) { return pendingItemHtml(p, roster.isLocked); }).join('') + '</div>';
         }
@@ -60,10 +60,10 @@
             '<div class="page-head"><h1>Quản lý Roster — ' + Ui.escapeHtml(roster.name) + '</h1>' +
             '<p>Phân loại thành viên chính thức / dự bị theo luật ' + Ui.escapeHtml(roster.gameTitle) + ', loại thành viên hoặc chuyển quyền đội trưởng.</p></div>' +
             lockedAlert + pendingHtml +
-            '<div class="section-title" style="margin-top:0">Thành viên chính thức</div>' +
-            '<div class="section-sub">Chính thức: <strong style="color:var(--ink)">' + roster.starterCount + '/' + roster.maxStarters + '</strong> · Dự bị: <strong style="color:var(--ink)">' + roster.subCount + '/' + roster.maxSubstitutes + '</strong></div>' +
+            '<div class="section-title mt-0">Thành viên chính thức</div>' +
+            '<div class="section-sub">Chính thức: <strong class="text-ink">' + roster.starterCount + '/' + roster.maxStarters + '</strong> · Dự bị: <strong class="text-ink">' + roster.subCount + '/' + roster.maxSubstitutes + '</strong></div>' +
             membersHtml +
-            '<div class="btn-row" style="margin-top:26px"><a class="btn btn-ghost" href="/team/dashboard.html?id=' + teamId + '">← Về trang quản trị</a></div>';
+            '<div class="btn-row mt-4"><a class="btn btn-ghost" href="/team/dashboard.html?id=' + teamId + '">← Về trang quản trị</a></div>';
 
         root.querySelectorAll('[data-act]').forEach(function (btn) {
             btn.addEventListener('click', function () { handleAction(btn.dataset.act, btn.dataset.target, btn.dataset.name); });

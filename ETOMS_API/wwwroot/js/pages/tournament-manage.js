@@ -33,15 +33,15 @@
         document.getElementById('page-title').textContent = 'Quản lý giải ' + s.tournamentName;
 
         var checks = s.status === 'DRAFT'
-            ? '<div class="section-title" style="margin-top:0">Điều kiện xuất bản</div><div style="margin-top:14px">' + s.checks.map(checkRow).join('') + '</div>'
+            ? '<div class="section-title mt-0">Điều kiện xuất bản</div><div class="mt-3">' + s.checks.map(checkRow).join('') + '</div>'
             : '';
         var blocked = s.unpublishBlockedReason
-            ? '<div class="pending-banner" style="margin-top:14px">' + Ui.escapeHtml(s.unpublishBlockedReason) + '</div>'
+            ? '<div class="pending-banner mt-3">' + Ui.escapeHtml(s.unpublishBlockedReason) + '</div>'
             : '';
 
         document.getElementById('manage-root').innerHTML =
             '<div class="card-etoms"><div class="body">' +
-            '<div style="margin-bottom:18px">Trạng thái: <span class="badge ' + Ui.escapeHtml(s.statusClass) + '" id="status-badge">' + Ui.escapeHtml(s.statusLabel) + '</span></div>' +
+            '<div class="mb-3">Trạng thái: <span class="badge ' + Ui.escapeHtml(s.statusClass) + '" id="status-badge">' + Ui.escapeHtml(s.statusLabel) + '</span></div>' +
             checks + blocked +
             '<div class="btn-row">' + actionsHtml(s) +
             '<a class="btn btn-ghost" href="/tournament/edit.html?id=' + tournamentId + '">Sửa thông tin giải</a>' +
@@ -56,7 +56,7 @@
             '</div></div>' +
             // Khu vực cảnh báo: thao tác không hoàn tác (TOUR-11).
             '<div class="card-etoms" id="danger-zone" style="margin-top:16px;border-color:var(--danger)"><div class="body">' +
-            '<div class="section-title" style="margin-top:0;color:var(--danger-ink)">Khu vực cảnh báo</div>' +
+            '<div class="section-title mt-0 text-danger-etoms">Khu vực cảnh báo</div>' +
             '<p class="hint" style="margin:6px 0 12px">' + (s.status === 'CANCELLED'
                 ? 'Giải đã bị hủy. Xem lý do và danh sách đội cần hoàn lệ phí.'
                 : 'Hủy giải không hoàn tác được, cần lý do và được báo tới mọi đội trưởng. Không hủy được sau khi nhánh đấu đã khóa.') + '</p>' +
