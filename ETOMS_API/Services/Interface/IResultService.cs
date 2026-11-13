@@ -37,4 +37,9 @@ public interface IResultService
     Task<Result> DecideAppealAsync(int disputeId, int adjudicatorAccountId, AppealDecisionRequest request);
 
     Task<bool> IsMatchCaptainAsync(int matchId, int accountId);
+    Task<int?> GetCaptainTeamIdAsync(int matchId, int accountId);
+
+    // Đẩy đội thắng lên vị trí vòng trên — dùng chung cho RES-02/07 và MAT-09/11/12 (walkover,
+    // disqualify, forfeit cũng là một cách trận kết thúc có người thắng).
+    Task AdvanceWinnerAsync(int matchId, int winnerTeamId);
 }

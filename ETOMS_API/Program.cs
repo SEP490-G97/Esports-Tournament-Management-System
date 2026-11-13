@@ -127,6 +127,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IBracketService, BracketService>();
 builder.Services.AddScoped<IResultService, ResultService>();
+builder.Services.AddScoped<ETOMS_API.Services.Interface.IMatchOpsService, ETOMS_API.Services.Impl.MatchOpsService>();
 builder.Services.AddHostedService<WaitlistExpirationWorker>();
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();

@@ -668,6 +668,18 @@ public class ResultService : IResultService
         return await ResolveCaptainTeamIdAsync(match, accountId) is not null;
     }
 
+    public async Task<int?> GetCaptainTeamIdAsync(int matchId, int accountId)
+    {
+        var match = await _uow.Repository<Match>().GetByIdAsync(matchId);
+        return match is null ? null : await ResolveCaptainTeamIdAsync(match, accountId);
+    }
+
+    public async Task AdvanceWinnerAsync(int matchId, int winnerTeamId)
+    {
+        var match = await _uow.Repository<Match>().GetByIdAsync(matchId);
+        if (match is not null) await AdvanceWinnerAsync(match, winnerTeamId);
+    }
+
     private async Task<int?> ResolveCaptainTeamIdAsync(Match match, int accountId)
     {
         if (match.TeamAid.HasValue && await _uow.Repository<Team>().AnyAsync(t => t.TeamId == match.TeamAid.Value && t.CaptainAccountId == accountId))
