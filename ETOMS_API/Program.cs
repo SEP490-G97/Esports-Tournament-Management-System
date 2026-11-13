@@ -32,6 +32,7 @@ builder.Services.Configure<JwtOptions>(cfg.GetSection(JwtOptions.Section));
 var jwt = cfg.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<AuthLinkOptions>(builder.Configuration.GetSection(AuthLinkOptions.SectionName));
+builder.Services.Configure<SupportOptions>(builder.Configuration.GetSection(SupportOptions.SectionName));
 
 
 
@@ -109,7 +110,7 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
 
-
+builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
 builder.Services.AddScoped<IOneTimeTokenService, OneTimeTokenService>();
 builder.Services.AddScoped<IAccountSecurityService, AccountSecurityService>();
 builder.Services.AddScoped(typeof(ETOMS_API.Repositories.IGenericRepository<>), typeof(ETOMS_API.Repositories.GenericRepository<>));
