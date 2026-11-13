@@ -27,3 +27,4 @@ packages/
 # OS junk
 .DS_Store
 Thumbs.db
+ETOMS_API.Tests/

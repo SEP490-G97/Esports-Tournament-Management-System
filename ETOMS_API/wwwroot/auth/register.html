@@ -3,13 +3,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Đăng nhập hệ thống ETOMS</title>
+    <title>Đăng ký tài khoản ETOMS</title>
     <script src="/js/theme-init.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/css/site.css?v=ui-2026-11" />
+    <link rel="stylesheet" href="/css/auth-card.css" />
     <link rel="stylesheet" href="/css/loginpage.css?v=ui-2026-11" />
 </head>
 <body>
@@ -17,7 +18,6 @@
 
     <main class="container-etoms">
         <div class="reg-card">
-
             <div>
                 <div class="reg-brand">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="12" x2="10" y2="12" /><line x1="8" y1="10" x2="8" y2="14" /><line x1="15" y1="13" x2="15.01" y2="13" /><line x1="18" y1="11" x2="18.01" y2="11" /><rect x="2" y="6" width="20" height="12" rx="4" /></svg>
@@ -31,7 +31,7 @@
                 <div class="reg-field">
                     <label class="reg-label" for="reg-gamertag">Tên người dùng / Gamertag</label>
                     <div class="reg-box">
-                        <input class="reg-input" type="text" id="reg-gamertag" name="gamertag" placeholder="VD: ViperX#7799" autocomplete="username" required>
+                        <input class="reg-input" type="text" id="reg-gamertag" name="gamertag" placeholder="VD: ViperX#7799" autocomplete="username" maxlength="100" required>
                         <span class="reg-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="11" r="2" /><path d="M6 17c.5-2 2-3 3-3s2.5 1 3 3" /><line x1="15" y1="10" x2="18" y2="10" /><line x1="15" y1="14" x2="18" y2="14" /></svg></span>
                     </div>
                 </div>
@@ -39,7 +39,7 @@
                 <div class="reg-field">
                     <label class="reg-label" for="reg-email">Email</label>
                     <div class="reg-box">
-                        <input class="reg-input" type="email" id="reg-email" name="email" placeholder="name@example.com" autocomplete="email" required>
+                        <input class="reg-input" type="email" id="reg-email" name="email" placeholder="name@example.com" autocomplete="email" maxlength="256" required>
                         <span class="reg-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><polyline points="3 7 12 13 21 7" /></svg></span>
                     </div>
                 </div>
@@ -47,15 +47,16 @@
                 <div class="reg-field">
                     <label class="reg-label" for="reg-password">Mật khẩu</label>
                     <div class="reg-box">
-                        <input class="reg-input" type="password" id="reg-password" name="password" placeholder="Tối thiểu 8 ký tự" autocomplete="new-password" minlength="8" required>
+                        <input class="reg-input" type="password" id="reg-password" name="password" placeholder="Tối thiểu 8 ký tự" autocomplete="new-password" maxlength="72" required>
                         <span class="reg-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg></span>
                     </div>
+                    <span class="reg-hint">Gồm chữ hoa, chữ thường và chữ số.</span>
                 </div>
 
                 <div class="reg-field">
                     <label class="reg-label" for="reg-confirm">Xác nhận mật khẩu</label>
                     <div class="reg-box">
-                        <input class="reg-input" type="password" id="reg-confirm" name="confirm" placeholder="Nhập lại mật khẩu" autocomplete="new-password" required>
+                        <input class="reg-input" type="password" id="reg-confirm" name="confirm" placeholder="Nhập lại mật khẩu" autocomplete="new-password" maxlength="72" required>
                         <span class="reg-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><polyline points="3 3 3 8 8 8" /><path d="M9 12l2 2 4-4" /></svg></span>
                     </div>
                 </div>
@@ -65,7 +66,8 @@
                     <span>Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và <a href="#">Chính sách bảo mật</a></span>
                 </label>
 
-                <button type="submit" class="reg-submit">Đăng ký tài khoản</button>
+                <p id="msg" class="form-msg" role="alert" hidden></p>
+                <button type="submit" id="submit" class="reg-submit">Đăng ký tài khoản</button>
             </form>
 
             <div class="reg-foot">
@@ -78,8 +80,11 @@
     <div id="confirm-modal-root"></div>
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/ui.js"></script>
     <script src="/js/layout.js"></script>
+    <script src="/js/auth-forms.js"></script>
+    <script src="/js/pages/register.js"></script>
 </body>
 </html>

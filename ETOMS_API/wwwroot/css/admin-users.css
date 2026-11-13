@@ -1,0 +1,364 @@
+﻿/* Trang Quản lý tài khoản (ADM-01/02). Theme tối: thẻ #181922, nhấn #3B82F6. */
+.au-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 16px;
+}
+
+.au-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.au-sub {
+    margin: 4px 0 0;
+    color: #9aa0b4;
+}
+
+.au-muted {
+    color: #9aa0b4;
+    font-size: .9rem;
+}
+
+.au-card {
+    background: #181922;
+    border: 1px solid #272a38;
+    border-radius: 14px;
+    padding: 18px;
+}
+
+.au-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.au-search {
+    flex: 1 1 260px;
+}
+
+.au-input {
+    background: #0f1017;
+    color: #e8eaf3;
+    border: 1px solid #2b2f40;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font: inherit;
+    width: 100%;
+}
+
+.au-toolbar select.au-input {
+    width: auto;
+    min-width: 150px;
+}
+
+.au-input:focus {
+    outline: none;
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.25);
+}
+
+.au-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.au-tab {
+    background: transparent;
+    color: #9aa0b4;
+    border: 1px solid #2b2f40;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+}
+
+    .au-tab:hover {
+        color: #e8eaf3;
+    }
+
+    .au-tab.active {
+        background: #3B82F6;
+        border-color: #3B82F6;
+        color: #fff;
+    }
+
+.au-count {
+    opacity: .85;
+    margin-left: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.au-table-wrap {
+    overflow-x: auto;
+}
+
+.au-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+
+    .au-table th {
+        text-align: left;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #9aa0b4;
+        padding: 10px 12px;
+        border-bottom: 1px solid #272a38;
+    }
+
+    .au-table td {
+        padding: 12px;
+        border-bottom: 1px solid #20222e;
+        vertical-align: middle;
+    }
+
+    .au-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+.au-right {
+    text-align: right !important;
+}
+
+.au-table tbody tr.is-loading {
+    opacity: .5;
+}
+
+.au-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.au-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #2b2f40;
+    object-fit: cover;
+    flex: 0 0 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #cfd4ea;
+}
+
+.au-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.au-email {
+    color: #9aa0b4;
+    font-size: .85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.au-ban-reason {
+    color: #f0a3a3;
+    font-size: .8rem;
+    margin-top: 2px;
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.au-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+    .au-badge.role {
+        background: #232637;
+        color: #cfd4ea;
+    }
+
+        .au-badge.role.admin {
+            background: rgba(168,85,247,.18);
+            color: #d8b4fe;
+        }
+
+        .au-badge.role.organizer {
+            background: rgba(59,130,246,.18);
+            color: #93c5fd;
+        }
+
+    .au-badge.st-active {
+        background: rgba(34,197,94,.16);
+        color: #86efac;
+    }
+
+    .au-badge.st-banned {
+        background: rgba(239,68,68,.18);
+        color: #fca5a5;
+    }
+
+    .au-badge.st-unverified {
+        background: rgba(234,179,8,.16);
+        color: #fde047;
+    }
+
+.au-btn {
+    background: #232637;
+    color: #e8eaf3;
+    border: 1px solid #2b2f40;
+    border-radius: 10px;
+    padding: 7px 14px;
+    font: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+}
+
+    .au-btn:hover:not(:disabled) {
+        border-color: #3B82F6;
+    }
+
+    .au-btn:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+    }
+
+.au-btn-danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+
+    .au-btn-danger:hover:not(:disabled) {
+        background: #b91c1c;
+        border-color: #b91c1c;
+    }
+
+.au-btn-ok {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+    .au-btn-ok:hover:not(:disabled) {
+        background: #15803d;
+        border-color: #15803d;
+    }
+
+.au-empty {
+    text-align: center;
+    color: #9aa0b4;
+    padding: 32px 0;
+}
+
+.au-pager {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.au-pager-btns {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Dialog */
+.au-modal {
+    background: #181922;
+    color: #e8eaf3;
+    border: 1px solid #272a38;
+    border-radius: 14px;
+}
+
+    .au-modal .modal-header, .au-modal .modal-footer {
+        border-color: #272a38;
+    }
+
+    .au-modal .modal-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+.au-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.au-req {
+    color: #f87171;
+}
+
+.au-hint {
+    color: #9aa0b4;
+    font-size: .82rem;
+    margin-top: 6px;
+}
+
+.au-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.au-chip {
+    background: #232637;
+    color: #cfd4ea;
+    border: 1px solid #2b2f40;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: .8rem;
+    cursor: pointer;
+}
+
+    .au-chip:hover {
+        border-color: #3B82F6;
+    }
+
+/* Trạng thái thông báo (dùng lại tên lớp của auth-card.css nếu trang không nạp file đó) */
+.form-msg {
+    margin-top: 12px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: .9rem;
+}
+
+    .form-msg.error {
+        background: rgba(239,68,68,.14);
+        color: #fca5a5;
+    }
+
+    .form-msg.success {
+        background: rgba(34,197,94,.14);
+        color: #86efac;
+    }
+
+[hidden] {
+    display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .au-card * {
+        transition: none !important;
+    }
+}
