@@ -89,7 +89,8 @@ a { color: var(--ink); text-decoration: none; }
 
 /* ---- Dropdown "Xin chào, X" (đội của tôi + đăng xuất) ---- */
 .nav-user-dd { position: relative; }
-.nav-user-trigger { display: flex; align-items: center; gap: 10px; background: none; border: none; color: var(--muted); font-size: .88rem; font-family: inherit; padding: 6px 4px; cursor: pointer; }
+.nav-user-trigger { display: flex; align-items: center; gap: 10px; background: none; border: none; color: var(--muted); font-size: .88rem; font-family: inherit; padding: 6px 4px; cursor: pointer; max-width: 220px; flex-shrink: 0; }
+.nav-user-trigger .who { display: inline-block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 .nav-user-trigger .caret, .nav-user-caret { color: var(--muted-2); transition: transform .15s; }
 .nav-user-trigger[aria-expanded="true"] .nav-user-caret { transform: rotate(180deg); }
 .nav-user-menu { display: none; position: absolute; right: 0; top: calc(100% + 10px); min-width: 220px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; z-index: 60; }
