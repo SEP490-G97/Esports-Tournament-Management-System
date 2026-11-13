@@ -1,28 +1,35 @@
 using System.Data;
+using ETOMS_API.Repositories.Interface;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace ETOMS_API.Repositories.Impl;
 
-public sealed class UnitOfWork : ETOMS_API.Repositories.Interface.IUnitOfWork
+public sealed class UnitOfWork : IUnitOfWork
 {
-    private readonly ETOMS_API.Repositories.EtomsDbContext _dbContext;
+    private readonly EtomsDbContext _context;
+    private readonly Dictionary<Type, object> _repositories = new();
 
-    public UnitOfWork(ETOMS_API.Repositories.EtomsDbContext dbContext)
+    public UnitOfWork(EtomsDbContext context) => _context = context;
+
+    // Mỗi entity một repository, dùng lại trong cùng request.
+    public IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class
     {
-        _dbContext = dbContext;
+        if (!_repositories.TryGetValue(typeof(TEntity), out var repo))
+        {
+            repo = new GenericRepository<TEntity>(_context);
+            _repositories[typeof(TEntity)] = repo;
+        }
+        return (IGenericRepository<TEntity>)repo;
     }
 
-    public ETOMS_API.Repositories.Interface.IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class
-        => new GenericRepository<TEntity>(_dbContext.Set<TEntity>());
-
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        => _dbContext.SaveChangesAsync(cancellationToken);
+        => _context.SaveChangesAsync(cancellationToken);
 
     public Task<IDbContextTransaction> BeginTransactionAsync(
         IsolationLevel isolationLevel,
         CancellationToken cancellationToken = default)
-        => _dbContext.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
+        => _context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
 
-    public void Dispose() => _dbContext.Dispose();
+    public void Dispose() => _context.Dispose();
 }

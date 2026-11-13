@@ -38,7 +38,7 @@ public sealed class RankingService : IRankingService
                         ranking.GameId,
                         GameName = team.Game.Title,
                         Season = ranking.Season ?? 0,
-                        TournamentPlayed = ranking.TournamentPlayed ?? 0,
+                        TournamentPlayed = ranking.TournamentPlayed,
                         TitleCount = ranking.TitleCount ?? 0,
                         AchievementPoint = ranking.AchievementPoint ?? 0
                     };
@@ -80,7 +80,7 @@ public sealed class RankingService : IRankingService
 
         var entries = new List<LeaderboardEntryResponse>(rows.Count);
         var rank = 0;
-        (int Points, int Titles, int Tournaments)? previous = null;
+        (decimal Points, decimal Titles, long Tournaments)? previous = null;
         for (var index = 0; index < rows.Count; index++)
         {
             var row = rows[index];
@@ -117,10 +117,11 @@ public sealed class RankingService : IRankingService
             query = query.Where(item => item.GameId == gameId.Value);
         }
 
-        return await query.Select(item => item.Season!.Value)
+        var seasons = await query.Select(item => item.Season!.Value)
             .Distinct()
             .OrderByDescending(item => item)
             .ToListAsync(cancellationToken);
+        return seasons.Select(item => (int)item).ToArray();
     }
 
     public async Task<Result<RankedTeamProfileResponse>> GetTeamProfileAsync(
@@ -270,11 +271,11 @@ public sealed class RankingService : IRankingService
                 standing.GroupLabel,
                 standing.TeamId!.Value,
                 team.Name,
-                standing.Played ?? 0,
-                standing.Won ?? 0,
-                standing.Lost ?? 0,
-                standing.ScoreDiff ?? 0,
-                standing.Point ?? 0))
+                standing.Played,
+                standing.Won ?? 0m,
+                standing.Lost ?? 0m,
+                standing.ScoreDiff ?? 0m,
+                standing.Point ?? 0m))
             .ToListAsync(cancellationToken);
 
         return Result.Success(new TournamentReportResponse(
@@ -336,7 +337,7 @@ public sealed class RankingService : IRankingService
         int GameId,
         string GameName,
         int? Season,
-        int TournamentPlayed,
-        int TitleCount,
-        int AchievementPoint);
+        long TournamentPlayed,
+        decimal TitleCount,
+        decimal AchievementPoint);
 }

@@ -10,9 +10,9 @@ public sealed record LeaderboardEntryResponse(
     int GameId,
     string GameName,
     int? Season,
-    int TournamentPlayed,
-    int TitleCount,
-    int AchievementPoint);
+    long TournamentPlayed,
+    decimal TitleCount,
+    decimal AchievementPoint);
 
 /// <summary>Danh hiệu của đội tại một giải đã hoàn tất.</summary>
 public sealed record TeamHonorResponse(
@@ -80,11 +80,11 @@ public sealed record TournamentReportStandingResponse(
     string? GroupLabel,
     int TeamId,
     string TeamName,
-    int Played,
-    int Won,
-    int Lost,
-    int ScoreDiff,
-    int Points);
+    long Played,
+    decimal Won,
+    decimal Lost,
+    decimal ScoreDiff,
+    decimal Points);
 
 /// <summary>Dữ liệu tổng kết giải, chỉ trả về cho ban tổ chức của giải.</summary>
 public sealed record TournamentReportResponse(

@@ -9,6 +9,18 @@ public class HomeSummaryDto
     public List<FeaturedTournamentDto> Featured { get; set; } = new();
     public List<EventTickerDto> Events { get; set; } = new();
     public IReadOnlyList<ETOMS_API.DTOs.Team.TeamListItemDto> Teams { get; set; } = new List<ETOMS_API.DTOs.Team.TeamListItemDto>();
+    public List<NewsItemDto> News { get; set; } = new();
+}
+
+// Tin tức đăng trên trang chủ — lấy từ ContentItem (Kind='NEWS', Status='PUBLISHED').
+// Tin được ghim (IsPinned) hiển thị làm tin nổi bật, còn lại xếp vào danh sách bên cạnh.
+public class NewsItemDto
+{
+    public int ContentItemId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Excerpt { get; set; } = string.Empty;
+    public bool IsPinned { get; set; }
+    public DateTime? PublishedAt { get; set; }
 }
 
 public class HomeStatsDto

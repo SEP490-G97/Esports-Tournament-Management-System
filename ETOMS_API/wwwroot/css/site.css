@@ -87,6 +87,17 @@ a { color: var(--ink); text-decoration: none; }
 .nav-user .who { font-weight: 700; color: var(--ink); }
 .nav-user .av { width: 34px; height: 34px; border-radius: 9px; background: var(--panel-2); border: 1px solid var(--border); display: grid; place-items: center; font-weight: 700; color: var(--cyan); }
 
+/* ---- Dropdown "Xin chào, X" (đội của tôi + đăng xuất) ---- */
+.nav-user-dd { position: relative; }
+.nav-user-trigger { display: flex; align-items: center; gap: 10px; background: none; border: none; color: var(--muted); font-size: .88rem; font-family: inherit; padding: 6px 4px; cursor: pointer; }
+.nav-user-trigger .caret, .nav-user-caret { color: var(--muted-2); transition: transform .15s; }
+.nav-user-trigger[aria-expanded="true"] .nav-user-caret { transform: rotate(180deg); }
+.nav-user-menu { display: none; position: absolute; right: 0; top: calc(100% + 10px); min-width: 220px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; z-index: 60; }
+.nav-user-menu.show { display: block; }
+.nav-user-menu-item { display: block; padding: 10px 12px; border-radius: 8px; font-size: .88rem; color: var(--ink); }
+.nav-user-menu-item:hover { background: var(--panel-2); }
+.nav-user-menu-item a { color: var(--cyan); font-weight: 700; }
+
 /* ---- Nút đổi chế độ sáng/tối ---- */
 .theme-toggle { width: 38px; height: 38px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); color: #e9edf6; display: grid; place-items: center; cursor: pointer; transition: .15s; flex: none; }
 .theme-toggle:hover { border-color: var(--primary); }
@@ -469,6 +480,123 @@ body { overflow-x: hidden; }
   .feature-list-item { flex-direction: column; }
 }
 
+/* ===== Widget đăng nhập trên navbar ===== */
+#nav-auth-slot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+}
+
+    /* Avatar tròn */
+    #nav-auth-slot .av {
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(59, 130, 246, .15);
+        color: #60A5FA;
+        border: 1px solid rgba(59, 130, 246, .35);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    /* "Xin chào, Tên": chữ chào mờ, tên nổi bật, tên dài thì cắt bằng dấu ... */
+    #nav-auth-slot .nav-auth-hello {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 4px;
+        min-width: 0;
+        max-width: 200px;
+    }
+
+    #nav-auth-slot .nav-auth-hi {
+        color: #94A3B8;
+        font-weight: 400;
+    }
+
+    #nav-auth-slot .who {
+        color: #E2E8F0;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Nút Đăng xuất: nhỏ gọn, viền mảnh */
+    #nav-auth-slot .nav-auth-logout {
+        flex: 0 0 auto;
+        height: 32px;
+        padding: 0 12px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1;
+        color: #CBD5E1;
+        background: transparent;
+        border: 1px solid #282937;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: background .15s, border-color .15s, color .15s;
+    }
+
+        #nav-auth-slot .nav-auth-logout:hover {
+            background: rgba(248, 113, 113, .1);
+            border-color: rgba(248, 113, 113, .45);
+            color: #F87171; /* hover đỏ nhẹ, báo hiệu hành động thoát */
+        }
+
+    /* Nút Đăng nhập (khi chưa đăng nhập) */
+    #nav-auth-slot .nav-auth-login {
+        height: 36px;
+        padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+
+/* Giao diện sáng (theme-toggle đặt data-theme="light" trên <html>) */
+[data-theme="light"] #nav-auth-slot .av {
+    background: #DBEAFE;
+    color: #1D4ED8;
+    border-color: #BFDBFE;
+}
+
+[data-theme="light"] #nav-auth-slot .nav-auth-hi {
+    color: #64748B;
+}
+
+[data-theme="light"] #nav-auth-slot .who {
+    color: #0F172A;
+}
+
+[data-theme="light"] #nav-auth-slot .nav-auth-logout {
+    color: #334155;
+    border-color: #CBD5E1;
+}
+
+/* Điện thoại: bỏ chữ "Xin chào," cho gọn, căn giữa khi menu thu gọn */
+@media (max-width: 767.98px) {
+    #nav-auth-slot {
+        justify-content: center;
+        padding: 8px 0;
+    }
+
+        #nav-auth-slot .nav-auth-hi {
+            display: none;
+        }
+}
+
 /* --- Iteration 1: profile and organization journeys --- */
 .profile-page-head, .org-page-hero { display: flex; justify-content: space-between; align-items: end; gap: 24px; }
 .profile-page-head .btn { flex: none; }
@@ -756,3 +884,25 @@ body { overflow-x: hidden; }
   .org-public-nav, .org-management-nav { display: grid; grid-template-columns: 1fr; }
   .org-public-nav a, .org-management-nav a { justify-content: center; border-radius: 10px; }
 }
+
+/* --- Thể lệ giải: trình soạn thảo và nội dung hiển thị --- */
+.rte-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; background: var(--panel-2); border: 1px solid var(--border); border-bottom: none; border-radius: 11px 11px 0 0; }
+.rte-btn { background: transparent; border: 1px solid transparent; color: var(--ink); border-radius: 8px; padding: 5px 10px; font-size: .85rem; cursor: pointer; }
+.rte-btn:hover { background: var(--primary-050); border-color: var(--border); }
+.rte-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.rte-editor { min-height: 360px; max-height: 65vh; overflow-y: auto; padding: 16px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 0 0 11px 11px; outline: none; }
+.rte-editor:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,108,255,.22); }
+.rulebook-content { color: var(--ink); line-height: 1.65; overflow-wrap: anywhere; }
+.rulebook-content h2 { font-size: 1.25rem; font-weight: 800; margin: 18px 0 8px; }
+.rulebook-content h3 { font-size: 1.05rem; font-weight: 700; margin: 14px 0 6px; }
+.rulebook-content blockquote { border-left: 3px solid var(--primary); padding-left: 12px; color: var(--muted); margin: 10px 0; }
+.rulebook-content a { color: var(--info-ink); }
+.rulebook-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) {
+  .rulebook-compare { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Ô chọn ngày giờ: lịch của trình duyệt theo đúng giao diện sáng/tối */
+input[type="datetime-local"].input { color-scheme: dark; cursor: pointer; }
+:root[data-theme="light"] input[type="datetime-local"].input { color-scheme: light; }
+input[type="datetime-local"].input::-webkit-calendar-picker-indicator { cursor: pointer; }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ETOMS_API.Models;
@@ -55,7 +55,7 @@ public partial class Tournament
 
     public string? PrizeStructure { get; set; }
 
-    public bool RequireStudentCard { get; set; }
+    public bool RequireIdentityDocument { get; set; }
 
     public bool RequirePaymentProof { get; set; }
 

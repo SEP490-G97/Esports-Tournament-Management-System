@@ -1,0 +1,248 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>ETOMS - Khởi Tạo Giải Đấu Mới</title>
+    <link rel="stylesheet" href="../css/site.css">
+</head>
+<body>
+    <header class="etoms-nav">
+        <div class="inner">
+            <a class="brand" href="/">
+                <div class="mark">E</div>
+                <div class="txt"><b>ETOMS</b><span>Esports Platform</span></div>
+            </a>
+            <nav>
+                <a href="/">Trang chủ</a>
+                <a href="/free-agent/index.html">Tuyển quân</a>
+                <a href="/tournament-setup/index.html" class="active">Tạo giải đấu</a>
+            </nav>
+            <div class="spacer"></div>
+            <div class="nav-user">
+                <span class="who" id="currentUserName">Thành viên</span>
+                <div class="av" id="currentUserAvt">E</div>
+            </div>
+            <button class="theme-toggle" id="themeToggleBtn" title="Đổi giao diện sáng/tối">
+                <span class="icon-moon">🌙</span>
+                <span class="icon-sun">☀️</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container-etoms" style="max-width: 900px;">
+        <div class="page-head">
+            <div class="eyebrow">Quản lý sự kiện</div>
+            <h1>Trình Tạo Giải Đấu (Tournament Setup Wizard)</h1>
+            <p class="muted-copy">Quy trình 5 bước để thiết lập, cấu hình thể thức và công bố giải đấu thể thao điện tử lên hệ thống.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <!-- Thanh Tabs các bước -->
+        <div class="wizard-steps" style="display: flex; gap: 10px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px; font-size: 0.9rem; flex-wrap: wrap;">
+            <div id="tabStep1" class="step-tab" style="color: var(--primary); font-weight: bold;">1. Thông tin & Thể thức</div>
+            <div id="tabStep2" class="step-tab" style="color: var(--muted);">2. Timeline & Quy mô</div>
+            <div id="tabStep3" class="step-tab" style="color: var(--muted);">3. Thể thức BO</div>
+            <div id="tabStep4" class="step-tab" style="color: var(--muted);">4. Tài chính</div>
+            <div id="tabStep5" class="step-tab" style="color: var(--muted);">5. Công bố</div>
+        </div>
+
+        <!-- BƯỚC 1: Thông tin chung + Cấu hình Thể thức (TOUR-01, TOUR-03, TOUR-04) -->
+        <div id="panelStep1" class="card-etoms">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 1: Thông Tin & Cấu Hình Thể Thức</h3>
+                <p class="muted-copy" style="margin-bottom: 20px;">Cung cấp thông tin cơ bản, tựa game thi đấu và mô hình thể thức giải đấu.</p>
+
+                <form id="step1Form">
+                    <div class="field">
+                        <label>Tên giải đấu <span class="req">*</span></label>
+                        <input type="text" id="tName" class="input" required placeholder="Ví dụ: Đại chiến FPT Arena 2026">
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="field">
+                            <label>Tựa Game Thi Đấu <span class="req">*</span></label>
+                            <!-- Nạp danh sách Game từ DB -->
+                            <select id="tGameId" class="select" required>
+                                <option value="">-- Đang tải danh sách game --</option>
+                            </select>
+                            <span class="field-error" data-field-error="GameId"></span>
+                        </div>
+                        <div class="field">
+                            <label>Đơn vị tổ chức / Tên BTC</label>
+                            <input type="text" id="tOrganizerName" class="input" placeholder="Ví dụ: Khoa CNTT FPT">
+                        </div>
+                    </div>
+
+                    <!-- TOUR-03: Cấu hình Thể thức -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 10px;">
+                        <div class="field">
+                            <label>Thể thức giải đấu (Format) <span class="req">*</span></label>
+                            <select id="tFormat" class="select" required style="font-weight: 600; color: var(--cyan);">
+                                <option value="SINGLE_ELIMINATION">Loại trực tiếp đơn (Single Elimination)</option>
+                                <option value="DOUBLE_ELIMINATION">Loại trực tiếp kép (Double Elimination)</option>
+                                <option value="ROUND_ROBIN">Vòng tròn tính điểm (Round Robin)</option>
+                                <option value="HYBRID">Nhiều giai đoạn (Hybrid: Vòng bảng + Knockout)</option>
+                            </select>
+                        </div>
+                        <div class="field" style="display: flex; align-items: center; gap: 10px; margin-top: 24px;">
+                            <input type="checkbox" id="chkThirdPlace" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <label for="chkThirdPlace" style="margin-bottom: 0; cursor: pointer;">Có trận tranh Hạng Ba</label>
+                        </div>
+                    </div>
+
+                    <!-- TOUR-04: Khối Cấu hình Nhiều Giai Đoạn (Chỉ hiện khi chọn HYBRID) -->
+                    <div id="hybridConfigBlock" style="display: none; background: var(--bg-2); border: 1px dashed var(--cyan); border-radius: 8px; padding: 16px; margin-top: 14px;">
+                        <h4 style="margin: 0 0 10px 0; color: var(--cyan); font-size: 0.95rem;">⚙️ Cấu hình Giai đoạn 1 (Vòng Bảng)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+                            <div class="field" style="margin: 0;">
+                                <label>Số lượng bảng đấu (N bảng)</label>
+                                <input type="number" id="tGroupCount" class="input" value="4" min="2">
+                            </div>
+                            <div class="field" style="margin: 0;">
+                                <label>Số đội lấy đi tiếp mỗi bảng</label>
+                                <input type="number" id="tAdvancingPerGroup" class="input" value="2" min="1">
+                            </div>
+                        </div>
+                        <small class="muted-copy" style="display: block; margin-top: 8px;">Ví dụ: 4 bảng đấu, mỗi bảng lấy 2 đội ➔ Sinh cây Knockout 8 đội cho Giai đoạn 2.</small>
+                    </div>
+
+                    <div class="field" style="margin-top: 14px;">
+                        <label>Mô tả chi tiết giải đấu</label>
+                        <textarea id="tDesc" class="input" rows="3" placeholder="Giới thiệu về quy mô, giải thưởng, thể thức..."></textarea>
+                    </div>
+
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary">Lưu & Sang Bước 2 ➔</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- BƯỚC 2: Timeline & Quy mô -->
+        <div id="panelStep2" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 2: Cài Đặt Thời Gian & Số Đội</h3>
+                <p style="color: var(--gold); font-size: 0.85rem; margin-bottom: 20px;">Đang thiết lập cho Giải đấu ID: <span id="lblTournamentId" style="font-weight: bold;">--</span></p>
+
+                <form id="step2Form">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="field">
+                            <label>Mở đăng ký <span class="req">*</span></label>
+                            <input type="datetime-local" id="tRegOpen" class="input" required>
+                        </div>
+                        <div class="field">
+                            <label>Đóng đăng ký <span class="req">*</span></label>
+                            <input type="datetime-local" id="tRegClose" class="input" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="field">
+                            <label>Ngày bắt đầu giải <span class="req">*</span></label>
+                            <input type="datetime-local" id="tStart" class="input" required>
+                        </div>
+                        <div class="field">
+                            <label>Ngày kết thúc giải <span class="req">*</span></label>
+                            <input type="datetime-local" id="tEnd" class="input" required>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Số đội tối đa (Lũy thừa của 2: 4, 8, 16, 32...) <span class="req">*</span></label>
+                        <input type="number" id="tMaxTeams" class="input" value="16" required>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary">Lưu & Sang Bước 3 ➔</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- BƯỚC 3: Cấu hình Best-of -->
+        <div id="panelStep3" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 3: Cấu Hình Thể Thức Đấu (Best of X)</h3>
+                <p class="muted-copy" style="margin-bottom: 20px;">Áp dụng cấu hình tiêu chuẩn: Tứ kết (BO1), Bán kết (BO3), Chung kết (BO5). Bấm xác nhận để tiếp tục.</p>
+                <div class="btn-row">
+                    <button onclick="submitStep3()" class="btn btn-primary">Lưu Thể Thức & Sang Bước 4 ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BƯỚC 4: Tài chính -->
+        <div id="panelStep4" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--cyan);">Bước 4: Lệ Phí Tham Gia & Cơ Cấu Giải Thưởng</h3>
+                <form id="step4Form">
+                    <div class="field">
+                        <label>Lệ phí tham gia (VNĐ)</label>
+                        <input type="number" id="tEntryFee" class="input" value="0">
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="field">
+                            <label>Tên ngân hàng nhận phí</label>
+                            <input type="text" id="tBankName" class="input" placeholder="Ví dụ: MBBank">
+                        </div>
+                        <div class="field">
+                            <label>Số tài khoản</label>
+                            <input type="text" id="tAccountNumber" class="input" placeholder="Ví dụ: 0987654321">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Chủ tài khoản</label>
+                        <input type="text" id="tAccountName" class="input" placeholder="Ví dụ: NGUYEN VAN A">
+                    </div>
+                    <div class="field">
+                        <label>Mô tả giải thưởng (Prize Pool)</label>
+                        <textarea id="tPrize" class="input" rows="2" placeholder="Ví dụ: Top 1: 5 Triệu VNĐ, Top 2: 2 Triệu VNĐ..."></textarea>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary">Lưu Tài Chính & Sang Bước 5 ➔</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- BƯỚC 5: Công bố -->
+        <div id="panelStep5" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; color: var(--success);">Bước 5: Yêu Cầu Hồ Sơ & Công Bố Giải Đấu</h3>
+                <form id="step5Form">
+                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+                        <input type="checkbox" id="chkStudentCard" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <label for="chkStudentCard" style="margin-bottom: 0; cursor: pointer;">Yêu cầu bắt buộc Thẻ Sinh Viên</label>
+                    </div>
+                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+                        <input type="checkbox" id="chkPaymentProof" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <label for="chkPaymentProof" style="margin-bottom: 0; cursor: pointer;">Yêu cầu Biên lai chuyển khoản lệ phí</label>
+                    </div>
+                    <div class="field" style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                        <input type="checkbox" id="chkIgn" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <label for="chkIgn" style="margin-bottom: 0; cursor: pointer;">Yêu cầu xác thực tên In-game (IGN)</label>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--success), #1b9d57); width: 100%; font-size: 1.05rem; padding: 14px;">🚀 Hoàn Tất & Công Bố Giải Đấu (Publish)</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/ui.js"></script>
+    <script src="../js/pages/tournament-setup.js"></script>
+    <script>
+        document.getElementById('themeToggleBtn').addEventListener('click', function () {
+            var html = document.documentElement;
+            var current = html.getAttribute('data-theme');
+            var next = current === 'light' ? '' : 'light';
+            if (next) html.setAttribute('data-theme', 'light');
+            else html.removeAttribute('data-theme');
+            localStorage.setItem('etoms-theme', next);
+        });
+        if (localStorage.getItem('etoms-theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
+</body>
+</html>
