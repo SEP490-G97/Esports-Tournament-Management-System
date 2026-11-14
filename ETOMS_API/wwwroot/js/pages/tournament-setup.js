@@ -2,19 +2,19 @@
 
 // Nạp danh sách Tựa Game trực tiếp từ DB vào Dropdown Select
 async function loadGameSelect() {
+    var gameSelect = document.getElementById('tGameId');
+    if (!gameSelect) return;
     try {
-        var res = await Api.get('/api/Game').catch(() => ({ data: [] }));
-        var games = res.data || res || [];
-        var gameSelect = document.getElementById('tGameId');
-        if (gameSelect) {
-            if (games.length > 0) {
-                gameSelect.innerHTML = games.map(g => `<option value="${g.gameId}">${Ui.escapeHtml(g.title)}</option>`).join('');
-            } else {
-                gameSelect.innerHTML = '<option value="1">Game mặc định (ID: 1)</option>';
-            }
+        var res = await Api.get('/api/teams/games');
+        var games = Array.isArray(res) ? res : (res && res.data ? res.data : []);
+        if (games.length > 0) {
+            gameSelect.innerHTML = games.map(g => `<option value="${g.gameId}">${Ui.escapeHtml(g.title)}</option>`).join('');
+        } else {
+            gameSelect.innerHTML = '<option value="">-- Chưa có tựa game khả dụng --</option>';
         }
     } catch (e) {
         console.warn('Lỗi nạp danh sách Game:', e);
+        gameSelect.innerHTML = '<option value="">-- Không thể tải danh sách game --</option>';
     }
 }
 

@@ -2,27 +2,43 @@
     // 1. Tải danh sách Đội tuyển & Game từ DB để đổ vào Dropdown
     async function loadSelectOptions() {
         try {
-            // Nạp Đội tuyển
-            var teamsRes = await Api.get('/api/Team/my-teams').catch(() => ({ data: [] }));
-            var teams = teamsRes.data || teamsRes || [];
+            // Nạp Đội tuyển của tôi
             var teamSelect = document.getElementById('lfpTeamId');
             if (teamSelect) {
-                if (teams.length > 0) {
-                    teamSelect.innerHTML = teams.map(t => `<option value="${t.teamId}">${Ui.escapeHtml(t.name)} [${Ui.escapeHtml(t.tag)}]</option>`).join('');
-                } else {
-                    teamSelect.innerHTML = '<option value="1">Đội mặc định (ID: 1)</option>';
+                try {
+                    var teamsRes = await Api.get('/api/teams/mine');
+                    var teamData = (teamsRes && teamsRes.data !== undefined) ? teamsRes.data : teamsRes;
+                    var teams = [];
+                    if (Array.isArray(teamData)) {
+                        teams = teamData;
+                    } else if (teamData && teamData.teamId) {
+                        teams = [teamData];
+                    }
+
+                    if (teams.length > 0) {
+                        teamSelect.innerHTML = teams.map(t => `<option value="${t.teamId}">${Ui.escapeHtml(t.name)} [${Ui.escapeHtml(t.tag)}]</option>`).join('');
+                    } else {
+                        teamSelect.innerHTML = '<option value="">-- Bạn chưa tham gia đội tuyển nào --</option>';
+                    }
+                } catch (err) {
+                    teamSelect.innerHTML = '<option value="">-- Chưa thể tải đội tuyển --</option>';
                 }
             }
 
             // Nạp Tựa game
-            var gamesRes = await Api.get('/api/Game').catch(() => ({ data: [] }));
-            var games = gamesRes.data || gamesRes || [];
             var gameSelect = document.getElementById('lftGameId');
             if (gameSelect) {
-                if (games.length > 0) {
-                    gameSelect.innerHTML = games.map(g => `<option value="${g.gameId}">${Ui.escapeHtml(g.title)}</option>`).join('');
-                } else {
-                    gameSelect.innerHTML = '<option value="1">Game mặc định (ID: 1)</option>';
+                try {
+                    var gamesRes = await Api.get('/api/teams/games');
+                    var gameData = (gamesRes && gamesRes.data !== undefined) ? gamesRes.data : gamesRes;
+                    var games = Array.isArray(gameData) ? gameData : [];
+                    if (games.length > 0) {
+                        gameSelect.innerHTML = games.map(g => `<option value="${g.gameId}">${Ui.escapeHtml(g.title)}</option>`).join('');
+                    } else {
+                        gameSelect.innerHTML = '<option value="">-- Chưa có tựa game khả dụng --</option>';
+                    }
+                } catch (err) {
+                    gameSelect.innerHTML = '<option value="">-- Không thể tải danh sách game --</option>';
                 }
             }
         } catch (e) {

@@ -12,24 +12,36 @@ namespace ETOMS_API.Controllers
     public class TournamentSetupController : ControllerBase
     {
         private readonly ITournamentSetupService _setupService;
+        private readonly ICurrentUser _currentUser;
 
-        public TournamentSetupController(ITournamentSetupService setupService)
+        public TournamentSetupController(ITournamentSetupService setupService, ICurrentUser currentUser)
         {
             _setupService = setupService;
+            _currentUser = currentUser;
         }
 
         private int GetCurrentAccountId()
         {
-            return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (_currentUser.IsAuthenticated && _currentUser.UserId.HasValue)
+            {
+                return _currentUser.UserId.Value;
+            }
+
+            var subClaim = User.FindFirst("sub")?.Value 
+                        ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(subClaim, out var id) ? id : 0;
         }
 
         // TOUR-01: Tạo giải - Step 1 Thông tin chung
         [HttpPost("step1")]
         public async Task<IActionResult> CreateStep1([FromBody] Step1GeneralInfoDto dto)
         {
+            int accountId = GetCurrentAccountId();
+            if (accountId <= 0) return Unauthorized(new { Message = "Bạn cần đăng nhập để tạo giải đấu." });
+
             try
             {
-                int tournamentId = await _setupService.CreateStep1GeneralInfoAsync(GetCurrentAccountId(), dto);
+                int tournamentId = await _setupService.CreateStep1GeneralInfoAsync(accountId, dto);
                 return Ok(new { Message = "Khởi tạo giải đấu thành công", TournamentId = tournamentId });
             }
             catch (Exception ex)
