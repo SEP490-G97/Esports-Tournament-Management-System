@@ -1,0 +1,905 @@
+﻿/* ETOMS – giao diện chung cho các trang quản trị ADM-03 / ADM-06 / ADM-08 (tiền tố ax-) */
+
+/* Biến màu dùng chung: hộp thoại và toast nằm ngoài <main class="ax-page"> nên cũng phải nhận được */
+.ax-page, .ax-dialog, .ax-toasts {
+    --ax-card: #181922;
+    --ax-card-2: #1f2030;
+    --ax-border: rgba(255, 255, 255, 0.09);
+    --ax-text: #e8eaf2;
+    --ax-muted: #9aa1b5;
+    --ax-accent: #3b82f6;
+    --ax-accent-soft: rgba(59, 130, 246, 0.16);
+    --ax-series: #3987e5; /* màu series 1 (dark) của palette dataviz */
+    --ax-danger: #ef4444;
+    --ax-ok: #22c55e;
+    --ax-warn: #f59e0b;
+    color: var(--ax-text);
+    padding-bottom: 3rem;
+}
+
+    .ax-page [hidden], .ax-dialog [hidden] {
+        display: none !important;
+    }
+
+    .ax-page *, .ax-page *::before, .ax-page *::after,
+    .ax-dialog, .ax-dialog *, .ax-dialog *::before, .ax-dialog *::after,
+    .ax-toasts, .ax-toasts * {
+        box-sizing: border-box;
+    }
+
+        /* Tiện ích tối thiểu (không phụ thuộc Bootstrap) */
+        .ax-page .d-flex, .ax-dialog .d-flex {
+            display: flex;
+        }
+
+    .ax-page .align-items-center {
+        align-items: center;
+    }
+
+    .ax-page .justify-content-center {
+        justify-content: center;
+    }
+
+    .ax-page .gap-2, .ax-dialog .gap-2 {
+        gap: .5rem;
+    }
+
+    .ax-page .gap-3 {
+        gap: 1rem;
+    }
+
+    .ax-page .fw-semibold {
+        font-weight: 600;
+    }
+
+    .ax-page .ms-2 {
+        margin-left: .5rem;
+    }
+
+    .ax-dialog .mb-2 {
+        margin-bottom: .5rem;
+    }
+
+    .ax-page .visually-hidden {
+        position: absolute !important;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+/* ---------- đầu trang & điều hướng ---------- */
+.ax-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 8px 0 18px;
+}
+
+.ax-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.ax-sub {
+    color: var(--ax-muted);
+    font-size: .92rem;
+    margin: 2px 0 0;
+}
+
+.ax-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0 14px;
+}
+
+    .ax-nav a {
+        padding: 6px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--ax-border);
+        color: var(--ax-muted);
+        text-decoration: none;
+        font-size: .9rem;
+        background: transparent;
+    }
+
+        .ax-nav a:hover {
+            color: var(--ax-text);
+            border-color: rgba(255,255,255,.2);
+        }
+
+        .ax-nav a.active {
+            color: #fff;
+            background: var(--ax-accent);
+            border-color: var(--ax-accent);
+        }
+
+/* ---------- thẻ, toolbar ---------- */
+.ax-card {
+    background: var(--ax-card);
+    border: 1px solid var(--ax-border);
+    border-radius: 14px;
+    padding: 18px;
+}
+
+    .ax-card + .ax-card {
+        margin-top: 16px;
+    }
+
+.ax-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+}
+
+.ax-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+    .ax-toolbar .grow {
+        flex: 1 1 240px;
+    }
+
+/* ---------- form ---------- */
+.ax-input, .ax-select, .ax-textarea {
+    width: 100%;
+    background: var(--ax-card-2);
+    color: var(--ax-text);
+    border: 1px solid var(--ax-border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: .95rem;
+}
+
+.ax-textarea {
+    resize: vertical;
+    min-height: 96px;
+}
+
+    .ax-input:focus, .ax-select:focus, .ax-textarea:focus {
+        outline: none;
+        border-color: var(--ax-accent);
+        box-shadow: 0 0 0 3px var(--ax-accent-soft);
+    }
+
+    .ax-input::placeholder, .ax-textarea::placeholder {
+        color: #6b7288;
+    }
+
+.ax-select option {
+    background: #1f2030;
+    color: var(--ax-text);
+}
+
+.ax-field {
+    margin-bottom: 14px;
+}
+
+.ax-label {
+    display: block;
+    font-size: .85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.ax-help {
+    font-size: .8rem;
+    color: var(--ax-muted);
+    margin-top: 4px;
+}
+
+.ax-row {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.ax-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.ax-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .92rem;
+    cursor: pointer;
+}
+
+    .ax-check input {
+        accent-color: var(--ax-accent);
+        width: 16px;
+        height: 16px;
+    }
+
+.ax-count {
+    float: right;
+    font-weight: 400;
+    color: var(--ax-muted);
+}
+
+.ax-error {
+    color: #fca5a5;
+    font-size: .88rem;
+    margin-top: 8px;
+}
+
+/* ---------- nút ---------- */
+.ax-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: .92rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--ax-accent);
+    color: #fff;
+    line-height: 1.2;
+}
+
+    .ax-btn:hover {
+        filter: brightness(1.1);
+    }
+
+    .ax-btn:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+        filter: none;
+    }
+
+    .ax-btn.ghost {
+        background: transparent;
+        border-color: var(--ax-border);
+        color: var(--ax-text);
+    }
+
+        .ax-btn.ghost:hover {
+            border-color: rgba(255,255,255,.25);
+        }
+
+    .ax-btn.danger {
+        background: transparent;
+        border-color: rgba(239,68,68,.5);
+        color: #fca5a5;
+    }
+
+        .ax-btn.danger:hover {
+            background: rgba(239,68,68,.12);
+        }
+
+    .ax-btn.ok {
+        background: transparent;
+        border-color: rgba(34,197,94,.5);
+        color: #86efac;
+    }
+
+        .ax-btn.ok:hover {
+            background: rgba(34,197,94,.12);
+        }
+
+    .ax-btn.sm {
+        padding: 5px 10px;
+        font-size: .82rem;
+        border-radius: 8px;
+    }
+
+    .ax-btn:focus-visible, .ax-tab:focus-visible, .ax-nav a:focus-visible {
+        outline: 2px solid var(--ax-accent);
+        outline-offset: 2px;
+    }
+
+/* ---------- tab ---------- */
+.ax-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ax-tab {
+    border: 1px solid var(--ax-border);
+    background: transparent;
+    color: var(--ax-muted);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: .88rem;
+    cursor: pointer;
+}
+
+    .ax-tab:hover {
+        color: var(--ax-text);
+    }
+
+    .ax-tab[aria-selected="true"] {
+        background: var(--ax-accent-soft);
+        border-color: var(--ax-accent);
+        color: #fff;
+    }
+
+    .ax-tab .n {
+        opacity: .75;
+        margin-left: 6px;
+        font-variant-numeric: tabular-nums;
+    }
+
+.ax-tabs.big {
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--ax-border);
+    padding-bottom: 12px;
+}
+
+    .ax-tabs.big .ax-tab {
+        font-size: .95rem;
+        padding: 8px 18px;
+    }
+
+/* ---------- bảng ---------- */
+.ax-table-wrap {
+    overflow-x: auto;
+}
+
+.ax-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .92rem;
+}
+
+    .ax-table th {
+        text-align: left;
+        font-weight: 600;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--ax-muted);
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--ax-border);
+        white-space: nowrap;
+    }
+
+    .ax-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--ax-border);
+        vertical-align: middle;
+    }
+
+    .ax-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .ax-table .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+.ax-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.ax-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+    .ax-badge.ok {
+        color: #86efac;
+        background: rgba(34,197,94,.12);
+        border-color: rgba(34,197,94,.35);
+    }
+
+    .ax-badge.off {
+        color: var(--ax-muted);
+        background: rgba(154,161,181,.12);
+        border-color: rgba(154,161,181,.3);
+    }
+
+    .ax-badge.warn {
+        color: #fcd34d;
+        background: rgba(245,158,11,.12);
+        border-color: rgba(245,158,11,.35);
+    }
+
+    .ax-badge.info {
+        color: #93c5fd;
+        background: var(--ax-accent-soft);
+        border-color: rgba(59,130,246,.4);
+    }
+
+.ax-chip {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 6px;
+    font-size: .75rem;
+    background: var(--ax-card-2);
+    border: 1px solid var(--ax-border);
+    color: var(--ax-muted);
+    margin: 0 4px 4px 0;
+}
+
+.ax-code {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: .8rem;
+    color: var(--ax-muted);
+}
+
+.ax-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--ax-card-2);
+    border: 1px solid var(--ax-border);
+    object-fit: cover;
+    display: block;
+}
+
+    .ax-thumb.wide {
+        width: 120px;
+        height: 48px;
+    }
+
+.ax-empty {
+    text-align: center;
+    color: var(--ax-muted);
+    padding: 36px 12px;
+}
+
+.ax-loading {
+    text-align: center;
+    color: var(--ax-muted);
+    padding: 28px 12px;
+}
+
+.ax-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+    color: var(--ax-muted);
+    font-size: .88rem;
+}
+
+/* ---------- hộp thoại: thẻ <dialog> gốc, không cần Bootstrap ---------- */
+.ax-dialog {
+    padding: 0;
+    margin: auto;
+    border: 1px solid var(--ax-border);
+    border-radius: 16px;
+    background: var(--ax-card);
+    color: var(--ax-text);
+    width: min(460px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .55);
+}
+
+    .ax-dialog.wide {
+        width: min(780px, calc(100vw - 32px));
+    }
+
+    .ax-dialog[open] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ax-dialog::backdrop {
+        background: rgba(5, 6, 12, .7);
+        backdrop-filter: blur(2px);
+    }
+
+.ax-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ax-border);
+}
+
+.ax-dialog-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.ax-dialog-x {
+    background: transparent;
+    border: 0;
+    color: var(--ax-muted);
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    border-radius: 6px;
+}
+
+    .ax-dialog-x:hover {
+        color: var(--ax-text);
+    }
+
+    .ax-dialog-x:focus-visible {
+        outline: 2px solid var(--ax-accent);
+    }
+
+.ax-dialog-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.ax-dialog-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--ax-border);
+}
+
+.ax-dialog .ax-p {
+    margin: 0 0 8px;
+    line-height: 1.5;
+}
+
+.ax-dialog fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 14px;
+    min-width: 0;
+}
+
+.ax-dialog legend {
+    float: none;
+    padding: 0;
+    width: auto;
+}
+
+.ax-dialog hr {
+    margin: 16px 0;
+    border: 0;
+    border-top: 1px solid var(--ax-border);
+    opacity: 1;
+}
+
+body:has(dialog[open]) {
+    overflow: hidden;
+}
+
+/* ---------- ảnh game trong modal ---------- */
+.ax-media {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.ax-media-box {
+    border: 1px dashed var(--ax-border);
+    border-radius: 12px;
+    padding: 12px;
+    background: var(--ax-card-2);
+}
+
+.ax-media-preview {
+    height: 90px;
+    border-radius: 8px;
+    background: #11121a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 8px;
+    color: var(--ax-muted);
+    font-size: .82rem;
+}
+
+    .ax-media-preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+/* ---------- toast ---------- */
+.ax-toasts {
+    padding-bottom: 0;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 2000;
+    max-width: min(380px, calc(100vw - 32px));
+}
+
+.ax-toast {
+    background: #232536;
+    border: 1px solid var(--ax-border);
+    border-left-width: 4px;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--ax-text);
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    font-size: .92rem;
+}
+
+    .ax-toast.success {
+        border-left-color: var(--ax-ok);
+    }
+
+    .ax-toast.error {
+        border-left-color: var(--ax-danger);
+    }
+
+/* ---------- dashboard ---------- */
+.ax-stats {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    margin-bottom: 16px;
+}
+
+.ax-stat {
+    background: var(--ax-card);
+    border: 1px solid var(--ax-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+}
+
+.ax-stat-label {
+    color: var(--ax-muted);
+    font-size: .82rem;
+    font-weight: 600;
+}
+
+.ax-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 6px 0 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.ax-stat-sub {
+    color: var(--ax-muted);
+    font-size: .8rem;
+}
+
+.ax-grid-2 {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+    .ax-grid-2 .ax-card + .ax-card {
+        margin-top: 0;
+    }
+
+.ax-chart {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+
+    .ax-chart svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+    }
+
+    .ax-chart text {
+        fill: var(--ax-muted);
+        font-size: 11px;
+    }
+
+    .ax-chart .grid {
+        stroke: rgba(255,255,255,.07);
+        stroke-width: 1;
+    }
+
+    .ax-chart .area {
+        fill: var(--ax-series);
+        opacity: .14;
+    }
+
+    .ax-chart .line {
+        fill: none;
+        stroke: var(--ax-series);
+        stroke-width: 2;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+    }
+
+    .ax-chart .cross {
+        stroke: rgba(255,255,255,.3);
+        stroke-width: 1;
+    }
+
+    .ax-chart .dot {
+        fill: var(--ax-series);
+        stroke: var(--ax-card);
+        stroke-width: 2;
+    }
+
+.ax-tip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 3;
+    background: #232536;
+    border: 1px solid var(--ax-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: .82rem;
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(0,0,0,.45);
+    transform: translate(-50%, -110%);
+}
+
+    .ax-tip b {
+        font-variant-numeric: tabular-nums;
+    }
+
+.ax-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ax-bar-row {
+    display: grid;
+    grid-template-columns: minmax(80px, 34%) 1fr auto;
+    align-items: center;
+    gap: 10px;
+    font-size: .9rem;
+}
+
+.ax-bar-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ax-bar-track {
+    height: 14px;
+    background: rgba(255,255,255,.05);
+    border-radius: 0 7px 7px 0;
+}
+
+.ax-bar-fill {
+    height: 100%;
+    background: var(--ax-series);
+    border-radius: 0 4px 4px 0;
+    min-width: 2px;
+    transition: filter .15s;
+}
+
+.ax-bar-row:hover .ax-bar-fill {
+    filter: brightness(1.2);
+}
+
+.ax-bar-val {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    min-width: 2ch;
+    text-align: right;
+}
+
+.ax-foot {
+    color: var(--ax-muted);
+    font-size: .8rem;
+    margin-top: 14px;
+    line-height: 1.5;
+}
+
+/* ---------- lịch sử thông báo / banner ---------- */
+.ax-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.ax-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--ax-border);
+    align-items: flex-start;
+}
+
+    .ax-item:last-child {
+        border-bottom: none;
+    }
+
+.ax-item-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.ax-item-title {
+    font-weight: 600;
+    margin: 0 0 2px;
+    word-break: break-word;
+}
+
+.ax-item-meta {
+    color: var(--ax-muted);
+    font-size: .82rem;
+}
+
+.ax-item details {
+    margin-top: 6px;
+    color: var(--ax-muted);
+    font-size: .88rem;
+}
+
+    .ax-item details summary {
+        cursor: pointer;
+    }
+
+    .ax-item details p {
+        white-space: pre-wrap;
+        margin: 6px 0 0;
+        color: var(--ax-text);
+    }
+
+.ax-order {
+    width: 28px;
+    height: 28px;
+    flex: none;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ax-accent-soft);
+    color: #93c5fd;
+    font-weight: 700;
+    font-size: .85rem;
+}
+
+    .ax-order.none {
+        background: var(--ax-card-2);
+        color: var(--ax-muted);
+    }
+
+@media (max-width: 640px) {
+    .ax-bar-row {
+        grid-template-columns: 1fr auto;
+    }
+
+    .ax-bar-track {
+        grid-column: 1 / -1;
+        order: 3;
+    }
+
+    .ax-item {
+        flex-wrap: wrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ax-bar-fill {
+        transition: none;
+    }
+}

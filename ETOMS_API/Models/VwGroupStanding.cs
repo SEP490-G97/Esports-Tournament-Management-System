@@ -11,13 +11,13 @@ public partial class VwGroupStanding
 
     public int? TeamId { get; set; }
 
-    public int? Played { get; set; }
+    public long Played { get; set; }
 
-    public int? Won { get; set; }
+    public decimal? Won { get; set; }
 
-    public int? Lost { get; set; }
+    public decimal? Lost { get; set; }
 
-    public int? ScoreDiff { get; set; }
+    public decimal? ScoreDiff { get; set; }
 
-    public int? Point { get; set; }
+    public decimal? Point { get; set; }
 }

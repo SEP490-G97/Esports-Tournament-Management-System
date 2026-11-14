@@ -51,13 +51,15 @@ public partial class Match
 
     public virtual BracketNode BracketNode { get; set; } = null!;
 
-    public virtual Dispute? Dispute { get; set; }
+    public virtual ICollection<Dispute> Disputes { get; set; } = new List<Dispute>();
 
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();
 
     public virtual ICollection<MatchChatMessage> MatchChatMessages { get; set; } = new List<MatchChatMessage>();
 
     public virtual ICollection<MatchGame> MatchGames { get; set; } = new List<MatchGame>();
+
+    public virtual ICollection<MatchPickBan> MatchPickBans { get; set; } = new List<MatchPickBan>();
 
     public virtual ICollection<MatchReport> MatchReports { get; set; } = new List<MatchReport>();
 

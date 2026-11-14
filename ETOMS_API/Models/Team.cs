@@ -33,6 +33,8 @@ public partial class Team
 
     public virtual ICollection<MatchGame> MatchGames { get; set; } = new List<MatchGame>();
 
+    public virtual ICollection<MatchPickBan> MatchPickBans { get; set; } = new List<MatchPickBan>();
+
     public virtual ICollection<MatchReport> MatchReports { get; set; } = new List<MatchReport>();
 
     public virtual ICollection<MatchRequest> MatchRequests { get; set; } = new List<MatchRequest>();

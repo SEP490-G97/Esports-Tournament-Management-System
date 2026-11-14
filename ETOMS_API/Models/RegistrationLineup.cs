@@ -17,7 +17,11 @@ public partial class RegistrationLineup
 
     public int? PlayerCredentialId { get; set; }
 
+    public int? GamePositionId { get; set; }
+
     public virtual Account Account { get; set; } = null!;
+
+    public virtual GamePosition? GamePosition { get; set; }
 
     public virtual PlayerCredential? PlayerCredential { get; set; }
 

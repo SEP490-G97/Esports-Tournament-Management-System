@@ -36,8 +36,6 @@ builder.Services.Configure<SupportOptions>(builder.Configuration.GetSection(Supp
 
 
 
-
-
 // Email: Enabled=false thì chỉ ghi link ra log, test gửi mail trong env dev
 var emailEnabled = builder.Configuration.GetValue<bool>("Email:Enabled");
 if (emailEnabled) builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
@@ -110,6 +108,8 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
 
+builder.Services.AddScoped<IAdminGameService, AdminGameService>();
+builder.Services.AddScoped<IImageStorage, ImageStorage>();
 builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
 builder.Services.AddScoped<IOneTimeTokenService, OneTimeTokenService>();
 builder.Services.AddScoped<IAccountSecurityService, AccountSecurityService>();
