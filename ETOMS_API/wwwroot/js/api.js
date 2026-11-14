@@ -9,7 +9,7 @@ var Api = (function () {
     //  - Mọi request ghi (POST/PUT/PATCH/DELETE) xoá hết bộ nhớ này để lần đọc sau lấy dữ liệu mới.
     // Mỗi nơi gọi nhận 1 bản JSON riêng nên sửa object trả về không ảnh hưởng nơi khác.
     var SHORT_CACHE_MS = 10000;
-    var SHORT_CACHE = [/^\/api\/dev-auth\/me$/, /^\/api\/teams\/mine$/, /^\/api\/tournaments\/\d+\/publish-status$/];
+    var SHORT_CACHE = [/^\/api\/dev-auth\/me$/, /^\/api\/teams\/mine$/, /^\/api\/teams\/my-teams$/,/^\/api\/tournaments\/\d+\/publish-status$/];
     var shared = {};   // url -> { promise, at, keep }
 
     function sharedGet(url) {

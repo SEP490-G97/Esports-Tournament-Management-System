@@ -495,6 +495,31 @@ public class TeamService : ITeamService
             .Select(m => new MyTeamDto { TeamId = m.Team.TeamId, Name = m.Team.Name, Tag = m.Team.Tag })
             .FirstOrDefaultAsync();
 
+    public async Task<IReadOnlyList<MyTeamItemDto>> GetMyTeamsAsync(int accountId)
+    {
+        var teams = await _uow.Repository<TeamMember>().Query()
+            .Where(m => m.AccountId == accountId && m.Status == "ACTIVE" && m.Team.Status == "ACTIVE")
+            .Select(m => new MyTeamItemDto
+            {
+                TeamId = m.Team.TeamId,
+                Name = m.Team.Name,
+                Tag = m.Team.Tag,
+                LogoUrl = m.Team.LogoUrl,
+                GameId = m.Team.GameId,
+                GameTitle = m.Team.Game.Title,
+                IsCaptain = m.Team.CaptainAccountId == accountId,
+                Slot = m.Slot,
+                MemberCount = m.Team.TeamMembers.Count(x => x.Status == "ACTIVE"),
+                JoinedAt = m.JoinedAt
+            })
+            .ToListAsync();
+        return teams
+            .OrderByDescending(t => t.IsCaptain)
+            .ThenBy(t => t.GameTitle)
+            .ThenBy(t => t.Name)
+            .ToList();
+    }
+
     // ===== Helpers =====
     private async Task<List<TeamMemberDto>> LoadMembersAsync(int teamId, int captainAccountId)
     {

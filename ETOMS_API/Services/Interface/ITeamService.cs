@@ -53,4 +53,8 @@ public interface ITeamService
     // Đội mà tài khoản đang là thành viên ACTIVE (đội trưởng cũng tính) — cho widget "Đội của tôi" trên nav.
     // null nếu chưa ở trong đội nào.
     Task<MyTeamDto?> GetMyTeamAsync(int accountId);
+
+    // TẤT CẢ đội mà tài khoản đang là thành viên ACTIVE (mỗi tựa game tối đa một đội),
+    // đội đang làm đội trưởng xếp trước. Cho trang "Các đội của tôi" và ô chọn đội khi đăng tin LFP.
+    Task<IReadOnlyList<MyTeamItemDto>> GetMyTeamsAsync(int accountId);
 }

@@ -39,6 +39,15 @@ public class TeamsApiController : ApiControllerBase
         return Ok(await _teamService.GetMyTeamAsync(_currentUser.UserId!.Value));
     }
 
+    // GET /api/teams/my-teams — TẤT CẢ đội của tài khoản đang đăng nhập (mỗi tựa game tối đa một đội).
+    // Cho trang "Các đội của tôi" (/team/mine.html) và ô chọn đội khi đăng tin tuyển thành viên.
+    [HttpGet("my-teams")]
+    public async Task<IActionResult> GetMyTeams()
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return Ok(await _teamService.GetMyTeamsAsync(_currentUser.UserId!.Value));
+    }
+
     // GET /api/teams/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetDetail(int id)

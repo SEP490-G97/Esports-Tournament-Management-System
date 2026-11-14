@@ -1,32 +1,44 @@
 ﻿(function () {
     // 1. Tải danh sách Đội tuyển & Game từ DB để đổ vào Dropdown
-    async function loadSelectOptions() {
-        try {
-            // Nạp Đội tuyển
-            var teamsRes = await Api.get('/api/Team/my-teams').catch(() => ({ data: [] }));
-            var teams = teamsRes.data || teamsRes || [];
-            var teamSelect = document.getElementById('lfpTeamId');
-            if (teamSelect) {
-                if (teams.length > 0) {
-                    teamSelect.innerHTML = teams.map(t => `<option value="${t.teamId}">${Ui.escapeHtml(t.name)} [${Ui.escapeHtml(t.tag)}]</option>`).join('');
-                } else {
-                    teamSelect.innerHTML = '<option value="1">Đội mặc định (ID: 1)</option>';
-                }
-            }
+    // Không có lựa chọn hợp lệ thì khóa form và ghi rõ lý do, KHÔNG điền giá trị giả
+    // (trước đây điền "ID: 1" nên bài đăng có thể gắn nhầm vào đội / game của người khác).
+    function lockForm(selectId, message, linkHtml) {
+        var select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">' + Ui.escapeHtml(message) + '</option>';
+        select.disabled = true;
+        var form = select.closest('form');
+        form.querySelector('button[type="submit"]').disabled = true;
+        if (linkHtml) select.insertAdjacentHTML('afterend', '<div class="hint mt-1">' + linkHtml + '</div>');
+    }
 
-            // Nạp Tựa game
-            var gamesRes = await Api.get('/api/Game').catch(() => ({ data: [] }));
-            var games = gamesRes.data || gamesRes || [];
-            var gameSelect = document.getElementById('lftGameId');
-            if (gameSelect) {
-                if (games.length > 0) {
-                    gameSelect.innerHTML = games.map(g => `<option value="${g.gameId}">${Ui.escapeHtml(g.title)}</option>`).join('');
-                } else {
-                    gameSelect.innerHTML = '<option value="1">Game mặc định (ID: 1)</option>';
-                }
+    async function loadSelectOptions() {
+        // Đội tuyển: chỉ đội mình làm ĐỘI TRƯỞNG mới được đăng tin tuyển (LFP).
+        try {
+            var teams = (await Api.get('/api/teams/my-teams')).filter(function (t) { return t.isCaptain; });
+            if (teams.length > 0) {
+                document.getElementById('lfpTeamId').innerHTML = teams.map(function (t) {
+                    return '<option value="' + t.teamId + '">' + Ui.escapeHtml(t.name) + ' [' + Ui.escapeHtml(t.tag) + '] · ' + Ui.escapeHtml(t.gameTitle) + '</option>';
+                }).join('');
+            } else {
+                lockForm('lfpTeamId', 'Bạn chưa là đội trưởng đội nào',
+                    'Chỉ đội trưởng được đăng tin tuyển. <a href="/team/create.html">Tạo đội mới</a> · <a href="/team/mine.html">Các đội của tôi</a>');
             }
         } catch (e) {
-            console.warn('Lỗi nạp danh sách dropdown:', e);
+            lockForm('lfpTeamId', 'Không tải được danh sách đội', Ui.escapeHtml(e.message || ''));
+        }
+
+        // Tựa game đang mở.
+        try {
+            var games = await Api.get('/api/teams/games');
+            if (Array.isArray(games) && games.length > 0) {
+                document.getElementById('lftGameId').innerHTML = games.map(function (g) {
+                    return '<option value="' + g.gameId + '">' + Ui.escapeHtml(g.title) + '</option>';
+                }).join('');
+            } else {
+                lockForm('lftGameId', 'Chưa có tựa game nào đang mở');
+            }
+        } catch (e) {
+            lockForm('lftGameId', 'Không tải được danh sách game', Ui.escapeHtml(e.message || ''));
         }
     }
 

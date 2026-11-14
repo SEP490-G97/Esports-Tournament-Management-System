@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Các đội của tôi · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=auth-20261114" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head d-flex flex-wrap align-items-end justify-content-between gap-3">
+            <div>
+                <div class="eyebrow">Cộng đồng · Đội tuyển</div>
+                <h1>Các đội của tôi</h1>
+                <p>Mỗi tựa game bạn được tham gia tối đa một đội.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-ghost" href="/team/join.html">Gia nhập bằng mã</a>
+                <a class="btn btn-primary" href="/team/create.html">+ Tạo đội mới</a>
+            </div>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="result-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải danh sách đội...</h3></div></div>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js?v=auth-20261114"></script>
+    <script src="/js/api.js?v=myteams-20261114"></script>
+    <script src="/js/ui.js?v=auth-20261114"></script>
+    <script src="/js/layout.js?v=myteams-20261114"></script>
+    <script src="/js/pages/team-mine.js?v=myteams-20261114" defer></script>
+</body>
+</html>

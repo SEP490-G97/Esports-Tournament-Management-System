@@ -84,7 +84,7 @@
             '  </button>' +
             '  <div class="nav-user-menu" id="nav-user-menu">' +
             (me.role ? '    <span class="nav-user-role">' + Ui.escapeHtml(roleLabel(me.role)) + '</span>' : '') +
-            '    <div class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam">Đang tải đội…</div>' +
+            '    <a class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam" href="/team/mine.html">Các đội của tôi</a>' +
             '    <a class="nav-user-menu-item" href="/profile/index.html">Hồ sơ cá nhân</a>' +
             '    <a class="nav-user-menu-item" href="/registration/mine.html">Đơn đăng ký của tôi</a>' +
             (me.role === 'ORGANIZER' || me.role === 'ADMIN'
@@ -124,18 +124,14 @@
     async function loadMyTeam(me) {
         var box = document.getElementById('nav-user-myteam');
         if (!box) return;
+        // Một tài khoản có thể ở nhiều đội (mỗi tựa game một đội) nên chỉ hiện SỐ đội;
+        // bấm vào mở trang /team/mine.html liệt kê đủ. Lỗi thì giữ nguyên link, không có số.
         try {
             // Api.get tự gửi kèm JWT khi đã đăng nhập thật, và dùng chung kết quả với trang nếu trang cũng hỏi.
-            var team = await Api.get('/api/teams/mine');
-            if (team && team.teamId) {
-                box.innerHTML = 'Đội của tôi: <a href="/team/details.html?id=' + team.teamId + '">' +
-                    Ui.escapeHtml(team.name) + '</a>';
-            } else {
-                box.textContent = 'Đội của tôi: Không có';
-            }
-        } catch (e) {
-            box.textContent = 'Đội của tôi: Không có';
-        }
+            var teams = await Api.get('/api/teams/my-teams');
+            var count = Array.isArray(teams) ? teams.length : 0;
+            box.innerHTML = 'Các đội của tôi <span class="badge badge-soft">' + count + '</span>';
+        } catch (e) { /* giữ link không có số */ }
     }
 
     function roleLabel(role) {
