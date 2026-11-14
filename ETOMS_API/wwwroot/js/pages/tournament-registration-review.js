@@ -124,7 +124,10 @@
 
     var searchTimer;
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth();
+        if (!me) return;
+
         document.getElementById('status-filter').addEventListener('change', load);
         document.getElementById('team-search').addEventListener('input', function () {
             window.clearTimeout(searchTimer);

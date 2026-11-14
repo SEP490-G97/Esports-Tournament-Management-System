@@ -102,6 +102,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth();
+        if (!me) return;
+
         try {
             await loadOptions();
         } catch (error) {

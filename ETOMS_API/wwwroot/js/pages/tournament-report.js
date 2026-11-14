@@ -21,6 +21,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth();
+        if (!me) return;
+
         if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
             Ui.showAlert(flash, 'danger', 'Mã giải đấu không hợp lệ.');
             return;
