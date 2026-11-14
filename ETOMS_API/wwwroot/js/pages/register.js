@@ -43,6 +43,11 @@
         if (r.ok) {
             form.reset();
             btn.hidden = true;
+            if (r.data && r.data.activated) {
+                Ui.setFlash('Đăng ký thành công. Hãy đăng nhập bằng email và mật khẩu vừa tạo.', 'success');
+                location.href = '/auth/login.html';
+                return;
+            }
             F.showMessage(msg,
                 'Đăng ký thành công. Chúng tôi đã gửi email kích hoạt tới ' + email +
                 ' (liên kết có hiệu lực 24 giờ). Chưa nhận được? Vào trang xác minh để gửi lại.', 'success');

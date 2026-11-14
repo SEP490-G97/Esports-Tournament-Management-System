@@ -133,6 +133,8 @@
             '<a class="btn btn-ghost" href="/registration/review.html?tournamentId=' + tree.tournamentId + '">Duyệt đơn đăng ký</a>' +
             '<a class="btn btn-ghost" href="/bracket/view.html?id=' + tree.tournamentId + '">Xem công khai</a>' +
             '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định</a>' +
+            (tree.hasBracket && !tree.isLocked ? '<a class="btn btn-primary" href="/tournament/bracket.html?id=' + tree.tournamentId + '">Đổi chỗ đội (kéo thả trên sơ đồ)</a>' : '') +
+            (tree.isLocked ? '<button type="button" class="btn btn-ghost" id="unlock-btn">Mở khóa nhánh</button>' : '') +
             '</div>' +
             (!tree.isLocked ? generateFormHtml(tree, teams) : '') +
             bracketContentHtml(tree);
@@ -172,10 +174,25 @@
         var lockBtn = document.getElementById('lock-btn');
         if (lockBtn) {
             lockBtn.addEventListener('click', async function () {
-                var ok = await window.etomsConfirm('Khóa nhánh đấu? Sau khi khóa sẽ không thể sửa thể thức, roster các đội bị khóa và đóng cổng đăng ký.');
+                var ok = await window.etomsConfirm('Khóa nhánh đấu? Sau khi khóa, khách xem được nhánh, roster các đội bị khóa và cổng đăng ký đóng. Vẫn mở khóa lại được nếu chưa có trận nào bắt đầu.');
                 if (!ok) return;
                 try {
                     var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket/lock');
+                    Ui.showAlert(document.getElementById('flash'), 'success', res.message);
+                    await load();
+                } catch (err) {
+                    Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+                }
+            });
+        }
+
+        var unlockBtn = document.getElementById('unlock-btn');
+        if (unlockBtn) {
+            unlockBtn.addEventListener('click', async function () {
+                var ok = await window.etomsConfirm('Mở khóa nhánh đấu? Khách sẽ không xem được nhánh cho tới khi khóa lại.');
+                if (!ok) return;
+                try {
+                    var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket/unlock');
                     Ui.showAlert(document.getElementById('flash'), 'success', res.message);
                     await load();
                 } catch (err) {
@@ -188,12 +205,13 @@
     async function load() {
         var root = document.getElementById('manage-root');
         try {
-            var tree = await Api.get('/api/tournaments/' + tournamentId + '/bracket');
-            var teams = [];
-            if (!tree.isLocked) {
-                try { teams = await Api.get('/api/tournaments/' + tournamentId + '/bracket/approved-teams'); } catch (e) { teams = []; }
-            }
-            render(tree, teams);
+            // approved-teams chỉ trả cho Ban tổ chức của giải (403 với người khác) — dùng luôn để kiểm quyền,
+            // vì dữ liệu nhánh (/bracket) là công khai.
+            var results = await Promise.all([
+                Api.get('/api/tournaments/' + tournamentId + '/bracket'),
+                Api.get('/api/tournaments/' + tournamentId + '/bracket/approved-teams')
+            ]);
+            render(results[0], results[1]);
         } catch (err) {
             if (err.status === 403) root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Bạn không phải ban tổ chức giải này</h3></div></div>';
             else if (err.status === 404) root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Không tìm thấy giải đấu</h3></div></div>';

@@ -22,6 +22,11 @@ public class TeamService : ITeamService
         var name = request.Name.Trim();
         var tag = request.Tag.Trim();
 
+        // PermissionMatrix TEAM-01: chỉ tuyển thủ (trở thành đội trưởng) được tạo đội — BTC/Admin không.
+        var creator = await _uow.Repository<Account>().GetByIdAsync(captainAccountId);
+        if (creator is null || creator.Role != "PLAYER")
+            return Result<int>.Failure("Chỉ tài khoản tuyển thủ được tạo đội. Ban tổ chức và quản trị viên không tham gia thi đấu.", StatusCodes.Status403Forbidden);
+
         var gameOk = await _uow.Repository<Game>()
             .AnyAsync(g => g.GameId == request.GameId && g.Status == "ACTIVE");
         if (!gameOk)

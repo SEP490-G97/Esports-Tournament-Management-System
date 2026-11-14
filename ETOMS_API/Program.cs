@@ -38,9 +38,9 @@ builder.Services.Configure<SupportOptions>(builder.Configuration.GetSection(Supp
 
 
 
-// Email: Enabled=false thì chỉ ghi link ra log, test gửi mail trong env dev
-var emailEnabled = builder.Configuration.GetValue<bool>("Email:Enabled");
-if (emailEnabled) builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
+// Email: chưa cấu hình đủ SMTP (tắt, hoặc thiếu mật khẩu) thì chỉ ghi nội dung mail ra log.
+var emailOptions = builder.Configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
+if (emailOptions.CanSend) builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
 else builder.Services.AddScoped<IEmailSender, LogEmailSender>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -69,6 +69,13 @@ builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    // Phải có nội dung: 429 rỗng sẽ bị UseStatusCodePagesWithReExecute chuyển sang /errors/429.html
+    // (không tồn tại) và thành 404 — trang đăng nhập/đăng ký không biết là bị giới hạn.
+    o.OnRejected = (ctx, ct) => new ValueTask(ctx.HttpContext.Response.WriteAsJsonAsync(new
+    {
+        code = "TOO_MANY_REQUESTS",
+        message = "Bạn thao tác quá nhiều lần. Vui lòng đợi một phút rồi thử lại."
+    }, ct));
     //login
     o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -95,7 +102,34 @@ var mysqlConnectionString = mysqlConnectionStringBuilder.ConnectionString;
 
 // Chỉ Web API (JSON) — không còn Razor View engine. Giao diện là HTML/CSS/JS thuần trong
 // wwwroot/, gọi các Controller này qua fetch().
-builder.Services.AddControllers();
+// Dữ liệu gửi lên sai kiểu/quá lớn (vd số 99999999999 vào ô int) mặc định trả ProblemDetails tiếng
+// Anh, không có "message" -> giao diện chỉ hiện "Lỗi 400". Trả về cùng dạng { message, fieldErrors }
+// như ApiControllerBase, thông báo tiếng Việt, khóa field viết hoa chữ đầu để khớp data-field-error.
+builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
+{
+    o.InvalidModelStateResponseFactory = ctx =>
+    {
+        var fieldErrors = new Dictionary<string, string>();
+        foreach (var (key, entry) in ctx.ModelState)
+        {
+            if (entry.Errors.Count == 0) continue;
+            var field = key.StartsWith("$.") ? key[2..] : key;
+            // "The dto/req field is required." là lỗi kéo theo (tên tham số action, viết thường) — bỏ.
+            if (field.Length == 0 || field == "$" || (!key.StartsWith("$") && char.IsLower(field[0]) && ctx.ModelState.Count > 1))
+                continue;
+            field = char.ToUpperInvariant(field[0]) + field[1..];
+            var raw = entry.Errors[0].ErrorMessage;
+            // Lỗi đọc JSON (sai kiểu, số tràn, JSON hỏng) của System.Text.Json đều kèm "Path: $..." — tiếng Anh.
+            fieldErrors[field] = key.StartsWith("$") || raw.Contains("Path: $") || entry.Errors[0].Exception is not null
+                ? "Giá trị không hợp lệ (sai định dạng hoặc quá lớn)."
+                : raw.Contains("is required") ? "Trường này là bắt buộc." : raw;
+        }
+        var message = fieldErrors.Values.Any(v => v.StartsWith("Giá trị không hợp lệ"))
+            ? "Dữ liệu chưa hợp lệ: có ô nhập sai định dạng hoặc giá trị quá lớn. Vui lòng kiểm tra lại."
+            : fieldErrors.Count > 0 ? fieldErrors.Values.First() : "Dữ liệu gửi lên không hợp lệ.";
+        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new { message, fieldErrors });
+    };
+});
 
 builder.Services.AddOpenApi();
 

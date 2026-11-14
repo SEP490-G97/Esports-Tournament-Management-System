@@ -27,7 +27,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
-        var me = await Ui.requireAuth();
+        var me = await Ui.requireAuth(['PLAYER']);
         if (!me) return;
 
         var root = document.getElementById('result-root');
@@ -38,7 +38,7 @@
                     '<h3>Bạn chưa tham gia đội nào</h3>' +
                     '<p>Tạo đội mới, nhập mã mời của đội trưởng, hoặc đăng tin tìm đội.</p>' +
                     '<div class="d-flex flex-wrap gap-2 justify-content-center">' +
-                    '<a class="btn btn-primary" href="/team/create.html">Tạo đội mới</a>' +
+                    '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/team/create.html">Tạo đội mới</a>' +
                     '<a class="btn btn-ghost" href="/team/join.html">Gia nhập bằng mã</a>' +
                     '<a class="btn btn-ghost" href="/free-agent/index.html">Tìm đội</a></div>' +
                     '</div></div>';

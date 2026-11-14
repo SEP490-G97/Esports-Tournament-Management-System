@@ -22,10 +22,13 @@ namespace ETOMS_API.Services.Impl
             if (rt is null || rt.ExpiresAt <= DateTime.UtcNow)
                 return ConsumeResult.Fail();
 
-            // Token đã dùng mà bị dùng lại => thu hồi token của account
+            // Token đã dùng mà bị dùng lại => thu hồi token của account.
+            // Ngoại lệ: dùng lại trong 60 giây đầu thường là 2 tab/2 request refresh cùng lúc của chính
+            // người dùng (web nhiều trang, không phải SPA) — chỉ từ chối lượt này, không đăng xuất cả phiên.
             if (rt.UsedAt is not null)
             {
-                await RevokeAllAsync(rt.AccountId, ct);
+                if (DateTime.UtcNow - rt.UsedAt.Value > TimeSpan.FromSeconds(60))
+                    await RevokeAllAsync(rt.AccountId, ct);
                 return ConsumeResult.Fail();
             }
 

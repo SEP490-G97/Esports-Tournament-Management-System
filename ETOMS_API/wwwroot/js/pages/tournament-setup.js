@@ -1,5 +1,28 @@
 ﻿var currentTournamentId = null;
 
+function flashBox() { return document.getElementById('flash'); }
+
+function showError(message) {
+    Ui.showAlert(flashBox(), 'danger', message);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Số nguyên trong khoảng [min, max]; trả về null nếu sai.
+function readInt(id, min, max) {
+    var raw = (document.getElementById(id).value || '').trim();
+    if (!/^\d+$/.test(raw)) return null;
+    var n = parseInt(raw, 10);
+    return n >= min && n <= max ? n : null;
+}
+
+// Giá trị ô datetime-local -> ISO, hoặc null nếu bỏ trống/sai.
+function readDate(id) {
+    var raw = document.getElementById(id).value;
+    if (!raw) return null;
+    var d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+}
+
 // Nạp danh sách Tựa Game trực tiếp từ DB vào Dropdown Select
 async function loadGameSelect() {
     var gameSelect = document.getElementById('tGameId');
@@ -7,67 +30,77 @@ async function loadGameSelect() {
     try {
         var res = await Api.get('/api/teams/games');
         var games = Array.isArray(res) ? res : (res && res.data ? res.data : []);
-        if (games.length > 0) {
-            gameSelect.innerHTML = games.map(g => `<option value="${g.gameId}">${Ui.escapeHtml(g.title)}</option>`).join('');
-        } else {
-            gameSelect.innerHTML = '<option value="">-- Chưa có tựa game khả dụng --</option>';
-        }
+        gameSelect.innerHTML = games.length > 0
+            ? '<option value="">-- Chọn tựa game --</option>' + games.map(function (g) {
+                return '<option value="' + g.gameId + '">' + Ui.escapeHtml(g.title) + '</option>';
+            }).join('')
+            : '<option value="">-- Chưa có tựa game khả dụng --</option>';
     } catch (e) {
-        console.warn('Lỗi nạp danh sách Game:', e);
         gameSelect.innerHTML = '<option value="">-- Không thể tải danh sách game --</option>';
     }
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
-    var user = await Ui.requireAuth();
+    var user = await Ui.requireAuth(['ORGANIZER']);
     if (!user) return;
 
-    Ui.consumeFlash(document.getElementById('flash'));
+    Ui.consumeFlash(flashBox());
     await loadGameSelect();
 
-    // Ẩn/hiện khối cấu hình Hybrid (TOUR-04) khi chọn Thể thức
+    // Ẩn/hiện khối cấu hình Hybrid (TOUR-04) khi chọn Thể thức; vòng tròn không có trận tranh hạng Ba.
     var formatSelect = document.getElementById('tFormat');
     var hybridBlock = document.getElementById('hybridConfigBlock');
-    if (formatSelect && hybridBlock) {
-        formatSelect.addEventListener('change', function () {
-            hybridBlock.style.display = (this.value === 'HYBRID') ? 'block' : 'none';
-        });
+    var thirdPlace = document.getElementById('chkThirdPlace');
+    function syncFormat() {
+        hybridBlock.style.display = formatSelect.value === 'HYBRID' ? 'block' : 'none';
+        thirdPlace.disabled = formatSelect.value === 'ROUND_ROBIN';
+        if (thirdPlace.disabled) thirdPlace.checked = false;
     }
+    formatSelect.addEventListener('change', syncFormat);
+    syncFormat();
 
     // TOUR-01, TOUR-03, TOUR-04: Bước 1 - Thông tin & Thể thức
     var step1Form = document.getElementById('step1Form');
     step1Form.addEventListener('submit', async function (e) {
         e.preventDefault();
         Ui.clearFieldErrors(step1Form);
+        Ui.clearAlert(flashBox());
 
-        var selectedFormat = document.getElementById('tFormat').value;
+        var name = document.getElementById('tName').value.trim();
+        var gameId = parseInt(document.getElementById('tGameId').value, 10);
+        var selectedFormat = formatSelect.value;
+        if (name.length < 3 || name.length > 200) return showError('Tên giải đấu phải từ 3 đến 200 ký tự.');
+        if (!gameId) return showError('Vui lòng chọn tựa game thi đấu.');
+
+        var groupCount = null, advancing = null;
+        if (selectedFormat === 'HYBRID') {
+            groupCount = readInt('tGroupCount', 2, 16);
+            advancing = readInt('tAdvancingPerGroup', 1, 8);
+            if (groupCount === null) return showError('Số bảng đấu phải là số nguyên từ 2 đến 16.');
+            if (advancing === null) return showError('Số đội đi tiếp mỗi bảng phải là số nguyên từ 1 đến 8.');
+        }
+
         var payload = {
-            name: document.getElementById('tName').value,
+            name: name,
             description: document.getElementById('tDesc').value,
-            gameId: parseInt(document.getElementById('tGameId').value, 10),
+            gameId: gameId,
             organizerName: document.getElementById('tOrganizerName').value,
-            location: 'Hà Nội',
-
-            // TOUR-03: Thể thức & Tranh hạng ba
+            location: '',
             format: selectedFormat,
-            hasThirdPlaceMatch: document.getElementById('chkThirdPlace').checked,
-
-            // TOUR-04: Đọc số liệu Hybrid nếu thể thức chọn là HYBRID
-            groupCount: selectedFormat === 'HYBRID' ? parseInt(document.getElementById('tGroupCount').value, 10) : null,
-            advancingPerGroup: selectedFormat === 'HYBRID' ? parseInt(document.getElementById('tAdvancingPerGroup').value, 10) : null
+            hasThirdPlaceMatch: thirdPlace.checked,
+            groupCount: groupCount,
+            advancingPerGroup: advancing
         };
 
         try {
             var res = await Api.post('/api/TournamentSetup/step1', payload);
             currentTournamentId = res.tournamentId || res;
             document.getElementById('lblTournamentId').textContent = currentTournamentId;
-
             switchStep(2);
-            Ui.setFlash('Đã khởi tạo giải đấu và cấu hình thể thức thành công!', 'success');
-            Ui.consumeFlash(document.getElementById('flash'));
+            Ui.showAlert(flashBox(), 'success', 'Đã khởi tạo bản nháp giải đấu. Tiếp tục cài đặt thời gian và số đội.');
         } catch (err) {
             Ui.applyFieldErrors(step1Form, err.fieldErrors);
-            Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+            showError(err.message);
         }
     });
 
@@ -75,21 +108,31 @@ document.addEventListener('DOMContentLoaded', async function () {
     var step2Form = document.getElementById('step2Form');
     step2Form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        if (!currentTournamentId) { alert('Chưa có mã giải đấu!'); return; }
+        Ui.clearAlert(flashBox());
+        if (!currentTournamentId) return showError('Chưa có mã giải đấu — hãy hoàn thành bước 1 trước.');
 
-        var payload = {
-            registrationOpenDate: new Date(document.getElementById('tRegOpen').value).toISOString(),
-            registrationCloseDate: new Date(document.getElementById('tRegClose').value).toISOString(),
-            tournamentStartDate: new Date(document.getElementById('tStart').value).toISOString(),
-            tournamentEndDate: new Date(document.getElementById('tEnd').value).toISOString(),
-            maxTeams: parseInt(document.getElementById('tMaxTeams').value, 10)
-        };
+        var open = readDate('tRegOpen'), close = readDate('tRegClose'), start = readDate('tStart'), end = readDate('tEnd');
+        if (!open || !close || !start || !end) return showError('Vui lòng nhập đủ 4 mốc thời gian.');
+        if (close <= new Date()) return showError('Thời gian đóng đăng ký phải ở tương lai.');
+        if (open >= close) return showError('Thời gian mở đăng ký phải trước thời gian đóng đăng ký.');
+        if (close > start) return showError('Thời gian đóng đăng ký phải trước hoặc bằng ngày bắt đầu thi đấu.');
+        if (start >= end) return showError('Ngày bắt đầu thi đấu phải trước ngày kết thúc.');
+
+        var maxTeams = readInt('tMaxTeams', 4, 128);
+        if (maxTeams === null || (maxTeams & (maxTeams - 1)) !== 0)
+            return showError('Số đội tối đa phải là lũy thừa của 2, từ 4 đến 128 (4, 8, 16, 32, 64, 128).');
 
         try {
-            await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step2-timeline', payload);
+            await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step2-timeline', {
+                registrationOpenDate: open.toISOString(),
+                registrationCloseDate: close.toISOString(),
+                tournamentStartDate: start.toISOString(),
+                tournamentEndDate: end.toISOString(),
+                maxTeams: maxTeams
+            });
             switchStep(3);
         } catch (err) {
-            Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+            showError(err.message);
         }
     });
 
@@ -97,21 +140,31 @@ document.addEventListener('DOMContentLoaded', async function () {
     var step4Form = document.getElementById('step4Form');
     step4Form.addEventListener('submit', async function (e) {
         e.preventDefault();
+        Ui.clearAlert(flashBox());
         if (!currentTournamentId) return;
 
-        var payload = {
-            entryFee: parseFloat(document.getElementById('tEntryFee').value || 0),
-            bankName: document.getElementById('tBankName').value,
-            accountNumber: document.getElementById('tAccountNumber').value,
-            accountName: document.getElementById('tAccountName').value,
-            prizePoolDescription: document.getElementById('tPrize').value
-        };
+        var feeRaw = (document.getElementById('tEntryFee').value || '0').trim();
+        if (!/^\d+$/.test(feeRaw) || Number(feeRaw) > 100000000)
+            return showError('Lệ phí tham gia phải là số nguyên từ 0 đến 100.000.000 VNĐ.');
+        var fee = Number(feeRaw);
+        var bank = document.getElementById('tBankName').value.trim();
+        var number = document.getElementById('tAccountNumber').value.trim();
+        var holder = document.getElementById('tAccountName').value.trim();
+        if (fee > 0 && (!bank || !number || !holder))
+            return showError('Giải có lệ phí phải nhập đủ ngân hàng, số tài khoản và chủ tài khoản nhận phí.');
+        if (number && !/^\d{6,20}$/.test(number)) return showError('Số tài khoản chỉ gồm chữ số, dài 6–20 số.');
 
         try {
-            await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step4-finance', payload);
+            await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step4-finance', {
+                entryFee: fee,
+                bankName: bank,
+                accountNumber: number,
+                accountName: holder,
+                prizePoolDescription: document.getElementById('tPrize').value
+            });
             switchStep(5);
         } catch (err) {
-            Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+            showError(err.message);
         }
     });
 
@@ -121,18 +174,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         e.preventDefault();
         if (!currentTournamentId) return;
 
-        var payload = {
-            requireStudentCard: document.getElementById('chkStudentCard').checked,
-            requirePaymentBill: document.getElementById('chkPaymentProof').checked,
-            requireIgnVerify: document.getElementById('chkIgn').checked
-        };
-
         try {
-            await Api.post('/api/TournamentSetup/' + currentTournamentId + '/publish', payload);
-            alert('🎉 Giải đấu đã được công bố thành công (PUBLISHED)!');
-            location.href = '/tournament-setup/index.html';
+            await Api.post('/api/TournamentSetup/' + currentTournamentId + '/publish', {
+                requireStudentCard: document.getElementById('chkStudentCard').checked,
+                requirePaymentBill: document.getElementById('chkPaymentProof').checked,
+                requireIgnVerify: document.getElementById('chkIgn').checked
+            });
+            Ui.setFlash('Đã công bố giải đấu. Giải mới nằm trong danh sách "Giải đấu của tôi".', 'success');
+            location.href = '/registration/organizer.html';
         } catch (err) {
-            Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+            showError(err.message);
         }
     });
 });
@@ -152,7 +203,7 @@ async function submitStep3() {
         await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step3-bo-config', payload);
         switchStep(4);
     } catch (err) {
-        Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+        showError(err.message);
     }
 }
 

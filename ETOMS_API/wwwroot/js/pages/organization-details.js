@@ -148,12 +148,8 @@
             document.getElementById('organization-detail').innerHTML = '';
             return;
         }
-        try {
-            var me = await Api.get('/api/dev-auth/me');
-            currentUserId = me.isAuthenticated ? Number(me.userId) : 0;
-        } catch (error) {
-            currentUserId = 0;
-        }
+        var me = await Ui.currentUser();
+        currentUserId = me ? Number(me.userId) : 0;
         try {
             var results = await Promise.all([
                 Api.get('/api/organizations/' + organizationId),

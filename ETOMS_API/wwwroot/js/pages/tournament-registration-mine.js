@@ -172,7 +172,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
-        var me = await Ui.requireAuth();
+        var me = await Ui.requireAuth(['PLAYER']);
         if (!me) return;
 
         document.getElementById('registration-status-filter').addEventListener('change', applyFilters);

@@ -1,15 +1,15 @@
 // Bọc fetch() theo đúng envelope JSON của ApiControllerBase.FromResult():
 //  - Thành công: { message, data? }
 //  - Thất bại:   { message, fieldErrors: { Field: "msg" } }   (lỗi ném ra có .status/.message/.fieldErrors)
-// Cookie session (đăng nhập demo) tự gửi kèm vì trang tĩnh và API cùng origin.
+// Đăng nhập: JWT của auth.js (mọi trang phải nạp auth.js TRƯỚC api.js).
 var Api = (function () {
     // Giảm gọi trùng (database ở xa, mỗi API tốn hàng trăm ms):
-    //  - GET cùng URL đang chạy dở thì dùng chung 1 request (vd layout.js và trang cùng hỏi /api/dev-auth/me).
+    //  - GET cùng URL đang chạy dở thì dùng chung 1 request.
     //  - Vài API "tôi là ai" được nhớ ngắn hạn trong trang (SHORT_CACHE_MS).
     //  - Mọi request ghi (POST/PUT/PATCH/DELETE) xoá hết bộ nhớ này để lần đọc sau lấy dữ liệu mới.
     // Mỗi nơi gọi nhận 1 bản JSON riêng nên sửa object trả về không ảnh hưởng nơi khác.
     var SHORT_CACHE_MS = 10000;
-    var SHORT_CACHE = [/^\/api\/dev-auth\/me$/, /^\/api\/teams\/mine$/, /^\/api\/teams\/my-teams$/,/^\/api\/tournaments\/\d+\/publish-status$/];
+    var SHORT_CACHE = [/^\/api\/teams\/mine$/, /^\/api\/teams\/my-teams$/,/^\/api\/tournaments\/\d+\/publish-status$/];
     var shared = {};   // url -> { promise, at, keep }
 
     function sharedGet(url) {
@@ -62,13 +62,32 @@ var Api = (function () {
             }
         }
 
+        var hasAuth = !!(window.Auth && Auth.getAccessToken);
+        function attempt() {
+            var headers = Object.assign({}, opts.headers);
+            var token = hasAuth ? Auth.getAccessToken() : null;
+            if (token) headers.Authorization = 'Bearer ' + token;
+            return fetch(url, Object.assign({}, opts, { headers: headers }));
+        }
+
         var res;
         try {
-            // Đã đăng nhập thật (JWT, AUTH-02) thì đi qua Auth.apiFetch để gửi kèm token và tự refresh;
-            // còn lại (khách, đăng nhập thử /dev-auth) gọi fetch như cũ.
-            res = (window.Auth && Auth.getAccessToken && Auth.getAccessToken())
-                ? await Auth.apiFetch(url, opts)
-                : await fetch(url, opts);
+            res = await attempt();
+            // Token hết hạn (hoặc tab mới chưa có token nhưng còn cookie "ghi nhớ đăng nhập"):
+            // làm mới 1 lần rồi gửi lại. Làm mới thất bại = khách — trả nguyên 401 cho trang tự xử lý,
+            // không đá sang trang đăng nhập (trang bắt buộc đăng nhập đã có Ui.requireAuth lo).
+            if (res.status === 401 && hasAuth) {
+                var refreshed = false;
+                try { await Auth.refresh(); refreshed = true; } catch (e) { Auth.setAccessToken(null); }
+                if (refreshed) res = await attempt();
+            }
+            if (res.status === 403 && hasAuth) {
+                var banned = await res.clone().json().catch(function () { return {}; });
+                if (banned.code === 'ACCOUNT_BANNED') {
+                    try { sessionStorage.setItem('ban_info', JSON.stringify(banned)); } catch (e) {}
+                    Auth.logout('/auth/login.html');
+                }
+            }
         } catch (e) {
             throw { status: 0, message: 'Không kết nối được máy chủ. Vui lòng thử lại.', fieldErrors: {} };
         }

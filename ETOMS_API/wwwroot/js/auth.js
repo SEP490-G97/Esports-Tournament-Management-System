@@ -4,40 +4,43 @@
     const LOGIN_URL = '/auth/login.html';
     const TOKEN_KEY = 'etoms_access_token';
 
-    // Access token giữ trong sessionStorage (không chỉ biến trong bộ nhớ): mỗi lần chuyển
-    // trang (site này không phải SPA) là 1 lượt tải JS mới, biến trong bộ nhớ sẽ mất. Trước đây
-    // mỗi trang phải refresh lại — mà refresh token dùng 1 lần (rotation) + dùng lại token cũ sẽ
-    // bị coi là bị đánh cắp và THU HỒI TOÀN BỘ token của tài khoản (xem RefreshTokenService.
-    // ConsumeAsync) — 2 trang gọi refresh gần nhau (vd nav và script của trang cùng lúc, hoặc bấm
-    // link trước khi trang trước kịp nhận cookie mới) dễ làm "đăng xuất" cả phiên dù vừa đăng nhập
-    // xong. Lưu access token lại để các trang sau còn hạn (15 phút) dùng thẳng, không cần refresh.
+    // Access token giữ trong localStorage (dùng chung mọi tab): site nhiều trang, mỗi lần chuyển
+    // trang/mở tab mới là tải JS mới. Refresh token dùng 1 lần (rotation), nên càng ít lần gọi
+    // /auth/refresh càng tốt — token còn hạn (15 phút) thì mọi trang, mọi tab dùng thẳng.
     let accessToken = null;
-    try { accessToken = sessionStorage.getItem(TOKEN_KEY) || null; } catch { }
+    try { accessToken = localStorage.getItem(TOKEN_KEY) || null; } catch { }
     let refreshing = null;                  // gộp nhiều lần refresh đồng thời thành 1
 
     function setAccessToken(t) {
         accessToken = t;
-        try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch { }
+        try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch { }
     }
     function getAccessToken() { return accessToken; }
 
     function setUser(u) {
-        try { sessionStorage.setItem('user', JSON.stringify(u)); } catch { }
+        try { if (u) localStorage.setItem('user', JSON.stringify(u)); else localStorage.removeItem('user'); } catch { }
     }
     function getUser() {
-        try { return JSON.parse(sessionStorage.getItem('user')); } catch { return null; }
+        try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
     }
 
     async function refresh() {
         // Refresh token dùng 1 lần (rotation), nên nhiều request cùng lúc phải dùng chung 1 lần refresh
         if (!refreshing) {
+            const before = accessToken;
             refreshing = (async () => {
                 const res = await fetch(API_BASE + '/auth/refresh', {
                     method: 'POST', credentials: 'include'
                 });
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw Object.assign(new Error(data.message || 'Phiên đăng nhập hết hạn'),
-                    { status: res.status, data });
+                if (!res.ok) {
+                    // Tab khác có thể vừa refresh xong (cookie đã xoay vòng) — dùng token nó để lại.
+                    let shared = null;
+                    try { shared = localStorage.getItem(TOKEN_KEY); } catch { }
+                    if (shared && shared !== before) { accessToken = shared; return accessToken; }
+                    throw Object.assign(new Error(data.message || 'Phiên đăng nhập hết hạn'),
+                        { status: res.status, data });
+                }
                 setAccessToken(data.accessToken);
                 return accessToken;
             })().finally(() => { refreshing = null; });
@@ -120,7 +123,7 @@
     async function logout(to) {
         try { await nativeFetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }); } catch { }
         setAccessToken(null);
-        try { sessionStorage.removeItem('user'); } catch { }
+        setUser(null);
         location.href = to || LOGIN_URL;
     }
 

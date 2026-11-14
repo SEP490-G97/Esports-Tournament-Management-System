@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ETOMS_API.Controllers;
 
 // API JSON cho module TEAM — song song với TeamController (MVC, trả HTML), dùng chung
-// ITeamService + DTO. Đăng nhập qua session (ICurrentUser từ /DevAuth, stub tạm thay AUTH).
+// ITeamService + DTO. Người dùng hiện tại lấy từ JWT qua ICurrentUser.
 [Route("api/teams")]
 public class TeamsApiController : ApiControllerBase
 {

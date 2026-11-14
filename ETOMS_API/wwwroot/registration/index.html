@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=auth-20261114" />
+    <link rel="stylesheet" href="/css/site.css?v=role-20261115" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -23,7 +23,7 @@
             <a class="back-link" href="/">← Quay lại trang chủ</a>
         </div>
         <div class="row g-3">
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-6" data-hide-roles="ORGANIZER ADMIN">
                 <section class="card-etoms registration-panel registration-hub-card h-100">
                     <span class="registration-hub-icon" aria-hidden="true">01</span>
                     <span class="profile-overline">Dành cho đội trưởng</span>
@@ -32,7 +32,7 @@
                     <a class="btn btn-primary" href="/registration/mine.html">Xem và quản lý đơn</a>
                 </section>
             </div>
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-6" data-hide-roles="ORGANIZER ADMIN">
                 <section class="card-etoms registration-panel registration-hub-card registration-hub-card-primary h-100">
                     <span class="registration-hub-icon" aria-hidden="true">02</span>
                     <span class="profile-overline">Tìm cơ hội thi đấu</span>
@@ -41,9 +41,9 @@
                     <a class="btn btn-ghost" href="/">Tìm giải đang mở đăng ký</a>
                 </section>
             </div>
-            <div class="col-12">
+            <div class="col-12" data-hide-roles="GUEST PLAYER">
                 <section class="card-etoms registration-panel registration-hub-card h-100">
-                    <span class="registration-hub-icon" aria-hidden="true">03</span>
+                    <span class="registration-hub-icon" aria-hidden="true">01</span>
                     <span class="profile-overline">Dành cho ban tổ chức</span>
                     <h2>Không gian ban tổ chức</h2>
                     <p class="muted-copy">Xem danh sách giải bạn đứng tên tổ chức, duyệt đăng ký, quản lý nhánh đấu và bảng điều hành.</p>
@@ -51,12 +51,10 @@
                 </section>
             </div>
         </div>
-        <div class="dev-banner mt-4" role="note">
-            <strong>Môi trường thử nghiệm:</strong> demo-auth hiện chỉ hoạt động trong Development. Xác minh email thực tế và email thông báo cần module AUTH/SMTP của nhóm.
-        </div>
     </main>
-    <script src="/js/api.js?v=myteams-20261114"></script>
-    <script src="/js/ui.js?v=auth-20261114"></script>
-    <script src="/js/layout.js?v=myteams-20261114"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=login-20261115"></script>
+    <script src="/js/ui.js?v=login-20261115"></script>
+    <script src="/js/layout.js?v=role-20261115"></script>
 </body>
 </html>

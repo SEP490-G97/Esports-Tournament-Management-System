@@ -40,6 +40,7 @@ public class BracketViewService : IBracketViewService
             },
             TournamentStatus = StatusText.Tournament(t.Status),
             IsLocked = t.BracketLockedAt is not null,
+            IsOrganizer = isOrganizer,
             IsLive = t.Status is "PUBLISHED" or "ONGOING"
         };
 
@@ -57,7 +58,7 @@ public class BracketViewService : IBracketViewService
         }
 
         dto.CanViewBracket = true;
-        if (!dto.IsLocked) dto.Notice = "Bản xem trước cho Ban tổ chức: nhánh đấu chưa khóa nên khách chưa xem được và nhánh còn có thể thay đổi.";
+        if (!dto.IsLocked) dto.Notice = "Bản xem trước cho Ban tổ chức: nhánh chưa khóa nên khách chưa xem được. Bấm \"Đổi chỗ đội\" để kéo thả sắp xếp lại, xong thì \"Khóa nhánh\" để công bố.";
 
         var nodes = await _uow.Repository<BracketNode>().Query().Where(n => n.TournamentId == tournamentId).ToListAsync();
         dto.HasGroupStage = nodes.Any(n => n.StageType == "GROUP");

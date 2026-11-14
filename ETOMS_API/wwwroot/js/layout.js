@@ -1,6 +1,6 @@
 // "Layout" dùng chung cho mọi trang tĩnh: chèn nav.html/confirm-modal.html, bật theme-toggle,
 // Mọi trang phải có sẵn <div id="site-header"></div> và <div id="confirm-modal-root"></div>,
-// và nạp theo thứ tự: api.js, ui.js, layout.js (theme-init.js nạp riêng trong <head>).
+// và nạp theo thứ tự: auth.js, api.js, ui.js, layout.js (theme-init.js nạp riêng trong <head>).
 (function () {
     function applyActiveNav() {
         var path = location.pathname.toLowerCase();
@@ -27,28 +27,10 @@
         });
     }
 
-    // Đọc người dùng hiện tại theo 2 nguồn (để nhóm test song song):
-    //   1. Đăng nhập thật bằng JWT (AUTH-02, auth.js) nếu trang có nạp auth.js.
-    //   2. Đăng nhập thử /dev-auth (session, chỉ Development).
-    // Trả về cùng một dạng { isAuthenticated, userId, displayName, role, source }.
+    // Người dùng hiện tại (JWT, auth.js) — dùng chung kết quả với trang qua Ui.currentUser().
     async function resolveCurrentUser() {
-        if (window.Auth && typeof Auth.tryGetMe === 'function') {
-            var jwtMe = await Auth.tryGetMe();                 // không chuyển hướng khi chưa đăng nhập
-            if (jwtMe) {
-                return {
-                    isAuthenticated: true,
-                    userId: jwtMe.id || jwtMe.accountId,
-                    displayName: jwtMe.name || jwtMe.fullName || jwtMe.email || '',
-                    role: jwtMe.role,
-                    source: 'jwt'
-                };
-            }
-        }
-        try {
-            var devMe = await Api.get('/api/dev-auth/me');
-            if (devMe && devMe.isAuthenticated) { devMe.source = 'dev'; return devMe; }
-        } catch (e) { /* ngoài Development endpoint trả 404 */ }
-        return { isAuthenticated: false };
+        var me = await Ui.currentUser();
+        return me || { isAuthenticated: false };
     }
 
     async function wireAuthWidget() {
@@ -84,11 +66,16 @@
             '  </button>' +
             '  <div class="nav-user-menu" id="nav-user-menu">' +
             (me.role ? '    <span class="nav-user-role">' + Ui.escapeHtml(roleLabel(me.role)) + '</span>' : '') +
-            '    <a class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam" href="/team/mine.html">Các đội của tôi</a>' +
+            // Theo PermissionMatrix: đội (TEAM) và đơn đăng ký (REG-01..05) chỉ của tuyển thủ/đội trưởng;
+            // tạo giải (TOUR) và truyền thông (MKT) chỉ của Ban tổ chức.
+            (me.role === 'PLAYER'
+                ? '    <a class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam" href="/team/mine.html">Các đội của tôi</a>' : '') +
             '    <a class="nav-user-menu-item" href="/profile/index.html">Hồ sơ cá nhân</a>' +
-            '    <a class="nav-user-menu-item" href="/registration/mine.html">Đơn đăng ký của tôi</a>' +
-            (me.role === 'ORGANIZER' || me.role === 'ADMIN'
-                ? '    <a class="nav-user-menu-item" href="/tournament-setup/index.html">Tạo giải mới</a>' +
+            (me.role === 'PLAYER'
+                ? '    <a class="nav-user-menu-item" href="/registration/mine.html">Đơn đăng ký của tôi</a>' : '') +
+            (me.role === 'ORGANIZER'
+                ? '    <a class="nav-user-menu-item" href="/registration/organizer.html">Giải đấu của tôi</a>' +
+                  '    <a class="nav-user-menu-item" href="/tournament-setup/index.html">Tạo giải mới</a>' +
                   '    <a class="nav-user-menu-item" href="/marketing/tools.html">Công cụ truyền thông</a>' : '') +
             (me.role === 'ADMIN' ? '    <a class="nav-user-menu-item" href="/admin/index.html">Bảng quản trị</a>' : '') +
             '    <div class="nav-user-menu-sep"></div>' +
@@ -110,14 +97,9 @@
                 trigger.setAttribute('aria-expanded', 'false');
             }
         });
-        document.getElementById('nav-logout').addEventListener('click', async function (e) {
+        document.getElementById('nav-logout').addEventListener('click', function (e) {
             e.preventDefault();
-            if (me.source === 'jwt') {
-                Auth.logout('/');                              // thu hồi refresh token, xóa cookie, về trang chủ
-                return;
-            }
-            try { await Api.post('/api/dev-auth/logout'); } catch (err) {}
-            location.href = '/';
+            Auth.logout('/');                                  // thu hồi refresh token, xóa cookie, về trang chủ
         });
     }
 
@@ -142,6 +124,7 @@
     // sách Role (vd "ORGANIZER,ADMIN" cho hàng đợi tranh chấp RES-06). Mặc định các mục này ẩn bằng CSS
     // để không hiện rồi mất khi /me chạy xong. Chỉ là gợi ý hiển thị: quyền thật vẫn chặn ở API/trang đích.
     function applyRoleVisibility(me) {
+        document.documentElement.setAttribute('data-role', me.isAuthenticated ? (me.role || 'PLAYER') : 'GUEST');
         var extra = 0;
         document.querySelectorAll('#etomsNavCollapse nav a[data-roles]').forEach(function (a) {
             var roles = a.getAttribute('data-roles').split(',');

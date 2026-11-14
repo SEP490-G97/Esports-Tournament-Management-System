@@ -16,6 +16,7 @@ namespace ETOMS_API.Services.Impl
         private readonly IRefreshTokenService _refresh;
         private readonly IEmailSender _email;
         private readonly AuthLinkOptions _links;
+        private readonly EmailOptions _emailOptions;
         private readonly ILogger<AccountSecurityService> _log;
 
 
@@ -26,6 +27,7 @@ namespace ETOMS_API.Services.Impl
         IRefreshTokenService refresh,
         IEmailSender email,
         IOptions<AuthLinkOptions> links,
+        IOptions<EmailOptions> emailOptions,
         ILogger<AccountSecurityService> log)
         {
             _db = db;
@@ -34,6 +36,7 @@ namespace ETOMS_API.Services.Impl
             _refresh = refresh;
             _email = email;
             _links = links.Value;
+            _emailOptions = emailOptions.Value;
             _log = log;
         }
 
@@ -58,6 +61,9 @@ namespace ETOMS_API.Services.Impl
             if (await _db.Accounts.AnyAsync(a => a.Email == email, ct))
                 return SecurityResult.Fail(SecurityError.EmailTaken);
 
+            // Máy chưa cấu hình SMTP thì không gửi được mail xác minh -> kích hoạt ngay, nếu không
+            // tài khoản mới sẽ kẹt PENDING_VERIFY mãi, không bao giờ đăng nhập được.
+            var activateNow = !_emailOptions.CanSend;
             var account = new Account
             {
                 Email = email,
@@ -65,7 +71,8 @@ namespace ETOMS_API.Services.Impl
                 FullName = fullName,
                 DateOfBirth = dateOfBirth,
                 Role = AccountRoles.Player,
-                Status = AccountStatuses.PendingVerify
+                Status = activateNow ? AccountStatuses.Active : AccountStatuses.PendingVerify,
+                EmailVerifiedAt = activateNow ? DateTime.UtcNow : null
             };
             _db.Accounts.Add(account);
 
@@ -75,6 +82,8 @@ namespace ETOMS_API.Services.Impl
                 // Hai request cùng email chạy đồng thời: UNIQUE chặn request thứ hai.
                 return SecurityResult.Fail(SecurityError.EmailTaken);
             }
+
+            if (activateNow) return SecurityResult.SuccessActivated();
 
             await SendVerificationMailAsync(account, ct);
             return SecurityResult.Success();

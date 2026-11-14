@@ -15,7 +15,7 @@
             } else {
                 root.innerHTML = '<div class="card-etoms"><div class="empty">' +
                     '<h3>Chưa có đội nào</h3><p>Hãy tạo đội đầu tiên để bắt đầu.</p>' +
-                    '<a class="btn btn-primary" href="/team/create.html">Tạo đội mới</a></div></div>';
+                    '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/team/create.html">Tạo đội mới</a></div></div>';
             }
             return;
         }

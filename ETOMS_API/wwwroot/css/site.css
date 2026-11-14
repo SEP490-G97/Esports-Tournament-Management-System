@@ -1189,6 +1189,19 @@ h1, h2, h3, .section-title, .sec-head h2 { font-family: var(--font-display); fon
 .bk-team.win { font-weight: 700; }
 .bk-team.sel { background: var(--primary-050); }
 .bk-team .sc { min-width: 18px; text-align: right; font-weight: 700; }
+/* Ẩn theo vai trò (PermissionMatrix): layout.js đặt <html data-role="GUEST|PLAYER|ORGANIZER|ADMIN">.
+   Chưa biết vai trò thì giữ chỗ nhưng ẩn, tránh nút hiện lên rồi biến mất. Quyền thật vẫn chặn ở API. */
+html:not([data-role]) [data-hide-roles] { visibility: hidden; }
+html[data-role="GUEST"] [data-hide-roles~="GUEST"],
+html[data-role="PLAYER"] [data-hide-roles~="PLAYER"],
+html[data-role="ORGANIZER"] [data-hide-roles~="ORGANIZER"],
+html[data-role="ADMIN"] [data-hide-roles~="ADMIN"] { display: none !important; }
+
+/* Chế độ đổi chỗ đội của Ban tổ chức */
+.bk-team.swap { cursor: grab; outline: 1px dashed var(--primary); outline-offset: -3px; }
+.bk-team.swap.sel { background: var(--primary-050); outline-style: solid; }
+.bk-team.dragging { opacity: .45; }
+.bk-team.drop-target { background: var(--primary-050); outline: 2px solid var(--primary); outline-offset: -3px; }
 .bk-list-round { margin-top: 16px; }
 .bk-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; background: var(--panel); overflow: hidden; }
 .bk-card .bk-head { font-size: .78rem; padding: 6px 10px; display: flex; justify-content: space-between; gap: 8px; }

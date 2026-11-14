@@ -12,6 +12,11 @@
         public string Password { get; set; } = "";
         public string FromAddress { get; set; } = "";
         public string FromName { get; set; } = "ETOMS";
+
+        // Gửi mail thật được khi bật và có đủ thông tin đăng nhập SMTP (mật khẩu ứng dụng thường
+        // chỉ có trên máy được cấp qua user-secrets / biến môi trường, không nằm trong repo).
+        public bool CanSend => Enabled && !string.IsNullOrWhiteSpace(Host)
+            && (string.IsNullOrEmpty(User) || !string.IsNullOrEmpty(Password));
     }
 
     public class AuthLinkOptions

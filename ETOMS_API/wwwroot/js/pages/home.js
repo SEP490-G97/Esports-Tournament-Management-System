@@ -100,7 +100,7 @@
                 '<div class="feat-bar"><span style="width:' + pct + '%"></span></div>' +
                 '</div></a>' +
                 '<div class="btn-row mt-2">' +
-                (t.registrationOpen ? '<a class="btn btn-primary" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>' : '') +
+                (t.registrationOpen ? '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>' : '') +
                 // Chỉ hiện cho đúng Ban tổ chức của giải này (khớp quyền thật ở API quản lý đăng ký) —
                 // trước đây hiện cho mọi người, bấm vào thì mới bị chặn, gây hiểu lầm là lỗi.
                 (organizedIds[t.tournamentId] ? '<a class="btn btn-ghost" href="/registration/review.html?tournamentId=' + Number(t.tournamentId) + '">Quản lý đăng ký</a>' : '') +
@@ -113,7 +113,7 @@
     function renderTeams(list) {
         var root = document.getElementById('teams-list');
         if (!list || !list.length) {
-            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có đội nào</h3><p>Hãy là đội đầu tiên trên hệ thống.</p><a class="btn btn-primary" href="/team/create.html">Tạo đội mới</a></div></div>';
+            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có đội nào</h3><p>Hãy là đội đầu tiên trên hệ thống.</p><a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/team/create.html">Tạo đội mới</a></div></div>';
             return;
         }
         var html = '<div class="row g-3">';

@@ -41,8 +41,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
-        var me = await Ui.requireAuth();
+        var me = await Ui.requireAuth(['ORGANIZER']);
         if (!me) return;
+        Ui.consumeFlash(flash);
 
         try {
             var response = await Api.get('/api/marketing/mine/tournaments');

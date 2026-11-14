@@ -12,7 +12,8 @@ namespace ETOMS_API.Services.Impl
     IPasswordService passwords,
     ITokenService tokens,
     IRefreshTokenService refreshTokens,
-    IGoogleTokenValidator google) : IAuthService
+    IGoogleTokenValidator google,
+    Microsoft.Extensions.Options.IOptions<EmailOptions> emailOptions) : IAuthService
     {
         // ----------Login with Email + Password ----------
 
@@ -22,7 +23,17 @@ namespace ETOMS_API.Services.Impl
             var ok = acc?.PasswordHash is not null && passwords.Verify(password, acc.PasswordHash);
             if (!ok) return AuthResult.Fail(AuthError.InvalidCredentials);
 
-            return await IssueAsync(acc!, remember, ct);
+            // Máy chưa cấu hình SMTP thì không có cách nào nhận mail xác minh: tài khoản đăng ký từ trước
+            // còn kẹt PENDING_VERIFY được kích hoạt khi đăng nhập đúng mật khẩu (giống đăng ký mới,
+            // xem AccountSecurityService.RegisterAsync). Có SMTP thật thì vẫn bắt xác minh email như cũ.
+            if (acc!.Status == AccountStatuses.PendingVerify && !emailOptions.Value.CanSend)
+            {
+                acc.Status = AccountStatuses.Active;
+                acc.EmailVerifiedAt ??= DateTime.UtcNow;
+                await accounts.SaveChangesAsync(ct);
+            }
+
+            return await IssueAsync(acc, remember, ct);
         }
 
         // AUTH-01 thật nằm ở AccountSecurityService.RegisterAsync (Vũ Đức Hải) — bỏ bản stub ở

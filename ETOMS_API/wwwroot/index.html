@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=auth-20261114" />
+    <link rel="stylesheet" href="/css/site.css?v=role-20261115" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -34,8 +34,10 @@
                     <p>Đăng ký đội, vận hành nhánh đấu, báo cáo kết quả minh bạch và theo dõi bảng xếp hạng — tất cả trong một nền tảng duy nhất.</p>
                     <div class="btn-row home-hero-actions">
                         <a class="btn btn-primary btn-lg" href="/team/index.html">Xem đội tuyển</a>
-                        <a class="btn btn-ghost btn-lg" href="/team/create.html">Tạo đội ngay</a>
-                        <a class="btn btn-ghost btn-lg" href="/registration/index.html">Đăng ký tham gia giải</a>
+                        <a class="btn btn-ghost btn-lg" href="/team/create.html" data-hide-roles="ORGANIZER ADMIN">Tạo đội ngay</a>
+                        <a class="btn btn-ghost btn-lg" href="/registration/index.html" data-hide-roles="ORGANIZER ADMIN">Đăng ký tham gia giải</a>
+                        <a class="btn btn-ghost btn-lg" href="/tournament-setup/index.html" data-hide-roles="GUEST PLAYER ADMIN">Tạo giải mới</a>
+                        <a class="btn btn-ghost btn-lg" href="/registration/organizer.html" data-hide-roles="GUEST PLAYER ADMIN">Giải đấu của tôi</a>
                         <a class="btn btn-ghost btn-lg" href="/rankings/index.html">Bảng xếp hạng</a>
                     </div>
                 </div>
@@ -131,11 +133,11 @@
     </main>
 
     <div id="confirm-modal-root"></div>
-    <script src="/js/auth.js?v=auth-20261114"></script>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/api.js?v=myteams-20261114"></script>
-    <script src="/js/ui.js?v=auth-20261114"></script>
-    <script src="/js/layout.js?v=myteams-20261114"></script>
-    <script src="/js/pages/home.js?v=auth-20261114" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=login-20261115"></script>
+    <script src="/js/ui.js?v=login-20261115"></script>
+    <script src="/js/layout.js?v=role-20261115"></script>
+    <script src="/js/pages/home.js?v=role-20261115" defer></script>
 </body>
 </html>

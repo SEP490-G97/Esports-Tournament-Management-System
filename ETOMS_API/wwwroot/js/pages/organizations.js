@@ -124,8 +124,8 @@
         }
 
         try {
-            var me = await Api.get('/api/dev-auth/me');
-            if (me.isAuthenticated && Number(me.userId) > 0 && me.role === 'ADMIN') {
+            var me = await Ui.currentUser();
+            if (me && me.role === 'ADMIN') {
                 document.getElementById('review-section').hidden = false;
                 await loadReviewQueue(Number(me.userId));
             }

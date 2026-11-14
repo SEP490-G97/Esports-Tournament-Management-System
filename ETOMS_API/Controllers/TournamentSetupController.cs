@@ -34,7 +34,7 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return Fail(ex);
             }
         }
 
@@ -49,13 +49,9 @@ namespace ETOMS_API.Controllers
                 await _setupService.UpdateStep2TimelineAsync(id, dto);
                 return Ok(new { Message = "Cập nhật timeline và quy mô thành công." });
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { Message = ex.Message });
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = ex.Message });
+                return Fail(ex);
             }
         }
 
@@ -72,7 +68,7 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return Fail(ex);
             }
         }
 
@@ -89,7 +85,7 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return Fail(ex);
             }
         }
 
@@ -106,9 +102,15 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return Fail(ex);
             }
         }
+
+        // Lỗi nghiệp vụ (ArgumentException...) đã có thông báo tiếng Việt; lỗi ràng buộc DB thì
+        // thông báo của provider là tiếng Anh — không đưa thẳng ra giao diện.
+        private IActionResult Fail(Exception ex) => ex is Microsoft.EntityFrameworkCore.DbUpdateException
+            ? BadRequest(new { Message = "Không lưu được giải đấu: dữ liệu chưa hợp lệ (kiểm tra lại số đội, mốc thời gian, cấu hình vòng bảng)." })
+            : BadRequest(new { Message = ex.Message });
 
         private async Task<IActionResult?> CheckCanManageAsync(int tournamentId)
         {

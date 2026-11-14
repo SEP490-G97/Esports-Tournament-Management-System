@@ -53,6 +53,23 @@ public class BracketsApiController : ApiControllerBase
         return FromResult(await _bracketService.LockBracketAsync(tournamentId, _currentUser.UserId!.Value));
     }
 
+    // POST /api/tournaments/{tournamentId}/bracket/unlock — mở khóa khi chưa có trận nào bắt đầu.
+    [HttpPost("unlock")]
+    public async Task<IActionResult> Unlock(int tournamentId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _bracketService.UnlockBracketAsync(tournamentId, _currentUser.UserId!.Value));
+    }
+
+    // POST /api/tournaments/{tournamentId}/bracket/swap — đổi chỗ 2 đội (kéo thả trên sơ đồ).
+    [HttpPost("swap")]
+    public async Task<IActionResult> Swap(int tournamentId, [FromBody] SwapTeamsRequest model)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        return FromResult(await _bracketService.SwapTeamsAsync(tournamentId, model.TeamAId, model.TeamBId, _currentUser.UserId!.Value));
+    }
+
     // GET /api/tournaments/{tournamentId}/bracket/tiebreaker — BRK-07, công khai (hiện cho mọi người xem).
     [HttpGet("tiebreaker")]
     public async Task<IActionResult> GetTieBreaker(int tournamentId)

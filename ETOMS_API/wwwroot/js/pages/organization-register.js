@@ -91,18 +91,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
-        var me;
-        try {
-            me = await Api.get('/api/dev-auth/me');
-        } catch (error) {
-            showFailure(error, 'Không thể xác định tài khoản hiện tại.');
-            document.getElementById('register-panel').hidden = true;
-            return;
-        }
-        if (!me.isAuthenticated || !Number(me.userId)) {
-            location.href = '/dev-auth/index.html?returnUrl=' + encodeURIComponent(location.pathname + location.search);
-            return;
-        }
+        var me = await Ui.requireAuth();
+        if (!me) return;
         accountId = Number(me.userId);
         wireDocumentUpload();
         document.getElementById('organization-form').addEventListener('submit', async function (event) {

@@ -24,9 +24,10 @@ namespace ETOMS_API.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
         {
             var r = await _svc.RegisterAsync(req.Email, req.Password, req.FullName, req.DateOfBirth, ct);
-            return r.Ok
-                ? StatusCode(201, new { message = "Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản." })
-                : Map(r.Error);
+            if (!r.Ok) return Map(r.Error);
+            return r.ActivatedImmediately
+                ? StatusCode(201, new { message = "Đăng ký thành công. Bạn có thể đăng nhập ngay.", activated = true })
+                : StatusCode(201, new { message = "Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.", activated = false });
         }
 
         // AUTH-04

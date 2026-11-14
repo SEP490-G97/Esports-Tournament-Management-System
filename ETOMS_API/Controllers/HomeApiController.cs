@@ -75,7 +75,10 @@ public class HomeApiController : ApiControllerBase
         var now = DateTime.UtcNow;
         var featured = await _uow.Repository<Tournament>().Query()
             .Where(t => statuses.Contains(t.Status))
-            .OrderBy(t => t.StartAt)
+            // Giải đang mở đăng ký lên trước — nếu không, 6 ô bị các giải đang diễn ra (khai mạc sớm hơn)
+            // chiếm hết và người chơi không tìm thấy giải nào để đăng ký.
+            .OrderByDescending(t => t.Status == "PUBLISHED" && t.BracketLockedAt == null && t.RegOpenAt <= now && now < t.RegCloseAt)
+            .ThenBy(t => t.StartAt)
             .Select(t => new
             {
                 t.TournamentId, t.Name, Game = t.Game.Title, t.Status, t.MaxTeams, t.BannerUrl, t.PrizeStructure,

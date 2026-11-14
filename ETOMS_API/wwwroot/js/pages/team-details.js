@@ -106,8 +106,7 @@
         var root = document.getElementById('team-root');
         if (!id) { root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Thiếu mã đội</h3></div></div>'; return; }
 
-        var me = { isAuthenticated: false };
-        try { me = await Api.get('/api/dev-auth/me'); } catch (e) {}
+        var me = (await Ui.currentUser()) || { isAuthenticated: false };
 
         try {
             var team = await Api.get('/api/teams/' + id);

@@ -155,6 +155,12 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 "Tài khoản phải hoạt động và xác minh email trước khi đăng ký giải.",
                 StatusCodes.Status403Forbidden);
         }
+        // PermissionMatrix REG-01: chỉ đội trưởng (tài khoản tuyển thủ) nộp đơn — BTC/Admin không thi đấu.
+        if (account.Role != "PLAYER")
+        {
+            return Result.Failure<RegistrationResponse>(
+                "Chỉ đội trưởng (tài khoản tuyển thủ) được đăng ký giải.", StatusCodes.Status403Forbidden);
+        }
 
         var tournament = await Query<Tournament>().Include(item => item.Game)
             .FirstOrDefaultAsync(item => item.TournamentId == tournamentId, cancellationToken);

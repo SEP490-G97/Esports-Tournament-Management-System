@@ -407,6 +407,68 @@ public class BracketService : IBracketService
         return Result.Success("Đã khóa nhánh đấu. Roster các đội và cổng đăng ký đã đóng.");
     }
 
+    // Trận "chưa đấu": chưa có người thắng, chưa có tỉ số, còn ở trạng thái chờ.
+    private static bool NotPlayed(Match m) =>
+        m.WinnerTeamId == null && m.ScoreA == null && m.ScoreB == null && (m.Status == "PENDING" || m.Status == "READY");
+
+    public async Task<Result> UnlockBracketAsync(int tournamentId, int organizerAccountId)
+    {
+        var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
+        if (tournament is null) return Result.Failure("Không tìm thấy giải đấu.");
+        if (tournament.OrganizerAccountId != organizerAccountId) return Result.Failure("Chỉ ban tổ chức của giải được mở khóa nhánh đấu.");
+        if (tournament.BracketLockedAt == null) return Result.Failure("Nhánh đấu chưa bị khóa.");
+        if (tournament.Status is "COMPLETED" or "CANCELLED") return Result.Failure("Giải đã kết thúc hoặc đã hủy, không thể mở khóa nhánh.");
+
+        var matches = await _uow.Repository<Match>().Query().Where(m => m.TournamentId == tournamentId).ToListAsync();
+        if (matches.Any(m => m.Status != "CANCELLED" && !NotPlayed(m)))
+            return Result.Failure("Đã có trận bắt đầu hoặc có kết quả, không thể mở khóa nhánh đấu.");
+
+        tournament.BracketLockedAt = null;
+        tournament.BracketLockedByAccountId = null;
+        _uow.Repository<Tournament>().Update(tournament);
+
+        var nodes = await _uow.Repository<BracketNode>().Query().Where(n => n.TournamentId == tournamentId).ToListAsync();
+        foreach (var n in nodes) { n.Status = "DRAFT"; _uow.Repository<BracketNode>().Update(n); }
+
+        await _uow.SaveChangesAsync();
+        return Result.Success("Đã mở khóa nhánh đấu — có thể đổi chỗ đội hoặc sinh lại nhánh.");
+    }
+
+    // Đổi chỗ 2 đội ở MỌI vị trí của họ trong nhánh (ô hạt giống, trận vòng 1, trận vòng bảng, ô được
+    // miễn vòng đi tiếp) — nên dùng chung cho cả cây knockout lẫn vòng bảng.
+    public async Task<Result> SwapTeamsAsync(int tournamentId, int teamAId, int teamBId, int organizerAccountId)
+    {
+        var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
+        if (tournament is null) return Result.Failure("Không tìm thấy giải đấu.");
+        if (tournament.OrganizerAccountId != organizerAccountId) return Result.Failure("Chỉ ban tổ chức của giải được sửa nhánh đấu.");
+        if (tournament.BracketLockedAt != null) return Result.Failure("Nhánh đấu đã khóa — hãy mở khóa trước khi đổi chỗ đội.");
+        if (teamAId == teamBId) return Result.Failure("Hãy kéo sang một đội khác.");
+
+        var nodes = await _uow.Repository<BracketNode>().Query()
+            .Where(n => n.TournamentId == tournamentId && (n.SeedTeamId == teamAId || n.SeedTeamId == teamBId)).ToListAsync();
+        var matches = await _uow.Repository<Match>().Query()
+            .Where(m => m.TournamentId == tournamentId
+                && (m.TeamAid == teamAId || m.TeamBid == teamAId || m.TeamAid == teamBId || m.TeamBid == teamBId))
+            .ToListAsync();
+
+        bool InBracket(int id) => nodes.Any(n => n.SeedTeamId == id) || matches.Any(m => m.TeamAid == id || m.TeamBid == id);
+        if (!InBracket(teamAId) || !InBracket(teamBId)) return Result.Failure("Đội không nằm trong nhánh đấu của giải này.");
+        if (matches.Any(m => m.Status != "CANCELLED" && !NotPlayed(m)))
+            return Result.Failure("Một trong hai đội đã thi đấu hoặc có kết quả, không thể đổi chỗ.");
+
+        int Swap(int? id) => id == teamAId ? teamBId : teamAId;
+        foreach (var n in nodes) { n.SeedTeamId = Swap(n.SeedTeamId); _uow.Repository<BracketNode>().Update(n); }
+        foreach (var m in matches)
+        {
+            if (m.TeamAid == teamAId || m.TeamAid == teamBId) m.TeamAid = Swap(m.TeamAid);
+            if (m.TeamBid == teamAId || m.TeamBid == teamBId) m.TeamBid = Swap(m.TeamBid);
+            _uow.Repository<Match>().Update(m);
+        }
+
+        await _uow.SaveChangesAsync();
+        return Result.Success("Đã đổi chỗ 2 đội trong nhánh đấu.");
+    }
+
     // Cầu nối tạm PickWinner đã bỏ — kết quả giờ vào qua IResultService (RES-01/02/07), đúng LI-01.
     // AdvanceWinner sau khi có kết quả nằm trong ResultService.
 

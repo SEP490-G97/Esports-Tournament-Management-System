@@ -7,7 +7,8 @@
     var tournamentId = null;
     var board = null;
     var standings = null;
-    var state = { mode: null, userMode: null, round: 'all', team: null, detail: null, zoom: 1, panX: 0, panY: 0, fitted: false };
+    var state = { mode: null, userMode: null, round: 'all', team: null, detail: null, zoom: 1, panX: 0, panY: 0, fitted: false,
+        edit: false, pick: null, flash: null };
     var layout = null;   // { nodes: {nodeId: {x,y,node,stage}}, width, height }
     var timer = null;
 
@@ -42,12 +43,19 @@
         return n.label + (extra ? ' · ' + extra : '');
     }
 
+    // Chế độ sửa: chỉ ô của đội chưa đấu trận nào mới đổi chỗ được (máy chủ cũng kiểm lại).
+    function editable(n, id) {
+        return state.edit && id && !n.winnerTeamId && n.scoreA == null && n.scoreB == null;
+    }
+
     function teamRow(n, slot, score, extraClass) {
         var id = slot.teamId;
         var win = id !== null && id !== undefined && n.winnerTeamId === id && !n.isBye;
-        var sel = id !== null && id !== undefined && state.team === id;
-        return '<button type="button" class="bk-team' + (win ? ' win' : '') + (sel ? ' sel' : '') + (extraClass || '') + '"' +
-            (id ? ' data-team="' + id + '" aria-pressed="' + sel + '" title="Xem hành trình của ' + esc(slot.name) + '"' : ' disabled') + '>' +
+        var sel = id !== null && id !== undefined && (state.edit ? state.pick === id : state.team === id);
+        var canEdit = editable(n, id);
+        var title = canEdit ? 'Kéo thả lên đội khác (hoặc bấm 2 đội) để đổi chỗ ' + slot.name : 'Xem hành trình của ' + slot.name;
+        return '<button type="button" class="bk-team' + (win ? ' win' : '') + (sel ? ' sel' : '') + (canEdit ? ' swap' : '') + (extraClass || '') + '"' +
+            (id ? ' data-team="' + id + '" aria-pressed="' + sel + '" title="' + esc(title) + '"' + (canEdit ? ' draggable="true"' : '') : ' disabled') + '>' +
             '<span class="nm">' + esc(slot.name) + '</span><span class="sc">' + (score === null || score === undefined ? '' : score) + '</span></button>';
     }
 
@@ -306,7 +314,16 @@
             }).join('');
         }).join('');
         var tree = state.mode === 'tree';
+        var organizer = '';
+        if (board.isOrganizer) {
+            organizer = board.isLocked
+                ? '<button type="button" class="btn btn-ghost" id="bk-unlock">Mở khóa nhánh</button>'
+                : '<button type="button" class="btn ' + (state.edit ? 'btn-primary' : 'btn-ghost') + '" id="bk-edit" aria-pressed="' + state.edit + '">' +
+                  (state.edit ? 'Xong đổi chỗ' : 'Đổi chỗ đội') + '</button>' +
+                  '<button type="button" class="btn btn-ghost" id="bk-lock">Khóa nhánh</button>';
+        }
         return '<div class="bk-toolbar">' +
+            organizer +
             '<div class="bk-seg" role="group" aria-label="Cách xem">' +
             '<button type="button" data-mode="tree" aria-pressed="' + tree + '">Sơ đồ</button>' +
             '<button type="button" data-mode="list" aria-pressed="' + !tree + '">Danh sách</button></div>' +
@@ -327,6 +344,9 @@
             (b.isLive ? ' · Tự cập nhật mỗi 30 giây' : '');
 
         var notice = b.notice ? '<div class="pending-banner mb-2">' + esc(b.notice) + '</div>' : '';
+        if (state.flash) notice += '<div class="alert alert-' + (state.flash.ok ? 'success' : 'danger') + ' mb-2">' + esc(state.flash.text) + '</div>';
+        if (state.edit) notice += '<div class="hint mb-2" id="edit-hint">Đang đổi chỗ đội: kéo tên một đội thả lên đội khác, hoặc bấm đội thứ nhất rồi bấm đội thứ hai. ' +
+            'Đội đã đấu trận nào thì không đổi được.' + (state.pick ? ' <strong>Đã chọn 1 đội — bấm đội cần đổi chỗ.</strong>' : '') + '</div>';
         var updated = '<div class="hint" id="updated-at" style="margin-bottom:10px">Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN') + '</div>';
 
         if (!b.canViewBracket) {
@@ -364,9 +384,29 @@
         document.querySelectorAll('[data-team]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var id = parseInt(btn.dataset.team, 10);
+                if (state.edit) {
+                    if (!btn.classList.contains('swap')) return;
+                    if (state.pick === null || state.pick === id) { state.pick = state.pick === id ? null : id; render(); return; }
+                    swapTeams(state.pick, id);
+                    return;
+                }
                 state.team = state.team === id ? null : id;
                 render();
             });
+        });
+        if (state.edit) wireDragSwap();
+        var editBtn = document.getElementById('bk-edit');
+        if (editBtn) editBtn.addEventListener('click', function () {
+            state.edit = !state.edit; state.pick = null; state.team = null; state.flash = null; render();
+        });
+        var lockBtn = document.getElementById('bk-lock');
+        if (lockBtn) lockBtn.addEventListener('click', function () {
+            runAction('/lock', 'Khóa nhánh đấu? Sau khi khóa, khách xem được nhánh, roster các đội và cổng đăng ký đóng lại. ' +
+                'Vẫn mở khóa lại được nếu chưa có trận nào bắt đầu.');
+        });
+        var unlockBtn = document.getElementById('bk-unlock');
+        if (unlockBtn) unlockBtn.addEventListener('click', function () {
+            runAction('/unlock', 'Mở khóa nhánh đấu? Khách sẽ không xem được nhánh cho tới khi khóa lại.');
         });
         document.querySelectorAll('[data-detail]').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -387,6 +427,75 @@
             document.getElementById('zoom-fit').addEventListener('click', function () { fitTo(null); });
             wireViewport();
         }
+    }
+
+    // Kéo thả HTML5 giữa các ô đội (pointerdown trên nút không kích hoạt kéo cả khung).
+    function wireDragSwap() {
+        var dragged = null;
+        document.querySelectorAll('.bk-team.swap').forEach(function (el) {
+            el.addEventListener('dragstart', function (e) {
+                dragged = parseInt(el.dataset.team, 10);
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', String(dragged));
+                el.classList.add('dragging');
+            });
+            el.addEventListener('dragend', function () {
+                el.classList.remove('dragging');
+                document.querySelectorAll('.bk-team.drop-target').forEach(function (t) { t.classList.remove('drop-target'); });
+            });
+            el.addEventListener('dragover', function (e) {
+                if (dragged === null || dragged === parseInt(el.dataset.team, 10)) return;
+                e.preventDefault();
+                el.classList.add('drop-target');
+            });
+            el.addEventListener('dragleave', function () { el.classList.remove('drop-target'); });
+            el.addEventListener('drop', function (e) {
+                e.preventDefault();
+                var target = parseInt(el.dataset.team, 10);
+                if (dragged !== null && dragged !== target) swapTeams(dragged, target);
+                dragged = null;
+            });
+        });
+    }
+
+    function teamName(id) {
+        var name = '';
+        allNodes().some(function (x) {
+            if (x.node.teamA.teamId === id) { name = x.node.teamA.name; return true; }
+            if (x.node.teamB.teamId === id) { name = x.node.teamB.name; return true; }
+            return false;
+        });
+        return name;
+    }
+
+    async function confirmAction(message) {
+        return window.etomsConfirm ? window.etomsConfirm(message) : true;
+    }
+
+    async function swapTeams(a, b) {
+        if (!(await confirmAction('Đổi chỗ "' + teamName(a) + '" và "' + teamName(b) + '" trong nhánh đấu?'))) {
+            state.pick = null; render(); return;
+        }
+        try {
+            var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket/swap', { teamAId: a, teamBId: b });
+            state.flash = { ok: true, text: res.message || 'Đã đổi chỗ 2 đội.' };
+        } catch (err) {
+            state.flash = { ok: false, text: err.message };
+        }
+        state.pick = null;
+        await load(true);
+    }
+
+    async function runAction(path, question) {
+        if (!(await confirmAction(question))) return;
+        try {
+            var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket' + path);
+            state.flash = { ok: true, text: res.message || 'Đã cập nhật.' };
+            state.edit = false; state.pick = null;
+        } catch (err) {
+            state.flash = { ok: false, text: err.message };
+        }
+        await load(true);
     }
 
     function setMode(mode) {
