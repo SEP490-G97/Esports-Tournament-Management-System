@@ -75,12 +75,13 @@
         if (slides.length > 1) start();
     }
 
-    function renderFeatured(list) {
+    function renderFeatured(list, organizedIds) {
         var root = document.getElementById('featured-list');
         if (!list || !list.length) {
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có giải đấu nào</h3><p>Các giải đã công bố sẽ hiển thị tại đây.</p></div></div>';
             return;
         }
+        organizedIds = organizedIds || {};
         var html = '<div class="row g-4">';
         list.forEach(function (t) {
             var pct = t.maxTeams === 0 ? 0 : Math.floor(t.teams * 100 / t.maxTeams);
@@ -100,7 +101,9 @@
                 '</div></a>' +
                 '<div class="btn-row mt-2">' +
                 (t.registrationOpen ? '<a class="btn btn-primary" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>' : '') +
-                '<a class="btn btn-ghost" href="/registration/review.html?tournamentId=' + Number(t.tournamentId) + '">Quản lý đăng ký</a>' +
+                // Chỉ hiện cho đúng Ban tổ chức của giải này (khớp quyền thật ở API quản lý đăng ký) —
+                // trước đây hiện cho mọi người, bấm vào thì mới bị chặn, gây hiểu lầm là lỗi.
+                (organizedIds[t.tournamentId] ? '<a class="btn btn-ghost" href="/registration/review.html?tournamentId=' + Number(t.tournamentId) + '">Quản lý đăng ký</a>' : '') +
                 '</div></div>';
         });
         html += '</div>';
@@ -214,7 +217,16 @@
             setStat('stat-teams', summary.stats.teams);
             setStat('stat-players', summary.stats.players);
             setStat('stat-games', summary.stats.games);
-            renderFeatured(summary.featured);
+
+            // "Quản lý đăng ký" chỉ nên hiện cho đúng Ban tổ chức của giải đó — hỏi riêng
+            // (không gộp vào /api/home/summary, vì API đó dùng chung 1 cache 30s cho mọi người xem).
+            var organizedIds = {};
+            try {
+                var mine = await Api.get('/api/marketing/mine/tournaments');
+                (mine.data || mine || []).forEach(function (t) { organizedIds[t.tournamentId] = true; });
+            } catch (e) { /* chưa đăng nhập hoặc không phải Ban tổ chức — không hiện nút nào cả */ }
+
+            renderFeatured(summary.featured, organizedIds);
             renderTeams(summary.teams);
             renderGames(summary.games);
             renderNews(summary.news);
