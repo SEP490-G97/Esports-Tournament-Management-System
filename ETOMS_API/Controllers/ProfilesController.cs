@@ -39,6 +39,16 @@ public sealed class ProfilesController : ApiControllerBase
         return accessDenied ?? FromResult(await _profileService.UpdateProfileAsync(accountId, request, cancellationToken));
     }
 
+    // PRF-01: ảnh đại diện chọn từ máy (multipart, trường "file").
+    [HttpPost("{accountId:int}/avatar")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(3 * 1024 * 1024)]
+    public async Task<IActionResult> UploadAvatar(int accountId, IFormFile? file, CancellationToken cancellationToken)
+    {
+        var accessDenied = RequireOwner(accountId);
+        return accessDenied ?? FromResult(await _profileService.UploadAvatarAsync(accountId, file, cancellationToken));
+    }
+
     [HttpPut("{accountId:int}/games/{gameId:int}")]
     public async Task<IActionResult> UpsertGameAccount(
         int accountId,
@@ -88,7 +98,7 @@ public sealed class ProfilesController : ApiControllerBase
         }
 
         var file = result.Data!;
-        return File(_fileStorage.OpenRead(file.RelativePath), "application/octet-stream", file.FileName);
+        return PrivateFile(_fileStorage, file.RelativePath, file.FileName);
     }
 
     [HttpGet("{accountId:int}/public")]

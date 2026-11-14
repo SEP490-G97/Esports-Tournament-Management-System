@@ -36,7 +36,7 @@
         var confirmation = registrationId === null
             ? 'Gửi lời mời suất trống cho đội đầu tiên theo thứ tự FIFO? Đội trưởng có 24 giờ để xác nhận.'
             : 'Gửi lời mời suất trống cho đội đã chọn, kể cả khi không đứng đầu hàng chờ? Đội trưởng có 24 giờ để xác nhận.';
-        if (!window.confirm(confirmation)) return;
+        if (!(await window.etomsConfirm(confirmation, { title: 'Mời đội vào suất trống', okText: 'Gửi lời mời' }))) return;
         button.disabled = true;
         try {
             var response = await Api.post('/api/tournaments/' + context.tournamentId + '/waitlist/promote', {

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=role-20261115" />
+    <link rel="stylesheet" href="/css/site.css?v=align2-20261115" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -54,19 +54,29 @@
                     <form id="profile-form" novalidate>
                         <div class="field">
                             <label for="profile-full-name">Tên hiển thị <span class="req">*</span></label>
-                            <input id="profile-full-name" name="FullName" class="input" maxlength="150" autocomplete="name" required aria-describedby="profile-full-name-error" />
+                            <input id="profile-full-name" name="FullName" class="input" minlength="2" maxlength="100" autocomplete="name" required aria-describedby="profile-full-name-error" />
                             <span id="profile-full-name-error" class="field-error" data-field-error="FullName"></span>
                         </div>
                         <div class="field">
                             <label for="profile-avatar">Ảnh đại diện</label>
-                            <input id="profile-avatar" name="AvatarUrl" type="url" class="input" maxlength="500" placeholder="https://..." autocomplete="url" aria-describedby="profile-avatar-hint profile-avatar-error" />
-                            <span id="profile-avatar-hint" class="field-hint">Dán liên kết ảnh công khai bắt đầu bằng https://. Hiện chưa hỗ trợ tải ảnh lên.</span>
+                            <div class="profile-avatar-picker">
+                                <div id="profile-avatar-preview" class="profile-avatar profile-avatar-lg" aria-hidden="true">?</div>
+                                <div class="profile-avatar-actions">
+                                    <label class="btn btn-ghost btn-sm mb-0" for="profile-avatar-file">Chọn ảnh từ máy</label>
+                                    <input id="profile-avatar-file" type="file" accept="image/jpeg,image/png" hidden aria-describedby="profile-avatar-hint profile-avatar-file-error" />
+                                    <button type="button" class="btn btn-ghost btn-sm" id="profile-avatar-clear">Bỏ ảnh</button>
+                                </div>
+                            </div>
+                            <span id="profile-avatar-file-error" class="field-error" data-field-error="AvatarFile"></span>
+                            <input id="profile-avatar" name="AvatarUrl" type="url" class="input mt-2" maxlength="500" placeholder="Hoặc dán liên kết ảnh: https://..." autocomplete="url" aria-describedby="profile-avatar-hint profile-avatar-error" />
+                            <span id="profile-avatar-hint" class="field-hint">Ảnh JPG hoặc PNG, tối đa 2 MB, kích thước từ 64×64 đến 4096×4096 px. Hoặc dán liên kết trực tiếp tới một ảnh (http:// hoặc https://).</span>
                             <span id="profile-avatar-error" class="field-error" data-field-error="AvatarUrl"></span>
                         </div>
                         <div class="row">
                             <div class="col-md-6 field">
                                 <label for="profile-dob">Ngày sinh</label>
-                                <input id="profile-dob" name="DateOfBirth" type="date" class="input" autocomplete="bday" aria-describedby="profile-private-hint" />
+                                <input id="profile-dob" name="DateOfBirth" type="date" class="input" min="1900-01-01" autocomplete="bday" aria-describedby="profile-private-hint profile-dob-error" />
+                                <span id="profile-dob-error" class="field-error" data-field-error="DateOfBirth"></span>
                             </div>
                             <div class="col-md-6 field">
                                 <label for="profile-phone">Số điện thoại</label>
@@ -166,9 +176,9 @@
     <div id="confirm-modal-root"></div>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
-    <script src="/js/api.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=dlg-20261115"></script>
     <script src="/js/ui.js?v=login-20261115"></script>
-    <script src="/js/layout.js?v=role-20261115"></script>
-    <script src="/js/pages/profile.js?v=auth-20261114" defer></script>
+    <script src="/js/layout.js?v=side-20261115"></script>
+    <script src="/js/pages/profile.js?v=prf-20261115" defer></script>
 </body>
 </html>

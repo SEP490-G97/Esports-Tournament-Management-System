@@ -20,7 +20,7 @@
         return (item.lineup || []).map(function (member) {
             var documents = (member.identityDocumentCredentialIds || []).map(function (credentialId) {
                 return '<a href="/api/registrations/' + item.registrationId + '/players/' + member.accountId +
-                    '/identity-documents/' + credentialId + '">Mở giấy tờ định danh</a>';
+                    '/identity-documents/' + credentialId + '" data-private-file="giay-to-dinh-danh">Mở giấy tờ định danh</a>';
             }).join(' · ');
             return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(member.fullName) +
                 ' · ' + Ui.escapeHtml(member.slot === 'STARTER' ? 'Chính thức' : 'Dự bị') + '</div>' +
@@ -39,9 +39,11 @@
                 var history = response.data.disciplineHistory || [];
                 card.querySelector('.discipline-history').innerHTML = history.length
                     ? history.map(function (penalty) {
+                        var severity = { WARNING: 'Cảnh cáo', MINOR: 'Lỗi nhẹ', MAJOR: 'Lỗi nặng', DISQUALIFICATION: 'Tước quyền thi đấu', CANCELLATION: 'Hủy kết quả' }[penalty.severity] || penalty.severity;
+                        var state = { ACTIVE: 'Còn hiệu lực', EXPIRED: 'Hết hiệu lực', CANCELLED: 'Đã hủy' }[penalty.status] || penalty.status;
                         return '<div class="item-sub">' + Ui.escapeHtml(penalty.tournamentName) + ' · ' +
-                            Ui.escapeHtml(penalty.severity) + ' · ' + Number(penalty.points) + ' điểm · ' +
-                            Ui.escapeHtml(penalty.reason) + ' · ' + Ui.escapeHtml(penalty.status) + '</div>';
+                            Ui.escapeHtml(severity) + ' · ' + Number(penalty.points) + ' điểm · ' +
+                            Ui.escapeHtml(penalty.reason) + ' · ' + Ui.escapeHtml(state) + '</div>';
                     }).join('')
                     : '<div class="item-sub">Không có ghi nhận kỷ luật trước đây.</div>';
             } catch (error) {

@@ -11,10 +11,42 @@ public sealed class PrivateFileStorage
 
     private const long MaximumFileSize = 10 * 1024 * 1024;
     private readonly string _rootDirectory;
+    private readonly string _demoUploadsDirectory;
 
     public PrivateFileStorage(IWebHostEnvironment environment)
     {
         _rootDirectory = Path.Combine(environment.ContentRootPath, "App_Data", "private-uploads");
+        _demoUploadsDirectory = Path.Combine(environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"), "uploads");
+    }
+
+    // Mở tệp để tải về, hoặc null nếu không có trên máy chủ này. Hai nguồn:
+    //  - "/uploads/..." : tệp mẫu của dữ liệu demo (wwwroot/uploads, có trong git);
+    //  - còn lại        : tệp người dùng tải lên (App_Data/private-uploads, KHÔNG có trong git — máy
+    //                     khác máy đã tải lên sẽ không có tệp, phải báo rõ thay vì lỗi 500).
+    public FileStream? TryOpenRead(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)) return null;
+        var path = relativePath.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase)
+            ? Inside(_demoUploadsDirectory, relativePath["/uploads/".Length..])
+            : Inside(_rootDirectory, relativePath);
+        return path is not null && File.Exists(path)
+            ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)
+            : null;
+    }
+
+    public static string ContentTypeOf(string fileName) => Path.GetExtension(fileName).ToLowerInvariant() switch
+    {
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".png" => "image/png",
+        ".pdf" => "application/pdf",
+        _ => "application/octet-stream"
+    };
+
+    private static string? Inside(string root, string relativePath)
+    {
+        var fullPath = Path.GetFullPath(Path.Combine(root, relativePath.TrimStart('/', '\\')));
+        var rootWithSeparator = Path.GetFullPath(root) + Path.DirectorySeparatorChar;
+        return fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase) ? fullPath : null;
     }
 
     public async Task<StoredPrivateFile> SaveAsync(
@@ -62,9 +94,6 @@ public sealed class PrivateFileStorage
 
         return Task.CompletedTask;
     }
-
-    public FileStream OpenRead(string relativePath)
-        => new(ResolvePath(relativePath), FileMode.Open, FileAccess.Read, FileShare.Read);
 
     private string ResolvePath(string relativePath)
     {

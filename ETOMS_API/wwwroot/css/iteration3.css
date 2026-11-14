@@ -11,13 +11,19 @@
     border-radius: 1rem;
     background: var(--panel);
     padding: 1.25rem;
-    height: 100%;
+    /* Không đặt height:100% chung: 2 khung xếp chồng trong 1 cột sẽ tràn đè footer.
+       Khung cạnh nhau cần cao bằng nhau thì gắn thêm class h-100 trong HTML. */
 }
 
 .i3-metric {
     border-radius: .85rem;
     background: rgba(99, 102, 241, .1);
     padding: 1rem;
+}
+
+/* Ô nhập là phần tử cuối trong khung thì bỏ khoảng dưới của .field (tránh khung thừa chỗ trống). */
+.i3-surface > .field:last-child {
+    margin-bottom: 0;
 }
 
 .i3-table-wrap {
@@ -59,6 +65,13 @@
 
 .i3-toolbar .field {
     min-width: min(100%, 15rem);
+    margin-bottom: 0;          /* bỏ khoảng dưới của .field để nút thẳng hàng với đáy ô nhập */
+}
+
+/* Nút đứng cạnh ô nhập: cao bằng ô (.input/.select padding 12px + chữ .95rem + viền). */
+.i3-toolbar > .btn {
+    flex: none;
+    min-height: calc(.95rem * 1.5 + 26px);
 }
 
 .i3-brand {

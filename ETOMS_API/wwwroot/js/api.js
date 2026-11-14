@@ -62,6 +62,13 @@ var Api = (function () {
             }
         }
 
+        var res = await authedFetch(url, opts);
+        return { ok: res.ok, status: res.status, text: await res.text() };
+    }
+
+    // fetch kèm JWT, tự làm mới token 1 lần khi 401. Trả Response thô (dùng chung cho JSON lẫn tệp).
+    async function authedFetch(url, opts) {
+        opts = opts || { method: 'GET', credentials: 'same-origin', headers: {} };
         var hasAuth = !!(window.Auth && Auth.getAccessToken);
         function attempt() {
             var headers = Object.assign({}, opts.headers);
@@ -91,11 +98,34 @@ var Api = (function () {
         } catch (e) {
             throw { status: 0, message: 'Không kết nối được máy chủ. Vui lòng thử lại.', fieldErrors: {} };
         }
+        return res;
+    }
 
-        return { ok: res.ok, status: res.status, text: await res.text() };
+    // Tải tệp riêng tư (biên lai, giấy tờ) kèm token: link <a href="/api/..."> thường không gửi token.
+    async function openFile(url, fileName) {
+        var res = await authedFetch(url);
+        if (!res.ok) {
+            var json = await res.json().catch(function () { return null; });
+            throw { status: res.status, message: (json && json.message) || (res.status === 401
+                ? 'Phiên đăng nhập đã hết, vui lòng đăng nhập lại.' : 'Không mở được tệp.'), fieldErrors: {} };
+        }
+        var blob = await res.blob();
+        var objectUrl = URL.createObjectURL(blob);
+        // Ảnh/PDF mở tab mới để xem; trình duyệt chặn cửa sổ bật lên thì tải về thay thế.
+        var viewer = /^(image\/|application\/pdf)/.test(blob.type) ? window.open(objectUrl, '_blank') : null;
+        if (!viewer) {
+            var a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = fileName || 'tep-dinh-kem';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+        setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 60000);
     }
 
     return {
+        openFile: openFile,
         clearCache: function () { shared = {}; },
         get: function (url) { return request('GET', url); },
         post: function (url, body) { return request('POST', url, body, false); },

@@ -107,9 +107,7 @@
             event.preventDefault();
             var newChairAccountId = Number(document.getElementById('new-chair').value);
             if (!newChairAccountId) return;
-            var confirmed = window.etomsConfirm
-                ? await window.etomsConfirm('Xác nhận chuyển quyền chủ nhiệm? Quyền quản lý sẽ được chuyển sang thành viên đã chọn.')
-                : window.confirm('Xác nhận chuyển quyền chủ nhiệm? Quyền quản lý sẽ được chuyển sang thành viên đã chọn.');
+            var confirmed = await window.etomsConfirm('Xác nhận chuyển quyền chủ nhiệm? Quyền quản lý sẽ được chuyển sang thành viên đã chọn.', { title: 'Chuyển chủ nhiệm', okText: 'Chuyển quyền' });
             if (!confirmed) return;
             try {
                 var response = await Api.post('/api/organizations/' + organizationId + '/chair-transfer', { NewChairAccountId: newChairAccountId });
@@ -127,9 +125,7 @@
                 Ui.applyFieldErrors(suspensionForm, { Reason: 'Nhập lý do đình chỉ.' });
                 return;
             }
-            var confirmed = window.etomsConfirm
-                ? await window.etomsConfirm('Đình chỉ đơn vị này? Thao tác sẽ thay đổi trạng thái hoạt động và hiện không có nút khôi phục trong bản thử nghiệm.')
-                : window.confirm('Đình chỉ đơn vị này? Thao tác sẽ thay đổi trạng thái hoạt động và hiện không có nút khôi phục trong bản thử nghiệm.');
+            var confirmed = await window.etomsConfirm('Đình chỉ đơn vị này? Thao tác sẽ thay đổi trạng thái hoạt động và hiện không có nút khôi phục trong bản thử nghiệm.', { title: 'Đình chỉ đơn vị', okText: 'Đình chỉ' });
             if (!confirmed) return;
             try {
                 var response = await Api.post('/api/organizations/' + organizationId + '/suspension', { Reason: reason });

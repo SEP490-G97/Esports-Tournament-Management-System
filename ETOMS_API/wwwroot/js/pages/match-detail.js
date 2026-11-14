@@ -102,10 +102,12 @@
     }
 
     async function withReason(label, cb) {
-        var reason = prompt(label);
+        var reason = await window.etomsPrompt(label, {
+            title: 'Nhập lý do', placeholder: 'Lý do sẽ được ghi vào nhật ký trận đấu',
+            required: true, minLength: 5, maxLength: 500
+        });
         if (reason === null) return;
-        if (!reason.trim()) { Ui.showAlert(flash, 'danger', 'Vui lòng nhập lý do.'); return; }
-        cb(reason.trim());
+        cb(reason);
     }
 
     function wireActions(d) {

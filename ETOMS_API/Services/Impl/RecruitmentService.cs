@@ -8,6 +8,11 @@ namespace ETOMS_API.Services.Impl
 {
     public class RecruitmentService : IRecruitmentService
     {
+        // Giá trị PostType theo CHECK của lược đồ (CK_RecruitmentPost_Type). API/giao diện vẫn dùng
+        // mã ngắn LFP/LFT; trước đây ghi thẳng "LFP"/"LFT" nên DB từ chối mọi tin đăng.
+        private const string PostLookingForPlayer = "LOOKING_FOR_PLAYER";
+        private const string PostLookingForTeam = "LOOKING_FOR_TEAM";
+
         private readonly EtomsDbContext _context;
 
         public RecruitmentService(EtomsDbContext context)
@@ -37,7 +42,7 @@ namespace ETOMS_API.Services.Impl
 
             var post = new RecruitmentPost
             {
-                PostType = "LFP",
+                PostType = PostLookingForPlayer,
                 TeamId = dto.TeamId,
                 AuthorAccountId = accountId,
                 GameId = team.GameId,
@@ -61,17 +66,17 @@ namespace ETOMS_API.Services.Impl
                 throw new InvalidOperationException("Bạn chưa cập nhật thông tin In-game (IGN) cho Game này.");
 
             var oldPosts = await _context.RecruitmentPosts
-                .Where(p => p.AuthorAccountId == accountId && p.PostType == "LFT" && p.GameId == dto.GameId && p.Status == "OPEN")
+                .Where(p => p.AuthorAccountId == accountId && p.PostType == PostLookingForTeam && p.GameId == dto.GameId && p.Status == "OPEN")
                 .ToListAsync();
 
             foreach (var oldPost in oldPosts)
             {
-                oldPost.Status = "EXPIRED";
+                oldPost.Status = "CLOSED";   // CK_RecruitmentPost_Status chỉ cho OPEN/CLOSED; tin mới thay tin cũ
             }
 
             var post = new RecruitmentPost
             {
-                PostType = "LFT",
+                PostType = PostLookingForTeam,
                 AuthorAccountId = accountId,
                 GameId = dto.GameId,
                 Title = $"[LFT] Tìm đội thi đấu - Vị trí {dto.PreferredRole} ({dto.CurrentRank})",
@@ -88,11 +93,16 @@ namespace ETOMS_API.Services.Impl
         // FA-03: Bảng tin Tuyển quân - Join trực tiếp bảng Game & Team lấy Tên thật
         public async Task<object> GetRecruitmentBoardAsync(RecruitmentBoardQueryDto query)
         {
+            // Tham số trên URL do client gửi: chặn trang <= 0 (Skip âm -> lỗi 500) và trang quá lớn.
+            var postType = query.PostType == "LFT" ? PostLookingForTeam : PostLookingForPlayer;
+            query.PageIndex = Math.Max(1, query.PageIndex);
+            query.PageSize = Math.Clamp(query.PageSize, 1, 50);
+
             var postsQuery = _context.RecruitmentPosts
                 .Include(p => p.AuthorAccount)
                 .Include(p => p.Team)
                 .Include(p => p.Game) // Join thêm bảng Game
-                .Where(p => p.Status == "OPEN" && p.PostType == query.PostType)
+                .Where(p => p.Status == "OPEN" && p.PostType == postType)
                 .AsQueryable();
 
             if (query.GameId.HasValue)
@@ -112,10 +122,11 @@ namespace ETOMS_API.Services.Impl
                 .Select(p => new
                 {
                     PostId = p.RecruitmentPostId,
-                    p.PostType,
+                    PostType = p.PostType == PostLookingForTeam ? "LFT" : "LFP",
                     p.Title,
                     p.Content,
                     p.HighlightUrl,
+                    p.AuthorAccountId,
                     AuthorName = p.AuthorAccount.FullName,
                     AuthorAvatar = p.AuthorAccount.AvatarUrl,
                     TeamName = p.Team != null ? p.Team.Name : null,
@@ -140,10 +151,15 @@ namespace ETOMS_API.Services.Impl
             if (post == null || !post.TeamId.HasValue || post.Team is null)
                 throw new KeyNotFoundException("Bài đăng tuyển không tồn tại hoặc đã đóng.");
 
+            var alreadyInThisTeam = await _context.TeamMembers
+                .AnyAsync(tm => tm.AccountId == accountId && tm.Status == "ACTIVE" && tm.TeamId == post.TeamId);
+            if (alreadyInThisTeam)
+                throw new InvalidOperationException("Bạn đã là thành viên của đội này.");
+
             var inAnotherTeam = await _context.TeamMembers
                 .AnyAsync(tm => tm.AccountId == accountId && tm.Status == "ACTIVE" && tm.Team.GameId == post.Team.GameId);
             if (inAnotherTeam)
-                throw new InvalidOperationException("Bạn đã tham gia một đội tuyển khác của Game này.");
+                throw new InvalidOperationException("Bạn đã tham gia một đội tuyển khác của tựa game này (mỗi tựa game chỉ được ở một đội).");
 
             var existingMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.TeamId == post.TeamId && tm.AccountId == accountId && tm.Status == "PENDING");
@@ -153,6 +169,7 @@ namespace ETOMS_API.Services.Impl
             var pendingMember = new TeamMember
             {
                 TeamId = post.TeamId.Value,
+                GameId = post.Team.GameId,   // cột bắt buộc (FK + chỉ mục "mỗi tựa game một đội")
                 AccountId = accountId,
                 Slot = "STARTER",
                 Status = "PENDING",
@@ -248,9 +265,20 @@ namespace ETOMS_API.Services.Impl
             if (team.CaptainAccountId != captainAccountId)
                 throw new UnauthorizedAccessException("Bạn không phải Đội trưởng của đội này.");
 
+            var player = await _context.Accounts.FindAsync(dto.PlayerAccountId);
+            if (player == null || player.Status != "ACTIVE" || player.Role != "PLAYER")
+                throw new KeyNotFoundException("Không tìm thấy tuyển thủ được mời.");
+            if (dto.PlayerAccountId == captainAccountId)
+                throw new InvalidOperationException("Không thể tự mời chính mình.");
+            if (await _context.TeamMembers.AnyAsync(tm => tm.AccountId == dto.PlayerAccountId && tm.Status == "ACTIVE" && tm.GameId == team.GameId))
+                throw new InvalidOperationException("Tuyển thủ này đã ở một đội của tựa game này.");
+            if (await _context.TeamMembers.AnyAsync(tm => tm.AccountId == dto.PlayerAccountId && tm.TeamId == dto.TeamId && tm.Status == "PENDING"))
+                throw new InvalidOperationException("Đã có lời mời/đơn đang chờ giữa đội và tuyển thủ này.");
+
             var inviteMember = new TeamMember
             {
                 TeamId = dto.TeamId,
+                GameId = team.GameId,
                 AccountId = dto.PlayerAccountId,
                 Slot = "STARTER",
                 Status = "PENDING",

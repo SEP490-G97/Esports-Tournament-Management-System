@@ -15,17 +15,106 @@
         root.innerHTML = '<div class="feature-list">' + items.map(renderer).join('') + '</div>';
     }
 
+    // Ảnh đại diện hiện tại: "/uploads/avatars/..." (tải từ máy) hoặc link ngoài; null = không có ảnh.
+    var currentAvatar = null;
+    var AVATAR_PREFIX = '/uploads/avatars/';
+
+    function avatarHtml(url, name) {
+        var safe = Ui.safeUrl(url);
+        return safe ? '<img src="' + Ui.escapeHtml(safe) + '" alt="" />'
+            : Ui.escapeHtml((name || 'P').trim().slice(0, 1).toUpperCase());
+    }
+
+    function renderAvatar(url) {
+        var name = document.getElementById('profile-full-name').value;
+        document.getElementById('profile-avatar-preview').innerHTML = avatarHtml(url, name);
+        document.getElementById('profile-nav-avatar').innerHTML = avatarHtml(url, name);
+    }
+
+    // Trình duyệt tải thử ảnh: link không phải ảnh (vd trang tìm kiếm Google) hoặc chết thì báo lỗi.
+    function imageLoads(url) {
+        return new Promise(function (resolve) {
+            var img = new Image();
+            var timer = setTimeout(function () { resolve(false); }, 8000);
+            img.onload = function () { clearTimeout(timer); resolve(img.naturalWidth > 0); };
+            img.onerror = function () { clearTimeout(timer); resolve(false); };
+            img.src = url;
+        });
+    }
+
+    function readImageSize(file) {
+        return new Promise(function (resolve) {
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+            img.onload = function () { URL.revokeObjectURL(url); resolve({ w: img.naturalWidth, h: img.naturalHeight }); };
+            img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+            img.src = url;
+        });
+    }
+
+    async function uploadAvatar(file, form) {
+        Ui.clearFieldErrors(form);
+        var errors = {};
+        if (['image/jpeg', 'image/png'].indexOf(file.type) < 0) errors.AvatarFile = 'Chỉ nhận ảnh JPG hoặc PNG.';
+        else if (file.size > 2 * 1024 * 1024) errors.AvatarFile = 'Ảnh tối đa 2 MB (ảnh của bạn ' + (file.size / 1048576).toFixed(1) + ' MB).';
+        else {
+            var size = await readImageSize(file);
+            if (!size) errors.AvatarFile = 'Không đọc được ảnh — tệp có thể bị hỏng.';
+            else if (size.w < 64 || size.h < 64 || size.w > 4096 || size.h > 4096)
+                errors.AvatarFile = 'Kích thước ảnh phải từ 64×64 đến 4096×4096 px (ảnh của bạn ' + size.w + '×' + size.h + ' px).';
+        }
+        if (errors.AvatarFile) { Ui.applyFieldErrors(form, errors); return; }
+
+        var body = new FormData();
+        body.append('file', file);
+        try {
+            var result = await Api.postForm('/api/profiles/' + accountId + '/avatar', body);
+            currentAvatar = result.data.avatarUrl;
+            document.getElementById('profile-avatar').value = '';
+            renderAvatar(currentAvatar);
+            Ui.showAlert(flash, 'success', result.message || 'Đã cập nhật ảnh đại diện.');
+            loadPublicProfile();
+        } catch (error) {
+            Ui.applyFieldErrors(form, error.fieldErrors);
+            showError(flash, error, 'Không tải được ảnh lên.');
+        }
+    }
+
+    // Cùng luật với ProfileService.UpdateProfileAsync.
+    function validateProfile(form, body) {
+        var errors = {};
+        var name = (body.FullName || '').trim();
+        if (name.length < 2 || name.length > 100) errors.FullName = 'Tên hiển thị phải từ 2 đến 100 ký tự.';
+        if (body.Phone && !/^0\d{9,10}$/.test(body.Phone)) errors.Phone = 'Số điện thoại không hợp lệ (phải bắt đầu bằng 0, 10-11 chữ số).';
+        if (body.DateOfBirth) {
+            var dob = new Date(body.DateOfBirth + 'T00:00:00'), now = new Date();
+            var age = now.getFullYear() - dob.getFullYear() - ((now.getMonth() < dob.getMonth() || (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate())) ? 1 : 0);
+            if (isNaN(dob.getTime()) || dob.getFullYear() < 1900) errors.DateOfBirth = 'Ngày sinh không hợp lệ.';
+            else if (dob > now) errors.DateOfBirth = 'Ngày sinh không được ở tương lai.';
+            else if (age < 18) errors.DateOfBirth = 'Bạn phải đủ 18 tuổi (cùng quy định với lúc đăng ký).';
+        }
+        if (body.SocialLinks) {
+            var lines = body.SocialLinks.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+            var bad = lines.filter(function (l) { return !/^https?:\/\/\S+\.\S+/i.test(l); })[0];
+            if (lines.length > 10) errors.SocialLinks = 'Tối đa 10 liên kết mạng xã hội.';
+            else if (bad) errors.SocialLinks = 'Liên kết "' + bad.slice(0, 40) + '" không hợp lệ — mỗi dòng phải bắt đầu bằng http:// hoặc https://.';
+        }
+        if (body.AvatarUrl && body.AvatarUrl.indexOf(AVATAR_PREFIX) !== 0 && !/^https?:\/\/\S+\.\S+/i.test(body.AvatarUrl))
+            errors.AvatarUrl = 'Ảnh đại diện phải là liên kết bắt đầu bằng http:// hoặc https://, hoặc chọn ảnh từ máy.';
+        Ui.applyFieldErrors(form, errors);
+        return Object.keys(errors).length === 0;
+    }
+
     async function loadProfile() {
         var response = await Api.get('/api/profiles/' + accountId);
         var profile = response.data;
         document.getElementById('profile-email').textContent = profile.email || '';
         document.getElementById('profile-nav-name').textContent = profile.fullName || 'Người chơi';
-        var avatarUrl = Ui.safeUrl(profile.avatarUrl);
-        document.getElementById('profile-nav-avatar').innerHTML = avatarUrl
-            ? '<img src="' + Ui.escapeHtml(avatarUrl) + '" alt="" />'
-            : Ui.escapeHtml((profile.fullName || 'P').trim().slice(0, 1).toUpperCase());
         document.getElementById('profile-full-name').value = profile.fullName || '';
-        document.getElementById('profile-avatar').value = profile.avatarUrl || '';
+        currentAvatar = profile.avatarUrl || null;
+        renderAvatar(currentAvatar);
+        // Ô link chỉ hiện link ngoài; ảnh đã tải lên thì để trống (giữ nguyên khi lưu).
+        document.getElementById('profile-avatar').value = currentAvatar && currentAvatar.indexOf(AVATAR_PREFIX) !== 0 ? currentAvatar : '';
         document.getElementById('profile-dob').value = profile.dateOfBirth || '';
         document.getElementById('profile-phone').value = profile.phone || '';
         document.getElementById('profile-social').value = profile.socialLinks || '';
@@ -67,7 +156,7 @@
         var response = await Api.get('/api/profiles/' + accountId + '/identity-documents');
         var documents = response.data;
         renderList(document.getElementById('identity-documents'), documents, 'Chưa có giấy tờ xác minh.', function (doc) {
-            return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(doc.credentialTypeLabel || doc.credentialType) + '</div><div class="item-sub">Đã gửi ' + Ui.escapeHtml(new Date(doc.createdAt).toLocaleString('vi-VN')) + '</div></div><a class="btn btn-ghost btn-sm" href="/api/profiles/' + accountId + '/identity-documents/' + Number(doc.credentialId) + '/file">Tải bản đã gửi</a></div>';
+            return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(doc.credentialTypeLabel || doc.credentialType) + '</div><div class="item-sub">Đã gửi ' + Ui.escapeHtml(new Date(doc.createdAt).toLocaleString('vi-VN')) + '</div></div><a class="btn btn-ghost btn-sm" href="/api/profiles/' + accountId + '/identity-documents/' + Number(doc.credentialId) + '/file" data-private-file="giay-to-dinh-danh">Xem bản đã gửi</a></div>';
         });
     }
 
@@ -113,24 +202,48 @@
 
     function wireForms() {
         var form = document.getElementById('profile-form');
+        document.getElementById('profile-avatar-file').addEventListener('change', function (event) {
+            var file = event.target.files && event.target.files[0];
+            event.target.value = '';                       // chọn lại cùng tệp vẫn kích hoạt change
+            if (file) uploadAvatar(file, form);
+        });
+        document.getElementById('profile-avatar-clear').addEventListener('click', function () {
+            currentAvatar = null;
+            document.getElementById('profile-avatar').value = '';
+            renderAvatar(null);
+            Ui.showAlert(flash, 'success', 'Đã bỏ ảnh — bấm "Lưu thông tin" để áp dụng.');
+        });
+
         form.addEventListener('submit', async function (event) {
             event.preventDefault();
             Ui.clearFieldErrors(form);
+            Ui.clearAlert(flash);
+            var submit = form.querySelector('button[type="submit"]');
             try {
                 var data = new FormData(form);
+                var linked = (data.get('AvatarUrl') || '').trim();
                 var body = {
-                    FullName: data.get('FullName'),
-                    AvatarUrl: data.get('AvatarUrl') || null,
+                    FullName: (data.get('FullName') || '').trim(),
+                    AvatarUrl: linked || (currentAvatar && currentAvatar.indexOf(AVATAR_PREFIX) === 0 ? currentAvatar : null),
                     DateOfBirth: data.get('DateOfBirth') || null,
-                    Phone: data.get('Phone') || null,
-                    SocialLinks: data.get('SocialLinks') || null
+                    Phone: (data.get('Phone') || '').trim() || null,
+                    SocialLinks: (data.get('SocialLinks') || '').trim() || null
                 };
+                if (!validateProfile(form, body)) { showError(flash, null, 'Vui lòng sửa các ô được đánh dấu.'); return; }
+                submit.disabled = true;
+                if (linked && !(await imageLoads(linked))) {
+                    Ui.applyFieldErrors(form, { AvatarUrl: 'Không tải được ảnh từ liên kết này — hãy dùng liên kết trực tiếp tới tệp ảnh (thường kết thúc bằng .jpg, .png) hoặc chọn ảnh từ máy.' });
+                    showError(flash, null, 'Vui lòng sửa các ô được đánh dấu.');
+                    return;
+                }
                 var result = await Api.put('/api/profiles/' + accountId, body);
                 Ui.showAlert(flash, 'success', result.message || 'Đã cập nhật hồ sơ.');
                 await Promise.all([loadProfile(), loadPublicProfile()]);
             } catch (error) {
                 Ui.applyFieldErrors(form, error.fieldErrors);
                 showError(flash, error, 'Không thể cập nhật hồ sơ.');
+            } finally {
+                submit.disabled = false;
             }
         });
 
@@ -144,9 +257,14 @@
                 Ui.applyFieldErrors(gameForm, { GameId: 'Vui lòng chọn tựa game.' });
                 return;
             }
+            var ign = document.getElementById('in-game-name').value.trim();
+            if (ign.length < 2 || ign.length > 150) {
+                Ui.applyFieldErrors(gameForm, { InGameName: 'Tên trong game phải từ 2 đến 150 ký tự.' });
+                return;
+            }
             try {
                 var result = await Api.put('/api/profiles/' + accountId + '/games/' + gameId, {
-                    InGameName: document.getElementById('in-game-name').value
+                    InGameName: ign
                 });
                 Ui.showAlert(flash, 'success', result.message || 'Đã lưu tài khoản game.');
                 await loadGames();
@@ -229,6 +347,7 @@
     document.addEventListener('DOMContentLoaded', async function () {
         wireSectionNavigation();
         flash = document.getElementById('profile-flash');
+        document.getElementById('profile-dob').max = new Date().toISOString().slice(0, 10);
         var me = await Ui.requireAuth();
         if (!me) return;
         accountId = Number(me.userId);

@@ -13,14 +13,19 @@
         return fmt === 'ROUND_ROBIN' ? 'Thể thức vòng tròn' : fmt === 'DOUBLE_ELIMINATION' ? 'Loại kép' : 'Loại trực tiếp';
     }
 
+    // Tiêu đề nằm cố định trong HTML (thanh tab của giải chèn ngay dưới) — chỉ điền chữ.
+    function setHead(tree) {
+        document.getElementById('page-title').textContent = tree.tournamentName;
+        document.getElementById('page-sub').innerHTML = Ui.escapeHtml(formatLabel(tree.format)) +
+            (tree.isLocked ? '<span class="badge badge-active ms-2">Đã khóa nhánh</span>' : '');
+    }
+
     function render(tree) {
         var root = document.getElementById('bracket-root');
 
         if (!tree.hasBracket) {
+            setHead(tree);
             root.innerHTML =
-                '<div class="eyebrow">Nhánh đấu · BRK-10</div>' +
-                '<div class="page-head"><h1>' + Ui.escapeHtml(tree.tournamentName) + '</h1>' +
-                '<p>' + formatLabel(tree.format) + (tree.isLocked ? '<span class="badge badge-active ms-2">Đã khóa nhánh</span>' : '') + '</p></div>' +
                 '<div class="card-etoms"><div class="empty"><h3>Giải chưa sinh nhánh đấu</h3><p>Quay lại khi ban tổ chức đã sinh nhánh.</p></div></div>';
             return;
         }
@@ -47,10 +52,8 @@
             groupsHtml += '</div>';
         });
 
+        setHead(tree);
         root.innerHTML =
-            '<div class="eyebrow">Nhánh đấu · BRK-10</div>' +
-            '<div class="page-head"><h1>' + Ui.escapeHtml(tree.tournamentName) + '</h1>' +
-            '<p>' + formatLabel(tree.format) + (tree.isLocked ? '<span class="badge badge-active ms-2">Đã khóa nhánh</span>' : '') + '</p></div>' +
             '<div class="alert alert-info-etoms">Đây là sơ đồ tóm tắt. Muốn kéo, phóng to, lọc theo đội hoặc xem hành trình của đội, mở <a class="back-link" href="/tournament/bracket.html' + location.search + '">nhánh đấu tương tác</a>.</div>' +
             (knockout.length > 0 ? '<div id="knockout-tree"></div>' : '') +
             groupsHtml;

@@ -315,6 +315,9 @@ input[type=file].input { padding: 9px 12px; color: var(--muted); }
 .modal-title { font-weight: 800; font-size: 1.15rem; margin-bottom: 8px; }
 .modal-msg { color: var(--muted); margin-bottom: 24px; line-height: 1.55; }
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+.modal-field { margin: -12px 0 20px; }
+.modal-field .input { width: 100%; resize: vertical; }
+.modal-field .field-error { min-height: 1.2em; margin-top: 6px; }
 
 
 /* ===================== TRANG CHỦ ===================== */
@@ -367,12 +370,14 @@ body { overflow-x: hidden; }
 /* --- Giải đấu nổi bật --- */
 .feat-card { background: linear-gradient(180deg, var(--panel), var(--bg-2)); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; transition: .18s; }
 .feat-card:hover { transform: translateY(-4px); border-color: var(--primary); box-shadow: var(--shadow); }
+.btn-row.feat-actions { margin-top: 10px; position: relative; z-index: 1; min-height: 34px; flex-wrap: nowrap; }
+.feat-actions .btn { white-space: nowrap; }
 .feat-cover { height: 140px; background: linear-gradient(135deg, #1a2740, #223056); position: relative; display: flex; align-items: flex-start; justify-content: space-between; padding: 14px; }
 .feat-game { margin-left: auto; align-self: flex-end; background: rgba(0,0,0,.4); color: #cfe0ff; font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 8px; }
 .feat-body { padding: 20px; }
 .feat-name { font-weight: 800; font-size: 1.1rem; margin-bottom: 14px; }
 .feat-meta { display: flex; justify-content: space-between; gap: 10px; }
-.feat-meta .k { display: block; font-size: .72rem; color: var(--muted-2); text-transform: uppercase; letter-spacing: .5px; }
+.feat-meta .k { display: block; white-space: nowrap; font-size: .72rem; color: var(--muted-2); text-transform: uppercase; letter-spacing: .5px; }
 .feat-meta .v { font-weight: 800; font-size: 1.05rem; }
 .feat-meta .v.accent { color: var(--cyan); }
 .feat-bar { height: 7px; background: var(--panel-2); border-radius: 99px; margin-top: 16px; overflow: hidden; }
@@ -539,6 +544,8 @@ body { overflow-x: hidden; }
 .inline-form { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
 .inline-form .field { flex: 1; min-width: 160px; margin: 0; }
 .inline-form .btn { flex: none; }
+/* Nút đứng cạnh ô nhập cao bằng ô (.input/.select: padding 12px ×2 + chữ .95rem × 1.5 + viền 2px). */
+.inline-form .btn, .profile-game-form .btn { min-height: calc(.95rem * 1.5 + 26px); }
 .stat-card .num small { font-size: .9rem; color: var(--muted); }
 @media (max-width: 760px) {
   .feature-grid { grid-template-columns: 1fr; }
@@ -565,6 +572,9 @@ body { overflow-x: hidden; }
 .profile-account-card { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .profile-avatar { width: 44px; height: 44px; display: grid; place-items: center; flex: none; border-radius: 13px; color: #fff; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--cyan)); }
 .profile-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.profile-avatar-lg { width: 72px; height: 72px; font-size: 1.6rem; border-radius: 18px; }
+.profile-avatar-picker { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.profile-avatar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .profile-account-copy { display: grid; min-width: 0; gap: 2px; }
 .profile-account-copy strong, .profile-account-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-account-copy strong { font-size: .92rem; }
@@ -631,6 +641,7 @@ body { overflow-x: hidden; }
 
 .back-link { color: var(--info-ink); font-weight: 700; font-size: .88rem; }
 .back-link:hover { color: var(--cyan); }
+.back-link-auto { display: inline-block; margin-bottom: 12px; }
 .organization-management { display: grid; gap: 18px; margin-top: 42px; }
 .management-heading { padding-bottom: 14px; border-bottom: 1px solid var(--border); }
 .management-members { min-width: 0; }
@@ -1043,6 +1054,27 @@ h1, h2, h3, .section-title, .sec-head h2 { font-family: var(--font-display); fon
 .tour-subnav .tag { flex: none; align-self: center; padding: 0 6px; font-size: .64rem; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--gold); }
 .tour-subnav a:focus-visible { outline: 3px solid var(--cyan); outline-offset: 1px; }
 
+/* ---- Ban tổ chức: menu giải thành cột bên trái, chia nhóm ---- */
+.tour-shell { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.tour-content { min-width: 0; }
+.tour-sidenav { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 10px; }
+.tour-sidenav .grp + .grp { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-soft); }
+.tour-sidenav .grp-title { padding: 2px 10px 6px; font-size: .66rem; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--gold); }
+.tour-sidenav a { display: block; padding: 8px 10px; border-radius: 9px; color: var(--muted); font-size: .88rem; font-weight: 700; }
+.tour-sidenav a:hover { color: var(--ink); background: var(--primary-050); }
+.tour-sidenav a.active { color: var(--ink); background: var(--primary-050); box-shadow: inset 3px 0 0 var(--cyan); }
+.tour-sidenav a:focus-visible { outline: 3px solid var(--cyan); outline-offset: 1px; }
+@media (min-width: 992px) {
+  .tour-shell { grid-template-columns: 230px minmax(0, 1fr); align-items: start; }
+  .tour-sidenav { position: sticky; top: 84px; max-height: calc(100vh - 100px); overflow-y: auto; }
+}
+/* Điện thoại: mỗi nhóm thành một hàng cuộn ngang */
+@media (max-width: 991.98px) {
+  .tour-sidenav .grp { display: flex; gap: 4px; overflow-x: auto; align-items: center; scrollbar-width: thin; }
+  .tour-sidenav .grp-title { flex: none; padding: 0 8px 0 4px; }
+  .tour-sidenav a { flex: none; white-space: nowrap; }
+}
+
 .alert-info-etoms { background: var(--primary-050); color: var(--info-ink); border-color: rgba(59,108,255,.35); }
 .alert-warn-etoms { background: rgba(246,167,35,.1); color: var(--warn); border-color: rgba(246,167,35,.3); }
 
@@ -1196,6 +1228,16 @@ html[data-role="GUEST"] [data-hide-roles~="GUEST"],
 html[data-role="PLAYER"] [data-hide-roles~="PLAYER"],
 html[data-role="ORGANIZER"] [data-hide-roles~="ORGANIZER"],
 html[data-role="ADMIN"] [data-hide-roles~="ADMIN"] { display: none !important; }
+
+/* Trang Tìm đội: 2 bảng tin LFP / LFT riêng */
+.fa-layout { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 992px) { .fa-layout { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
+html[data-role="ORGANIZER"] .fa-layout, html[data-role="ADMIN"] .fa-layout { grid-template-columns: minmax(0, 1fr); }
+.fa-post { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.fa-post + .fa-post { margin-top: 12px; }
+.fa-post h4 { color: var(--ink); margin: 6px 0 4px; font-size: 1.05rem; font-weight: 700; }
+.fa-post p { color: var(--muted); font-size: .9rem; margin: 4px 0; white-space: pre-line; overflow-wrap: anywhere; }
+.fa-post small { color: var(--muted-2); }
 
 /* Chế độ đổi chỗ đội của Ban tổ chức */
 .bk-team.swap { cursor: grab; outline: 1px dashed var(--primary); outline-offset: -3px; }

@@ -52,7 +52,7 @@
             var paymentRecords = (item.paymentRecords || []).map(function (record) {
                 return '<div class="item-sub">' + Ui.escapeHtml(record.recordKind === 'REFUND' ? 'Hoàn tiền' : 'Biên lai') +
                     (record.declaredAmount !== null ? ' · ' + Number(record.declaredAmount).toLocaleString('vi-VN') + ' đ' : '') +
-                    (record.downloadUrl ? ' · <a href="' + Ui.escapeHtml(record.downloadUrl) + '">Tải tệp</a>' : '') +
+                    (record.downloadUrl ? ' · <a href="' + Ui.escapeHtml(record.downloadUrl) + '" data-private-file="' + Ui.escapeHtml(record.fileName || 'bien-lai') + '">Xem tệp</a>' : '') +
                     (record.note ? ' · ' + Ui.escapeHtml(record.note) : '') + '</div>';
             }).join('');
             var offer = item.waitlistExpiresAt
@@ -102,7 +102,8 @@
         });
         root.querySelectorAll('[data-withdraw]').forEach(function (button) {
             button.addEventListener('click', async function () {
-                if (!window.confirm('Rút đơn sẽ giải phóng suất và không thể khôi phục. Bạn có muốn tiếp tục?')) return;
+                if (!(await window.etomsConfirm('Rút đơn sẽ giải phóng suất và không thể khôi phục. Bạn có muốn tiếp tục?',
+                    { title: 'Rút đơn đăng ký', okText: 'Rút đơn' }))) return;
                 button.disabled = true;
                 try {
                     var result = await Api.post('/api/registrations/' + button.dataset.withdraw + '/withdraw', {});

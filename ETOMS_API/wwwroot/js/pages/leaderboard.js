@@ -12,7 +12,7 @@
             return '<tr><td>#' + entry.rank + '</td><td>' + logo +
                 '<a href="/rankings/team.html?teamId=' + entry.teamId + '">' +
                 Ui.escapeHtml(entry.teamName) + ' [' + Ui.escapeHtml(entry.teamTag) + ']</a></td>' +
-                '<td>' + Ui.escapeHtml(entry.gameName) + '</td><td>' + entry.season + '</td>' +
+                '<td>' + Ui.escapeHtml(entry.gameName) + '</td><td>' + (entry.season ? Ui.escapeHtml(String(entry.season)) : 'Tất cả mùa') + '</td>' +
                 '<td>' + entry.tournamentPlayed + '</td><td>' + entry.titleCount + '</td>' +
                 '<td><strong>' + entry.achievementPoint + '</strong></td></tr>';
         }).join('') : '<tr><td colspan="7">Chưa có thành tích đã chốt phù hợp bộ lọc.</td></tr>';

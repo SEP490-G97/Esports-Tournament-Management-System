@@ -16,7 +16,7 @@
                 (record.declaredAmount !== null
                     ? ' · ' + Number(record.declaredAmount).toLocaleString('vi-VN') + ' đ'
                     : '') +
-                (record.downloadUrl ? ' · <a href="' + Ui.escapeHtml(record.downloadUrl) + '">Mở tệp</a>' : '') +
+                (record.downloadUrl ? ' · <a href="' + Ui.escapeHtml(record.downloadUrl) + '" data-private-file="' + Ui.escapeHtml(record.fileName || 'bien-lai') + '">Mở tệp</a>' : '') +
                 (record.note ? ' · ' + Ui.escapeHtml(record.note) : '') +
                 '</div>';
         }).join('');

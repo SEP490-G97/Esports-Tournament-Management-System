@@ -37,14 +37,18 @@
             });
         });
 
-        document.getElementById('rte-link').addEventListener('click', function () {
-            var url = window.prompt('Nhập địa chỉ liên kết (bắt đầu bằng http:// hoặc https://):', 'https://');
+        document.getElementById('rte-link').addEventListener('click', async function () {
+            // Hộp thoại lấy mất vùng chọn trong trình soạn — nhớ lại để chèn liên kết đúng chỗ.
+            var sel = window.getSelection();
+            var range = sel.rangeCount && editor.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
+            var url = await window.etomsPrompt('Nhập địa chỉ liên kết:', {
+                title: 'Chèn liên kết', defaultValue: 'https://', multiline: false, maxLength: 500,
+                pattern: /^https?:\/\/[^\s]+\.[^\s]+$/i,
+                patternMessage: 'Liên kết phải bắt đầu bằng http:// hoặc https:// và là địa chỉ hợp lệ.'
+            });
             if (!url) return;
-            if (!/^https?:\/\//i.test(url)) {
-                Ui.showAlert(document.getElementById('flash'), 'danger', 'Liên kết phải bắt đầu bằng http:// hoặc https://.');
-                return;
-            }
             editor.focus();
+            if (range) { sel.removeAllRanges(); sel.addRange(range); }
             document.execCommand('createLink', false, url);
         });
 

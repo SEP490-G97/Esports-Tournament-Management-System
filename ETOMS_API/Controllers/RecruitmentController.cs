@@ -1,5 +1,6 @@
 ﻿using ETOMS_API.DTOs.Recruitment;
 using ETOMS_API.Services.Interface;
+using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -38,7 +39,7 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
 
@@ -53,7 +54,7 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
 
@@ -76,7 +77,7 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
 
@@ -91,7 +92,7 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
 
@@ -106,7 +107,7 @@ namespace ETOMS_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
     }

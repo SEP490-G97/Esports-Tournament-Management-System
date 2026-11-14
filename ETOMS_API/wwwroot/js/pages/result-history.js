@@ -41,7 +41,7 @@
         }
 
         root.innerHTML =
-            '<div class="eyebrow">Kết quả &amp; Khiếu nại · RES-09</div>' +
+            '<div class="eyebrow">Kết quả &amp; Khiếu nại · Lịch sử phán quyết</div>' +
             '<div class="page-head"><h1>Lịch sử phán quyết</h1><p><strong class="text-ink">' + Ui.escapeHtml(trail.teamAName) + '</strong> vs <strong class="text-ink">' + Ui.escapeHtml(trail.teamBName) + '</strong></p></div>' +
             '<div class="btn-row mb-4"><a class="btn btn-ghost" href="/result/evidence.html?matchId=' + matchId + '">Xem minh chứng</a></div>' +
             eventsHtml + appealBlock;

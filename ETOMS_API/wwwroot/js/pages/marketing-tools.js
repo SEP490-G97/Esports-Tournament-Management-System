@@ -1,4 +1,5 @@
 (function () {
+    var STATUS_LABELS = { DRAFT: 'Bản nháp', PUBLISHED: 'Sắp diễn ra', ONGOING: 'Đang diễn ra', COMPLETED: 'Đã kết thúc', CANCELLED: 'Đã hủy' };
     var tournamentSelect = document.getElementById('marketing-tournament');
     var affiliateSelect = document.getElementById('qr-affiliate-code');
     var flash = document.getElementById('marketing-flash');
@@ -36,7 +37,11 @@
                     await navigator.clipboard.writeText(button.dataset.url);
                     Ui.showAlert(flash, 'success', 'Đã sao chép liên kết.');
                 } catch (_) {
-                    window.prompt('Sao chép liên kết này:', button.dataset.url);
+                    // Trình duyệt chặn clipboard (vd trang không chạy HTTPS): hiện liên kết để người dùng tự chép.
+                    await window.etomsPrompt('Không tự sao chép được. Hãy chọn và sao chép liên kết dưới đây:', {
+                        title: 'Sao chép liên kết', defaultValue: button.dataset.url, required: false,
+                        multiline: false, maxLength: 2000, okText: 'Đóng'
+                    });
                 }
             });
         });
@@ -85,7 +90,7 @@
             tournamentSelect.innerHTML = tournaments.length
                 ? tournaments.map(function (item) {
                     return '<option value="' + item.tournamentId + '">' +
-                        Ui.escapeHtml(item.name) + ' · ' + Ui.escapeHtml(item.status) + '</option>';
+                        Ui.escapeHtml(item.name) + ' · ' + Ui.escapeHtml(STATUS_LABELS[item.status] || item.status) + '</option>';
                 }).join('')
                 : '<option value="">Tài khoản hiện không quản lý giải nào</option>';
             if (!tournaments.length) return;

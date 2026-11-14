@@ -125,13 +125,12 @@
             ? '<span class="badge" style="background:var(--danger-bg);color:var(--danger-ink);margin-left:8px">Đã khóa ' + (tree.lockedAt ? fmtDateTime(tree.lockedAt) : '') + '</span>'
             : '';
 
+        // Tiêu đề cố định trong HTML (menu của giải chèn ngay dưới) — chỉ điền chữ.
+        document.getElementById('page-title').textContent = tree.tournamentName;
+        document.getElementById('page-sub').innerHTML = Ui.escapeHtml(formatLabel(tree.format) + ' · ' + tree.approvedTeamCount + ' đội đã duyệt') + lockedBadge;
+
         var html =
-            '<div class="eyebrow">Ban tổ chức · Nhánh đấu</div>' +
-            '<div class="page-head"><h1>' + Ui.escapeHtml(tree.tournamentName) + '</h1>' +
-            '<p>' + formatLabel(tree.format) + ' · ' + tree.approvedTeamCount + ' đội đã duyệt' + lockedBadge + '</p></div>' +
             '<div class="btn-row mb-4">' +
-            '<a class="btn btn-ghost" href="/registration/review.html?tournamentId=' + tree.tournamentId + '">Duyệt đơn đăng ký</a>' +
-            '<a class="btn btn-ghost" href="/bracket/view.html?id=' + tree.tournamentId + '">Xem công khai</a>' +
             '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định</a>' +
             (tree.hasBracket && !tree.isLocked ? '<a class="btn btn-primary" href="/tournament/bracket.html?id=' + tree.tournamentId + '">Đổi chỗ đội (kéo thả trên sơ đồ)</a>' : '') +
             (tree.isLocked ? '<button type="button" class="btn btn-ghost" id="unlock-btn">Mở khóa nhánh</button>' : '') +

@@ -108,9 +108,11 @@ namespace ETOMS_API.Controllers
 
         // Lỗi nghiệp vụ (ArgumentException...) đã có thông báo tiếng Việt; lỗi ràng buộc DB thì
         // thông báo của provider là tiếng Anh — không đưa thẳng ra giao diện.
-        private IActionResult Fail(Exception ex) => ex is Microsoft.EntityFrameworkCore.DbUpdateException
-            ? BadRequest(new { Message = "Không lưu được giải đấu: dữ liệu chưa hợp lệ (kiểm tra lại số đội, mốc thời gian, cấu hình vòng bảng)." })
-            : BadRequest(new { Message = ex.Message });
+        private IActionResult Fail(Exception ex) => BadRequest(new
+        {
+            Message = Utils.UserErrorMessage.From(ex,
+                "Không lưu được giải đấu: dữ liệu chưa hợp lệ (kiểm tra lại số đội, mốc thời gian, cấu hình vòng bảng).")
+        });
 
         private async Task<IActionResult?> CheckCanManageAsync(int tournamentId)
         {

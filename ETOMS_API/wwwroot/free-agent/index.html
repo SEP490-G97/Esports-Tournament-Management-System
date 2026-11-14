@@ -9,125 +9,128 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=role-20261115" />
+    <link rel="stylesheet" href="/css/site.css?v=align2-20261115" />
 </head>
 <body>
     <div id="site-header"></div>
 
     <main class="container-etoms">
         <div class="page-head">
-            <div class="eyebrow">Thị trường nhân sự</div>
+            <a class="back-link" href="/">← Trang chủ</a>
+            <div class="eyebrow mt-3">Thị trường nhân sự</div>
             <h1>Tìm đội &amp; tuyển thành viên</h1>
-            <p>Đăng tin tuyển thành viên cho đội tuyển hoặc tìm kiếm câu lạc bộ phù hợp để tham gia các giải đấu.</p>
+            <p>Hai bảng tin riêng: đội tuyển đăng tin tìm thành viên, và tuyển thủ tự do đăng tin tìm đội.</p>
         </div>
 
-        <div id="flash"></div>
+        <div id="flash" aria-live="polite"></div>
 
-        <div class="split-grid" data-hide-roles="ORGANIZER ADMIN">
-
-            <!-- Form LFP đăng tin tuyển người -->
-            <div class="card-etoms">
-                <div class="body">
-                    <span class="badge badge-soft">LFP · Đội tuyển người</span>
-                    <h3 class="panel-title mt-2">Đội tuyển thành viên</h3>
-                    <p class="muted-copy mb-4">Dành cho đội trưởng đăng tin tìm vị trí còn thiếu cho roster.</p>
-
-                    <form id="lfpForm">
-                        <div class="field">
-                            <label>Chọn đội tuyển <span class="req">*</span></label>
-                            <select id="lfpTeamId" class="select" required>
-                                <option value="">-- Đang tải danh sách đội --</option>
-                            </select>
-                            <span class="field-error" data-field-error="TeamId"></span>
-                        </div>
-                        <div class="field">
-                            <label>Vị trí cần tuyển <span class="req">*</span></label>
-                            <input type="text" id="lfpRequiredRole" class="input" placeholder="Ví dụ: Mid, Đường trên, Rừng..." required />
-                        </div>
-                        <div class="field">
-                            <label>Rank yêu cầu <span class="req">*</span></label>
-                            <input type="text" id="lfpRequiredRank" class="input" placeholder="Ví dụ: Cao Thủ, Thách Đấu..." required />
-                        </div>
-                        <div class="field">
-                            <label>Mô tả chi tiết</label>
-                            <textarea id="lfpDescription" class="input" rows="2" placeholder="Yêu cầu cụ thể về thời gian luyện tập, thái độ..."></textarea>
-                        </div>
-                        <div class="btn-row">
-                            <button type="submit" class="btn btn-primary">Đăng tin LFP</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Form LFT đăng tin tìm đội -->
-            <div class="card-etoms">
-                <div class="body">
-                    <span class="badge badge-gold">LFT · Người chơi tìm đội</span>
-                    <h3 class="panel-title mt-2">Người chơi tìm đội</h3>
-                    <p class="muted-copy mb-4">Dành cho tuyển thủ tự do ứng tuyển vào các tổ chức / đội tuyển.</p>
-
-                    <form id="lftForm">
-                        <div class="field">
-                            <label>Chọn tựa game <span class="req">*</span></label>
-                            <select id="lftGameId" class="select" required>
-                                <option value="">-- Đang tải danh sách game --</option>
-                            </select>
-                            <span class="field-error" data-field-error="GameId"></span>
-                        </div>
-                        <div class="field">
-                            <label>Vị trí sở trường <span class="req">*</span></label>
-                            <input type="text" id="lftPreferredRole" class="input" placeholder="Ví dụ: Đi Rừng, Đường Giữa..." required />
-                        </div>
-                        <div class="field">
-                            <label>Rank hiện tại <span class="req">*</span></label>
-                            <input type="text" id="lftCurrentRank" class="input" placeholder="Ví dụ: Đại Cao Thủ..." required />
-                        </div>
-                        <div class="field">
-                            <label>Mô tả bản thân</label>
-                            <textarea id="lftDescription" class="input" rows="2" placeholder="Chia sẻ kinh nghiệm thi đấu..."></textarea>
-                        </div>
-                        <div class="btn-row">
-                            <button type="submit" class="btn btn-primary">Đăng tin LFT</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
+        <div class="bk-seg fa-tabs mb-4" role="tablist" aria-label="Loại bảng tin">
+            <button type="button" role="tab" id="tab-lfp" data-tab="LFP" aria-selected="true" aria-controls="panel-lfp">Đội tìm thành viên (LFP)</button>
+            <button type="button" role="tab" id="tab-lft" data-tab="LFT" aria-selected="false" aria-controls="panel-lft">Tuyển thủ tìm đội (LFT)</button>
         </div>
 
-        <!-- Bảng tin -->
-        <div class="card-etoms">
-            <div class="body">
-                <div class="row-between mb-4">
-                    <div>
-                        <h2 class="panel-title mb-1">Bảng tin hoạt động</h2>
-                        <p class="muted-copy mb-0">Danh sách các tin đăng mở cửa từ cộng đồng tuyển thủ.</p>
-                    </div>
-                    <div class="inline-form">
-                        <select id="filterType" class="select filter-select">
-                            <option value="LFP">Loại: LFP (Tuyển người)</option>
-                            <option value="LFT">Loại: LFT (Tìm đội)</option>
-                        </select>
-                        <button onclick="loadBoard()" class="btn btn-ghost btn-sm">Lọc dữ liệu</button>
+        <!-- ===== LFP: đội tuyển tìm thành viên (FA-01 đăng tin: đội trưởng; FA-04 ứng tuyển: tuyển thủ) ===== -->
+        <section id="panel-lfp" role="tabpanel" aria-labelledby="tab-lfp" class="fa-panel">
+            <div class="fa-layout">
+                <div class="card-etoms fa-form-card" data-hide-roles="ORGANIZER ADMIN">
+                    <div class="body">
+                        <span class="badge badge-soft">LFP · Đội tuyển người</span>
+                        <h3 class="panel-title mt-2">Đăng tin tuyển thành viên</h3>
+                        <p class="muted-copy mb-4">Dành cho đội trưởng tìm vị trí còn thiếu trong roster.</p>
+                        <form id="lfpForm" novalidate>
+                            <div class="field">
+                                <label for="lfpTeamId">Đội tuyển <span class="req">*</span></label>
+                                <select id="lfpTeamId" class="select" required>
+                                    <option value="">-- Đang tải danh sách đội --</option>
+                                </select>
+                                <span class="field-error" data-field-error="TeamId"></span>
+                            </div>
+                            <div class="field">
+                                <label for="lfpRequiredRole">Vị trí cần tuyển <span class="req">*</span></label>
+                                <input type="text" id="lfpRequiredRole" class="input" maxlength="50" placeholder="Ví dụ: Mid, Đường trên, Rừng..." required />
+                                <span class="field-error" data-field-error="RequiredRole"></span>
+                            </div>
+                            <div class="field">
+                                <label for="lfpRequiredRank">Rank yêu cầu <span class="req">*</span></label>
+                                <input type="text" id="lfpRequiredRank" class="input" maxlength="50" placeholder="Ví dụ: Cao Thủ, Thách Đấu..." required />
+                                <span class="field-error" data-field-error="RequiredRank"></span>
+                            </div>
+                            <div class="field">
+                                <label for="lfpDescription">Mô tả chi tiết</label>
+                                <textarea id="lfpDescription" class="input" rows="3" maxlength="1000" placeholder="Yêu cầu cụ thể về thời gian luyện tập, thái độ..."></textarea>
+                                <span class="field-error" data-field-error="Description"></span>
+                            </div>
+                            <div class="btn-row">
+                                <button type="submit" class="btn btn-primary">Đăng tin tuyển</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-
-                <div id="boardContainer">
-                    <div class="empty">
-                        <h3>Đang tải dữ liệu bảng tin...</h3>
+                <div class="card-etoms">
+                    <div class="body">
+                        <h2 class="panel-title mb-1">Đội đang tìm thành viên</h2>
+                        <p class="muted-copy mb-3">Tin đang mở của các đội tuyển, mới nhất lên đầu.</p>
+                        <div id="board-lfp"><div class="empty"><h3>Đang tải bảng tin...</h3></div></div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- ===== LFT: tuyển thủ tìm đội (FA-02 đăng tin: tuyển thủ) ===== -->
+        <section id="panel-lft" role="tabpanel" aria-labelledby="tab-lft" class="fa-panel" hidden>
+            <div class="fa-layout">
+                <div class="card-etoms fa-form-card" data-hide-roles="ORGANIZER ADMIN">
+                    <div class="body">
+                        <span class="badge badge-gold">LFT · Người chơi tìm đội</span>
+                        <h3 class="panel-title mt-2">Đăng tin tìm đội</h3>
+                        <p class="muted-copy mb-4">Dành cho tuyển thủ tự do muốn gia nhập đội tuyển. Cần khai báo tên trong game (IGN) ở hồ sơ trước.</p>
+                        <form id="lftForm" novalidate>
+                            <div class="field">
+                                <label for="lftGameId">Tựa game <span class="req">*</span></label>
+                                <select id="lftGameId" class="select" required>
+                                    <option value="">-- Đang tải danh sách game --</option>
+                                </select>
+                                <span class="field-error" data-field-error="GameId"></span>
+                            </div>
+                            <div class="field">
+                                <label for="lftPreferredRole">Vị trí sở trường <span class="req">*</span></label>
+                                <input type="text" id="lftPreferredRole" class="input" maxlength="50" placeholder="Ví dụ: Đi Rừng, Đường Giữa..." required />
+                                <span class="field-error" data-field-error="PreferredRole"></span>
+                            </div>
+                            <div class="field">
+                                <label for="lftCurrentRank">Rank hiện tại <span class="req">*</span></label>
+                                <input type="text" id="lftCurrentRank" class="input" maxlength="50" placeholder="Ví dụ: Đại Cao Thủ..." required />
+                                <span class="field-error" data-field-error="CurrentRank"></span>
+                            </div>
+                            <div class="field">
+                                <label for="lftDescription">Mô tả bản thân</label>
+                                <textarea id="lftDescription" class="input" rows="3" maxlength="1000" placeholder="Chia sẻ kinh nghiệm thi đấu..."></textarea>
+                                <span class="field-error" data-field-error="Description"></span>
+                            </div>
+                            <div class="btn-row">
+                                <button type="submit" class="btn btn-primary">Đăng tin tìm đội</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-etoms">
+                    <div class="body">
+                        <h2 class="panel-title mb-1">Tuyển thủ đang tìm đội</h2>
+                        <p class="muted-copy mb-3">Tin đang mở của tuyển thủ tự do, mới nhất lên đầu.</p>
+                        <div id="board-lft"><div class="empty"><h3>Đang tải bảng tin...</h3></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <div id="confirm-modal-root"></div>
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
-    <script src="/js/api.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=dlg-20261115"></script>
     <script src="/js/ui.js?v=login-20261115"></script>
-    <script src="/js/layout.js?v=role-20261115"></script>
-    <script src="/js/pages/free-agent.js?v=role-20261115"></script>
+    <script src="/js/layout.js?v=side-20261115"></script>
+    <script src="/js/pages/free-agent.js?v=fa2-20261115"></script>
 </body>
 </html>

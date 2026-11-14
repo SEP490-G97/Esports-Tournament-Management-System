@@ -32,4 +32,14 @@ public static class ImageUploader
 
         return (true, $"/uploads/{subFolder}/{fileName}", null);
     }
+
+    // Xóa ảnh do Save() tạo ra (chỉ trong wwwroot/uploads), dùng khi thao tác sau đó thất bại.
+    public static void Delete(string? url, IWebHostEnvironment env)
+    {
+        if (string.IsNullOrEmpty(url) || !url.StartsWith("/uploads/", StringComparison.Ordinal)) return;
+        var root = Path.GetFullPath(Path.Combine(env.WebRootPath, "uploads")) + Path.DirectorySeparatorChar;
+        var path = Path.GetFullPath(Path.Combine(env.WebRootPath, url.TrimStart('/')));
+        if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return;
+        try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { }
+    }
 }

@@ -4,25 +4,27 @@ namespace ETOMS_API.DTOs.Profile;
 
 public sealed class UpdateProfileRequest
 {
-    [Required, StringLength(150)]
+    [Required(ErrorMessage = "Vui lòng nhập tên hiển thị.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Tên hiển thị phải từ 2 đến 100 ký tự.")]
     public string FullName { get; set; } = string.Empty;
 
-    [StringLength(500)]
+    [StringLength(500, ErrorMessage = "Liên kết ảnh đại diện tối đa 500 ký tự — hãy dùng nút chọn ảnh từ máy.")]
     public string? AvatarUrl { get; set; }
 
     public DateOnly? DateOfBirth { get; set; }
 
-    [StringLength(20)]
+    [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
     [RegularExpression(@"^0\d{9,10}$", ErrorMessage = "Số điện thoại không hợp lệ (phải bắt đầu bằng 0, 10-11 chữ số).")]
     public string? Phone { get; set; }
 
-    [StringLength(500)]
+    [StringLength(500, ErrorMessage = "Liên kết mạng xã hội tối đa 500 ký tự.")]
     public string? SocialLinks { get; set; }
 }
 
 public sealed class UpsertGameAccountRequest
 {
-    [Required, StringLength(150)]
+    [Required(ErrorMessage = "Vui lòng nhập tên trong game.")]
+    [StringLength(150, MinimumLength = 2, ErrorMessage = "Tên trong game phải từ 2 đến 150 ký tự.")]
     public string InGameName { get; set; } = string.Empty;
 }
 

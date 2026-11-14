@@ -156,19 +156,24 @@
         ['/tournament/standings.html', 'Bảng xếp hạng'],
         ['/tournament/rulebook-history.html', 'Thể lệ']
     ];
-    var TOUR_ORGANIZER = [
-        ['/tournament/manage.html', 'Quản lý'],
-        ['/tournament/dashboard.html', 'Tổng quan'],
-        ['/registration/review.html', 'Đơn đăng ký', 'tournamentId'],
-        ['/bracket/manage.html', 'Chia nhánh'],
-        ['/tournament/schedule.html', 'Lịch thi đấu'],
-        ['/tournament/referees.html', 'Trọng tài'],
-        ['/tournament/stage-transition.html', 'Chuyển vòng'],
-        ['/tournament/ruleset.html', 'Bộ luật'],
-        ['/tournament/rulebook.html', 'Soạn thể lệ'],
-        ['/tournament/edit.html', 'Sửa giải'],
-        ['/tournament/clone.html', 'Nhân bản'],
-        ['/tournament/cancel.html', 'Hủy giải']
+    // Menu của Ban tổ chức chia nhóm (hiện thành cột bên trái trên máy tính).
+    var TOUR_ORGANIZER_GROUPS = [
+        ['Điều hành giải', [
+            ['/tournament/manage.html', 'Trạng thái & xuất bản'],
+            ['/tournament/dashboard.html', 'Bảng điều hành'],
+            ['/registration/review.html', 'Đơn đăng ký', 'tournamentId'],
+            ['/bracket/manage.html', 'Chia nhánh'],
+            ['/tournament/schedule.html', 'Lịch thi đấu'],
+            ['/tournament/referees.html', 'Trọng tài'],
+            ['/tournament/stage-transition.html', 'Chuyển vòng']
+        ]],
+        ['Cấu hình giải', [
+            ['/tournament/edit.html', 'Sửa thông tin'],
+            ['/tournament/rulebook.html', 'Soạn thể lệ'],
+            ['/tournament/ruleset.html', 'Bộ luật'],
+            ['/tournament/clone.html', 'Nhân bản'],
+            ['/tournament/cancel.html', 'Hủy giải']
+        ]]
     ];
 
     function tournamentIdOfPage() {
@@ -192,17 +197,65 @@
             var href = item[0] + '?' + (item[2] || 'id') + '=' + id;
             return '<a href="' + href + '"' + (path === item[0] ? ' class="active" aria-current="page"' : '') + '>' + Ui.escapeHtml(item[1]) + '</a>';
         }
-        var html = TOUR_PUBLIC.map(link).join('');
-        if (isOrganizer) html += '<span class="sep" aria-hidden="true"></span><span class="tag">Ban tổ chức</span>' + TOUR_ORGANIZER.map(link).join('');
-        var bar = document.createElement('nav');
-        bar.className = 'tour-subnav';
-        bar.setAttribute('aria-label', 'Điều hướng trong giải');
-        bar.innerHTML = html;
-        var head = main.querySelector(':scope > .page-head');
-        if (head) head.parentNode.insertBefore(bar, head.nextSibling);
-        else main.insertBefore(bar, main.firstChild);
-        var active = bar.querySelector('a.active');
-        if (active && active.scrollIntoView) active.scrollIntoView({ block: 'nearest', inline: 'center' });
+
+        // Phần đầu trang (link quay lại + tiêu đề) giữ nguyên ở trên; menu chèn ngay sau.
+        var head = main.querySelector(':scope > .page-head') ||
+            Array.prototype.find.call(main.children, function (el) { return el.querySelector && el.querySelector('.page-head'); });
+
+        if (!isOrganizer) {
+            var bar = document.createElement('nav');
+            bar.className = 'tour-subnav';
+            bar.setAttribute('aria-label', 'Điều hướng trong giải');
+            bar.innerHTML = TOUR_PUBLIC.map(link).join('');
+            if (head) head.parentNode.insertBefore(bar, head.nextSibling);
+            else main.insertBefore(bar, main.firstChild);
+            return;
+        }
+
+        // Ban tổ chức: cột menu bên trái chia nhóm + nội dung bên phải.
+        var aside = document.createElement('nav');
+        aside.className = 'tour-sidenav';
+        aside.setAttribute('aria-label', 'Điều hướng trong giải');
+        aside.innerHTML = '<div class="grp"><div class="grp-title">Xem công khai</div>' + TOUR_PUBLIC.map(link).join('') + '</div>' +
+            TOUR_ORGANIZER_GROUPS.map(function (g) {
+                return '<div class="grp"><div class="grp-title">' + Ui.escapeHtml(g[0]) + '</div>' + g[1].map(link).join('') + '</div>';
+            }).join('');
+        var content = document.createElement('div');
+        content.className = 'tour-content';
+        var shell = document.createElement('div');
+        shell.className = 'tour-shell';
+        shell.appendChild(aside);
+        shell.appendChild(content);
+
+        // Chuyển mọi phần tử SAU tiêu đề vào cột nội dung (giữ nguyên phần tử, id, sự kiện đã gắn).
+        var start = head ? head.nextSibling : main.firstChild;
+        while (start && start.classList && start.classList.contains('back-link')) start = start.nextSibling;
+        var moving = [];
+        for (var node = start; node; node = node.nextSibling) moving.push(node);
+        moving.forEach(function (n) { content.appendChild(n); });
+        main.appendChild(shell);
+
+        var active = aside.querySelector('a.active');
+        if (active && active.scrollIntoView && window.matchMedia('(max-width: 991.98px)').matches)
+            active.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
+
+    // Nút "← Quay lại" cho mọi trang chưa có sẵn link quay lại: đi từ trang khác trong web thì về trang
+    // trước (giữ bộ lọc/vị trí cuộn), mở thẳng link thì về trang chủ.
+    var NO_BACK = ['/', '/index.html', '/auth/login.html', '/auth/register.html'];
+    function injectBackLink() {
+        var main = document.querySelector('main');
+        if (!main || NO_BACK.indexOf(location.pathname.toLowerCase()) >= 0 || main.querySelector('.back-link')) return;
+        var link = document.createElement('a');
+        link.className = 'back-link back-link-auto';
+        link.href = '/';
+        link.textContent = '← Quay lại';
+        link.addEventListener('click', function (e) {
+            var fromHere = false;
+            try { fromHere = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (err) { }
+            if (fromHere && history.length > 1) { e.preventDefault(); history.back(); }
+        });
+        main.insertBefore(link, main.firstChild);
     }
 
     // "Đang tải..." trong khung rỗng có vòng xoay nhỏ (trang JS thay nội dung khi tải xong).
@@ -212,31 +265,90 @@
         });
     }
 
-    var pendingResolve = null;
+    // Hộp thoại của hệ thống thay cho confirm()/alert()/prompt() mặc định của trình duyệt:
+    //   await etomsConfirm('...', { title, okText })            -> true/false
+    //   await etomsAlert('...', { title })                       -> (đóng)
+    //   await etomsPrompt('...', { title, placeholder, defaultValue, required, minLength, maxLength,
+    //                             pattern, patternMessage, okText }) -> chuỗi đã trim, hoặc null nếu Hủy
+    var pending = null;   // { resolve, kind, opts }
     function wireConfirmModal() {
         var overlay = document.getElementById('etoms-modal');
         if (!overlay) return;
+        var title = document.getElementById('etoms-modal-title');
         var msg = document.getElementById('etoms-modal-msg');
+        var field = document.getElementById('etoms-modal-field');
+        var input = document.getElementById('etoms-modal-input');
+        var error = document.getElementById('etoms-modal-error');
         var okBtn = document.getElementById('etoms-modal-ok');
         var cancelBtn = document.getElementById('etoms-modal-cancel');
 
-        function close(result) {
+        function finish(result) {
             overlay.classList.remove('show');
-            if (pendingResolve) { var r = pendingResolve; pendingResolve = null; r(result); }
+            if (pending) { var p = pending; pending = null; p.resolve(result); }
         }
-        okBtn.addEventListener('click', function () { close(true); });
-        cancelBtn.addEventListener('click', function () { close(false); });
-        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(false); });
-        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(false); });
+        function cancel() {
+            if (!pending) return;
+            finish(pending.kind === 'confirm' ? false : pending.kind === 'prompt' ? null : undefined);
+        }
+        function validate(value, o) {
+            if (o.required !== false && !value) return 'Vui lòng nhập nội dung.';
+            if (value && o.minLength && value.length < o.minLength) return 'Cần ít nhất ' + o.minLength + ' ký tự.';
+            if (value && value.length > (o.maxLength || 500)) return 'Tối đa ' + (o.maxLength || 500) + ' ký tự.';
+            if (value && o.pattern && !o.pattern.test(value)) return o.patternMessage || 'Giá trị không hợp lệ.';
+            return '';
+        }
+        okBtn.addEventListener('click', function () {
+            if (!pending) return;
+            if (pending.kind !== 'prompt') { finish(pending.kind === 'confirm' ? true : undefined); return; }
+            var value = input.value.trim();
+            var err = validate(value, pending.opts);
+            error.textContent = err;
+            if (err) { input.focus(); return; }
+            finish(value);
+        });
+        cancelBtn.addEventListener('click', cancel);
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) cancel(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('show')) cancel(); });
+        input.addEventListener('input', function () { error.textContent = ''; });
+
+        function open(kind, message, opts) {
+            opts = opts || {};
+            if (pending) cancel();
+            return new Promise(function (resolve) {
+                pending = { resolve: resolve, kind: kind, opts: opts };
+                title.textContent = opts.title || (kind === 'alert' ? 'Thông báo' : kind === 'prompt' ? 'Nhập thông tin' : 'Xác nhận');
+                msg.textContent = message || '';
+                field.hidden = kind !== 'prompt';
+                cancelBtn.hidden = kind === 'alert';
+                okBtn.textContent = opts.okText || (kind === 'alert' ? 'Đóng' : 'Đồng ý');
+                error.textContent = '';
+                if (kind === 'prompt') {
+                    input.value = opts.defaultValue || '';
+                    input.placeholder = opts.placeholder || '';
+                    input.maxLength = opts.maxLength || 500;
+                    input.rows = opts.multiline === false ? 1 : 3;
+                }
+                overlay.classList.add('show');
+                (kind === 'prompt' ? input : okBtn).focus();
+            });
+        }
 
         // Dùng cho hành động điều khiển bằng JS (nút gọi fetch): await etomsConfirm('...')
-        window.etomsConfirm = function (message) {
-            return new Promise(function (resolve) {
-                pendingResolve = resolve;
-                msg.textContent = message;
-                overlay.classList.add('show');
-            });
-        };
+        window.etomsConfirm = function (message, opts) { return open('confirm', message, opts); };
+        window.etomsAlert = function (message, opts) { return open('alert', message, opts); };
+        window.etomsPrompt = function (message, opts) { return open('prompt', message, opts); };
+
+        // Link tệp riêng tư: <a href="/api/.../file" data-private-file="ten-tep.jpg"> — tải kèm token.
+        document.addEventListener('click', async function (e) {
+            var link = e.target.closest && e.target.closest('a[data-private-file]');
+            if (!link) return;
+            e.preventDefault();
+            try {
+                await Api.openFile(link.getAttribute('href'), link.dataset.privateFile);
+            } catch (err) {
+                window.etomsAlert(err.message || 'Không mở được tệp.', { title: 'Không mở được tệp' });
+            }
+        });
 
         // Vẫn hỗ trợ <form data-confirm="..."> submit thuần (không qua fetch), y hệt bản cũ.
         document.addEventListener('submit', function (e) {
@@ -260,11 +372,18 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
+        // Trang nào quên chỗ chứa hộp thoại thì tự tạo, để mọi trang đều dùng được etomsConfirm/Prompt/Alert.
+        if (!document.getElementById('confirm-modal-root')) {
+            var modalRoot = document.createElement('div');
+            modalRoot.id = 'confirm-modal-root';
+            document.body.appendChild(modalRoot);
+        }
         await Promise.all([
             injectPartial('/partials/nav.html', 'site-header'),
             injectPartial('/partials/confirm-modal.html', 'confirm-modal-root')
         ]);
         applyActiveNav();
+        injectBackLink();
         wireThemeToggle();
         wireConfirmModal();
         injectFooter();

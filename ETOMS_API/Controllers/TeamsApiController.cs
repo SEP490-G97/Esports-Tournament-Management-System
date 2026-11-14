@@ -101,7 +101,11 @@ public class TeamsApiController : ApiControllerBase
         model.LogoUrl = upload.Url;
 
         var result = await _teamService.CreateTeamAsync(model, _currentUser.UserId!.Value);
-        if (!result.IsSuccess) return FromResult(result);
+        if (!result.IsSuccess)
+        {
+            ImageUploader.Delete(model.LogoUrl, _env);   // tạo đội thất bại thì không giữ logo mồ côi
+            return FromResult(result);
+        }
         return CreatedAtAction(nameof(GetDetail), new { id = result.Data }, new { message = result.Message, data = result.Data });
     }
 

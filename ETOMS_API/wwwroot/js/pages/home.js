@@ -75,6 +75,20 @@
         if (slides.length > 1) start();
     }
 
+    // Nút dưới thẻ giải: tuyển thủ thấy "Đăng ký cho đội" khi giải đang mở đăng ký; Ban tổ chức của
+    // CHÍNH giải đó thấy "Quản lý đăng ký" (đang mở đăng ký) hoặc "Quản lý giải" (đã đóng/đang diễn ra).
+    function featActions(t, isOrganizer) {
+        var buttons = '';
+        if (t.registrationOpen)
+            buttons += '<a class="btn btn-primary btn-sm" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>';
+        if (isOrganizer)
+            buttons += t.registrationOpen
+                ? '<a class="btn btn-ghost btn-sm" href="/registration/review.html?tournamentId=' + Number(t.tournamentId) + '">Quản lý đăng ký</a>'
+                : '<a class="btn btn-ghost btn-sm" href="/tournament/manage.html?id=' + Number(t.tournamentId) + '">Quản lý giải</a>';
+        // Luôn có hàng nút (kể cả rỗng) với chiều cao cố định để mọi thẻ trong hàng cao bằng nhau.
+        return '<div class="btn-row feat-actions">' + buttons + '</div>';
+    }
+
     function renderFeatured(list, organizedIds) {
         var root = document.getElementById('featured-list');
         if (!list || !list.length) {
@@ -86,8 +100,10 @@
         list.forEach(function (t) {
             var pct = t.maxTeams === 0 ? 0 : Math.floor(t.teams * 100 / t.maxTeams);
             html +=
-                '<div class="col-12 col-md-6 col-lg-4">' +
-                '<a class="feat-card d-block h-100" href="/bracket/view.html?id=' + t.tournamentId + '" style="color:inherit">' +
+                // Cột flex: thẻ giãn theo chiều cao, hàng nút nằm TRONG cột (trước đây thẻ h-100 + nút ở dưới
+                // làm nút tràn đè lên thẻ của hàng sau).
+                '<div class="col-12 col-md-6 col-lg-4 d-flex flex-column">' +
+                '<a class="feat-card d-block flex-grow-1" href="/bracket/view.html?id=' + t.tournamentId + '" style="color:inherit">' +
                 '<div class="feat-cover" style="background-image:linear-gradient(180deg, rgba(10,14,23,.2), rgba(10,14,23,.8)), url(\'' + Ui.escapeHtml(t.imageUrl) + '\')">' +
                 '<span class="badge ' + Ui.escapeHtml(t.statusClass) + '">' + Ui.escapeHtml(t.status) + '</span>' +
                 '<span class="feat-game">' + Ui.escapeHtml(t.game) + '</span></div>' +
@@ -99,12 +115,8 @@
                 '</div>' +
                 '<div class="feat-bar"><span style="width:' + pct + '%"></span></div>' +
                 '</div></a>' +
-                '<div class="btn-row mt-2">' +
-                (t.registrationOpen ? '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>' : '') +
-                // Chỉ hiện cho đúng Ban tổ chức của giải này (khớp quyền thật ở API quản lý đăng ký) —
-                // trước đây hiện cho mọi người, bấm vào thì mới bị chặn, gây hiểu lầm là lỗi.
-                (organizedIds[t.tournamentId] ? '<a class="btn btn-ghost" href="/registration/review.html?tournamentId=' + Number(t.tournamentId) + '">Quản lý đăng ký</a>' : '') +
-                '</div></div>';
+                featActions(t, organizedIds[t.tournamentId]) +
+                '</div>';
         });
         html += '</div>';
         root.innerHTML = html;
