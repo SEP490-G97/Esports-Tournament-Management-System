@@ -1,3 +1,4 @@
+using System.Data;
 using ETOMS_API.Utils;
 using ETOMS_API.DTOs.Bracket;
 using ETOMS_API.Repositories;
@@ -43,6 +44,9 @@ public class BracketService : IBracketService
         if (tournament.OrganizerAccountId != organizerAccountId) return Result.Failure("Chỉ ban tổ chức của giải được sinh nhánh đấu.");
         if (tournament.BracketLockedAt != null) return Result.Failure("Nhánh đấu đã khóa, không thể sinh lại.");
 
+        if (tournament.Format == "DOUBLE_ELIMINATION")
+            return Result.Failure("Thể thức Loại kép (Double Elimination) chưa được hỗ trợ — vui lòng chọn thể thức khác.");
+
         var approved = await GetApprovedTeamsAsync(tournamentId);
         if (approved.Count < 2) return Result.Failure("Cần ít nhất 2 đội đã được duyệt để sinh nhánh đấu.");
 
@@ -69,6 +73,10 @@ public class BracketService : IBracketService
 
         // Idempotent: xóa cây cũ trước khi dựng lại — phải xóa các bảng phụ thuộc Match trước
         // (MatchReport, Dispute, Livestream, MatchChatMessage, MatchGame, MatchRequest, Penalty).
+        // Bọc trong 1 transaction: lỗi giữa chừng (vd sinh cây mới thất bại) phải rollback lại
+        // cây CŨ, không để lại trạng thái dở dang (đã xóa cũ nhưng chưa có cây mới).
+        await using var transaction = await _uow.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+
         var oldMatches = await _uow.Repository<Match>().Query().Where(m => m.TournamentId == tournamentId).ToListAsync();
         var oldMatchIds = oldMatches.Select(m => m.MatchId).ToList();
         if (oldMatchIds.Count > 0)
@@ -94,11 +102,14 @@ public class BracketService : IBracketService
         foreach (var n in oldNodes) _uow.Repository<BracketNode>().Remove(n);
         await _uow.SaveChangesAsync();
 
-        if (tournament.Format == "ROUND_ROBIN")
+        // HYBRID dùng chung bộ sinh vòng bảng với ROUND_ROBIN (đã chia theo Tournament.GroupCount) —
+        // vòng knockout sau vòng bảng do StageTransitionService (BRK-08) tạo riêng khi vòng bảng xong.
+        if (tournament.Format is "ROUND_ROBIN" or "HYBRID")
             await GenerateRoundRobinAsync(tournament, seedOrder, request.SeedingMethod, randomSeed);
         else
             await GenerateSingleEliminationAsync(tournament, seedOrder, request.SeedingMethod, randomSeed);
 
+        await transaction.CommitAsync();
         return Result.Success("Đã sinh nhánh đấu thành công.");
     }
 
