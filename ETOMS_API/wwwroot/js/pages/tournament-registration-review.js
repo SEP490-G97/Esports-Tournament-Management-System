@@ -98,9 +98,19 @@
         }
     }
 
+    function hideManagementUi(message) {
+        ['dev-banner', 'review-toolbar', 'review-list-section', 'review-tiebreaker'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        flash.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Không có quyền truy cập</h3>' +
+            '<p>' + Ui.escapeHtml(message) + '</p>' +
+            '<a class="btn btn-ghost mt-3" href="/">Về trang chủ</a></div></div>';
+    }
+
     async function load() {
         if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
-            Ui.showAlert(flash, 'danger', 'Liên kết thiếu mã giải hợp lệ.');
+            hideManagementUi('Liên kết thiếu mã giải hợp lệ.');
             return;
         }
         try {
@@ -110,8 +120,12 @@
             var response = await Api.get('/api/tournaments/' + tournamentId + '/registrations?' + params.toString());
             render(response.data.registrations || [], response.data);
         } catch (error) {
-            root.innerHTML = '';
-            Ui.showAlert(flash, 'danger', error.message || 'Không thể tải danh sách đăng ký.');
+            if (error.status === 404 || error.status === 403) {
+                hideManagementUi(error.message || 'Bạn không có quyền quản lý giải này.');
+            } else {
+                root.innerHTML = '';
+                Ui.showAlert(flash, 'danger', error.message || 'Không thể tải danh sách đăng ký.');
+            }
         }
     }
 
