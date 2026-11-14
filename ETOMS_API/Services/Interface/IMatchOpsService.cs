@@ -16,7 +16,7 @@ public interface IMatchOpsService
 
     // MAT-05 / MAT-06
     Task<Result<int>> RequestSubstituteAsync(int matchId, int requestedByAccountId, CreateSubstituteRequest request);
-    Task<IReadOnlyList<SubstituteRequestDto>> GetSubstituteRequestsAsync(int matchId);
+    Task<Result<IReadOnlyList<SubstituteRequestDto>>> GetSubstituteRequestsAsync(int matchId, int viewerAccountId);
     Task<Result> DecideSubstituteAsync(int matchRequestId, int decidedByAccountId, bool approve);
 
     // MAT-07

@@ -148,8 +148,14 @@ public class MatchOpsService : IMatchOpsService
         return Result<int>.Success(mr.MatchRequestId, "Đã gửi yêu cầu thay người, chờ trọng tài/BTC duyệt.");
     }
 
-    public async Task<IReadOnlyList<SubstituteRequestDto>> GetSubstituteRequestsAsync(int matchId)
-        => await _uow.Repository<MatchRequest>().Query()
+    public async Task<Result<IReadOnlyList<SubstituteRequestDto>>> GetSubstituteRequestsAsync(int matchId, int viewerAccountId)
+    {
+        // Chỉ trọng tài/BTC của giải hoặc thành viên 1 trong 2 đội thi đấu được xem — giống đúng
+        // điều kiện của phòng chat trận (CanAccessChatAsync), vì đây cũng là thông tin nội bộ trận.
+        if (!await CanAccessChatAsync(matchId, viewerAccountId))
+            return Result<IReadOnlyList<SubstituteRequestDto>>.Failure("Bạn không có quyền xem yêu cầu thay người của trận này.", StatusCodes.Status403Forbidden);
+
+        var list = await _uow.Repository<MatchRequest>().Query()
             .Include(r => r.OutAccount).Include(r => r.InAccount)
             .Where(r => r.MatchId == matchId && r.RequestKind == "SUBSTITUTION")
             .OrderByDescending(r => r.CreatedAt)
@@ -165,6 +171,8 @@ public class MatchOpsService : IMatchOpsService
                 Status = r.Status,
                 CreatedAt = r.CreatedAt
             }).ToListAsync();
+        return Result<IReadOnlyList<SubstituteRequestDto>>.Success(list);
+    }
 
     // ===== MAT-06: Duyệt thay người =====
     public async Task<Result> DecideSubstituteAsync(int matchRequestId, int decidedByAccountId, bool approve)

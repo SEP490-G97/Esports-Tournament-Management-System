@@ -56,7 +56,7 @@ public class MatchOpsApiController : ApiControllerBase
     public async Task<IActionResult> GetSubstituteRequests(int matchId)
     {
         if (!_currentUser.IsAuthenticated) return Unauthorized();
-        return Ok(await _ops.GetSubstituteRequestsAsync(matchId));
+        return FromResult(await _ops.GetSubstituteRequestsAsync(matchId, _currentUser.UserId!.Value));
     }
 
     // POST /api/matches/{matchId}/ops/substitute-requests/{requestId}/decide — MAT-06.
