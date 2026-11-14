@@ -620,13 +620,11 @@ public class ResultService : IResultService
             if (request.NewScoreA is null || request.NewScoreB is null)
                 return Result.FieldFailure(nameof(request.NewScoreA), "Chấp nhận khiếu nại thì phải nhập tỉ số mới.");
 
-            dispute.AppealStatus = "ACCEPTED";
-            dispute.AppealOutcomeNote = request.OutcomeNote;
-            dispute.Status = "CLOSED";
-            _uow.Repository<Dispute>().Update(dispute);
-            await _uow.SaveChangesAsync();
-
-            // Quay lại UC-32 với tỉ số mới.
+            // Gọi ForceUpdateAsync TRƯỚC khi đổi dispute.Status: hàm đó chỉ chấp nhận tranh chấp
+            // đang ở UNDER_REVIEW (chính trạng thái hiện tại), và tự set Status=RESOLVED khi xong.
+            // Nếu đổi sang CLOSED trước rồi mới gọi, ForceUpdateAsync luôn thất bại — tỉ số mới
+            // không bao giờ được áp dụng dù khiếu nại đã lưu là ACCEPTED (không gọi lại được nữa
+            // vì AppealStatus khi đó không còn PENDING).
             var forceUpdate = await ForceUpdateAsync(disputeId, adjudicatorAccountId, new ForceUpdateRequest
             {
                 ScoreA = request.NewScoreA.Value,
@@ -634,6 +632,12 @@ public class ResultService : IResultService
                 Reason = $"[Khiếu nại được chấp nhận] {request.OutcomeNote}"
             });
             if (!forceUpdate.IsSuccess) return forceUpdate;
+
+            dispute.AppealStatus = "ACCEPTED";
+            dispute.AppealOutcomeNote = request.OutcomeNote;
+            dispute.Status = "CLOSED";
+            _uow.Repository<Dispute>().Update(dispute);
+            await _uow.SaveChangesAsync();
         }
         else
         {
