@@ -888,15 +888,28 @@ h1, h2, h3, .section-title, .sec-head h2 { font-family: var(--font-display); fon
 :root[data-theme="light"] .theme-toggle { color: var(--ink); }
 :root[data-theme="light"] .etoms-nav .navbar-toggler-icon { filter: invert(1); }
 .etoms-nav .navbar-collapse { gap: 8px 16px; }
-@media (min-width: 1200px) {
+/* Từ 992px (đúng mốc Bootstrap ngừng gộp menu vào nút hamburger) trở lên: khung menu luôn nằm
+   1 hàng ngang, widget tên người dùng ghim cố định mép phải (margin-left:auto + flex:none) —
+   không bao giờ rớt xuống hàng dưới, kể cả khi danh sách menu không đủ chỗ. Trước đây mốc này
+   để tới 1200px mới có, nên các màn hình 992–1199px (nhiều laptop phổ biến) bị lọt vào nhánh xếp
+   cột ở dưới, kéo cả widget người dùng trôi xuống cuối cột. */
+@media (min-width: 992px) {
   .etoms-nav .inner { flex-wrap: nowrap; padding-block: 0; }
   .etoms-nav .nav-quick { order: 3; margin-left: 0; }
   .etoms-nav .navbar-collapse { order: 2; flex: 1; min-width: 0; flex-wrap: nowrap; align-self: stretch; }
-  .etoms-nav nav { flex-wrap: nowrap; align-self: stretch; }
   .etoms-nav nav a { display: flex; align-items: center; padding: 0 12px; }
-  .etoms-nav .nav-user { margin-left: auto; flex-wrap: nowrap; }
+  .etoms-nav .nav-user { margin-left: auto; flex: none; flex-wrap: nowrap; }
 }
-@media (max-width: 1199.98px) {
+/* 992–1199px: không đủ chỗ cho mọi mục menu trên đúng 1 hàng như ≥1200px, nên cho riêng các link
+   tự xuống dòng thứ 2 BÊN TRONG khối menu — widget người dùng vẫn ở hàng ngoài cùng (navbar-collapse
+   không wrap) nên luôn đứng yên mép phải, không bị đẩy theo xuống dưới. */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .etoms-nav nav { flex-wrap: wrap; }
+}
+@media (min-width: 1200px) {
+  .etoms-nav nav { flex-wrap: nowrap; align-self: stretch; }
+}
+@media (max-width: 991.98px) {
   .etoms-nav .navbar-collapse { flex-direction: column; align-items: stretch; padding: 8px 0 12px; }
   .etoms-nav nav { flex-direction: column; }
 }

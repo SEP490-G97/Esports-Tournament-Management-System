@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Không gian ban tổ chức · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=auth-20261114" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="registration-hub-head">
+            <div class="page-head">
+                <a class="back-link" href="/registration/index.html">← Trung tâm đăng ký</a>
+                <div class="eyebrow mt-3">Không gian ban tổ chức</div>
+                <h1>Giải đấu của tôi</h1>
+                <p>Danh sách giải bạn đứng tên tổ chức, kèm lối vào nhanh tới từng khu vực quản lý.</p>
+            </div>
+            <a class="btn btn-primary" href="/tournament-setup/index.html">+ Tạo giải mới</a>
+        </div>
+        <div id="organizer-flash" aria-live="polite"></div>
+        <div id="organizer-tournaments" class="feature-list" aria-live="polite">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+    </main>
+    <script src="/js/auth.js?v=auth-20261114"></script>
+    <script src="/js/api.js?v=auth-20261114"></script>
+    <script src="/js/ui.js?v=auth-20261114"></script>
+    <script src="/js/layout.js?v=auth-20261114"></script>
+    <script src="/js/pages/registration-organizer-space.js?v=auth-20261115" defer></script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 // Nạp danh sách Tựa Game trực tiếp từ DB vào Dropdown Select
 async function loadGameSelect() {
     try {
-        var res = await Api.get('/api/Game').catch(() => ({ data: [] }));
+        var res = await Api.get('/api/teams/games').catch(() => ({ data: [] }));
         var games = res.data || res || [];
         var gameSelect = document.getElementById('tGameId');
         if (gameSelect) {

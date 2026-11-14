@@ -76,6 +76,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth();
+        if (!me) return;
+
         try {
             var response = await Api.get('/api/marketing/mine/tournaments');
             var tournaments = response.data || [];

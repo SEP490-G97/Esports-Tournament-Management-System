@@ -812,9 +812,14 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         {
             return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount), "Nhập số tiền hoàn lớn hơn 0.");
         }
-        if (request.Amount > tournament.EntryFee)
+        var alreadyRefunded = await Query<PaymentRecord>()
+            .Where(p => p.RegistrationId == registrationId && p.RecordKind == "REFUND")
+            .SumAsync(p => p.DeclaredAmount ?? 0, cancellationToken);
+        var totalRefundedAfterThis = alreadyRefunded + request.Amount.Value;
+        if (totalRefundedAfterThis > tournament.EntryFee)
         {
-            return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount), "Số tiền hoàn không được vượt quá lệ phí đăng ký.");
+            return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount),
+                $"Đã hoàn {alreadyRefunded:N0}đ trước đó; số tiền hoàn lần này khiến tổng vượt quá lệ phí đăng ký ({tournament.EntryFee:N0}đ).");
         }
         if (request.RefundDate is null || request.RefundDate > DateOnly.FromDateTime(DateTime.UtcNow))
         {
@@ -842,7 +847,9 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             }
         }
 
-        registration.PaymentStatus = "REFUNDED";
+        // Chỉ chuyển sang REFUNDED khi đã hoàn đủ tổng lệ phí (cộng dồn các lần hoàn trước) —
+        // hoàn một phần phải giữ nguyên CONFIRMED để còn ghi nhận tiếp phần còn lại.
+        registration.PaymentStatus = totalRefundedAfterThis >= tournament.EntryFee ? "REFUNDED" : "CONFIRMED";
         registration.PaymentRecords.Add(new PaymentRecord
         {
             RegistrationId = registrationId,

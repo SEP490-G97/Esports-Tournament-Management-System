@@ -137,7 +137,7 @@ namespace ETOMS_API.Services.Impl
                 .Include(p => p.Team)
                 .FirstOrDefaultAsync(p => p.RecruitmentPostId == dto.PostId && p.Status == "OPEN");
 
-            if (post == null || !post.TeamId.HasValue)
+            if (post == null || !post.TeamId.HasValue || post.Team is null)
                 throw new KeyNotFoundException("Bài đăng tuyển không tồn tại hoặc đã đóng.");
 
             var inAnotherTeam = await _context.TeamMembers

@@ -171,7 +171,10 @@
         applyFilters();
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth();
+        if (!me) return;
+
         document.getElementById('registration-status-filter').addEventListener('change', applyFilters);
         document.getElementById('registration-search').addEventListener('input', applyFilters);
         load();

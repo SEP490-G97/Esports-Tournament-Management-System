@@ -49,7 +49,7 @@
     document.addEventListener('DOMContentLoaded', async function () {
         try {
             var response = await Api.get('/api/home/summary');
-            var games = response.data.games || [];
+            var games = response.games || [];
             gameSelect.innerHTML += games.map(function (game) {
                 return '<option value="' + game.gameId + '">' + Ui.escapeHtml(game.title) + '</option>';
             }).join('');

@@ -43,8 +43,12 @@ public sealed class OrganizationsController : ApiControllerBase
         [FromForm] string documentType,
         [FromForm] IFormFile file,
         CancellationToken cancellationToken)
-        => FromResult(await _organizationService.UploadDocumentAsync(
+    {
+        var denied = await RequireChairOrAdminAsync(organizationId);
+        if (denied is not null) return denied;
+        return FromResult(await _organizationService.UploadDocumentAsync(
             organizationId, documentType, file, cancellationToken));
+    }
 
     [HttpGet("review-queue")]
     public async Task<IActionResult> GetReviewQueue(CancellationToken cancellationToken)

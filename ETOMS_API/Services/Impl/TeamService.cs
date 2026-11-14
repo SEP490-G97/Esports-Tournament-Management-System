@@ -414,13 +414,23 @@ public class TeamService : ITeamService
         if (team is null) return Result.Failure("Không tìm thấy đội.");
         if (team.CaptainAccountId != currentCaptainAccountId) return Result.Failure("Chỉ đội trưởng hiện tại được chuyển quyền.");
         if (newCaptainAccountId == currentCaptainAccountId) return Result.Failure("Người nhận phải khác đội trưởng hiện tại.");
+        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Roster đang bị khóa do đội đang thi đấu.");
 
         var newCap = await _uow.Repository<TeamMember>().Query()
             .FirstOrDefaultAsync(m => m.TeamId == teamId && m.AccountId == newCaptainAccountId && m.Status == "ACTIVE");
         if (newCap is null) return Result.Failure("Người nhận phải là thành viên đang hoạt động của đội.");
 
-        // Đội trưởng mới nên là chính thức.
-        if (newCap.Slot != "STARTER") { newCap.Slot = "STARTER"; _uow.Repository<TeamMember>().Update(newCap); }
+        // Đội trưởng mới nên là chính thức — nếu đang là dự bị thì đưa lên chính thức, nhưng
+        // phải còn suất chính thức theo luật (giống kiểm tra ở ChangeSlotAsync).
+        if (newCap.Slot != "STARTER")
+        {
+            var game = await _uow.Repository<Game>().GetByIdAsync(team.GameId);
+            var (starters, _) = await CountSlotsAsync(teamId);
+            if (game is not null && starters >= game.MaxStarters)
+                return Result.Failure($"Đã đủ {game.MaxStarters} suất chính thức theo luật — không thể đưa người nhận lên chính thức.");
+            newCap.Slot = "STARTER";
+            _uow.Repository<TeamMember>().Update(newCap);
+        }
         team.CaptainAccountId = newCaptainAccountId;
         _uow.Repository<Team>().Update(team);
         await _uow.SaveChangesAsync();

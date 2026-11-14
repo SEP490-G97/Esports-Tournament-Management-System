@@ -1,12 +1,24 @@
 ﻿(function () {
     const nativeFetch = window.fetch.bind(window);
-    const API_BASE = '';                     
-    const LOGIN_URL = '/auth/login.html';   
+    const API_BASE = '';
+    const LOGIN_URL = '/auth/login.html';
+    const TOKEN_KEY = 'etoms_access_token';
 
+    // Access token giữ trong sessionStorage (không chỉ biến trong bộ nhớ): mỗi lần chuyển
+    // trang (site này không phải SPA) là 1 lượt tải JS mới, biến trong bộ nhớ sẽ mất. Trước đây
+    // mỗi trang phải refresh lại — mà refresh token dùng 1 lần (rotation) + dùng lại token cũ sẽ
+    // bị coi là bị đánh cắp và THU HỒI TOÀN BỘ token của tài khoản (xem RefreshTokenService.
+    // ConsumeAsync) — 2 trang gọi refresh gần nhau (vd nav và script của trang cùng lúc, hoặc bấm
+    // link trước khi trang trước kịp nhận cookie mới) dễ làm "đăng xuất" cả phiên dù vừa đăng nhập
+    // xong. Lưu access token lại để các trang sau còn hạn (15 phút) dùng thẳng, không cần refresh.
     let accessToken = null;
+    try { accessToken = sessionStorage.getItem(TOKEN_KEY) || null; } catch { }
     let refreshing = null;                  // gộp nhiều lần refresh đồng thời thành 1
 
-    function setAccessToken(t) { accessToken = t; }
+    function setAccessToken(t) {
+        accessToken = t;
+        try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch { }
+    }
     function getAccessToken() { return accessToken; }
 
     function setUser(u) {
@@ -26,7 +38,7 @@
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw Object.assign(new Error(data.message || 'Phiên đăng nhập hết hạn'),
                     { status: res.status, data });
-                accessToken = data.accessToken;
+                setAccessToken(data.accessToken);
                 return accessToken;
             })().finally(() => { refreshing = null; });
         }
@@ -34,7 +46,7 @@
     }
 
     function redirectToLogin(banData) {
-        accessToken = null;
+        setAccessToken(null);
         if (banData) {
             try { sessionStorage.setItem('ban_info', JSON.stringify(banData)); } catch { }
         }
@@ -84,21 +96,30 @@
     }
 
     // Kiểm tra nhẹ cho widget trên header: không chuyển hướng. Trả về user hoặc null.
+    // Token đang nhớ (sessionStorage) có thể đã hết hạn từ lần trước — nếu /api/me báo 401 thì
+    // refresh rồi thử lại đúng 1 lần, giống apiFetch, thay vì vội kết luận "chưa đăng nhập".
     async function tryGetMe() {
-        try { if (!accessToken) await refresh(); } catch (e) { return null; }
-        const res = await nativeFetch(API_BASE + '/api/me', {
+        const callMe = () => nativeFetch(API_BASE + '/api/me', {
             credentials: 'include',
-            headers: { Authorization: 'Bearer ' + accessToken },
+            headers: accessToken ? { Authorization: 'Bearer ' + accessToken } : {},
         });
-        if (!res.ok) return null;
-        const me = await res.json();
-        setUser(me);
-        return me;
+        try {
+            if (!accessToken) await refresh();
+            let res = await callMe();
+            if (res.status === 401) {
+                await refresh();
+                res = await callMe();
+            }
+            if (!res.ok) return null;
+            const me = await res.json();
+            setUser(me);
+            return me;
+        } catch (e) { return null; }
     }
 
     async function logout(to) {
         try { await nativeFetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }); } catch { }
-        accessToken = null;
+        setAccessToken(null);
         try { sessionStorage.removeItem('user'); } catch { }
         location.href = to || LOGIN_URL;
     }

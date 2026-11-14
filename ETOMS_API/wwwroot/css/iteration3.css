@@ -7,9 +7,9 @@
 }
 
 .i3-surface {
-    border: 1px solid var(--etoms-border, #d7dce5);
+    border: 1px solid var(--border);
     border-radius: 1rem;
-    background: var(--etoms-card, #fff);
+    background: var(--panel);
     padding: 1.25rem;
     height: 100%;
 }
@@ -32,7 +32,7 @@
 .i3-table th,
 .i3-table td {
     padding: .8rem;
-    border-bottom: 1px solid var(--etoms-border, #d7dce5);
+    border-bottom: 1px solid var(--border);
     text-align: left;
     vertical-align: middle;
 }
