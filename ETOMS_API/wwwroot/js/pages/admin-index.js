@@ -28,7 +28,10 @@
             url: '/api/admin/accounts?page=1&pageSize=1', pick: function (d) { return d && typeof d.total === 'number' ? d.total : null; }
         },
         {
-            key: 'rules', overline: 'Luật thi đấu', title: 'Bộ luật theo tựa game',
+            // GRL chưa có trong 46 UC chính thức (xem CLAUDE.md mục 9) — ô này đưa lại TẠM THỜI
+            // theo yêu cầu, chờ nhóm cập nhật UC/catalogue chính thức. Bảng tạo ở
+            // database/mysql/grl-ruleset-map-position.sql.
+            key: 'rules', overline: 'Luật thi đấu (tạm, chưa có trong UC)', title: 'Bộ luật theo tựa game',
             text: 'Quản lý bộ luật, bản đồ và vị trí cho từng game (GRL-01..03).',
             href: '/admin/game-rules.html', action: 'Quản lý bộ luật',
             url: '/api/game-rules', pick: function (d) {
