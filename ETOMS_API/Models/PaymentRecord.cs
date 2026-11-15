@@ -17,7 +17,7 @@ public partial class PaymentRecord
 
     public string? Note { get; set; }
 
-    public bool IsCurrent { get; set; }
+    public bool? IsCurrent { get; set; }
 
     public int RecordedByAccountId { get; set; }
 

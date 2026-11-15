@@ -11,9 +11,9 @@ public partial class VwLeaderboard
 
     public int? Season { get; set; }
 
-    public int? TournamentPlayed { get; set; }
+    public long TournamentPlayed { get; set; }
 
-    public int? TitleCount { get; set; }
+    public decimal? TitleCount { get; set; }
 
-    public int? AchievementPoint { get; set; }
+    public decimal? AchievementPoint { get; set; }
 }

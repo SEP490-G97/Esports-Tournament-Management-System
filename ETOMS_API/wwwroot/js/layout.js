@@ -1,5 +1,4 @@
 // "Layout" dùng chung cho mọi trang tĩnh: chèn nav.html/confirm-modal.html, bật theme-toggle,
-// hiển thị widget đăng nhập (gọi /api/dev-auth/me), và wiring modal xác nhận hành động nguy hiểm.
 // Mọi trang phải có sẵn <div id="site-header"></div> và <div id="confirm-modal-root"></div>,
 // và nạp theo thứ tự: api.js, ui.js, layout.js (theme-init.js nạp riêng trong <head>).
 (function () {
@@ -7,7 +6,7 @@
         var path = location.pathname.toLowerCase();
         document.querySelectorAll('#etomsNavCollapse nav a[data-nav]').forEach(function (a) {
             var key = a.getAttribute('data-nav');
-            var match = (key === 'home' && path === '/' ) ||
+            var match = (key === 'home' && path === '/') ||
                 (key !== 'home' && path.indexOf('/' + key) === 0);
             a.classList.toggle('active', match);
         });
@@ -20,30 +19,42 @@
             var isLight = document.documentElement.getAttribute('data-theme') === 'light';
             if (isLight) {
                 document.documentElement.removeAttribute('data-theme');
-                try { localStorage.setItem('etoms-theme', 'dark'); } catch (e) {}
+                try { localStorage.setItem('etoms-theme', 'dark'); } catch (e) { }
             } else {
                 document.documentElement.setAttribute('data-theme', 'light');
-                try { localStorage.setItem('etoms-theme', 'light'); } catch (e) {}
+                try { localStorage.setItem('etoms-theme', 'light'); } catch (e) { }
             }
         });
+    }
+
+    // Nạp js/notifications.js theo yêu cầu (chỉ khi đã đăng nhập) rồi gắn chuông vào đầu ô tài khoản.
+    function loadNotifyBell(slot) {
+        function go() { if (window.EtomsNotify) window.EtomsNotify.mount(slot); }
+        if (window.EtomsNotify) return go();
+        var sc = document.createElement('script');
+        sc.src = '/js/notifications.js';
+        sc.onload = go;
+        document.head.appendChild(sc);
     }
 
     async function wireAuthWidget() {
         var slot = document.getElementById('nav-auth-slot');
         if (!slot) return;
-        var loggedOutHtml = '<a class="btn btn-primary" style="padding:8px 16px" href="/dev-auth/index.html">Đăng nhập</a>';
+        var loggedOutHtml = '<a class="btn btn-primary nav-auth-login" href="/auth/login.html">Đăng nhập</a>';
         try {
-            var me = await Api.get('/api/dev-auth/me');
-            if (me.isAuthenticated) {
+            var me = await Auth.tryGetMe();            // JWT: không chuyển hướng khi chưa đăng nhập
+            if (me) {
+                var name = me.name || me.email || '';
                 slot.innerHTML =
-                    '<span>Xin chào, <span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span></span>' +
-                    '<span class="av">' + Ui.escapeHtml((me.displayName || '?').substring(0, 1)) + '</span>' +
-                    '<a class="btn btn-ghost" style="padding:8px 14px" href="#" id="nav-logout">Đăng xuất</a>';
-                document.getElementById('nav-logout').addEventListener('click', async function (e) {
+                    '<span class="av" aria-hidden="true">' + Ui.escapeHtml((name || '?').substring(0, 1).toUpperCase()) + '</span>' +
+                    '<span class="nav-auth-hello"><span class="nav-auth-hi">Xin chào,</span> ' +
+                    '<span class="who">' + Ui.escapeHtml(name) + '</span></span>' +
+                    '<a class="btn btn-ghost nav-auth-logout" href="#" id="nav-logout">Đăng xuất</a>';
+                document.getElementById('nav-logout').addEventListener('click', function (e) {
                     e.preventDefault();
-                    try { await Api.post('/api/dev-auth/logout'); } catch (err) {}
-                    location.href = '/';
+                    Auth.logout('/');                  // thu hồi refresh token, xóa cookie, về trang chủ
                 });
+                loadNotifyBell(slot);                   // chuông thông báo (ADM-08)
             } else {
                 slot.innerHTML = loggedOutHtml;
             }

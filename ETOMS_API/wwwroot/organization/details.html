@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hồ sơ đơn vị · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="page-head"><div class="eyebrow">Cộng đồng tổ chức giải đấu</div><h1>Hồ sơ đơn vị</h1><p>Thông tin công khai, thành viên và chỉ số hoạt động.</p></div>
+        <div class="dev-banner">Các nút quản trị chỉ hiển thị theo tài khoản demo. API Iteration 1 chưa có xác thực/phân quyền máy chủ nên đây không phải ranh giới bảo mật.</div>
+        <div id="organization-detail-flash" aria-live="polite"></div>
+        <div id="organization-detail"><div class="card-etoms"><div class="empty"><h3>Đang tải hồ sơ...</h3></div></div></div>
+        <div id="organization-controls" class="feature-grid mt-4" hidden>
+            <section id="member-management" class="feature-card span-all">
+                <h2>Quản lý thành viên</h2>
+                <form id="invite-form" class="inline-form mt-3" novalidate>
+                    <div class="field"><label for="invite-account">Mã tài khoản</label><input id="invite-account" name="AccountId" class="input" type="number" min="1" required /></div>
+                    <div class="field"><label for="invite-role">Vai trò</label><select id="invite-role" name="Role" class="select"><option value="TOURNAMENT_OPERATOR">Điều hành giải</option><option value="MARKETING">Truyền thông</option></select></div>
+                    <button class="btn btn-primary" type="submit">Gửi lời mời</button>
+                </form>
+                <div class="table-wrap mt-3"><table class="data-table"><thead><tr><th>Thành viên</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="organization-members"></tbody></table></div>
+            </section>
+            <section id="chair-transfer" class="feature-card">
+                <h2>Chuyển chủ nhiệm</h2><p>Chọn một thành viên đang hoạt động làm chủ nhiệm mới.</p>
+                <form id="transfer-form" novalidate><div class="field"><label for="new-chair">Thành viên mới</label><select id="new-chair" name="NewChairAccountId" class="select"></select></div><button class="btn btn-ghost" type="submit">Chuyển chủ nhiệm</button></form>
+            </section>
+            <section id="suspension-panel" class="feature-card">
+                <h2>Đình chỉ đơn vị</h2><p>Thao tác này thay đổi trạng thái hoạt động của đơn vị.</p>
+                <form id="suspension-form" novalidate><div class="field"><label for="suspension-reason">Lý do</label><textarea id="suspension-reason" name="Reason" class="input" rows="3" maxlength="1000" required></textarea><span class="field-error" data-field-error="Reason"></span></div><button class="btn btn-ghost" type="submit">Đình chỉ đơn vị</button></form>
+            </section>
+        </div>
+    </main>
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js?v=profile-org"></script>
+    <script src="/js/ui.js?v=profile-org"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/organization-details.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đơn vị tổ chức · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div id="site-header"></div>
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Cộng đồng tổ chức giải đấu</div>
+            <h1>Đơn vị tổ chức</h1>
+            <p>Khám phá các đơn vị, xem hồ sơ công khai hoặc gửi đăng ký để tổ chức giải đấu trên ETOMS.</p>
+        </div>
+        <div class="dev-banner">Các thao tác quản trị ở Iteration 1 hiện chưa được bảo vệ bằng phân quyền máy chủ. DevAuth chỉ là đăng nhập demo; không dùng dữ liệu thật hoặc môi trường công khai.</div>
+        <div id="organization-flash" aria-live="polite"></div>
+        <section>
+            <div class="org-toolbar">
+                <div><h2 class="mb-1">Đơn vị đang hoạt động</h2><p class="muted-copy mb-0">Thông tin liên hệ và chỉ số hoạt động công khai.</p></div>
+                <a class="btn btn-primary" href="/organization/register.html">Đăng ký đơn vị</a>
+            </div>
+            <div id="organization-list"><div class="card-etoms"><div class="empty"><h3>Đang tải đơn vị...</h3></div></div></div>
+        </section>
+        <section id="review-section" hidden>
+            <div class="org-toolbar"><div><h2 class="mb-1">Hồ sơ chờ xét duyệt</h2><p class="muted-copy mb-0">Chỉ dùng để kiểm thử luồng xét duyệt.</p></div></div>
+            <div id="review-queue"></div>
+        </section>
+    </main>
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js?v=profile-org"></script>
+    <script src="/js/ui.js?v=profile-org"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/organizations.js" defer></script>
+</body>
+</html>
