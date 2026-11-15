@@ -3,6 +3,7 @@ using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Text.Json;
@@ -20,17 +21,20 @@ namespace ETOMS_API.Services.Impl
         private readonly IEmailSender _email;
         private readonly SupportOptions _support;
         private readonly ILogger<AdminAccountService> _log;
+        private readonly IMemoryCache _cache;
 
         public AdminAccountService(
             EtomsDbContext db,
             IEmailSender email,
             IOptions<SupportOptions> support,
-            ILogger<AdminAccountService> log)
+            ILogger<AdminAccountService> log,
+            IMemoryCache cache)
         {
             _db = db;
             _email = email;
             _support = support.Value;
             _log = log;
+            _cache = cache;
         }
 
         // ---------------------------------------------------------------- ADM-01
@@ -155,6 +159,9 @@ namespace ETOMS_API.Services.Impl
                 await _db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
             }
+
+            // Bỏ trạng thái "đang hoạt động" đã nhớ để lần gọi API kế tiếp bị chặn ngay (AccountStatusCache).
+            _cache.Remove(AccountStatusCache.Key(targetId));
 
             // Gửi mail sau khi commit: lỗi gửi mail không làm hỏng việc khóa (chỉ ghi log).
             await SafeSendAsync(target.Email,

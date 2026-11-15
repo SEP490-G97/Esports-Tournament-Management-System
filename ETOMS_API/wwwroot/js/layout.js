@@ -103,17 +103,35 @@
         });
     }
 
+    // Nhớ tạm trong tab (sessionStorage) những câu hỏi lặp lại MỖI lần chuyển trang — database ở xa nên mỗi câu
+    // tốn ~0,7 s. Khóa gắn với tài khoản; hết hạn thì hỏi lại máy chủ. Trình duyệt chặn bộ nhớ thì bỏ qua (vẫn chạy đúng).
+    function cacheGet(key) {
+        try {
+            var raw = sessionStorage.getItem('etoms-cache:' + key);
+            if (!raw) return null;
+            var v = JSON.parse(raw);
+            return v && v.exp > Date.now() ? v.val : null;
+        } catch (e) { return null; }
+    }
+    function cacheSet(key, val, ttlMs) {
+        try { sessionStorage.setItem('etoms-cache:' + key, JSON.stringify({ val: val, exp: Date.now() + ttlMs })); } catch (e) { }
+    }
+
     async function loadMyTeam(me) {
         var box = document.getElementById('nav-user-myteam');
         if (!box) return;
         // Một tài khoản có thể ở nhiều đội (mỗi tựa game một đội) nên chỉ hiện SỐ đội;
         // bấm vào mở trang /team/mine.html liệt kê đủ. Lỗi thì giữ nguyên link, không có số.
-        try {
-            // Api.get tự gửi kèm JWT khi đã đăng nhập thật, và dùng chung kết quả với trang nếu trang cũng hỏi.
-            var teams = await Api.get('/api/teams/my-teams');
-            var count = Array.isArray(teams) ? teams.length : 0;
-            box.innerHTML = 'Các đội của tôi <span class="badge badge-soft">' + count + '</span>';
-        } catch (e) { /* giữ link không có số */ }
+        var key = 'my-team-count:' + (me && me.userId);
+        var count = cacheGet(key);
+        if (count === null) {
+            try {
+                var teams = await Api.get('/api/teams/my-teams');
+                count = Array.isArray(teams) ? teams.length : 0;
+                cacheSet(key, count, 60 * 1000);
+            } catch (e) { return; /* giữ link không có số */ }
+        }
+        box.innerHTML = 'Các đội của tôi <span class="badge badge-soft">' + count + '</span>';
     }
 
     function roleLabel(role) {
@@ -152,9 +170,11 @@
     // tab quản lý chỉ hiện khi tài khoản là ban tổ chức của giải (API publish-status trả 200).
     var TOUR_PUBLIC = [
         ['/bracket/view.html', 'Tổng quan'],
+        ['/tournament/participants.html', 'Đội tham dự'],
         ['/tournament/bracket.html', 'Nhánh đấu'],
         ['/tournament/standings.html', 'Bảng xếp hạng'],
-        ['/tournament/rulebook-history.html', 'Thể lệ']
+        ['/tournament/rulebook-history.html', 'Thể lệ'],
+        ['/tournament/live.html', 'Trực tiếp']
     ];
     // Menu của Ban tổ chức chia nhóm (hiện thành cột bên trái trên máy tính).
     var TOUR_ORGANIZER_GROUPS = [
@@ -165,6 +185,7 @@
             ['/bracket/manage.html', 'Chia nhánh'],
             ['/tournament/schedule.html', 'Lịch thi đấu'],
             ['/tournament/referees.html', 'Trọng tài'],
+            ['/tournament/livestreams.html', 'Livestream'],
             ['/tournament/stage-transition.html', 'Chuyển vòng']
         ]],
         ['Cấu hình giải', [
@@ -190,7 +211,15 @@
         if (!id || !main) return;
         var isOrganizer = false;
         if (me && me.isAuthenticated && (me.role === 'ORGANIZER' || me.role === 'ADMIN')) {
-            try { await Api.get('/api/tournaments/' + id + '/publish-status'); isOrganizer = true; } catch (e) { isOrganizer = false; }
+            // Nhớ 10 phút trong tab: menu trái của BTC hiện ngay khi chuyển giữa các trang của cùng giải,
+            // không phải chờ ~0,7 s hỏi lại máy chủ (máy chủ vẫn kiểm quyền ở từng thao tác).
+            var orgKey = 'is-organizer:' + me.userId + ':' + id;
+            var cached = cacheGet(orgKey);
+            if (cached !== null) isOrganizer = cached;
+            else {
+                try { await Api.get('/api/tournaments/' + id + '/publish-status'); isOrganizer = true; } catch (e) { isOrganizer = false; }
+                cacheSet(orgKey, isOrganizer, 10 * 60 * 1000);
+            }
         }
         var path = location.pathname.toLowerCase();
         function link(item) {
@@ -202,24 +231,15 @@
         var head = main.querySelector(':scope > .page-head') ||
             Array.prototype.find.call(main.children, function (el) { return el.querySelector && el.querySelector('.page-head'); });
 
-        if (!isOrganizer) {
-            var bar = document.createElement('nav');
-            bar.className = 'tour-subnav';
-            bar.setAttribute('aria-label', 'Điều hướng trong giải');
-            bar.innerHTML = TOUR_PUBLIC.map(link).join('');
-            if (head) head.parentNode.insertBefore(bar, head.nextSibling);
-            else main.insertBefore(bar, main.firstChild);
-            return;
-        }
-
-        // Ban tổ chức: cột menu bên trái chia nhóm + nội dung bên phải.
+        // MỌI người xem cùng một kiểu: cột menu bên trái + nội dung bên phải (màn hẹp thì menu thành thanh cuộn ngang
+        // ở trên). Khách/tuyển thủ chỉ có nhóm "Xem công khai"; Ban tổ chức của giải có thêm nhóm điều hành + cấu hình.
         var aside = document.createElement('nav');
         aside.className = 'tour-sidenav';
         aside.setAttribute('aria-label', 'Điều hướng trong giải');
         aside.innerHTML = '<div class="grp"><div class="grp-title">Xem công khai</div>' + TOUR_PUBLIC.map(link).join('') + '</div>' +
-            TOUR_ORGANIZER_GROUPS.map(function (g) {
+            (isOrganizer ? TOUR_ORGANIZER_GROUPS.map(function (g) {
                 return '<div class="grp"><div class="grp-title">' + Ui.escapeHtml(g[0]) + '</div>' + g[1].map(link).join('') + '</div>';
-            }).join('');
+            }).join('') : '');
         var content = document.createElement('div');
         content.className = 'tour-content';
         var shell = document.createElement('div');

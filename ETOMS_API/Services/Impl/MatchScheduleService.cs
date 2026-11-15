@@ -69,6 +69,7 @@ public class MatchScheduleService : IMatchScheduleService
             if (previous is null) return Result<MatchScheduleBoardDto>.Success(ToBoard(ctx), "Trận này chưa có giờ.");
             item.Match.ScheduledAt = null;
             item.Match.CheckInOpenAt = null;
+            item.Match.ReportDeadlineAt = null;
             await NotifyAsync(ctx, item, $"Trận {FullLabel(ctx, item)} của giải {ctx.Tournament.Name} tạm chưa có giờ thi đấu.");
             await _uow.SaveChangesAsync();
             return Result<MatchScheduleBoardDto>.Success(ToBoard(ctx), "Đã bỏ giờ của trận.");
@@ -226,6 +227,8 @@ public class MatchScheduleService : IMatchScheduleService
     {
         item.Match.ScheduledAt = at;
         item.Match.CheckInOpenAt = at - CheckInWindow;
+        // RES-03 (UC-29): hạn báo cáo công bố cùng lịch, dời giờ thì hạn dời theo.
+        item.Match.ReportDeadlineAt = ReportDeadline.For(at, item.Match.BestOf);
     }
 
     // Các trận dẫn vào trận này. Tranh hạng Ba nhận đội thua của hai trận bán kết.

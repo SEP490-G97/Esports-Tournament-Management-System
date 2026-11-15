@@ -14,6 +14,7 @@ public class ReportSubmissionPageDto
     public string MyTeamName { get; set; } = string.Empty;
     public string OpponentTeamName { get; set; } = string.Empty;
     public string MatchStatus { get; set; } = string.Empty;
+    public DateTime? ReportDeadlineAt { get; set; }
     public bool AlreadyReported { get; set; }
     public bool CanSubmit { get; set; }
     public string? CannotSubmitReason { get; set; }
@@ -62,6 +63,8 @@ public class MatchEvidenceDto
     public string? HiddenReason { get; set; }
     public List<ReportEvidenceDto> Reports { get; set; } = new();
     public bool CanFlag { get; set; }
+    // UC-39 A1: trận chuyển tranh chấp vì hết hạn khi chưa đủ hai báo cáo (UC-29).
+    public bool ClosedOnTimeout { get; set; }
 }
 
 public class AuditTrailEventDto

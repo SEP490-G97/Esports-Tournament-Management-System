@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=align2-20261115" />
+    <link rel="stylesheet" href="/css/site.css?v=tm-20261115" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -52,30 +52,29 @@
             </div>
         </section>
 
-        <section class="fullbleed ad-band">
+        <!-- UC-46: livestream đang phát (home.js). Không có kênh nào đang phát thì ẩn cả khu. -->
+        <section class="fullbleed live-band" id="live-band" hidden>
             <div class="wrap">
-                <div class="ad-label">Nhà tài trợ &amp; Quảng cáo</div>
-                <div class="row g-3">
-                    <div class="col-12 col-lg-6">
-                        <div class="ad-slot ad-main h-100">
-                            <div>
-                                <div class="ad-kicker">ĐỐI TÁC KIM CƯƠNG</div>
-                                <div class="ad-title">Khu vực đặt banner quảng cáo</div>
-                                <div class="ad-sub">Vị trí hiển thị nổi bật dành cho nhà tài trợ chính của mùa giải.</div>
-                            </div>
-                            <a class="btn btn-primary" href="#">Trở thành nhà tài trợ</a>
-                        </div>
-                    </div>
-                    <div class="col-6 col-lg-3"><div class="ad-slot h-100">Banner 1</div></div>
-                    <div class="col-6 col-lg-3"><div class="ad-slot h-100">Banner 2</div></div>
-                </div>
+                <div class="ad-label"><span class="live-dot"></span>Đang phát trực tiếp</div>
+                <div class="row g-3" id="live-row"></div>
+            </div>
+        </section>
+
+        <!-- UC-42: nhà tài trợ của các giải đang công khai (dữ liệu thật, home.js). Không có nhà tài trợ thì ẩn cả khu. -->
+        <section class="fullbleed ad-band" id="sponsor-band" hidden>
+            <div class="wrap">
+                <div class="ad-label">Nhà tài trợ các giải đấu</div>
+                <div class="row g-3" id="sponsor-row"></div>
             </div>
         </section>
 
         <section class="home-section" id="featured">
             <div class="sec-head">
                 <div><div class="eyebrow">Đang diễn ra &amp; sắp tới</div><h2>Giải đấu nổi bật</h2></div>
-                <a class="btn btn-ghost" href="/registration/index.html">Trung tâm đăng ký</a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-ghost" href="/tournament/index.html">Xem tất cả giải</a>
+                    <a class="btn btn-ghost" href="/registration/index.html" data-hide-roles="ORGANIZER ADMIN">Trung tâm đăng ký</a>
+                </div>
             </div>
             <div id="featured-list"></div>
         </section>
@@ -124,8 +123,8 @@
                     <div class="brand"><span class="mark">ET</span><span class="txt"><b>ETOMS</b><span>Esports Platform</span></span></div>
                     <p>Nền tảng tổ chức và vận hành giải đấu thể thao điện tử. SEP490 — FPT University.</p>
                 </div>
-                <div class="col-6 col-lg-2"><h4>Giải đấu</h4><a href="#">Lịch thi đấu</a><a href="#">Bảng xếp hạng</a><a href="#">Tổ chức giải</a></div>
-                <div class="col-6 col-lg-2"><h4>Cộng đồng</h4><a href="/team/index.html">Đội tuyển</a><a href="/team/join.html">Gia nhập đội</a><a href="#">Tin tức</a></div>
+                <div class="col-6 col-lg-2"><h4>Giải đấu</h4><a href="/tournament/index.html">Danh sách giải</a><a href="/rankings/index.html">Bảng xếp hạng</a><a href="/tournament-setup/index.html" data-hide-roles="GUEST PLAYER ADMIN">Tổ chức giải</a></div>
+                <div class="col-6 col-lg-2"><h4>Cộng đồng</h4><a href="/team/index.html">Đội tuyển</a><a href="/team/join.html" data-hide-roles="ORGANIZER ADMIN">Gia nhập đội</a></div>
                 <div class="col-6 col-lg-2"><h4>Hỗ trợ</h4><a href="#">Điều khoản</a><a href="#">Bảo mật</a><a href="#">Liên hệ</a></div>
             </div>
             <div class="foot-bottom wrap">© 2026 ETOMS · SEP490_G97 · Nền tảng quản lý giải đấu E-Sports</div>
@@ -136,8 +135,8 @@
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=dlg-20261115"></script>
-    <script src="/js/ui.js?v=login-20261115"></script>
-    <script src="/js/layout.js?v=side-20261115"></script>
-    <script src="/js/pages/home.js?v=align-20261115" defer></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=fast-20261115"></script>
+    <script src="/js/pages/home.js?v=lv5-20261115" defer></script>
 </body>
 </html>

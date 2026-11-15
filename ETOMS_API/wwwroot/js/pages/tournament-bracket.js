@@ -152,10 +152,13 @@
         if (!vp || !layout) return;
         var area = box || { x: 0, y: 0, w: layout.width, h: layout.height };
         var pad = 24;
+        // Khung cao vừa sơ đồ (giải ít đội thì khung thấp, tối đa 70% màn hình) — mọi giải/thể thức cùng một kiểu,
+        // không còn khoảng trống lớn phía trên khi nhánh nhỏ.
+        if (!box) vp.style.height = Math.round(Math.max(260, Math.min(window.innerHeight * 0.7, area.h + pad * 2))) + 'px';
         var z = Math.min((vp.clientWidth - pad * 2) / Math.max(area.w, 1), (vp.clientHeight - pad * 2) / Math.max(area.h, 1), 1);
         state.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
-        state.panX = (vp.clientWidth - area.w * state.zoom) / 2 - area.x * state.zoom;
-        state.panY = Math.max(pad, (vp.clientHeight - area.h * state.zoom) / 2) - area.y * state.zoom;
+        state.panX = Math.max(pad, (vp.clientWidth - area.w * state.zoom) / 2) - area.x * state.zoom;
+        state.panY = pad - area.y * state.zoom; // bám mép trên, không căn giữa dọc
         applyTransform();
     }
 
@@ -284,7 +287,8 @@
             '<div class="section-title m-0">' + esc(n.label) + '</div>' +
             '<button type="button" class="btn btn-ghost" id="close-detail">Đóng</button></div>' +
             '<div class="mt-2">' + lines.map(function (l) { return '<div>' + l + '</div>'; }).join('') + '</div>' + games +
-            (n.matchId ? '<div class="btn-row"><a class="btn btn-ghost" href="/match/pick-ban.html?id=' + n.matchId + '">Cấm chọn bản đồ</a></div>' : '') +
+            (n.matchId ? '<div class="btn-row"><a class="btn btn-ghost" href="/match/detail.html?id=' + n.matchId + '">Trang trận &amp; tỉ số trực tiếp</a>' +
+                '<a class="btn btn-ghost" href="/match/pick-ban.html?id=' + n.matchId + '">Cấm chọn bản đồ</a></div>' : '') +
             '</div></div>';
     }
 
@@ -302,8 +306,27 @@
                     g.rows.map(function (r) {
                         return '<tr><td>' + r.position + '</td><td>' + esc(r.teamName) + (marks[r.mark] ? ' <span class="badge badge-active">' + marks[r.mark] + '</span>' : '') +
                             '</td><td class="text-end"><strong>' + r.points + '</strong></td></tr>';
-                    }).join('') + '</tbody></table></div>';
+                    }).join('') + '</tbody></table>' + groupMatchesHtml(g) + '</div>';
             }).join('') + '</div></div></div>';
+    }
+
+    // Trận vòng bảng/vòng tròn vẽ bằng CÙNG ô trận của nhánh knockout (tiêu đề + 2 dòng đội + tỉ số),
+    // để mọi thể thức và mọi BO trông cùng một kiểu; bấm ô để sang trang trận (tỉ số trực tiếp, livestream).
+    function groupMatchesHtml(g) {
+        if (!g.matches || !g.matches.length) return '';
+        return '<div class="bk-group-matches">' + g.matches.map(function (m) {
+            var aWin = m.isDecided && m.scoreA != null && m.scoreB != null && m.scoreA > m.scoreB;
+            var bWin = m.isDecided && m.scoreA != null && m.scoreB != null && m.scoreB > m.scoreA;
+            var extra = m.statusLabel || '';
+            if (!m.isDecided && m.scheduledAt) extra = formatTime(m.scheduledAt);
+            function row(name, score, win) {
+                return '<span class="bk-team' + (win ? ' win' : '') + '"><span class="nm">' + esc(name || 'Chưa xác định') + '</span>' +
+                    '<span class="sc">' + (score === null || score === undefined ? '' : score) + '</span></span>';
+            }
+            return '<a class="bk-match static" href="/match/detail.html?id=' + Number(m.matchId) + '" title="Xem trận và tỉ số trực tiếp">' +
+                '<span class="bk-head">Bảng ' + esc(g.groupLabel) + ' · Lượt ' + Number(m.roundNo) + (extra ? ' · ' + esc(extra) : '') + '</span>' +
+                row(m.teamAName, m.scoreA, aWin) + row(m.teamBName, m.scoreB, bWin) + '</a>';
+        }).join('') + '</div>';
     }
 
     function toolbarHtml() {

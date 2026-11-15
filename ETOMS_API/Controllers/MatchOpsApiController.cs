@@ -27,6 +27,14 @@ public class MatchOpsApiController : ApiControllerBase
         return detail is null ? NotFound() : Ok(detail);
     }
 
+    // POST /api/matches/{matchId}/ops/self-checkin — MAT-02 / UC-21: đội trưởng tự điểm danh.
+    [HttpPost("self-checkin")]
+    public async Task<IActionResult> SelfCheckIn(int matchId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _ops.SelfCheckInAsync(matchId, _currentUser.UserId!.Value));
+    }
+
     // POST /api/matches/{matchId}/ops/checkin — MAT-04.
     [HttpPost("checkin")]
     public async Task<IActionResult> ManualCheckIn(int matchId, [FromBody] ManualCheckInRequest model)
@@ -81,6 +89,14 @@ public class MatchOpsApiController : ApiControllerBase
     {
         if (!_currentUser.IsAuthenticated) return Unauthorized();
         return FromResult(await _ops.SendChatMessageAsync(matchId, _currentUser.UserId!.Value, model));
+    }
+
+    // POST /api/matches/{matchId}/ops/chat/{messageId}/report — UC-25 A2 báo cáo tin nhắn xúc phạm.
+    [HttpPost("chat/{messageId:int}/report")]
+    public async Task<IActionResult> ReportChat(int matchId, int messageId, [FromBody] ReportChatMessageRequest model)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _ops.ReportChatMessageAsync(matchId, messageId, _currentUser.UserId!.Value, model));
     }
 
     // POST /api/matches/{matchId}/ops/walkover — MAT-09.

@@ -3,7 +3,7 @@
 
     function pad2(n) { return String(n).padStart(2, '0'); }
     function fmtDateTime(iso) {
-        var d = new Date(iso);
+        var d = new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z'); // máy chủ trả giờ UTC không kèm Z
         return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
     }
 
@@ -17,7 +17,12 @@
         if (!ev.isVisible) {
             body = '<div class="card-etoms"><div class="empty"><h3>Minh chứng chưa công khai</h3><p>' + Ui.escapeHtml(ev.hiddenReason) + '</p></div></div>';
         } else {
-            var cardsHtml = '<div class="row g-3">';
+            // UC-39 A1: trận đóng vì hết hạn báo cáo (UC-29) — nói rõ để không ai hiểu nhầm là đã có kết quả.
+            var cardsHtml = ev.closedOnTimeout
+                ? '<div class="pending-banner">Hết hạn báo cáo khi chưa đủ hai bản — trận đã chuyển sang tranh chấp để Trọng tài hoặc Ban tổ chức phân xử.' +
+                  (ev.reports.length ? '' : ' Không đội nào nộp báo cáo trước hạn.') + '</div>'
+                : '';
+            cardsHtml += '<div class="row g-3">';
             ev.reports.forEach(function (r) {
                 var filesHtml;
                 if (!r.files.length) {

@@ -3,6 +3,7 @@
 // Các ô hiện ngay, số liệu ô nào về trước thì điền trước (không chờ API chậm nhất).
 (function () {
     function count(value) {
+        if (value && typeof value.total === 'number') return value.total; // danh sách có phân trang
         if (Array.isArray(value)) return value.length;
         if (value && Array.isArray(value.items)) return value.items.length;
         return null;

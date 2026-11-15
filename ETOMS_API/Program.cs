@@ -119,8 +119,10 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
                 continue;
             field = char.ToUpperInvariant(field[0]) + field[1..];
             var raw = entry.Errors[0].ErrorMessage;
-            // Lỗi đọc JSON (sai kiểu, số tràn, JSON hỏng) của System.Text.Json đều kèm "Path: $..." — tiếng Anh.
+            // Lỗi đọc dữ liệu của framework đều tiếng Anh: JSON sai kiểu/tràn ("Path: $..."), tham số URL/form sai
+            // kiểu ("The value 'abc' is not valid for X", "The value '' is invalid").
             fieldErrors[field] = key.StartsWith("$") || raw.Contains("Path: $") || entry.Errors[0].Exception is not null
+                || raw.Contains("is not valid") || raw.Contains("is invalid")
                 ? "Giá trị không hợp lệ (sai định dạng hoặc quá lớn)."
                 : raw.Contains("is required") ? "Trường này là bắt buộc." : raw;
         }
@@ -164,9 +166,16 @@ builder.Services.AddSession(options =>
 // Đúng theo Report 4 (Software Design Specification): Controller → Service → IUnitOfWork
 // (phát GenericRepository<T> theo entity, dùng chung 1 EtomsDbContext/request) → DB.
 // Giữ 1 kết nối cho cả request thay vì mở/đóng quanh từng câu SQL (xem KeepConnectionOpenInterceptor).
-builder.Services.AddDbContext<EtomsDbContext>(options => options
-    .UseMySQL(mysqlConnectionString)
-    .AddInterceptors(new KeepConnectionOpenInterceptor()));
+// Mỗi request mượn một kết nối ĐANG MỞ từ WarmConnectionPool (xem lý do trong Repositories/WarmConnectionPool.cs):
+// đo thực tế bỏ được ~2 lượt đi về database ở xa cho mỗi request. Tối đa 16 kết nối nhàn rỗi để không chiếm
+// nhiều trong 151 kết nối của database dùng chung. KeepConnectionOpenInterceptor giữ kết nối mở suốt request.
+var warmPool = new WarmConnectionPool(mysqlConnectionString);
+builder.Services.AddSingleton(warmPool);
+builder.Services.AddScoped<WarmConnectionLease>();
+var keepOpen = new KeepConnectionOpenInterceptor();
+builder.Services.AddDbContext<EtomsDbContext>((sp, options) => options
+    .UseMySQL(sp.GetRequiredService<WarmConnectionLease>().Connection) // context KHÔNG sở hữu kết nối: hết request trả lại nhóm
+    .AddInterceptors(keepOpen));
 
 // Dò cột RegistrationLineup.GamePositionID (GRL-04) trước khi EF dựng model; xem Repositories/PendingSchema.cs.
 PendingSchema.Detect(mysqlConnectionString);
@@ -191,6 +200,9 @@ builder.Services.AddScoped<IResultService, ResultService>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IMatchOpsService, ETOMS_API.Services.Impl.MatchOpsService>();
 builder.Services.AddHostedService<WaitlistExpirationWorker>();
 builder.Services.AddHostedService<CompletedTournamentRankingWorker>();
+builder.Services.AddHostedService<ReportTimeoutWorker>();
+builder.Services.AddScoped<CheckInReminderService>();
+builder.Services.AddHostedService<CheckInReminderWorker>();
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -221,6 +233,8 @@ builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
 builder.Services.AddScoped<IBracketViewService, BracketViewService>();
 builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
 builder.Services.AddScoped<ITournamentCancelService, TournamentCancelService>();
+builder.Services.AddScoped<ITournamentDirectoryService, TournamentDirectoryService>();
+builder.Services.AddScoped<ILiveService, LiveService>();
 
 var app = builder.Build();
 
@@ -245,7 +259,21 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
 });
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    // Trang .html không có ?v= như CSS/JS: thiếu Cache-Control thì trình duyệt tự giữ bản cũ một thời gian
+    // (người dùng vẫn thấy giao diện trước khi sửa). "no-cache" = vẫn lưu nhưng luôn hỏi lại máy chủ
+    // (ETag/Last-Modified) trước khi dùng, nên chỉ tốn một yêu cầu 304 nhẹ khi file không đổi.
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+            ctx.Context.Response.Headers.CacheControl = "no-cache";
+        // CSS/JS gắn ?v=... đổi phiên bản mỗi lần sửa → cho trình duyệt giữ hẳn 1 năm, khỏi hỏi lại máy chủ
+        // mỗi lần chuyển trang (mỗi trang ~8 tệp).
+        else if (ctx.Context.Request.Query.ContainsKey("v"))
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+    }
+});
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseSession();

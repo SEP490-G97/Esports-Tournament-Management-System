@@ -1,7 +1,7 @@
 (function () {
     function pad2(n) { return String(n).padStart(2, '0'); }
     function fmtDateShort(iso) {
-        var d = new Date(iso);
+        var d = new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z'); // máy chủ trả giờ UTC không kèm Z
         return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
     }
     function reasonLabel(r) {

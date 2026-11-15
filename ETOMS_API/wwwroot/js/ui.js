@@ -75,8 +75,22 @@ var Ui = (function () {
         return mePromise.then(function (me) { return me ? Object.assign({}, me) : null; });
     }
 
+    var ROLE_LABELS = { PLAYER: 'tuyển thủ', ORGANIZER: 'Ban tổ chức', ADMIN: 'Quản trị viên' };
+
+    // Sai vai trò: báo ngay tại trang (trước đây âm thầm chuyển về trang chủ, người dùng tưởng lỗi).
+    function showRoleNotice(roles, me) {
+        var main = document.querySelector('main');
+        if (!main) return;
+        var allowed = roles.map(function (r) { return ROLE_LABELS[r] || r; }).join(' hoặc ');
+        main.innerHTML = '<div class="card-etoms" style="margin-top:24px"><div class="empty">' +
+            '<h3>Trang này dành cho tài khoản ' + escapeHtml(allowed) + '</h3>' +
+            '<p>Bạn đang đăng nhập với vai trò ' + escapeHtml(ROLE_LABELS[me.role] || me.role) +
+            ' nên không dùng được chức năng này.</p>' +
+            '<a class="btn btn-primary mt-3" href="/">Về trang chủ</a></div></div>';
+    }
+
     // Bắt buộc đăng nhập: khách thì chuyển sang trang đăng nhập kèm returnUrl và trả về null.
-    // roles (tùy chọn): chỉ cho phép các vai trò này, sai vai trò thì về trang chủ.
+    // roles (tùy chọn): chỉ cho phép các vai trò này; sai vai trò thì hiện thông báo tại trang, trả về null.
     async function requireAuth(roles) {
         var me = await currentUser();
         if (!me) {
@@ -84,7 +98,7 @@ var Ui = (function () {
             location.href = '/auth/login.html?returnUrl=' + returnUrl;
             return null;
         }
-        if (roles && roles.length && roles.indexOf(me.role) < 0) { location.href = '/'; return null; }
+        if (roles && roles.length && roles.indexOf(me.role) < 0) { showRoleNotice(roles, me); return null; }
         return me;
     }
 

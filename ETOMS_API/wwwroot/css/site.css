@@ -496,6 +496,8 @@ body { overflow-x: hidden; }
 .filter-search { position: relative; flex: 1; min-width: 220px; }
 .filter-search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted-2); pointer-events: none; }
 .filter-search .input { padding-left: 38px; }
+.filter-bar .filter-error { flex-basis: 100%; margin: 0; }
+.filter-bar .filter-error:empty { display: none; }
 .filter-select { width: auto; min-width: 150px; flex: none; }
 .filter-go { flex: none; padding: 11px 20px; }
 .filter-clear { flex: none; padding: 11px 16px; color: var(--muted); }
@@ -641,7 +643,7 @@ body { overflow-x: hidden; }
 
 .back-link { color: var(--info-ink); font-weight: 700; font-size: .88rem; }
 .back-link:hover { color: var(--cyan); }
-.back-link-auto { display: inline-block; margin-bottom: 12px; }
+.back-link-auto { display: block; width: max-content; margin-bottom: 12px; }
 .organization-management { display: grid; gap: 18px; margin-top: 42px; }
 .management-heading { padding-bottom: 14px; border-bottom: 1px solid var(--border); }
 .management-members { min-width: 0; }
@@ -1199,7 +1201,7 @@ h1, h2, h3, .section-title, .sec-head h2 { font-family: var(--font-display); fon
 .bk-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .bk-seg button { border: 0; background: transparent; color: var(--ink); padding: 8px 14px; font-weight: 600; }
 .bk-seg button[aria-pressed="true"] { background: var(--primary); color: #fff; }
-.bk-viewport { position: relative; overflow: hidden; height: 70vh; min-height: 380px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); touch-action: none; cursor: grab; outline: none; }
+.bk-viewport { position: relative; overflow: hidden; height: 70vh; min-height: 260px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); touch-action: none; cursor: grab; outline: none; }
 .bk-viewport:focus-visible { box-shadow: 0 0 0 3px var(--primary-050); border-color: var(--primary); }
 .bk-viewport.dragging { cursor: grabbing; }
 .bk-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
@@ -1239,6 +1241,18 @@ html[data-role="ORGANIZER"] .fa-layout, html[data-role="ADMIN"] .fa-layout { gri
 .fa-post p { color: var(--muted); font-size: .9rem; margin: 4px 0; white-space: pre-line; overflow-wrap: anywhere; }
 .fa-post small { color: var(--muted-2); }
 
+/* POR-02: bộ lọc danh sách giải */
+.dir-filters { display: grid; gap: 34px 16px; padding: 18px 18px 30px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); align-items: end; }
+.dir-filters .field { margin-bottom: 0; min-width: 0; position: relative; }
+.dir-filters .dir-search { grid-column: 1 / -1; }
+/* Lỗi nằm dưới ô, không đẩy lệch hàng các ô bên cạnh (khoảng hàng 34px chừa sẵn chỗ). */
+.dir-filters .field-error { position: absolute; left: 0; right: 0; top: calc(100% + 4px); font-size: .78rem; line-height: 1.25; }
+.dir-actions { display: flex; gap: 10px; }
+.dir-actions .btn { min-height: calc(.95rem * 1.5 + 26px); white-space: nowrap; }
+@media (min-width: 992px) { .dir-filters .dir-search { grid-column: span 2; } }
+@media (max-width: 575.98px) { .dir-actions { grid-column: 1 / -1; } .dir-actions .btn { flex: 1; } }
+.dir-pager { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; margin-top: 24px; }
+
 /* Chế độ đổi chỗ đội của Ban tổ chức */
 .bk-team.swap { cursor: grab; outline: 1px dashed var(--primary); outline-offset: -3px; }
 .bk-team.swap.sel { background: var(--primary-050); outline-style: solid; }
@@ -1276,3 +1290,165 @@ textarea.input { min-height: 110px; resize: vertical; }
 .past-tag { color: var(--muted-2); font-weight: 400; font-size: .8rem; }
 textarea.input { min-height: 110px; resize: vertical; }
 #banner-preview { max-width: 100%; max-height: 160px; border-radius: 10px; margin-top: 8px; border: 1px solid var(--border); }
+
+/* --- POR-03 chi tiết giải (bracket/view.html) --- */
+.ov-desc, .ov-prize { white-space: pre-line; margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.ov-prize { margin-top: 12px; }
+.ov-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-soft); font-size: .92rem; }
+.ov-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.ov-row .k { color: var(--muted); }
+.ov-row .v { font-weight: 600; overflow-wrap: anywhere; }
+.ov-list { margin: 0; padding-left: 20px; line-height: 1.8; }
+.ov-timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.ov-timeline li { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 0; }
+.ov-timeline li:not(:last-child)::after { content: ""; position: absolute; left: 6px; top: 30px; bottom: -10px; width: 2px; background: var(--border); }
+.ov-timeline .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); background: var(--panel); position: relative; z-index: 1; }
+.ov-timeline li.done .dot { background: var(--primary); border-color: var(--primary); }
+.ov-timeline .lbl { font-weight: 700; }
+.ov-timeline .at { color: var(--muted); font-size: .86rem; text-align: right; }
+.ov-cta { border-left: 3px solid var(--primary); }
+@media (max-width: 575.98px) {
+    .ov-row { grid-template-columns: 1fr; gap: 2px; }
+    .ov-timeline li { grid-template-columns: 18px minmax(0, 1fr); }
+    .ov-timeline .at { grid-column: 2; text-align: left; }
+}
+
+/* --- POR-04 đội tham dự --- */
+.part-row { padding: 12px 16px; color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
+.part-row:hover { border-color: var(--primary); color: inherit; transform: translateY(-1px); }
+.part-row .team-logo { width: 40px; height: 40px; border-radius: 10px; font-size: 1rem; overflow: hidden; }
+.part-row .team-logo img { width: 100%; height: 100%; object-fit: cover; }
+.part-row .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.part-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.part-no { width: 26px; text-align: right; color: var(--muted); font-weight: 700; flex: none; }
+
+/* --- UC-45/46 tỉ số trực tiếp & livestream --- */
+.live-player { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+.live-player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.live-player-off { display: grid; place-items: center; text-align: center; padding: 24px; background: var(--panel-2); }
+.live-player-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.live-score { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel-2); }
+.live-side { text-align: center; min-width: 0; }
+.live-side .nm { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-side .num { font-size: 2.6rem; font-weight: 800; line-height: 1.1; color: var(--muted); }
+.live-side.win .num { color: var(--primary); }
+.live-mid { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.live-games { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: .92rem; }
+.live-games th, .live-games td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); text-align: center; }
+.live-games th { color: var(--muted); font-weight: 600; }
+.live-games td.w { font-weight: 800; color: var(--primary); }
+.live-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.live-form-grid .field { margin-bottom: 0; }
+.live-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.live-item { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); color: inherit; }
+.live-item:hover { border-color: var(--primary); }
+.live-item.active { border-color: var(--primary); background: var(--primary-050); }
+.stream-row { align-items: flex-start; flex-wrap: wrap; padding: 12px 16px; }
+.stream-row.editing { border-left-color: var(--gold); }
+.min-w-0 { min-width: 0; }
+.live-item > .min-w-0 { flex: 1; }
+.live-item .badge { flex: none; }
+@media (max-width: 575.98px) {
+    .live-form-grid { grid-template-columns: 1fr; }
+    .live-side .num { font-size: 2rem; }
+}
+
+/* --- Trang Trực tiếp: khung rộng hơn, video lớn, cột phụ cho tỉ số + danh sách livestream --- */
+.container-etoms.container-wide { max-width: 1600px; }
+.live-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.live-aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* Video chiếm hết bề ngang nội dung; tỉ số + danh sách livestream thành 2 cột bên dưới (màn hẹp: 1 cột). */
+@media (min-width: 768px) { .live-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+#live-match-card[hidden] + section { grid-column: 1 / -1; }
+.live-stage .body { padding: 16px; }
+.live-aside .live-score { padding: 12px 8px; gap: 6px; }
+.live-aside .live-side .num { font-size: 2.1rem; }
+.live-aside .live-side .nm { font-size: .9rem; }
+
+/* --- Trang chủ: nhà tài trợ thật (UC-42) --- */
+.sponsor-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 18px 14px; text-align: center; border-style: solid; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+.sponsor-card:hover { border-color: var(--primary); color: var(--ink); transform: translateY(-2px); }
+.sponsor-logo, .sponsor-logo-lg { object-fit: contain; border-radius: 12px; background: rgba(255,255,255,.06); flex: none; }
+.sponsor-logo { width: 64px; height: 64px; }
+.sponsor-logo-lg { width: 96px; height: 96px; }
+.sponsor-initial { display: grid; place-items: center; font-weight: 800; font-size: 1.6rem; color: var(--cyan); border: 1px solid var(--border); }
+.sponsor-logo-lg.sponsor-initial { font-size: 2.2rem; color: #2fd4e6; border-color: rgba(255,255,255,.18); }
+.sponsor-name { font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sponsor-tour { font-size: .8rem; color: var(--muted); font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-main .sponsor-ghost { color: #e9edf6; border-color: rgba(255,255,255,.35); }
+@media (max-width: 575.98px) { .sponsor-logo-lg { display: none; } }
+/* Tên đội / tiêu đề livestream ở cột phụ hẹp: xuống tối đa 2 dòng thay vì cắt cụt. */
+.live-aside .live-side .nm { white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
+.live-item-title { font-weight: 700; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
+@media (max-width: 575.98px) {
+    .live-stage .body { padding: 10px; }
+    .live-player-meta .btn { width: 100%; }
+    .live-player-meta > div:last-child { width: 100%; }
+}
+
+/* --- UC-46: khu "Đang phát trực tiếp" (trang chủ), dải báo ở trang tổng quan, chuyển kênh --- */
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-right: 6px; animation: live-pulse 1.4s ease-in-out infinite; }
+.ad-label .live-dot { color: #ff4d5e; }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+.live-band { background: var(--bg); border-bottom: 1px solid var(--border-soft); padding: 32px 0; }
+.live-card { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border: 1px solid var(--border); border-left: 3px solid #ff4d5e; border-radius: 14px; background: var(--panel); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; min-width: 0; }
+.live-card:hover { border-color: #ff4d5e; color: var(--ink); transform: translateY(-2px); }
+.live-card .badge { align-self: flex-start; }
+.live-card-title { font-weight: 800; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.live-card-sub { font-size: .84rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-card-go { font-size: .84rem; font-weight: 700; color: var(--primary); margin-top: auto; }
+.live-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border: 1px solid rgba(255,77,94,.35); background: rgba(255,77,94,.08); border-radius: 12px; color: var(--ink); text-decoration: none; }
+.live-banner:hover { color: var(--ink); border-color: #ff4d5e; }
+.live-banner .grow { flex: 1; min-width: 160px; }
+.live-group-title { font-size: .74rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted-2); margin: 6px 0 -2px; }
+.stream-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: thin; }
+.stream-tab { display: inline-flex; align-items: center; gap: 8px; flex: none; max-width: 320px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); color: inherit; font-weight: 600; font-size: .88rem; }
+.stream-tab.active { border-color: var(--primary); background: var(--primary-050); }
+.stream-tab .badge { flex: none; }
+
+/* Trận vòng bảng/vòng tròn: cùng ô trận với nhánh knockout (không định vị tuyệt đối). */
+.bk-group-matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 12px; }
+.bk-match.static { position: static; width: auto; display: block; color: inherit; text-decoration: none; }
+.bk-match.static:hover { border-color: var(--primary); }
+.bk-match.static .bk-team { cursor: pointer; }
+
+/* --- MAT-07 / UC-25: phòng chờ trận --- */
+.lobby-list { max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); }
+.lobby-msg { max-width: 85%; align-self: flex-start; padding: 8px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border); }
+.lobby-msg.mine { align-self: flex-end; background: var(--primary-050); border-color: rgba(59,108,255,.35); }
+.lobby-msg.role-referee { border-left: 3px solid var(--gold); }
+.lobby-msg.role-organizer { border-left: 3px solid var(--cyan); }
+.lobby-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .74rem; color: var(--muted); margin-bottom: 2px; }
+.lobby-role { font-weight: 700; color: var(--ink); }
+.lobby-msg.role-referee .lobby-role { color: var(--gold); }
+.lobby-msg.role-organizer .lobby-role { color: var(--cyan); }
+.lobby-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .92rem; }
+.lobby-report { border: 0; background: transparent; color: var(--muted-2); font-size: .72rem; padding: 0 2px; text-decoration: underline; cursor: pointer; }
+.lobby-report:hover { color: var(--danger-ink); }
+.lobby-form { margin-top: 10px; }
+.lobby-form textarea { min-height: 64px; resize: vertical; }
+.lobby-form-foot { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.lobby-form-foot .field-error { flex: 1; margin: 0; }
+@media (max-width: 575.98px) { .lobby-msg { max-width: 100%; } }
+
+/* Trang quản trị đội: 4 ô thao tác cùng khuôn — chân ô (nút) dính đáy, cùng cỡ, thẳng hàng giữa các ô. */
+.dash-actions .team-card { display: flex; flex-direction: column; color: inherit; text-decoration: none; }
+.dash-actions .team-card .top { flex: 1; align-items: flex-start; }
+.dash-actions .team-card .meta { justify-content: flex-end; min-height: 56px; }
+.dash-actions .team-card .meta .btn { pointer-events: none; }
+.dash-actions .team-card .meta .dash-danger { pointer-events: auto; color: var(--danger-ink); border-color: rgba(255,77,94,.4); }
+.dash-actions .team-card .meta .dash-danger:hover { background: var(--danger-bg); }
+
+/* Trang "Các đội của tôi": nhãn cùng một hàng, nút chia đều (không rớt dòng lẻ). */
+.my-team-card { display: flex; flex-direction: column; }
+.my-team-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border-soft); }
+.my-team-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0 20px 18px; margin-top: auto; }
+.my-team-actions.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.my-team-actions .btn { width: 100%; padding-left: 6px; padding-right: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 380px) { .my-team-actions.three { grid-template-columns: minmax(0, 1fr); } }
+
+/* Mục "Trận sắp tới" ở trang đội */
+.team-match-row { padding: 12px 16px; flex-wrap: wrap; }
+.team-match-row .btn { flex: none; }
+@media (max-width: 575.98px) { .team-match-row .btn { width: 100%; } }

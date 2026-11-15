@@ -24,7 +24,7 @@
         var html = '' +
             '<div class="page-head"><h1>' + Ui.escapeHtml(d.teamAName) + ' vs ' + Ui.escapeHtml(d.teamBName) + '</h1>' +
             '<p>Bo' + d.bestOf + ' · ' + statusLabel(d.status) +
-            (d.scheduledAt ? ' · Lịch: ' + new Date(d.scheduledAt).toLocaleString('vi-VN') : '') + '</p></div>';
+            (d.scheduledAt ? ' · Lịch: ' + new Date(/Z$|[+-]\d\d:\d\d$/.test(d.scheduledAt) ? d.scheduledAt : d.scheduledAt + 'Z').toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '') + '</p></div>';
 
         if (d.winnerTeamId) {
             html += '<div class="alert alert-success">Đội thắng: ' +
@@ -32,8 +32,9 @@
         }
 
         html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Điểm danh</h3>' +
-            '<p>Đội A: ' + (d.teamACheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>' +
-            '<p>Đội B: ' + (d.teamBCheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>';
+            '<p>' + Ui.escapeHtml(d.teamAName) + ': ' + (d.teamACheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>' +
+            '<p>' + Ui.escapeHtml(d.teamBName) + ': ' + (d.teamBCheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>' +
+            checkInWindowHtml(d);
         if (d.canManage) {
             html += '<div class="btn-row">' +
                 (d.teamACheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="A">Điểm danh thủ công Đội A</button>') +
@@ -50,11 +51,14 @@
             } else {
                 html += '<p class="muted">Chưa có thông tin phòng.</p>';
             }
-            if (d.canManage) {
-                html += '<form id="roomForm" class="btn-row" style="align-items:flex-end">' +
-                    '<div><label>Mã phòng</label><input class="input" name="roomCode" required></div>' +
-                    '<div><label>Mật khẩu (tuỳ chọn)</label><input class="input" name="roomPassword"></div>' +
-                    '<button class="btn btn-primary" type="submit">Lưu</button></form>';
+            if (d.canSetRoom) {
+                // UC-25 bước 3: đội trưởng đội nhà (hoặc trọng tài/BTC) nhập mã phòng; hai đội trưởng và trọng tài cùng thấy.
+                html += '<form id="roomForm" class="btn-row" style="align-items:flex-start" novalidate>' +
+                    '<div><label>Mã phòng</label><input class="input" name="roomCode" maxlength="100" value="' + Ui.escapeHtml(d.roomCode || '') + '">' +
+                    '<span class="field-error" data-field-error="RoomCode"></span></div>' +
+                    '<div><label>Mật khẩu (tuỳ chọn)</label><input class="input" name="roomPassword" maxlength="100" value="' + Ui.escapeHtml(d.roomPassword || '') + '">' +
+                    '<span class="field-error" data-field-error="RoomPassword"></span></div>' +
+                    '<button class="btn btn-primary" type="submit" style="margin-top:26px">Lưu</button></form>';
             }
             html += '</div></div>';
         }
@@ -73,11 +77,8 @@
         }
 
         if (d.canManage || d.myCaptainTeamId) {
-            html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Phòng chờ trận</h3>' +
-                '<div id="chatBox" style="max-height:260px;overflow:auto;margin-bottom:12px"></div>' +
-                '<form id="chatForm" class="btn-row">' +
-                '<input class="input" style="flex:1" name="content" placeholder="Nhập tin nhắn..." required>' +
-                '<button class="btn btn-ghost" type="submit">Gửi</button></form></div></div>';
+            // Phòng chờ (MAT-07 / UC-25) do match-lobby.js vẽ và tự làm mới.
+            html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body" id="lobby-box"></div></div>';
         }
 
         if (d.canManage) {
@@ -96,9 +97,33 @@
         }
 
         root.innerHTML = html;
+        // Tiêu đề trận đặt trên khối Trực tiếp (UC-45/46, match-live.js); phần còn lại ở dưới.
+        var headSlot = document.getElementById('match-head');
+        var head = root.querySelector('.page-head');
+        if (headSlot && head) headSlot.replaceChildren(head);
         wireActions(d);
         if (d.canManage) loadSubRequests();
-        if (d.canManage || d.myCaptainTeamId) loadChat();
+        var lobbyBox = document.getElementById('lobby-box');
+        if (lobbyBox && window.MatchLobby) window.MatchLobby.mount(matchId, lobbyBox);
+    }
+
+    function utc(iso) { return iso ? new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z') : null; }
+    function hm(d) { return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); }
+
+    // MAT-02 / UC-21: cửa sổ điểm danh mở 30 phút trước giờ thi đấu, đóng đúng giờ thi đấu (BR-MATCH-01).
+    function checkInWindowHtml(d) {
+        var open = utc(d.checkInOpenAt), kick = utc(d.scheduledAt), now = new Date();
+        if (!open || !kick || (d.status !== 'PENDING' && d.status !== 'READY')) return '';
+        var state = now < open ? 'Cửa sổ điểm danh mở lúc ' + hm(open) + ' (trước giờ thi đấu 30 phút).'
+            : now < kick ? 'Cửa sổ điểm danh đang mở đến ' + hm(kick) + '.'
+            : 'Cửa sổ điểm danh đã đóng lúc ' + hm(kick) + '.';
+        var btn = '';
+        if (d.myCaptainTeamId && !d.myTeamCheckedIn) {
+            btn = now >= open && now < kick
+                ? '<button class="btn btn-primary" data-act="self-checkin">Điểm danh đội tôi</button>'
+                : '<button class="btn btn-ghost" disabled>Điểm danh đội tôi</button>';
+        }
+        return '<p class="hint mb-2">' + Ui.escapeHtml(state) + '</p>' + (btn ? '<div class="btn-row mb-2">' + btn + '</div>' : '');
     }
 
     async function withReason(label, cb) {
@@ -111,6 +136,12 @@
     }
 
     function wireActions(d) {
+        var selfBtn = root.querySelector('[data-act="self-checkin"]');
+        if (selfBtn) selfBtn.addEventListener('click', async function () {
+            selfBtn.disabled = true;
+            await call(Api.post('/api/matches/' + matchId + '/ops/self-checkin', {}));
+        });
+
         root.querySelectorAll('[data-act="checkin"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 withReason('Lý do check-in thủ công:', async function (reason) {
@@ -160,8 +191,22 @@
         var roomForm = root.querySelector('#roomForm');
         if (roomForm) roomForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+            Ui.clearFieldErrors(roomForm);
             var fd = new FormData(roomForm);
-            await call(Api.put('/api/matches/' + matchId + '/ops/room', { roomCode: fd.get('roomCode'), roomPassword: fd.get('roomPassword') || null }));
+            var code = String(fd.get('roomCode') || '').trim(), pw = String(fd.get('roomPassword') || '').trim();
+            var errs = {};
+            if (!code) errs.RoomCode = 'Vui lòng nhập mã phòng.';
+            else if (code.length > 100) errs.RoomCode = 'Mã phòng tối đa 100 ký tự.';
+            if (pw.length > 100) errs.RoomPassword = 'Mật khẩu phòng tối đa 100 ký tự.';
+            if (Object.keys(errs).length) { Ui.applyFieldErrors(roomForm, errs); return; }
+            try {
+                var res = await Api.put('/api/matches/' + matchId + '/ops/room', { roomCode: code, roomPassword: pw || null });
+                Ui.showAlert(flash, 'success', res.message);
+                load();
+            } catch (err) {
+                Ui.applyFieldErrors(roomForm, err.fieldErrors);
+                Ui.showAlert(flash, 'danger', err.message);
+            }
         });
 
         var subForm = root.querySelector('#subForm');
@@ -176,16 +221,6 @@
             }));
         });
 
-        var chatForm = root.querySelector('#chatForm');
-        if (chatForm) chatForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            var fd = new FormData(chatForm);
-            try {
-                await Api.post('/api/matches/' + matchId + '/ops/chat', { content: fd.get('content') });
-                chatForm.reset();
-                loadChat();
-            } catch (err) { Ui.showAlert(flash, 'danger', err.message); }
-        });
     }
 
     async function call(promise) {
@@ -225,26 +260,14 @@
         loadSubRequests();
     }
 
-    async function loadChat() {
-        var box = document.getElementById('chatBox');
-        if (!box) return;
-        try {
-            var res = await Api.get('/api/matches/' + matchId + '/ops/chat');
-            var list = res.data || [];
-            box.innerHTML = list.map(function (m) {
-                return '<p><b>' + Ui.escapeHtml(m.senderName) + ':</b> ' + Ui.escapeHtml(m.content) + '</p>';
-            }).join('') || '<p class="muted">Chưa có tin nhắn.</p>';
-            box.scrollTop = box.scrollHeight;
-        } catch (e) { box.innerHTML = '<p class="muted">Không xem được phòng chờ.</p>'; }
-    }
-
     document.addEventListener('etoms:layout-ready', async function () {
         matchId = Ui.qsInt('id');
         root = document.getElementById('match-root');
         flash = document.getElementById('flash');
         if (!matchId) { root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Thiếu mã trận đấu</h3></div></div>'; return; }
-        me = await Ui.requireAuth();
-        if (!me) return;
+        // Khách cũng xem được trang trận (LIVE-02). API chỉ trả mã phòng và nút thao tác cho
+        // trọng tài/BTC/đội trưởng, nên không cần bắt đăng nhập để xem.
+        me = await Ui.currentUser();
         load();
     });
 })();

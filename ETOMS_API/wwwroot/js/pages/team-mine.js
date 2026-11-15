@@ -11,18 +11,19 @@
         var role = t.isCaptain
             ? '<span class="badge badge-active">Đội trưởng</span>'
             : '<span class="badge badge-soft">' + (t.slot === 'SUBSTITUTE' ? 'Dự bị' : 'Chính thức') + '</span>';
-        var joined = t.joinedAt ? 'Tham gia ' + new Date(t.joinedAt).toLocaleDateString('vi-VN') : '';
+        var joined = t.joinedAt ? 'Tham gia ' + new Date(/Z$|[+-]\d\d:\d\d$/.test(t.joinedAt) ? t.joinedAt : t.joinedAt + 'Z').toLocaleDateString('vi-VN') : '';
+        // Nút chia đều cùng một hàng (đội trưởng: 3 nút, thành viên: 1 nút) — không rớt dòng lẻ.
         var actions = '<a class="btn btn-ghost btn-sm" href="/team/details.html?id=' + t.teamId + '">Hồ sơ đội</a>';
         if (t.isCaptain) {
-            actions += ' <a class="btn btn-primary btn-sm" href="/team/dashboard.html?id=' + t.teamId + '">Bảng điều khiển</a>' +
-                ' <a class="btn btn-ghost btn-sm" href="/team/roster.html?id=' + t.teamId + '">Roster</a>';
+            actions = '<a class="btn btn-primary btn-sm" href="/team/dashboard.html?id=' + t.teamId + '">Quản trị đội</a>' + actions +
+                '<a class="btn btn-ghost btn-sm" href="/team/roster.html?id=' + t.teamId + '">Đội hình</a>';
         }
-        return '<div class="col-12 col-md-6 col-lg-4"><div class="team-card h-100">' +
+        return '<div class="col-12 col-md-6 col-lg-4"><div class="team-card my-team-card h-100">' +
             '<div class="top">' + logo(t) + '<div class="minw-0"><div class="name">' + Ui.escapeHtml(t.name) + '</div>' +
             '<div class="tag">[' + Ui.escapeHtml(t.tag) + '] · ' + Ui.escapeHtml(t.gameTitle) + '</div></div></div>' +
-            '<div class="meta"><span>' + Ui.escapeHtml(joined) + '</span><span>' +
-            '<span class="badge badge-soft">' + t.memberCount + ' thành viên</span> ' + role + '</span></div>' +
-            '<div class="d-flex flex-wrap gap-2" style="padding:0 20px 18px">' + actions + '</div>' +
+            '<div class="my-team-meta"><span class="badge badge-soft">' + t.memberCount + ' thành viên</span>' + role +
+            '<span class="hint ms-auto">' + Ui.escapeHtml(joined) + '</span></div>' +
+            '<div class="my-team-actions' + (t.isCaptain ? ' three' : '') + '">' + actions + '</div>' +
             '</div></div>';
     }
 
@@ -39,7 +40,7 @@
                     '<p>Tạo đội mới, nhập mã mời của đội trưởng, hoặc đăng tin tìm đội.</p>' +
                     '<div class="d-flex flex-wrap gap-2 justify-content-center">' +
                     '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/team/create.html">Tạo đội mới</a>' +
-                    '<a class="btn btn-ghost" href="/team/join.html">Gia nhập bằng mã</a>' +
+                    '<a class="btn btn-ghost" data-hide-roles="ORGANIZER ADMIN" href="/team/join.html">Gia nhập bằng mã</a>' +
                     '<a class="btn btn-ghost" href="/free-agent/index.html">Tìm đội</a></div>' +
                     '</div></div>';
                 return;

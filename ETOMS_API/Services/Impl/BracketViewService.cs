@@ -150,7 +150,7 @@ public class BracketViewService : IBracketViewService
                         : new List<BracketGameDto>()
                 };
                 view.Nodes.Add(node);
-                version.Append($"{node.NodeId}:{node.TeamA.TeamId}:{node.TeamB.TeamId}:{node.ScoreA}:{node.ScoreB}:{node.WinnerTeamId}:{node.Status}:{node.ScheduledAt:O}:{node.RefereeName}:{node.Games.Count};");
+                version.Append($"{node.NodeId}:{node.TeamA.TeamId}:{node.TeamB.TeamId}:{node.ScoreA}:{node.ScoreB}:{node.WinnerTeamId}:{node.Status}:{node.ScheduledAt:O}:{node.RefereeName}:{string.Join(",", node.Games.Select(g => $"{g.ScoreA}-{g.ScoreB}"))};");
             }
             dto.Stages.Add(view);
         }

@@ -13,6 +13,7 @@ public interface IMatchOpsService
 
     // MAT-08
     Task<Result> SetRoomInfoAsync(int matchId, int actorAccountId, SetRoomInfoRequest request);
+    Task<Result> SelfCheckInAsync(int matchId, int captainAccountId);
 
     // MAT-05 / MAT-06
     Task<Result<int>> RequestSubstituteAsync(int matchId, int requestedByAccountId, CreateSubstituteRequest request);
@@ -20,8 +21,9 @@ public interface IMatchOpsService
     Task<Result> DecideSubstituteAsync(int matchRequestId, int decidedByAccountId, bool approve);
 
     // MAT-07
-    Task<Result<IReadOnlyList<ChatMessageDto>>> GetChatMessagesAsync(int matchId, int viewerAccountId);
+    Task<Result<MatchLobbyDto>> GetChatMessagesAsync(int matchId, int viewerAccountId);
     Task<Result<ChatMessageDto>> SendChatMessageAsync(int matchId, int senderAccountId, SendChatMessageRequest request);
+    Task<Result> ReportChatMessageAsync(int matchId, int messageId, int reporterAccountId, ReportChatMessageRequest request);
 
     // MAT-09
     Task<Result> ProcessWalkoverAsync(int matchId, int actorAccountId, WalkoverRequest request);

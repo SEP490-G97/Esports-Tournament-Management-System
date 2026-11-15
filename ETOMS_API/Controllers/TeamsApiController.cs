@@ -21,10 +21,10 @@ public class TeamsApiController : ApiControllerBase
         _env = env;
     }
 
-    // GET /api/teams?q=&gameId=&status=&sort=
+    // GET /api/teams?q=&gameId=&status=&sort=&page=&pageSize= — trả { items, total, page, pageSize, totalPages }.
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] TeamSearchRequest filter)
-        => Ok(await _teamService.GetAllTeamsAsync(filter));
+        => FromResult(await _teamService.SearchTeamsAsync(filter));
 
     // GET /api/teams/games — danh sách tựa game đang mở (cho dropdown).
     [HttpGet("games")]
@@ -55,6 +55,11 @@ public class TeamsApiController : ApiControllerBase
         var team = await _teamService.GetTeamDetailAsync(id);
         return team is null ? NotFound() : Ok(team);
     }
+
+    // GET /api/teams/{id}/upcoming-matches — trận chưa kết thúc của đội (công khai: chỉ đối thủ, giờ, trạng thái).
+    [HttpGet("{id:int}/upcoming-matches")]
+    public async Task<IActionResult> GetUpcomingMatches(int id)
+        => Ok(new { message = string.Empty, data = await _teamService.GetUpcomingMatchesAsync(id) });
 
     // GET /api/teams/{id}/roster — TEAM-03, chỉ đội trưởng.
     [HttpGet("{id:int}/roster")]

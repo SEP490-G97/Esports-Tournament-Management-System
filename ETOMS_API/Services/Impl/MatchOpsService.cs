@@ -28,8 +28,10 @@ public class MatchOpsService : IMatchOpsService
             .FirstOrDefaultAsync(m => m.MatchId == matchId);
         if (match is null) return null;
 
-        int? captainTeamId = viewerAccountId.HasValue
-            ? await _resultService.GetCaptainTeamIdAsync(matchId, viewerAccountId.Value)
+        // Đội trưởng lấy từ TeamA/TeamB đã Include sẵn — không tốn thêm 2 câu SQL tới database ở xa.
+        int? captainTeamId = !viewerAccountId.HasValue ? null
+            : match.TeamA?.CaptainAccountId == viewerAccountId ? match.TeamAid
+            : match.TeamB?.CaptainAccountId == viewerAccountId ? match.TeamBid
             : null;
         bool canManage = viewerAccountId.HasValue &&
             (match.RefereeAccountId == viewerAccountId.Value || match.Tournament.OrganizerAccountId == viewerAccountId.Value);
@@ -54,7 +56,11 @@ public class MatchOpsService : IMatchOpsService
             TeamACheckedIn = match.TeamAcheckedInAt.HasValue,
             TeamBCheckedIn = match.TeamBcheckedInAt.HasValue,
             CanManage = canManage,
-            MyCaptainTeamId = captainTeamId
+            MyCaptainTeamId = captainTeamId,
+            CanSetRoom = canManage || (captainTeamId.HasValue && captainTeamId == match.TeamAid),
+            CheckInOpenAt = match.CheckInOpenAt,
+            MyTeamCheckedIn = captainTeamId.HasValue &&
+                (captainTeamId == match.TeamAid ? match.TeamAcheckedInAt.HasValue : match.TeamBcheckedInAt.HasValue)
         };
     }
 
@@ -79,8 +85,11 @@ public class MatchOpsService : IMatchOpsService
         m.CheckInMode = "MANUAL_OVERRIDE";
         m.OverrideReason = request.Reason.Trim();
         if (side == "A") m.TeamAcheckedInAt = DateTime.UtcNow; else m.TeamBcheckedInAt = DateTime.UtcNow;
-        if (m.TeamAcheckedInAt.HasValue && m.TeamBcheckedInAt.HasValue && m.Status == "PENDING") m.Status = "READY";
+        bool lobbyOpened = false;
+        if (m.TeamAcheckedInAt.HasValue && m.TeamBcheckedInAt.HasValue && m.Status == "PENDING") { m.Status = "READY"; lobbyOpened = true; }
         _uow.Repository<Match>().Update(m);
+
+        if (lobbyOpened) await NotifyLobbyOpenAsync(m);
 
         await LogAsync(m.TournamentId, actorAccountId, "MANUAL_CHECKIN", m.MatchId,
             $"TeamSide={side}", request.Reason.Trim());
@@ -88,16 +97,80 @@ public class MatchOpsService : IMatchOpsService
         return Result.Success("Đã check-in thủ công.");
     }
 
+    // UC-25 bước 1 / UC-21 bước 6: trận Sẵn sàng thì mở phòng chờ và báo cho hai đội trưởng.
+    private async Task NotifyLobbyOpenAsync(Match m)
+    {
+        var captains = await _uow.Repository<Team>().Query()
+            .Where(t => t.TeamId == m.TeamAid || t.TeamId == m.TeamBid)
+            .Select(t => t.CaptainAccountId).ToListAsync();
+        foreach (var cap in captains.Distinct())
+            await _uow.Repository<Notification>().AddAsync(new Notification
+            {
+                AccountId = cap,
+                NotificationType = "SYSTEM",
+                Title = "Phòng chờ trận đã mở",
+                Body = "Hai đội đã điểm danh. Vào phòng chờ để trao đổi mã phòng và mật khẩu với đội bạn và trọng tài.",
+                LinkUrl = "/match/detail.html?id=" + m.MatchId,
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = DateTime.UtcNow
+            });
+    }
+
+    // ===== MAT-02 / UC-21: Đội trưởng tự điểm danh =====
+    // Cửa sổ điểm danh mở 30 phút trước giờ thi đấu và đóng đúng giờ thi đấu (BR-MATCH-01).
+    public async Task<Result> SelfCheckInAsync(int matchId, int captainAccountId)
+    {
+        var ctx = await LoadLobbyAsync(matchId, captainAccountId);
+        if (ctx is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
+        if (ctx.Role is not ("CAPTAIN_A" or "CAPTAIN_B"))
+            return Result.Failure("Chỉ đội trưởng của hai đội trong trận mới điểm danh được.", StatusCodes.Status403Forbidden);
+        var m = ctx.Match;
+        if (m.Status is not ("PENDING" or "READY"))
+            return Result.Failure("Trận không còn ở giai đoạn điểm danh.");
+        if (m.ScheduledAt is null || m.CheckInOpenAt is null)
+            return Result.Failure("Trận chưa được xếp giờ thi đấu nên chưa điểm danh được.");
+
+        var now = DateTime.UtcNow;
+        if (now < m.CheckInOpenAt) // E1 — MSG-MAT-001
+            return Result.Failure($"Cửa sổ điểm danh chưa mở. Mở trước giờ thi đấu 30 phút (lúc {m.CheckInOpenAt.Value.AddHours(7):HH:mm dd/MM}).");
+        if (now >= m.ScheduledAt) // E2 — MSG-MAT-002
+            return Result.Failure("Đã quá hạn. Vui lòng liên hệ Ban tổ chức.");
+
+        bool isA = ctx.Role == "CAPTAIN_A";
+        var already = isA ? m.TeamAcheckedInAt : m.TeamBcheckedInAt;
+        if (already.HasValue)
+            return Result.Failure($"Đội bạn đã điểm danh lúc {already.Value.AddHours(7):HH:mm}.");
+
+        if (isA) m.TeamAcheckedInAt = now; else m.TeamBcheckedInAt = now;
+        bool lobbyOpened = m.TeamAcheckedInAt.HasValue && m.TeamBcheckedInAt.HasValue && m.Status == "PENDING";
+        if (lobbyOpened) m.Status = "READY";
+        _uow.Repository<Match>().Update(m);
+        if (lobbyOpened) await NotifyLobbyOpenAsync(m);
+        await _uow.SaveChangesAsync();
+        return Result.Success(lobbyOpened
+            ? "Điểm danh thành công. Hai đội đã đủ — phòng chờ trận đã mở."
+            : "Điểm danh thành công. Chờ đối thủ điểm danh."); // MSG-MAT-003
+    }
+
     // ===== MAT-08: Phòng đấu (Room ID + mật khẩu) =====
     public async Task<Result> SetRoomInfoAsync(int matchId, int actorAccountId, SetRoomInfoRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RoomCode))
             return Result.FieldFailure(nameof(request.RoomCode), "Vui lòng nhập mã phòng.");
+        if (request.RoomCode.Trim().Length > 100)
+            return Result.FieldFailure(nameof(request.RoomCode), "Mã phòng tối đa 100 ký tự.");
+        if (request.RoomPassword is { } pw && pw.Trim().Length > 100)
+            return Result.FieldFailure(nameof(request.RoomPassword), "Mật khẩu phòng tối đa 100 ký tự.");
 
-        var match = await LoadForManageAsync(matchId, actorAccountId);
-        if (match.Match is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
-        if (match.ManageError is not null) return match.ManageError;
-        var m = match.Match!;
+        // UC-25 bước 3: đội trưởng đội nhà (đội A) chia sẻ mã phòng; trọng tài/BTC vẫn sửa được.
+        var ctx = await LoadLobbyAsync(matchId, actorAccountId);
+        if (ctx is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
+        if (ctx.Role is not ("REFEREE" or "ORGANIZER" or "CAPTAIN_A"))
+            return Result.Failure("Chỉ đội trưởng đội nhà, trọng tài hoặc Ban tổ chức mới nhập được mã phòng.", StatusCodes.Status403Forbidden);
+        if (ctx.Match.Status is "VERIFIED" or "WALKOVER" or "CANCELLED")
+            return Result.Failure("Trận đã kết thúc, không đổi thông tin phòng được nữa.");
+        var m = ctx.Match;
 
         m.RoomCode = request.RoomCode.Trim();
         m.RoomPassword = string.IsNullOrWhiteSpace(request.RoomPassword) ? null : request.RoomPassword.Trim();
@@ -193,55 +266,176 @@ public class MatchOpsService : IMatchOpsService
         return Result.Success(approve ? "Đã duyệt thay người." : "Đã từ chối yêu cầu thay người.");
     }
 
-    // ===== MAT-07: Phòng chờ chat =====
-    public async Task<Result<IReadOnlyList<ChatMessageDto>>> GetChatMessagesAsync(int matchId, int viewerAccountId)
-    {
-        var access = await CanAccessChatAsync(matchId, viewerAccountId);
-        if (!access) return Result<IReadOnlyList<ChatMessageDto>>.Failure("Bạn không có quyền xem phòng chờ trận này.", StatusCodes.Status403Forbidden);
+    // ===== MAT-07 / UC-25: Phòng chờ trận =====
+    // Một phòng cho mỗi trận: 2 đội trưởng + trọng tài được gán + Ban tổ chức (E1). Mở khi trận Sẵn sàng (cả hai
+    // đội đã điểm danh), chỉ còn đọc khi trận đã có kết quả (E2). Toàn bộ tin nhắn được lưu làm bằng chứng cho
+    // người phân xử tranh chấp (UC-31), nên tin nhắn không sửa/xóa được.
+    public const int ChatMaxLength = 2000;      // MatchChatMessage.Content VARCHAR(2000)
+    private const int ChatReportNoteMax = 500;   // MatchChatMessage.ReportNote VARCHAR(500)
+    private static readonly string[] LobbyOpenStatuses = { "READY", "LIVE", "WAITING_REPORT", "DISPUTED" };
 
-        var list = await _uow.Repository<MatchChatMessage>().Query()
-            .Include(c => c.SenderAccount)
+    private sealed record LobbyContext(Match Match, string? Role, int? CaptainA, int? CaptainB);
+
+    private async Task<LobbyContext?> LoadLobbyAsync(int matchId, int accountId)
+    {
+        var m = await _uow.Repository<Match>().Query()
+            .Include(x => x.Tournament).Include(x => x.TeamA).Include(x => x.TeamB)
+            .FirstOrDefaultAsync(x => x.MatchId == matchId);
+        if (m is null) return null;
+        int? capA = m.TeamA?.CaptainAccountId, capB = m.TeamB?.CaptainAccountId;
+        string? role = m.RefereeAccountId == accountId ? "REFEREE"
+            : m.Tournament.OrganizerAccountId == accountId ? "ORGANIZER"
+            : capA == accountId ? "CAPTAIN_A"
+            : capB == accountId ? "CAPTAIN_B"
+            : null;
+        return new LobbyContext(m, role, capA, capB);
+    }
+
+    private static string? LobbyClosedReason(Match m) => m.Status switch
+    {
+        _ when LobbyOpenStatuses.Contains(m.Status) => null,
+        "PENDING" => "Phòng chờ sẽ mở khi cả hai đội đã điểm danh (trận ở trạng thái Sẵn sàng).",
+        "CANCELLED" => "Trận đã hủy — phòng chờ chỉ còn để đọc.",
+        _ => "Trận đã có kết quả — phòng chờ chỉ còn để đọc."
+    };
+
+    private static string RoleLabel(string? role, Match m) => role switch
+    {
+        "REFEREE" => "Trọng tài",
+        "ORGANIZER" => "Ban tổ chức",
+        "CAPTAIN_A" => "Đội trưởng " + (m.TeamA?.Name ?? "đội A"),
+        "CAPTAIN_B" => "Đội trưởng " + (m.TeamB?.Name ?? "đội B"),
+        _ => "Thành viên cũ"
+    };
+
+    public async Task<Result<MatchLobbyDto>> GetChatMessagesAsync(int matchId, int viewerAccountId)
+    {
+        var ctx = await LoadLobbyAsync(matchId, viewerAccountId);
+        if (ctx is null) return Result<MatchLobbyDto>.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
+        if (ctx.Role is null) return Result<MatchLobbyDto>.Failure("Chỉ hai đội trưởng, trọng tài và Ban tổ chức mới vào được phòng chờ trận này.", StatusCodes.Status403Forbidden);
+
+        var m = ctx.Match;
+        bool moderator = ctx.Role is "REFEREE" or "ORGANIZER";
+        var rows = await _uow.Repository<MatchChatMessage>().Query().AsNoTracking()
             .Where(c => c.MatchId == matchId)
-            .OrderBy(c => c.SentAt)
-            .Select(c => new ChatMessageDto
+            .OrderBy(c => c.SentAt).ThenBy(c => c.MatchChatMessageId)
+            .Select(c => new { c.MatchChatMessageId, c.SenderAccountId, SenderName = c.SenderAccount.FullName, c.Content, c.SentAt, c.ReportStatus, c.ReportedByAccountId })
+            .ToListAsync();
+
+        var closed = LobbyClosedReason(m);
+        return Result<MatchLobbyDto>.Success(new MatchLobbyDto
+        {
+            IsOpen = closed is null,
+            StateMessage = closed ?? "Phòng chờ đang mở. Tin nhắn được lưu lại làm bằng chứng nếu trận có tranh chấp.",
+            MyRoleLabel = RoleLabel(ctx.Role, m),
+            MaxLength = ChatMaxLength,
+            Messages = rows.Select(c =>
             {
-                MatchChatMessageId = c.MatchChatMessageId,
-                SenderAccountId = c.SenderAccountId,
-                SenderName = c.SenderAccount.FullName,
-                Content = c.Content,
-                SentAt = c.SentAt
-            }).ToListAsync();
-        return Result<IReadOnlyList<ChatMessageDto>>.Success(list);
+                var senderRole = c.SenderAccountId == m.RefereeAccountId ? "REFEREE"
+                    : c.SenderAccountId == m.Tournament.OrganizerAccountId ? "ORGANIZER"
+                    : c.SenderAccountId == ctx.CaptainA ? "CAPTAIN_A"
+                    : c.SenderAccountId == ctx.CaptainB ? "CAPTAIN_B" : "FORMER";
+                bool mine = c.SenderAccountId == viewerAccountId;
+                return new ChatMessageDto
+                {
+                    MatchChatMessageId = c.MatchChatMessageId,
+                    SenderAccountId = c.SenderAccountId,
+                    SenderName = c.SenderName,
+                    Content = c.Content,
+                    SentAt = c.SentAt,
+                    SenderRole = senderRole,
+                    SenderRoleLabel = RoleLabel(senderRole, m),
+                    IsMine = mine,
+                    // Ai báo cáo thì thấy tin mình đã báo; người phân xử thấy mọi tin bị báo cáo.
+                    ReportStatus = moderator || c.ReportedByAccountId == viewerAccountId ? c.ReportStatus : "NONE",
+                    CanReport = !mine && c.ReportStatus == "NONE"
+                };
+            }).ToList()
+        });
     }
 
     public async Task<Result<ChatMessageDto>> SendChatMessageAsync(int matchId, int senderAccountId, SendChatMessageRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Content))
-            return Result<ChatMessageDto>.FieldFailure(nameof(request.Content), "Vui lòng nhập nội dung.");
-        if (!await CanAccessChatAsync(matchId, senderAccountId))
-            return Result<ChatMessageDto>.Failure("Bạn không có quyền gửi vào phòng chờ trận này.", StatusCodes.Status403Forbidden);
+        var content = (request.Content ?? string.Empty).Trim();
+        if (content.Length == 0)
+            return Result<ChatMessageDto>.FieldFailure(nameof(request.Content), "Vui lòng nhập nội dung tin nhắn.");
+        if (content.Length > ChatMaxLength)
+            return Result<ChatMessageDto>.FieldFailure(nameof(request.Content), $"Tin nhắn tối đa {ChatMaxLength} ký tự.");
 
-        var sender = await _uow.Repository<Account>().GetByIdAsync(senderAccountId);
+        var ctx = await LoadLobbyAsync(matchId, senderAccountId);
+        if (ctx is null) return Result<ChatMessageDto>.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
+        if (ctx.Role is null) return Result<ChatMessageDto>.Failure("Chỉ hai đội trưởng, trọng tài và Ban tổ chức mới gửi được tin trong phòng chờ.", StatusCodes.Status403Forbidden);
+        var closed = LobbyClosedReason(ctx.Match);
+        if (closed is not null) return Result<ChatMessageDto>.Failure(closed);
+
+        // Chống gửi dồn: tối đa 5 tin trong 10 giây cho mỗi người.
+        var since = DateTime.UtcNow.AddSeconds(-10);
+        if (await _uow.Repository<MatchChatMessage>().Query().CountAsync(c => c.MatchId == matchId && c.SenderAccountId == senderAccountId && c.SentAt >= since) >= 5)
+            return Result<ChatMessageDto>.Failure("Bạn gửi quá nhanh, vui lòng đợi vài giây rồi gửi tiếp.", StatusCodes.Status429TooManyRequests);
+
         var msg = new MatchChatMessage
         {
             MatchId = matchId,
             SenderAccountId = senderAccountId,
-            Content = request.Content.Trim(),
+            Content = content,
             IsPinned = false,
             ReportStatus = "NONE",
             SentAt = DateTime.UtcNow
         };
         await _uow.Repository<MatchChatMessage>().AddAsync(msg);
         await _uow.SaveChangesAsync();
-
         return Result<ChatMessageDto>.Success(new ChatMessageDto
         {
             MatchChatMessageId = msg.MatchChatMessageId,
             SenderAccountId = senderAccountId,
-            SenderName = sender?.FullName ?? "",
             Content = msg.Content,
-            SentAt = msg.SentAt
-        });
+            SentAt = msg.SentAt,
+            SenderRole = ctx.Role,
+            SenderRoleLabel = RoleLabel(ctx.Role, ctx.Match),
+            IsMine = true
+        }, "Đã gửi tin nhắn.");
+    }
+
+    // UC-25 A2: báo cáo tin nhắn xúc phạm — ghi vào tin nhắn và báo cho Ban tổ chức (có thể phạt qua UC-34).
+    public async Task<Result> ReportChatMessageAsync(int matchId, int messageId, int reporterAccountId, ReportChatMessageRequest request)
+    {
+        var note = (request.Note ?? string.Empty).Trim();
+        if (note.Length < 5 || note.Length > ChatReportNoteMax)
+            return Result.FieldFailure(nameof(request.Note), $"Vui lòng ghi lý do báo cáo (5–{ChatReportNoteMax} ký tự).");
+
+        var ctx = await LoadLobbyAsync(matchId, reporterAccountId);
+        if (ctx is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
+        if (ctx.Role is null) return Result.Failure("Chỉ người trong phòng chờ mới báo cáo được tin nhắn.", StatusCodes.Status403Forbidden);
+
+        var msg = await _uow.Repository<MatchChatMessage>().Query()
+            .FirstOrDefaultAsync(c => c.MatchChatMessageId == messageId && c.MatchId == matchId);
+        if (msg is null) return Result.Failure("Không tìm thấy tin nhắn trong phòng chờ này.", StatusCodes.Status404NotFound);
+        if (msg.SenderAccountId == reporterAccountId) return Result.Failure("Không thể báo cáo tin nhắn của chính bạn.");
+        if (msg.ReportStatus != "NONE") return Result.Failure("Tin nhắn này đã được báo cáo trước đó.");
+
+        msg.ReportStatus = "REPORTED";
+        msg.ReportedByAccountId = reporterAccountId;
+        msg.ReportNote = note;
+        _uow.Repository<MatchChatMessage>().Update(msg);
+
+        var m = ctx.Match;
+        var preview = msg.Content.Length > 120 ? msg.Content[..120] + "…" : msg.Content;
+        foreach (var to in new[] { m.Tournament.OrganizerAccountId, m.RefereeAccountId ?? 0 }.Where(x => x > 0 && x != reporterAccountId).Distinct())
+        {
+            await _uow.Repository<Notification>().AddAsync(new Notification
+            {
+                AccountId = to,
+                NotificationType = "SYSTEM",
+                Title = "Tin nhắn bị báo cáo trong phòng chờ",
+                Body = $"Trận {m.TeamA?.Name ?? "đội A"} vs {m.TeamB?.Name ?? "đội B"}: tin nhắn \"{preview}\" bị báo cáo. Lý do: {note}",
+                LinkUrl = "/match/detail.html?id=" + matchId,
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = DateTime.UtcNow
+            });
+        }
+        await _uow.SaveChangesAsync();
+        return Result.Success("Đã gửi báo cáo tới Ban tổ chức.");
     }
 
     private async Task<bool> CanAccessChatAsync(int matchId, int accountId)

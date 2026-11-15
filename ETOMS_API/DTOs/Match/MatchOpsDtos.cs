@@ -27,6 +27,11 @@ public class MatchDetailDto
     public bool TeamBCheckedIn { get; set; }
     public bool CanManage { get; set; } // trọng tài/BTC của giải
     public int? MyCaptainTeamId { get; set; } // null nếu người xem không phải đội trưởng của 1 trong 2 đội
+    // UC-25 bước 3: đội trưởng đội nhà (đội A) cũng được nhập mã phòng, cùng trọng tài/BTC.
+    public bool CanSetRoom { get; set; }
+    // UC-21: cửa sổ điểm danh (mở 30 phút trước giờ thi đấu, đóng đúng giờ thi đấu).
+    public DateTime? CheckInOpenAt { get; set; }
+    public bool MyTeamCheckedIn { get; set; }
 }
 
 public class ManualCheckInRequest
@@ -69,11 +74,33 @@ public class ChatMessageDto
     public string SenderName { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public DateTime SentAt { get; set; }
+    // UC-25 A1: REFEREE | ORGANIZER | CAPTAIN_A | CAPTAIN_B | FORMER (không còn vai trò trong trận)
+    public string SenderRole { get; set; } = string.Empty;
+    public string SenderRoleLabel { get; set; } = string.Empty;
+    public bool IsMine { get; set; }
+    // UC-25 A2: NONE | REPORTED | ACTIONED — chỉ Ban tổ chức/trọng tài và người báo cáo thấy trạng thái báo cáo.
+    public string ReportStatus { get; set; } = "NONE";
+    public bool CanReport { get; set; }
+}
+
+// UC-25 — phòng chờ trận: trạng thái mở/đóng + tin nhắn.
+public class MatchLobbyDto
+{
+    public bool IsOpen { get; set; }          // gửi được tin nhắn
+    public string StateMessage { get; set; } = string.Empty;
+    public string MyRoleLabel { get; set; } = string.Empty;
+    public int MaxLength { get; set; }
+    public List<ChatMessageDto> Messages { get; set; } = new();
 }
 
 public class SendChatMessageRequest
 {
     public string Content { get; set; } = string.Empty;
+}
+
+public class ReportChatMessageRequest
+{
+    public string Note { get; set; } = string.Empty;
 }
 
 public class WalkoverRequest

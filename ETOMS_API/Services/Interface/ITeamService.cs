@@ -10,7 +10,10 @@ public interface ITeamService
 
     // Danh sách đội — có tìm kiếm/lọc/sắp xếp (q, gameId, status, sort).
     Task<IReadOnlyList<TeamListItemDto>> GetAllTeamsAsync(TeamSearchRequest? filter = null);
+    // Trang Đội tuyển: lọc + phân trang, kiểm tra tham số và báo lỗi tiếng Việt theo từng ô.
+    Task<Result<TeamListPage>> SearchTeamsAsync(TeamSearchRequest filter);
     Task<TeamDetailDto?> GetTeamDetailAsync(int teamId);
+    Task<IReadOnlyList<TeamMatchItemDto>> GetUpcomingMatchesAsync(int teamId);
 
     // TEAM-02: trang quản trị đội (chỉ đội trưởng)
     Task<TeamDashboardDto?> GetDashboardAsync(int teamId);

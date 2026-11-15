@@ -10,6 +10,31 @@ public class HomeSummaryDto
     public List<EventTickerDto> Events { get; set; } = new();
     public IReadOnlyList<ETOMS_API.DTOs.Team.TeamListItemDto> Teams { get; set; } = new List<ETOMS_API.DTOs.Team.TeamListItemDto>();
     public List<NewsItemDto> News { get; set; } = new();
+    public List<HomeSponsorDto> Sponsors { get; set; } = new();
+    public List<HomeLiveDto> LiveNow { get; set; } = new();
+}
+
+// UC-46 — livestream đang phát của các giải công khai, để người xem tìm thấy ngay từ trang chủ.
+public class HomeLiveDto
+{
+    public int LivestreamId { get; set; }
+    public int TournamentId { get; set; }
+    public string TournamentName { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string PlatformLabel { get; set; } = string.Empty;
+}
+
+// UC-42 — nhà tài trợ luôn gắn với MỘT giải; trang chủ chỉ giới thiệu nhà tài trợ của các giải đang công khai,
+// không có "quảng cáo chung toàn nền tảng".
+public class HomeSponsorDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? LogoUrl { get; set; }
+    public string? WebsiteUrl { get; set; }
+    public string Tier { get; set; } = string.Empty;
+    public string TierLabel { get; set; } = string.Empty;
+    public int TournamentId { get; set; }
+    public string TournamentName { get; set; } = string.Empty;
 }
 
 // Tin tức đăng trên trang chủ — lấy từ ContentItem (Kind='NEWS', Status='PUBLISHED').

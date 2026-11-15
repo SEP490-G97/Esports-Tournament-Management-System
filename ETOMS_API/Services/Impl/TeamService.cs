@@ -5,6 +5,7 @@ using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ETOMS_API.Services.Impl;
 
@@ -14,7 +15,13 @@ public class TeamService : ITeamService
 {
     private readonly IUnitOfWork _uow;
 
-    public TeamService(IUnitOfWork uow) => _uow = uow;
+    private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
+
+    public TeamService(IUnitOfWork uow, Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
+    {
+        _uow = uow;
+        _cache = cache;
+    }
 
     // ===== TEAM-01: Tạo đội =====
     public async Task<Result<int>> CreateTeamAsync(CreateTeamRequest request, int captainAccountId)
@@ -74,8 +81,50 @@ public class TeamService : ITeamService
     }
 
     public async Task<IReadOnlyList<TeamListItemDto>> GetAllTeamsAsync(TeamSearchRequest? filter = null)
+        => await ToListItems(FilterTeams(filter ?? new TeamSearchRequest())).ToListAsync();
+
+    private static readonly HashSet<string> TeamStatuses = new() { "ACTIVE", "DISBANDED", "ALL" };
+    private static readonly HashSet<string> TeamSorts = new() { "newest", "name", "members" };
+    private const int MaxTeamPageSize = 48;
+
+    public async Task<Result<TeamListPage>> SearchTeamsAsync(TeamSearchRequest filter)
     {
-        filter ??= new TeamSearchRequest();
+        // Kiểm tra từng tham số trước khi truy vấn — URL do người dùng sửa tay vẫn nhận lỗi tiếng Việt rõ ràng.
+        var q = (filter.Q ?? string.Empty).Trim();
+        if (q.Length > 100) return Result<TeamListPage>.FieldFailure("Q", "Từ khóa tìm kiếm tối đa 100 ký tự.");
+        if (filter.GameId is <= 0) return Result<TeamListPage>.FieldFailure("GameId", "Tựa game không hợp lệ.");
+        var status = string.IsNullOrWhiteSpace(filter.Status) ? "ACTIVE" : filter.Status.Trim().ToUpperInvariant();
+        if (!TeamStatuses.Contains(status)) return Result<TeamListPage>.FieldFailure("Status", "Trạng thái lọc không hợp lệ.");
+        var sort = string.IsNullOrWhiteSpace(filter.Sort) ? "newest" : filter.Sort.Trim().ToLowerInvariant();
+        if (!TeamSorts.Contains(sort)) return Result<TeamListPage>.FieldFailure("Sort", "Cách sắp xếp không hợp lệ.");
+        if (filter.Page < 1) return Result<TeamListPage>.FieldFailure("Page", "Số trang phải từ 1 trở lên.");
+        if (filter.PageSize < 1 || filter.PageSize > MaxTeamPageSize)
+            return Result<TeamListPage>.FieldFailure("PageSize", $"Số đội mỗi trang phải từ 1 đến {MaxTeamPageSize}.");
+
+        var query = FilterTeams(new TeamSearchRequest { Q = q, GameId = filter.GameId, Status = status, Sort = sort });
+        var total = await query.CountAsync();
+        var totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)filter.PageSize));
+        // Trang vượt quá (ví dụ sau khi lọc hẹp lại) → về trang cuối thay vì trả trang rỗng.
+        var page = Math.Min(filter.Page, totalPages);
+        var items = await ToListItems(query.Skip((page - 1) * filter.PageSize).Take(filter.PageSize)).ToListAsync();
+        return Result<TeamListPage>.Success(new TeamListPage(items, total, page, filter.PageSize, totalPages));
+    }
+
+    private static IQueryable<TeamListItemDto> ToListItems(IQueryable<Team> query) => query
+        .Select(t => new TeamListItemDto
+        {
+            TeamId = t.TeamId,
+            Name = t.Name,
+            Tag = t.Tag,
+            LogoUrl = t.LogoUrl,
+            GameTitle = t.Game.Title,
+            CaptainName = t.CaptainAccount.FullName,
+            MemberCount = t.TeamMembers.Count(m => m.Status == "ACTIVE"),
+            Status = t.Status
+        });
+
+    private IQueryable<Team> FilterTeams(TeamSearchRequest filter)
+    {
         var query = _uow.Repository<Team>().Query();
 
         if (!string.IsNullOrWhiteSpace(filter.Q))
@@ -88,26 +137,34 @@ public class TeamService : ITeamService
         if (!string.IsNullOrWhiteSpace(filter.Status) && filter.Status != "ALL")
             query = query.Where(t => t.Status == filter.Status);
 
-        query = filter.Sort switch
+        // TeamId là khóa phụ để thứ tự ổn định giữa các trang (hai đội trùng tên/ngày tạo không nhảy trang).
+        return filter.Sort switch
         {
-            "name" => query.OrderBy(t => t.Name),
-            "members" => query.OrderByDescending(t => t.TeamMembers.Count(m => m.Status == "ACTIVE")),
-            _ => query.OrderByDescending(t => t.CreatedAt)
+            "name" => query.OrderBy(t => t.Name).ThenBy(t => t.TeamId),
+            "members" => query.OrderByDescending(t => t.TeamMembers.Count(m => m.Status == "ACTIVE")).ThenBy(t => t.TeamId),
+            _ => query.OrderByDescending(t => t.CreatedAt).ThenByDescending(t => t.TeamId)
         };
+    }
 
-        return await query
-            .Select(t => new TeamListItemDto
+    // Trận chưa kết thúc của đội (chờ điểm danh → đang tranh chấp), sớm nhất lên trước; trận chưa xếp giờ để cuối.
+    public async Task<IReadOnlyList<TeamMatchItemDto>> GetUpcomingMatchesAsync(int teamId)
+    {
+        var open = new[] { "PENDING", "READY", "LIVE", "WAITING_REPORT", "DISPUTED" };
+        var lobby = new[] { "READY", "LIVE", "WAITING_REPORT", "DISPUTED" };
+        var rows = await _uow.Repository<Match>().Query().AsNoTracking()
+            .Where(m => (m.TeamAid == teamId || m.TeamBid == teamId) && m.TeamAid != null && m.TeamBid != null
+                        && open.Contains(m.Status)
+                        && m.Tournament.Status != "DRAFT" && m.Tournament.Status != "CANCELLED")
+            .OrderBy(m => m.ScheduledAt == null).ThenBy(m => m.ScheduledAt).ThenBy(m => m.MatchId)
+            .Take(10)
+            .Select(m => new
             {
-                TeamId = t.TeamId,
-                Name = t.Name,
-                Tag = t.Tag,
-                LogoUrl = t.LogoUrl,
-                GameTitle = t.Game.Title,
-                CaptainName = t.CaptainAccount.FullName,
-                MemberCount = t.TeamMembers.Count(m => m.Status == "ACTIVE"),
-                Status = t.Status
+                m.MatchId, m.TournamentId, TournamentName = m.Tournament.Name, m.ScheduledAt, m.Status,
+                Opponent = m.TeamAid == teamId ? m.TeamB!.Name : m.TeamA!.Name
             })
             .ToListAsync();
+        return rows.Select(r => new TeamMatchItemDto(r.MatchId, r.TournamentId, r.TournamentName, r.Opponent,
+            r.ScheduledAt, r.Status, StatusText.Match(r.Status), lobby.Contains(r.Status))).ToList();
     }
 
     public async Task<TeamDetailDto?> GetTeamDetailAsync(int teamId)
@@ -487,11 +544,16 @@ public class TeamService : ITeamService
     public async Task<bool> IsActiveMemberAsync(int teamId, int accountId)
         => await _uow.Repository<TeamMember>().AnyAsync(m => m.TeamId == teamId && m.AccountId == accountId && m.Status == "ACTIVE");
 
+    // Danh mục game gần như không đổi — nhớ 60 giây để ô lọc không tốn một lượt database ở xa mỗi lần mở trang.
     public async Task<IReadOnlyList<GameOptionDto>> GetActiveGamesAsync()
-        => await _uow.Repository<Game>().Query()
-            .Where(g => g.Status == "ACTIVE").OrderBy(g => g.Title)
-            .Select(g => new GameOptionDto { GameId = g.GameId, Title = g.Title })
-            .ToListAsync();
+        => (await _cache.GetOrCreateAsync("lookup:active-games", async e =>
+        {
+            e.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
+            return (IReadOnlyList<GameOptionDto>)await _uow.Repository<Game>().Query()
+                .Where(g => g.Status == "ACTIVE").OrderBy(g => g.Title)
+                .Select(g => new GameOptionDto { GameId = g.GameId, Title = g.Title })
+                .ToListAsync();
+        }))!;
 
     public async Task<MyTeamDto?> GetMyTeamAsync(int accountId)
         => await _uow.Repository<TeamMember>().Query()

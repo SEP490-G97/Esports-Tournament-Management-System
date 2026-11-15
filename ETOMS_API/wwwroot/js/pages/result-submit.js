@@ -1,6 +1,15 @@
 (function () {
     var matchId = null;
 
+    // RES-03 (UC-29): hạn nộp công bố cùng lịch trận; quá hạn thì trận chuyển tranh chấp.
+    function deadlineNote(iso) {
+        if (!iso) return '';
+        var d = new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z');
+        if (isNaN(d.getTime())) return '';
+        var text = d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+        return '<div class="pending-banner">Hạn nộp báo cáo: <b>' + Ui.escapeHtml(text) + '</b>. Quá hạn mà chưa đủ hai báo cáo, trận sẽ chuyển cho Trọng tài phân xử.</div>';
+    }
+
     function render(page) {
         var root = document.getElementById('submit-root');
 
@@ -18,6 +27,7 @@
             '<div class="eyebrow">Kết quả &amp; Khiếu nại</div>' +
             '<div class="page-head"><h1>Báo cáo tỉ số mù</h1>' +
             '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong class="text-ink">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
+            deadlineNote(page.reportDeadlineAt) +
             '<div class="dev-banner">Đây là báo cáo <strong>mù</strong> (Blind Dual-Reporting): bạn sẽ KHÔNG thấy tỉ số, minh chứng hay việc đội kia đã nộp hay chưa ' +
             'cho tới khi cả hai đội cùng nộp xong. Báo cáo sau khi xác nhận <strong>không thể sửa hoặc rút lại</strong>.</div>' +
             '<div id="flash"></div>' +

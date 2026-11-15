@@ -16,6 +16,10 @@ public interface IResultService
     // (SubmitReportAsync tự gọi), và lộ ra đây để có thể gọi lại thủ công (nối với RES-03 của Hải sau này).
     Task ReconcileAsync(int matchId);
 
+    // RES-03 (UC-29) — job nền đóng cửa sổ báo cáo quá hạn
+    Task<IReadOnlyList<int>> GetOverdueReportMatchIdsAsync(DateTime nowUtc, CancellationToken ct = default);
+    Task<bool> CloseReportWindowAsync(int matchId, DateTime nowUtc, CancellationToken ct = default);
+
     // RES-04 + RES-09 (UC-39)
     Task<MatchEvidenceDto?> GetEvidenceAsync(int matchId, int? viewerAccountId);
     Task<MatchAuditTrailDto?> GetAuditTrailAsync(int matchId);

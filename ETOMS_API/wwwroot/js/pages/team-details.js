@@ -76,6 +76,9 @@
             '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Danh hiệu</div><div class="num">' + team.titleCount + '</div><div class="sub">lần vô địch</div></div></div>' +
             '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Điểm xếp hạng</div><div class="num">' + team.rankingPoint + '</div><div class="sub">điểm thành tích</div></div></div>' +
             '</div>' +
+            '<div class="section-title">Trận sắp tới</div>' +
+            '<div class="section-sub">Lịch thi đấu sắp tới và trận đang diễn ra của đội.</div>' +
+            '<div id="team-matches"></div>' +
             '<div class="section-title">Lịch sử giải đấu</div>' +
             '<div class="section-sub">Các giải đội đã đăng ký và được duyệt.</div>' +
             historyHtml(team.tournamentHistory) +
@@ -83,6 +86,8 @@
             '<div class="section-sub">Đội hình hiện tại của đội (' + team.memberCount + ' người).</div>' +
             membersHtml +
             '<div class="btn-row mt-4">' + actionHtml + '</div>';
+
+        if (window.TeamMatches) TeamMatches.load(document.getElementById('team-matches'), team.teamId, isCaptain);
 
         var leaveBtn = document.getElementById('leave-btn');
         if (leaveBtn) {
