@@ -127,8 +127,14 @@ public sealed class OrganizationService : IOrganizationService
         int organizationId,
         string documentType,
         IFormFile file,
+        int uploaderAccountId,
         CancellationToken cancellationToken)
     {
+        if (file is null)
+        {
+            return Result<OrganizationDocumentResponse>.FieldFailure(nameof(file), "Hãy chọn tệp giấy tờ để tải lên.");
+        }
+
         var organization = await FindOrganizationAsync(organizationId, cancellationToken);
         if (organization is null)
         {
@@ -140,36 +146,51 @@ public sealed class OrganizationService : IOrganizationService
             return Result.Failure<OrganizationDocumentResponse>("Chỉ hồ sơ đang chờ xét duyệt mới được bổ sung giấy tờ.");
         }
 
-        var normalizedType = documentType.Trim();
+        var normalizedType = (documentType ?? string.Empty).Trim();
         if (normalizedType.Length == 0)
         {
             return Result<OrganizationDocumentResponse>.FieldFailure(nameof(documentType), "Loại giấy tờ không được để trống.");
         }
-        if (!RequiredDocumentTypes[organization.OrganizationType].Contains(normalizedType, StringComparer.Ordinal))
+        var requiredTypes = RequiredDocumentTypes[organization.OrganizationType];
+        var typeIndex = Array.IndexOf(requiredTypes, normalizedType);
+        if (typeIndex < 0)
         {
             return Result<OrganizationDocumentResponse>.FieldFailure(
                 nameof(documentType),
                 "Loại giấy tờ không thuộc danh sách yêu cầu của loại đơn vị này.");
         }
 
+        var uploadedCount = await _unitOfWork.Repository<Attachment>().Query()
+            .CountAsync(item => item.OwnerType == OrganizationOwnerType && item.OwnerId == organizationId, cancellationToken);
+        if (uploadedCount >= MaxDocumentsPerOrganization)
+        {
+            return Result<OrganizationDocumentResponse>.FieldFailure(
+                nameof(file), $"Mỗi hồ sơ được tải tối đa {MaxDocumentsPerOrganization} giấy tờ.");
+        }
+
         StoredPrivateFile storedFile;
         try
         {
-            storedFile = await _fileStorage.SaveAsync(file, "organization-documents", cancellationToken);
+            storedFile = await _fileStorage.SaveAsync(
+                file, "organization-documents", cancellationToken, OrganizationDocumentName.Prefix(typeIndex, file.FileName));
         }
         catch (InvalidDataException exception)
         {
             return Result<OrganizationDocumentResponse>.FieldFailure(nameof(file), exception.Message);
         }
 
-        var document = new OrganizationDocument
+        // Lược đồ v2.2: giấy tờ đơn vị nằm ở Attachment (OwnerType = ORGANIZATION), không có bảng riêng.
+        var document = new Attachment
         {
-            OrganizationId = organizationId,
-            DocumentType = normalizedType,
+            OwnerType = OrganizationOwnerType,
+            OwnerId = organizationId,
             FileUrl = storedFile.RelativePath,
-            OriginalFileName = storedFile.OriginalFileName
+            FileType = storedFile.RelativePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "DOCUMENT" : "IMAGE",
+            SizeBytes = file.Length,
+            UploadedByAccountId = uploaderAccountId,
+            UploadedAt = DateTime.UtcNow
         };
-        _unitOfWork.Repository<OrganizationDocument>().Add(document);
+        _unitOfWork.Repository<Attachment>().Add(document);
 
         try
         {
@@ -181,7 +202,7 @@ public sealed class OrganizationService : IOrganizationService
             throw;
         }
 
-        return Result.Success(ToDocumentResponse(document), "Tải giấy tờ đơn vị thành công.");
+        return Result.Success(ToDocumentResponse(document, organization.OrganizationType), "Tải giấy tờ đơn vị thành công.");
     }
 
     public async Task<Result<OrganizationReviewResponse>> ReviewAsync(
@@ -207,11 +228,13 @@ public sealed class OrganizationService : IOrganizationService
             return Result<OrganizationReviewResponse>.FieldFailure(nameof(request.Decision), "Quyết định chỉ được là APPROVE hoặc REJECT.");
         }
 
-        var documents = await _unitOfWork.Repository<OrganizationDocument>().Query()
+        var documents = (await _unitOfWork.Repository<Attachment>().Query()
             .AsNoTracking()
-            .Where(document => document.OrganizationId == organizationId)
+            .Where(document => document.OwnerType == OrganizationOwnerType && document.OwnerId == organizationId)
             .OrderBy(document => document.UploadedAt)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken))
+            .Select(document => ToDocumentResponse(document, organization.OrganizationType))
+            .ToArray();
         var reason = NormalizeOptional(request.Reason);
         if (decision == "REJECT" && reason is null)
         {
@@ -249,7 +272,7 @@ public sealed class OrganizationService : IOrganizationService
             organization.ReviewReason,
             organization.CreatedAt,
             RequiredDocumentTypes[organization.OrganizationType],
-            documents.Select(ToDocumentResponse).ToArray()));
+            documents));
     }
 
     public async Task<Result<IReadOnlyList<OrganizationReviewResponse>>> GetReviewQueueAsync(
@@ -261,14 +284,16 @@ public sealed class OrganizationService : IOrganizationService
             .OrderBy(item => item.CreatedAt)
             .ToListAsync(cancellationToken);
         var organizationIds = organizations.Select(item => item.OrganizationId).ToArray();
-        var documents = await _unitOfWork.Repository<OrganizationDocument>().Query()
+        var typeByOrganization = organizations.ToDictionary(item => item.OrganizationId, item => item.OrganizationType);
+        var documents = await _unitOfWork.Repository<Attachment>().Query()
             .AsNoTracking()
-            .Where(item => organizationIds.Contains(item.OrganizationId))
+            .Where(item => item.OwnerType == OrganizationOwnerType && organizationIds.Contains(item.OwnerId))
             .OrderBy(item => item.UploadedAt)
             .ToListAsync(cancellationToken);
         var documentsByOrganization = documents
-            .GroupBy(item => item.OrganizationId)
-            .ToDictionary(group => group.Key, group => group.Select(ToDocumentResponse).ToArray());
+            .GroupBy(item => item.OwnerId)
+            .ToDictionary(group => group.Key,
+                group => group.Select(item => ToDocumentResponse(item, typeByOrganization[group.Key])).ToArray());
 
         var queue = organizations.Select(organization => new OrganizationReviewResponse(
             organization.OrganizationId,
@@ -738,13 +763,22 @@ public sealed class OrganizationService : IOrganizationService
         _ => "Không xác định"
     };
 
-    private static OrganizationDocumentResponse ToDocumentResponse(OrganizationDocument document)
-        => new(
-            document.OrganizationDocumentId,
-            document.OrganizationId,
-            document.DocumentType,
-            document.OriginalFileName,
+    private const string OrganizationOwnerType = "ORGANIZATION";
+    private const int MaxDocumentsPerOrganization = 10;
+
+    // Loại giấy tờ + tên gốc đọc lại từ tên tệp đã lưu (OrganizationDocumentName); tệp cũ không theo
+    // quy ước thì hiện "Giấy tờ đơn vị" và tên tệp lưu trữ.
+    private static OrganizationDocumentResponse ToDocumentResponse(Attachment document, string organizationType)
+    {
+        var (typeIndex, originalName) = OrganizationDocumentName.Parse(document.FileUrl);
+        var types = RequiredDocumentTypes.TryGetValue(organizationType, out var list) ? list : [];
+        return new(
+            document.AttachmentId,
+            document.OwnerId,
+            typeIndex is int i && i >= 0 && i < types.Length ? types[i] : "Giấy tờ đơn vị",
+            originalName ?? Path.GetFileName(document.FileUrl),
             document.UploadedAt);
+    }
 
     private static string? NormalizeOptional(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

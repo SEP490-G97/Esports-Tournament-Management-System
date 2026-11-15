@@ -47,7 +47,7 @@ public sealed class OrganizationsController : ApiControllerBase
         var denied = await RequireChairOrAdminAsync(organizationId);
         if (denied is not null) return denied;
         return FromResult(await _organizationService.UploadDocumentAsync(
-            organizationId, documentType, file, cancellationToken));
+            organizationId, documentType, file, _currentUser.UserId!.Value, cancellationToken));
     }
 
     [HttpGet("review-queue")]

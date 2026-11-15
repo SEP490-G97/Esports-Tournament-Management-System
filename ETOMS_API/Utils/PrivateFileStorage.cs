@@ -49,11 +49,20 @@ public sealed class PrivateFileStorage
         return fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase) ? fullPath : null;
     }
 
+    // fileNamePrefix (tùy chọn): chỉ chữ/số/'-'/'_', gắn trước tên GUID — dùng để mang thông tin nhỏ
+    // (vd loại giấy tờ + tên gốc của giấy tờ đơn vị) khi bảng Attachment không có cột riêng cho nó.
     public async Task<StoredPrivateFile> SaveAsync(
         IFormFile file,
         string category,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? fileNamePrefix = null)
     {
+        if (fileNamePrefix is not null
+            && (fileNamePrefix.Length > 200 || !fileNamePrefix.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_')))
+        {
+            throw new ArgumentException("Tiền tố tên tệp không hợp lệ.", nameof(fileNamePrefix));
+        }
+
         if (file.Length <= 0)
         {
             throw new InvalidDataException("Tệp tải lên đang trống.");
@@ -71,7 +80,7 @@ public sealed class PrivateFileStorage
         }
 
         var safeCategory = string.Concat(category.Where(char.IsLetterOrDigit)).ToLowerInvariant();
-        var relativePath = Path.Combine(safeCategory, $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}");
+        var relativePath = Path.Combine(safeCategory, $"{fileNamePrefix}{Guid.NewGuid():N}{extension.ToLowerInvariant()}");
         var destination = Path.Combine(_rootDirectory, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
 

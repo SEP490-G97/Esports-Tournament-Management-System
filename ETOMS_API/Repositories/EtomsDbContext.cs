@@ -44,7 +44,6 @@ public partial class EtomsDbContext : DbContext
 
     public virtual DbSet<Organization> Organizations { get; set; }
 
-    public virtual DbSet<OrganizationDocument> OrganizationDocuments { get; set; }
 
     public virtual DbSet<OrganizationMember> OrganizationMembers { get; set; }
 
@@ -165,24 +164,7 @@ public partial class EtomsDbContext : DbContext
                 .HasConstraintName("FK_Organization_Reviewer");
         });
 
-        modelBuilder.Entity<OrganizationDocument>(entity =>
-        {
-            entity.ToTable("OrganizationDocument");
-            entity.HasKey(item => item.OrganizationDocumentId).HasName("PK_OrganizationDocument");
-            entity.Property(item => item.OrganizationDocumentId).HasColumnName("OrganizationDocumentID");
-            entity.Property(item => item.OrganizationId).HasColumnName("OrganizationID");
-            entity.Property(item => item.DocumentType).HasMaxLength(100);
-            entity.Property(item => item.FileUrl).HasMaxLength(500);
-            entity.Property(item => item.OriginalFileName).HasMaxLength(255);
-            entity.Property(item => item.UploadedAt)
-                .HasPrecision(0)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.HasOne(item => item.Organization)
-                .WithMany(organization => organization.OrganizationDocuments)
-                .HasForeignKey(item => item.OrganizationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_OrganizationDocument_Org");
-        });
+        // Giấy tờ đơn vị: Attachment (OwnerType = ORGANIZATION) theo lược đồ v2.2 — không có bảng OrganizationDocument.
 
         modelBuilder.Entity<OrganizationMember>(entity =>
         {
