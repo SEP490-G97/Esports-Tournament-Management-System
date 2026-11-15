@@ -32,7 +32,25 @@
     {
         public int StageOrder { get; set; }
         public string RoundName { get; set; } = string.Empty;
-        public int BestOf { get; set; } // 1, 3, 5
+        // Vòng knockout 1..N (N = chung kết). Có RoundNo thì dùng RoundNo, không thì suy từ RoundName.
+        public int? RoundNo { get; set; }
+        public int BestOf { get; set; } // 1, 3, 5, 7
+    }
+
+    // GET step3: các vòng knockout của giải (theo thể thức + quy mô đã lưu ở bước 1, 2) kèm BO hiện tại.
+    public class Step3BoBoardDto
+    {
+        public string Format { get; set; } = string.Empty;
+        public int KnockoutTeams { get; set; }
+        public string? Note { get; set; }
+        public List<Step3BoRoundDto> Rounds { get; set; } = new();
+    }
+
+    public class Step3BoRoundDto
+    {
+        public int RoundNo { get; set; }
+        public string Label { get; set; } = string.Empty;
+        public int BestOf { get; set; }
     }
 
     public class Step3BoConfigDto

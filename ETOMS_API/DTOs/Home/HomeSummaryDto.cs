@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ETOMS_API.DTOs.Home;
 
@@ -62,6 +62,8 @@ public class GameCardDto
     public string Title { get; set; } = string.Empty;
     public string ShortCode { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
+    // Trang chủ chính thức (Utils/GameWebsite), null nếu không có.
+    public string? WebsiteUrl { get; set; }
 }
 
 // Dữ liệu minh họa khu "Giải đấu nổi bật" (chưa có module Giải đấu đầy đủ nên dùng Tournament thật + nhãn mô tả).

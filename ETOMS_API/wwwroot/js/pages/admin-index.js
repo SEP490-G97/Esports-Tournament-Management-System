@@ -17,12 +17,6 @@
             url: '/api/organizations/review-queue', pick: count
         },
         {
-            key: 'disputes', overline: 'Tranh chấp', title: 'Hàng đợi tranh chấp', primaryWhenPositive: true,
-            text: 'Các trận có báo cáo lệch nhau hoặc bị khiếu nại, chờ phán quyết (RES-06/07).',
-            href: '/result/disputes.html', action: 'Xem hàng đợi',
-            url: '/api/disputes', pick: count
-        },
-        {
             key: 'accounts', overline: 'Tài khoản', title: 'Quản lý tài khoản',
             text: 'Tìm kiếm, lọc theo vai trò / trạng thái, khóa và mở khóa tài khoản (ADM-01/02).',
             href: '/admin/user.html', action: 'Quản lý tài khoản',

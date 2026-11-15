@@ -139,7 +139,7 @@
     }
 
     // Hiện mục menu theo vai trò (data-roles trong nav.html): "auth" = đã đăng nhập, còn lại là danh
-    // sách Role (vd "ORGANIZER,ADMIN" cho hàng đợi tranh chấp RES-06). Mặc định các mục này ẩn bằng CSS
+    // sách Role (vd "ORGANIZER" cho hàng đợi tranh chấp RES-06 — PermissionMatrix: Admin không có). Mặc định các mục này ẩn bằng CSS
     // để không hiện rồi mất khi /me chạy xong. Chỉ là gợi ý hiển thị: quyền thật vẫn chặn ở API/trang đích.
     function applyRoleVisibility(me) {
         document.documentElement.setAttribute('data-role', me.isAuthenticated ? (me.role || 'PLAYER') : 'GUEST');

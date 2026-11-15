@@ -189,15 +189,50 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 // TOUR-05: Bước 3 - Cấu hình Best-of
+var BO_CHOICES = [1, 3, 5, 7];
+var step3Rounds = [];
+
+// Bước 3: lấy các vòng knockout thật của giải (theo thể thức + số đội đã lưu) rồi hiện ô chọn BO cho từng vòng.
+async function loadStep3() {
+    var box = document.getElementById('boRounds');
+    if (!box || !currentTournamentId) return;
+    box.innerHTML = '<div class="hint">Đang tải các vòng…</div>';
+    step3Rounds = [];
+    try {
+        var board = await Api.get('/api/TournamentSetup/' + currentTournamentId + '/step3-bo-config');
+        step3Rounds = Array.isArray(board.rounds) ? board.rounds : [];
+        var note = board.note ? '<div class="hint mb-2">' + Ui.escapeHtml(board.note) + '</div>' : '';
+        if (!step3Rounds.length) { box.innerHTML = note || '<div class="hint">Giải không có vòng loại trực tiếp.</div>'; return; }
+        box.innerHTML = note + '<div class="form-grid">' + step3Rounds.map(function (r) {
+            var id = 'bo-round-' + Number(r.roundNo);
+            return '<div class="field"><label for="' + id + '">' + Ui.escapeHtml(r.label) + ' <span class="req">*</span></label>' +
+                '<select class="select" id="' + id + '" data-round="' + Number(r.roundNo) + '" required>' +
+                BO_CHOICES.map(function (bo) {
+                    return '<option value="' + bo + '"' + (bo === r.bestOf ? ' selected' : '') + '>BO' + bo + ' — thắng ' + ((bo + 1) / 2) + ' ván</option>';
+                }).join('') + '</select></div>';
+        }).join('') + '</div>' +
+        (board.knockoutTeams ? '<div class="hint">Nhánh loại trực tiếp có ' + Number(board.knockoutTeams) + ' suất.</div>' : '');
+    } catch (err) {
+        box.innerHTML = '<div class="hint">Không tải được danh sách vòng.</div>';
+        showError(err.message);
+    }
+}
+
 async function submitStep3() {
     if (!currentTournamentId) return;
-    var payload = {
-        roundConfigs: [
-            { stageOrder: 1, roundName: "Tứ kết", bestOf: 1 },
-            { stageOrder: 2, roundName: "Bán kết", bestOf: 3 },
-            { stageOrder: 3, roundName: "Chung kết", bestOf: 5 }
-        ]
-    };
+    var configs = [];
+    var invalid = false;
+    document.querySelectorAll('#boRounds select[data-round]').forEach(function (sel) {
+        var bo = parseInt(sel.value, 10);
+        var round = parseInt(sel.dataset.round, 10);
+        var ok = BO_CHOICES.indexOf(bo) >= 0 && round >= 1;
+        sel.classList.toggle('is-invalid', !ok);
+        if (!ok) invalid = true;
+        configs.push({ stageOrder: round, roundNo: round, roundName: '', bestOf: bo });
+    });
+    if (invalid) { showError('Best of chỉ được là 1, 3, 5 hoặc 7.'); return; }
+    if (step3Rounds.length && configs.length !== step3Rounds.length) { showError('Hãy chọn Best of cho đủ tất cả các vòng.'); return; }
+    var payload = { roundConfigs: configs };
 
     try {
         await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step3-bo-config', payload);
@@ -221,4 +256,5 @@ function switchStep(stepNum) {
         }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (stepNum === 3) loadStep3();
 }

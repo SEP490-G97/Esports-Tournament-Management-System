@@ -1,8 +1,9 @@
-using ETOMS_API.DTOs.Home;
+﻿using ETOMS_API.DTOs.Home;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
+using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -54,6 +55,7 @@ public class HomeApiController : ApiControllerBase
             .OrderBy(g => g.Title)
             .Select(g => new GameCardDto { GameId = g.GameId, Title = g.Title, ShortCode = g.ShortCode, LogoUrl = g.LogoUrl })
             .ToListAsync();
+        foreach (var g in games) g.WebsiteUrl = GameWebsite.For(g.ShortCode);
 
         var counts = await _db.Database.SqlQuery<HomeCountsRow>($@"
             SELECT

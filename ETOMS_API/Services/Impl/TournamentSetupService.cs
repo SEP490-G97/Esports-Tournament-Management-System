@@ -145,40 +145,92 @@ namespace ETOMS_API.Services.Impl
 
         // TOUR-05: Step 3 Cấu hình Best-of theo vòng — lưu theo dạng "R1:1,R2:3,F:5" mà phần sinh
         // nhánh/chuyển vòng đọc (StageTransitionService.BestOfFor): F = chung kết, Rn = vòng n của knockout.
+        // Số đội vào cây knockout và số vòng của cây (vòng N = chung kết). Vòng tròn: 0 vòng.
+        private static (int Teams, int Rounds) KnockoutShape(Tournament t)
+        {
+            if (t.Format == "ROUND_ROBIN") return (0, 0);
+            var teams = t.Format == "HYBRID" && t.GroupCount is int g && t.AdvancePerGroup is int a ? g * a : t.MaxTeams;
+            return (teams, (int)Math.Ceiling(Math.Log2(Math.Max(2, teams))));
+        }
+
+        // Chưa cấu hình thì gợi ý chuẩn phổ biến: các vòng đầu BO1, bán kết BO3, chung kết BO5.
+        private static int SuggestedBestOf(int round, int rounds) =>
+            round == rounds ? 5 : round == rounds - 1 ? 3 : 1;
+
+        public async Task<Step3BoBoardDto> GetStep3BoConfigAsync(int tournamentId)
+        {
+            var t = await _context.Tournaments.AsNoTracking().FirstOrDefaultAsync(x => x.TournamentId == tournamentId)
+                ?? throw new KeyNotFoundException("Không tìm thấy giải đấu.");
+            var (teams, rounds) = KnockoutShape(t);
+            var board = new Step3BoBoardDto { Format = t.Format, KnockoutTeams = teams };
+            if (rounds == 0)
+            {
+                board.Note = "Thể thức vòng tròn không có cây loại trực tiếp nên không cấu hình BO theo vòng.";
+                return board;
+            }
+            if (t.Format == "DOUBLE_ELIMINATION")
+                board.Note = "Loại kép: cấu hình áp dụng theo vòng của nhánh thắng; trận chung kết tổng dùng BO của chung kết.";
+            var configured = !string.IsNullOrWhiteSpace(t.BestOfPerRound);
+            for (var r = 1; r <= rounds; r++)
+                board.Rounds.Add(new Step3BoRoundDto
+                {
+                    RoundNo = r,
+                    Label = BracketLabels.KnockoutRound(rounds, r) + (r < rounds - 2 ? $" ({1 << (rounds - r + 1)} đội)" : ""),
+                    BestOf = configured ? StageTransitionService.BestOfFor(t.BestOfPerRound, r, rounds) : SuggestedBestOf(r, rounds)
+                });
+            return board;
+        }
+
         public async Task<bool> UpdateStep3BoConfigAsync(int tournamentId, Step3BoConfigDto dto)
         {
             var tournament = await _context.Tournaments.FindAsync(tournamentId);
             if (tournament == null || tournament.Status != "DRAFT")
                 throw new ArgumentException("Giải đấu không ở trạng thái hợp lệ để chỉnh sửa.");
 
+            if (dto?.RoundConfigs == null)
+                throw new ArgumentException("Thiếu cấu hình Best of.");
             if (dto.RoundConfigs.Any(r => r.BestOf is not (1 or 3 or 5 or 7)))
                 throw new ArgumentException("Số ván mỗi trận (Best of) chỉ được là 1, 3, 5 hoặc 7.");
 
-            if (tournament.Format == "ROUND_ROBIN")
+            var (_, rounds) = KnockoutShape(tournament);
+            if (rounds == 0)
             {
                 tournament.BestOfPerRound = null;      // vòng tròn không có cây knockout
                 await _context.SaveChangesAsync();
                 return true;
             }
 
-            var knockoutTeams = tournament.Format == "HYBRID" && tournament.GroupCount is int g && tournament.AdvancePerGroup is int a
-                ? g * a : tournament.MaxTeams;
-            var rounds = (int)Math.Ceiling(Math.Log2(Math.Max(2, knockoutTeams)));
-
-            var parts = new List<string>();
+            var byRound = new Dictionary<int, int>();
             foreach (var r in dto.RoundConfigs)
             {
-                var label = (r.RoundName ?? "").Trim().ToLowerInvariant();
-                string? key = label switch
+                int? round = r.RoundNo;
+                if (round is null)
                 {
-                    "chung kết" => "F",
-                    "bán kết" when rounds >= 2 => "R" + (rounds - 1),
-                    "tứ kết" when rounds >= 3 => "R" + (rounds - 2),
-                    _ => null
-                };
-                if (key != null) parts.Add($"{key}:{r.BestOf}");
+                    // Tương thích bản cũ gửi theo tên vòng.
+                    var label = (r.RoundName ?? "").Trim().ToLowerInvariant();
+                    round = label switch
+                    {
+                        "chung kết" => rounds,
+                        "bán kết" when rounds >= 2 => rounds - 1,
+                        "tứ kết" when rounds >= 3 => rounds - 2,
+                        _ => null
+                    };
+                    if (round is null) continue;
+                }
+                if (round < 1 || round > rounds)
+                    throw new ArgumentException($"Vòng {round} không có trong nhánh của giải (giải có {rounds} vòng knockout).");
+                if (!byRound.TryAdd(round.Value, r.BestOf))
+                    throw new ArgumentException($"Vòng {BracketLabels.KnockoutRound(rounds, round)} bị khai báo hai lần.");
             }
-            tournament.BestOfPerRound = parts.Count == 0 ? null : string.Join(",", parts);
+            if (dto.RoundConfigs.Any(r => r.RoundNo.HasValue) && byRound.Count != rounds)
+                throw new ArgumentException("Hãy chọn Best of cho đủ tất cả các vòng.");
+
+            var parts = byRound.OrderBy(kv => kv.Key)
+                .Select(kv => (kv.Key == rounds ? "F" : "R" + kv.Key) + ":" + kv.Value).ToList();
+            var value = parts.Count == 0 ? null : string.Join(",", parts);
+            if (value is { Length: > 100 })
+                throw new ArgumentException("Cấu hình Best of quá dài.");
+            tournament.BestOfPerRound = value;
 
             await _context.SaveChangesAsync();
             return true;

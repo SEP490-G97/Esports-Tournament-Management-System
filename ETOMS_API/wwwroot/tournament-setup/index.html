@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=tm-20261115" />
+    <link rel="stylesheet" href="/css/site.css?v=grpal-20261115" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -147,7 +147,8 @@
         <div id="panelStep3" class="card-etoms" style="display: none;">
             <div class="body">
                 <h3 class="wizard-title">Bước 3: Cấu hình thể thức đấu (Best of X)</h3>
-                <p class="muted-copy mb-4">Áp dụng cấu hình tiêu chuẩn: Tứ kết (BO1), Bán kết (BO3), Chung kết (BO5). Bấm xác nhận để tiếp tục.</p>
+                <p class="muted-copy mb-3">Chọn số ván mỗi trận (Best of) cho từng vòng loại trực tiếp. Các vòng được tính từ thể thức và số đội đã nhập ở bước 1–2.</p>
+                <div id="boRounds" class="bo-rounds" aria-live="polite"><div class="hint">Đang tải các vòng…</div></div>
                 <div class="btn-row">
                     <button onclick="submitStep3()" class="btn btn-primary">Lưu thể thức &amp; sang bước 4 ➔</button>
                 </div>
@@ -220,6 +221,6 @@
     <script src="/js/api.js?v=dlg-20261115"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
     <script src="/js/layout.js?v=fast-20261115"></script>
-    <script src="/js/pages/tournament-setup.js?v=role-20261115"></script>
+    <script src="/js/pages/tournament-setup.js?v=bo-20261115"></script>
 </body>
 </html>

@@ -146,6 +146,15 @@
         root.innerHTML = html;
     }
 
+    // Chỉ nhận URL https tuyệt đối (chặn javascript:, data:, http://...) trước khi gắn vào href.
+    function safeHttpsUrl(value) {
+        if (typeof value !== 'string' || !value) return null;
+        try {
+            var u = new URL(value);
+            return u.protocol === 'https:' && u.hostname ? u.href : null;
+        } catch (e) { return null; }
+    }
+
     function renderGames(list) {
         var root = document.getElementById('games-list');
         var html = '';
@@ -153,10 +162,13 @@
             var icon = g.logoUrl
                 ? '<img src="' + Ui.escapeHtml(g.logoUrl) + '" alt="' + Ui.escapeHtml(g.title) + '" />'
                 : '<span class="game-ico">' + Ui.escapeHtml(g.shortCode && g.shortCode.length > 0 ? g.shortCode.substring(0, 1) : '?') + '</span>';
-            html +=
-                '<div class="col-6 col-sm-4 col-lg-2"><div class="game-chip h-100">' + icon +
-                '<div><div class="gt">' + Ui.escapeHtml(g.title) + '</div><div class="gc">' + Ui.escapeHtml(g.shortCode) + '</div></div>' +
-                '</div></div>';
+            var body = icon + '<div><div class="gt">' + Ui.escapeHtml(g.title) + '</div><div class="gc">' + Ui.escapeHtml(g.shortCode) + '</div></div>';
+            var url = safeHttpsUrl(g.websiteUrl);
+            html += '<div class="col-6 col-sm-4 col-lg-2">' + (url
+                ? '<a class="game-chip game-chip-link h-100" href="' + Ui.escapeHtml(url) + '" target="_blank" rel="noopener noreferrer"' +
+                  ' title="Mở trang chủ ' + Ui.escapeHtml(g.title) + ' (tab mới)" aria-label="Trang chủ ' + Ui.escapeHtml(g.title) + ' (mở tab mới)">' +
+                  body + '<span class="game-chip-ext" aria-hidden="true">↗</span></a>'
+                : '<div class="game-chip h-100">' + body + '</div>') + '</div>';
         });
         root.innerHTML = html;
     }

@@ -337,7 +337,7 @@ public class LiveService : ILiveService
         if (await _uow.Repository<Livestream>().AnyAsync(l => l.TournamentId == tournamentId && l.StreamUrl == url && l.LivestreamId != (selfId ?? 0)))
             return (null, Result<LiveStreamDto>.FieldFailure("StreamUrl", "Link này đã có trong danh sách livestream của giải."));
 
-        return (new StreamFields(url, StreamEmbed.DetectPlatform(uri), title, r.MatchId, matchLabel, status), null);
+        return (new StreamFields(url, StreamEmbed.DetectPlatform(uri!), title, r.MatchId, matchLabel, status), null);
     }
 
     // ===================== dùng chung =====================

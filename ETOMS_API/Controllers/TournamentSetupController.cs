@@ -55,6 +55,22 @@ namespace ETOMS_API.Controllers
             }
         }
 
+        // TOUR-05: các vòng knockout của giải + BO hiện tại để bước 3 hiện ô chọn cho từng vòng.
+        [HttpGet("{id}/step3-bo-config")]
+        public async Task<IActionResult> GetStep3(int id)
+        {
+            var denied = await CheckCanManageAsync(id);
+            if (denied is not null) return denied;
+            try
+            {
+                return Ok(await _setupService.GetStep3BoConfigAsync(id));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+        }
+
         // TOUR-05: Step 3 BO Config — chỉ người đã tạo giải hoặc Admin.
         [HttpPut("{id}/step3-bo-config")]
         public async Task<IActionResult> UpdateStep3(int id, [FromBody] Step3BoConfigDto dto)
