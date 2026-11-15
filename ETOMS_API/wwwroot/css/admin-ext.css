@@ -903,3 +903,293 @@ body:has(dialog[open]) {
         transition: none;
     }
 }
+
+/* ---------- trạng thái đang tải ---------- */
+.ax-relative {
+    position: relative;
+    overflow: hidden;
+}
+
+/* vòng xoay */
+.ax-spin {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex: none;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    vertical-align: -2px;
+    margin-right: 8px;
+    animation: ax-rot .7s linear infinite;
+}
+
+    .ax-spin.lg {
+        width: 22px;
+        height: 22px;
+        border-width: 3px;
+        margin: 0 8px 0 0;
+    }
+
+@keyframes ax-rot {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* thanh tiến trình mép trên thẻ (chạy khi đang tải lại danh sách) */
+.ax-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity .15s;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 2;
+}
+
+    .ax-progress::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 40%;
+        background: var(--ax-accent);
+        border-radius: 3px;
+        animation: ax-slide 1s ease-in-out infinite;
+    }
+
+@keyframes ax-slide {
+    from {
+        left: -40%;
+    }
+
+    to {
+        left: 100%;
+    }
+}
+
+.ax-card.is-loading > .ax-progress {
+    opacity: 1;
+}
+
+.ax-card.is-loading .ax-table-wrap {
+    opacity: .55;
+    transition: opacity .15s;
+    pointer-events: none;
+}
+
+/* khung xương */
+.ax-skel {
+    background: linear-gradient(90deg, rgba(255,255,255,.05) 25%, rgba(255,255,255,.11) 37%, rgba(255,255,255,.05) 63%);
+    background-size: 400% 100%;
+    border-radius: 6px;
+    animation: ax-shimmer 1.4s ease infinite;
+}
+
+.ax-skel-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    flex: none;
+}
+
+@keyframes ax-shimmer {
+    from {
+        background-position: 100% 0;
+    }
+
+    to {
+        background-position: 0 0;
+    }
+}
+
+.ax-skel-row td {
+    border-bottom-color: var(--ax-border);
+}
+
+/* dòng đang xử lý */
+.ax-table tr.row-busy {
+    opacity: .6;
+}
+
+/* lớp phủ trên ô xem trước ảnh + hộp thoại đang bận */
+.ax-media-preview {
+    position: relative;
+}
+
+.ax-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15,16,22,.78);
+    color: var(--ax-text);
+    font-size: .85rem;
+    z-index: 1;
+}
+
+.ax-dialog.is-busy .ax-dialog-x {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.ax-dialog.is-busy {
+    cursor: progress;
+}
+
+.ax-btn:disabled .ax-spin {
+    opacity: .9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ax-spin {
+        animation-duration: 1.6s;
+    }
+
+    .ax-progress::after {
+        animation: none;
+        width: 100%;
+        left: 0;
+        opacity: .6;
+    }
+
+    .ax-skel {
+        animation: none;
+    }
+}
+
+/* ---------- tiện ích bổ sung cho trang thống kê ---------- */
+.ax-page .flex-wrap {
+    flex-wrap: wrap;
+}
+
+.ax-page .justify-content-between {
+    justify-content: space-between;
+}
+
+.ax-page .align-items-start {
+    align-items: flex-start;
+}
+
+.ax-page .mb-0 {
+    margin-bottom: 0;
+}
+
+.ax-page .mb-2 {
+    margin-bottom: .5rem;
+}
+
+.ax-page .mb-3 {
+    margin-bottom: 1rem;
+}
+
+.ax-page .mt-3 {
+    margin-top: 1rem;
+}
+
+/* loading toàn trang (dashboard): thanh tiến trình mép trên + làm mờ nội dung đã có */
+.ax-page.ax-host {
+    position: relative;
+}
+
+.ax-page.is-loading > .ax-progress {
+    opacity: 1;
+}
+
+.ax-page.is-loading .ax-stats, .ax-page.is-loading .ax-chart, .ax-page.is-loading .ax-bars,
+.ax-page.is-loading #table-users {
+    opacity: .55;
+    transition: opacity .15s;
+}
+
+.ax-stat .ax-skel + .ax-skel {
+    display: block;
+}
+
+/* ---------- thông báo & banner tổng (ADM-08) ---------- */
+.ax-audience {
+    background: var(--ax-card-2);
+    border: 1px solid var(--ax-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: .9rem;
+    color: var(--ax-muted);
+}
+
+    .ax-audience b {
+        color: var(--ax-text);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .ax-audience.zero {
+        border-color: rgba(245,158,11,.4);
+        color: #fcd34d;
+    }
+
+.ax-banner-preview {
+    height: 120px;
+}
+
+    .ax-banner-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+.ax-item .ax-thumb.wide {
+    flex: none;
+}
+
+.ax-item.row-busy {
+    opacity: .6;
+    pointer-events: none;
+}
+
+.ax-item .ax-actions {
+    flex: none;
+    align-items: center;
+}
+
+.ax-card.is-loading > .ax-list {
+    opacity: .55;
+    transition: opacity .15s;
+    pointer-events: none;
+}
+
+.ax-item-skel {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--ax-border);
+}
+
+@media (max-width: 640px) {
+    .ax-item .ax-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+.ax-page fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 14px;
+    min-width: 0;
+}
+
+.ax-page legend {
+    float: none;
+    padding: 0;
+    width: auto;
+}
+
+.ax-input, .ax-select, .ax-textarea {
+    font-family: inherit;
+    box-sizing: border-box;
+}

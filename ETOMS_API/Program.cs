@@ -107,8 +107,13 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
-
+builder.Services.AddScoped<IUserNotificationService, UserNotificationService>();
 builder.Services.AddScoped<IAdminGameService, AdminGameService>();
+builder.Services.AddScoped<IAdminStatsService, AdminStatsService>();
+builder.Services.AddScoped<IAdminAnnouncementService, AdminAnnouncementService>();
+builder.Services.AddScoped<IAdminBannerService, AdminBannerService>();
+builder.Services.AddSingleton<IMailQueue, MailQueue>();
+builder.Services.AddHostedService<MailQueueWorker>();
 builder.Services.AddScoped<IImageStorage, ImageStorage>();
 builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
 builder.Services.AddScoped<IOneTimeTokenService, OneTimeTokenService>();

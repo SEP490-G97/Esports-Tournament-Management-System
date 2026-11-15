@@ -6,7 +6,7 @@
         var path = location.pathname.toLowerCase();
         document.querySelectorAll('#etomsNavCollapse nav a[data-nav]').forEach(function (a) {
             var key = a.getAttribute('data-nav');
-            var match = (key === 'home' && path === '/' ) ||
+            var match = (key === 'home' && path === '/') ||
                 (key !== 'home' && path.indexOf('/' + key) === 0);
             a.classList.toggle('active', match);
         });
@@ -19,12 +19,22 @@
             var isLight = document.documentElement.getAttribute('data-theme') === 'light';
             if (isLight) {
                 document.documentElement.removeAttribute('data-theme');
-                try { localStorage.setItem('etoms-theme', 'dark'); } catch (e) {}
+                try { localStorage.setItem('etoms-theme', 'dark'); } catch (e) { }
             } else {
                 document.documentElement.setAttribute('data-theme', 'light');
-                try { localStorage.setItem('etoms-theme', 'light'); } catch (e) {}
+                try { localStorage.setItem('etoms-theme', 'light'); } catch (e) { }
             }
         });
+    }
+
+    // Nạp js/notifications.js theo yêu cầu (chỉ khi đã đăng nhập) rồi gắn chuông vào đầu ô tài khoản.
+    function loadNotifyBell(slot) {
+        function go() { if (window.EtomsNotify) window.EtomsNotify.mount(slot); }
+        if (window.EtomsNotify) return go();
+        var sc = document.createElement('script');
+        sc.src = '/js/notifications.js';
+        sc.onload = go;
+        document.head.appendChild(sc);
     }
 
     async function wireAuthWidget() {
@@ -44,6 +54,7 @@
                     e.preventDefault();
                     Auth.logout('/');                  // thu hồi refresh token, xóa cookie, về trang chủ
                 });
+                loadNotifyBell(slot);                   // chuông thông báo (ADM-08)
             } else {
                 slot.innerHTML = loggedOutHtml;
             }

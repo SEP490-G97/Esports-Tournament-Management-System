@@ -17,7 +17,7 @@ public partial class SystemBanner
 
     public string BannerType { get; set; } = null!;
 
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; }
 
     public int DisplayOrder { get; set; }
 
