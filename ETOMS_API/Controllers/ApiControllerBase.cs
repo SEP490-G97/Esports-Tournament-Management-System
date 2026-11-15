@@ -3,17 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;
 
-// Base dùng chung cho các API controller JSON (song song với MVC, không thay thế).
-// Quy ước response lỗi: { message, fieldErrors } để client (SPA/mobile sau này) gắn
-// lỗi vào đúng field, giống cách MVC đang dùng Result.FieldErrors cho ModelState.
 [ApiController]
 public abstract class ApiControllerBase : ControllerBase
 {
-    protected IActionResult FromResult(Result r)
-        => r.IsSuccess ? Ok(new { message = r.Message }) : BadRequest(ToError(r));
+    protected IActionResult FromResult(Result result)
+        => result.IsSuccess
+            ? Ok(new { message = result.Message })
+            : StatusCode(result.StatusCode, new { message = result.Message, fieldErrors = result.FieldErrors });
 
-    protected IActionResult FromResult<T>(Result<T> r)
-        => r.IsSuccess ? Ok(new { message = r.Message, data = r.Data }) : BadRequest(ToError(r));
-
-    private static object ToError(Result r) => new { message = r.Message, fieldErrors = r.FieldErrors };
+    protected IActionResult FromResult<T>(Result<T> result)
+        => result.IsSuccess
+            ? Ok(new { message = result.Message, data = result.Data })
+            : StatusCode(result.StatusCode, new { message = result.Message, fieldErrors = result.FieldErrors });
 }

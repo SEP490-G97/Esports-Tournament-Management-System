@@ -29,6 +29,8 @@ public partial class Game
 
     public int MaxEvidenceFileSizeMb { get; set; }
 
+    public virtual ICollection<GameRuleset> GameRulesets { get; set; } = new List<GameRuleset>();
+
     public virtual ICollection<PlayerCredential> PlayerCredentials { get; set; } = new List<PlayerCredential>();
 
     public virtual ICollection<RecruitmentPost> RecruitmentPosts { get; set; } = new List<RecruitmentPost>();

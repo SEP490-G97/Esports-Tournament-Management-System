@@ -21,8 +21,6 @@ public partial class Account
 
     public string? Phone { get; set; }
 
-    public string? School { get; set; }
-
     public string? SocialLinks { get; set; }
 
     public string Role { get; set; } = null!;
@@ -63,6 +61,8 @@ public partial class Account
 
     public virtual ICollection<MatchGame> MatchGames { get; set; } = new List<MatchGame>();
 
+    public virtual ICollection<MatchPickBan> MatchPickBans { get; set; } = new List<MatchPickBan>();
+
     public virtual ICollection<MatchReport> MatchReports { get; set; } = new List<MatchReport>();
 
     public virtual ICollection<MatchRequest> MatchRequestDecidedByAccounts { get; set; } = new List<MatchRequest>();
@@ -77,6 +77,12 @@ public partial class Account
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
+    public virtual ICollection<Organization> OrganizationCreatedByAccounts { get; set; } = new List<Organization>();
+
+    public virtual ICollection<OrganizationMember> OrganizationMembers { get; set; } = new List<OrganizationMember>();
+
+    public virtual ICollection<Organization> OrganizationReviewedByAccounts { get; set; } = new List<Organization>();
+
     public virtual ICollection<PaymentRecord> PaymentRecords { get; set; } = new List<PaymentRecord>();
 
     public virtual ICollection<Penalty> Penalties { get; set; } = new List<Penalty>();
@@ -90,6 +96,10 @@ public partial class Account
     public virtual ICollection<RegistrationLineup> RegistrationLineups { get; set; } = new List<RegistrationLineup>();
 
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
+
+    public virtual ICollection<SystemAnnouncement> SystemAnnouncements { get; set; } = new List<SystemAnnouncement>();
+
+    public virtual ICollection<SystemBanner> SystemBanners { get; set; } = new List<SystemBanner>();
 
     public virtual ICollection<TeamMember> TeamMembers { get; set; } = new List<TeamMember>();
 

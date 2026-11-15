@@ -16,7 +16,7 @@ var Api = (function () {
 
         var res;
         try {
-            res = await fetch(url, opts);
+            res = await Auth.apiFetch(url, opts);   // trước đây là: await fetch(url, opts)
         } catch (e) {
             throw { status: 0, message: 'Không kết nối được máy chủ. Vui lòng thử lại.', fieldErrors: {} };
         }
@@ -40,8 +40,11 @@ var Api = (function () {
     return {
         get: function (url) { return request('GET', url); },
         post: function (url, body) { return request('POST', url, body, false); },
+        patch: function (url, body) { return request('PATCH', url, body, false); },
         postForm: function (url, formData) { return request('POST', url, formData, true); },
         put: function (url, body) { return request('PUT', url, body, false); },
         del: function (url, body) { return request('DELETE', url, body, false); }
     };
 })();
+
+
