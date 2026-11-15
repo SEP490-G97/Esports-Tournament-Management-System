@@ -1,4 +1,10 @@
 (function () {
+    function action(href, icon, name, desc) {
+        return '<div class="col"><a class="team-card h-100" href="' + href + '"><div class="top"><span class="team-logo">' + icon + '</span>' +
+            '<div><div class="name">' + name + '</div><div class="tag">' + desc + '</div></div></div>' +
+            '<div class="meta"><span class="btn btn-ghost btn-sm">Mở →</span></div></a></div>';
+    }
+
     function render(d) {
         var root = document.getElementById('dash-root');
         var logo = d.logoUrl
@@ -32,7 +38,7 @@
             '<div style="flex:1;min-width:240px"><h1 style="font-size:1.6rem">' + Ui.escapeHtml(d.name) + ' <span class="text-muted-etoms fw-bold">[' + Ui.escapeHtml(d.tag) + ']</span></h1>' +
             '<div class="sub"><span>' + Ui.escapeHtml(d.gameTitle) + '</span>' + (d.status === 'ACTIVE' ? '<span class="badge badge-active">Đang hoạt động</span>' : '') + '</div></div>' +
             '<a class="btn btn-ghost" href="/team/details.html?id=' + d.teamId + '">Xem hồ sơ công khai</a>' +
-            '</div></div>' +
+            '</div></div></div>' + // đóng .team-hero, .body VÀ .card-etoms (thiếu thẻ đóng làm phần dưới dính sát viền thẻ)
             underStrengthAlert +
             '<div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 my-4">' +
             '<div class="col"><div class="stat-card h-100"><div class="label">Sĩ số đội</div><div class="num' + (d.isUnderStrength ? '' : ' accent') + '">' + d.activeMemberCount + '/' + d.capacity + '</div><div class="sub">' + d.starterCount + ' chính thức · ' + d.subCount + ' dự bị</div></div></div>' +
@@ -44,12 +50,13 @@
             pendingBanner +
             '<div class="section-title">Thao tác quản trị</div>' +
             '<div class="section-sub">Các chức năng điều hành đội.</div>' +
-            '<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">' +
-            '<div class="col"><a class="team-card d-block h-100" href="/team/roster.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">R</span><div><div class="name">Quản lý đội hình</div><div class="tag">Chính thức / dự bị, loại thành viên</div></div></div><div class="meta"><span></span><span class="badge badge-active">Mở</span></div></a></div>' +
-            '<div class="col"><a class="team-card d-block h-100" href="/team/invites.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">M</span><div><div class="name">Mã mời</div><div class="tag">Tạo link/mã mời thành viên</div></div></div><div class="meta"><span></span><span class="badge badge-active">Mở</span></div></a></div>' +
-            '<div class="col"><a class="team-card d-block h-100" href="/team/roster.html?id=' + d.teamId + '"><div class="top"><span class="team-logo">Đ</span><div><div class="name">Chuyển quyền đội trưởng</div><div class="tag">Trao vai trò cho thành viên khác</div></div></div><div class="meta"><span></span><span class="badge badge-active">Mở</span></div></a></div>' +
+            // 4 ô thao tác cùng một khuôn: phần chân (nút) luôn nằm đáy ô và cùng cỡ nút, nên thẳng hàng dù chữ dài/ngắn.
+            '<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 dash-actions">' +
+            action('/team/roster.html?id=' + d.teamId, 'R', 'Quản lý đội hình', 'Chính thức / dự bị, loại thành viên') +
+            action('/team/invites.html?id=' + d.teamId, 'M', 'Mã mời', 'Tạo link/mã mời thành viên') +
+            action('/team/roster.html?id=' + d.teamId, 'Đ', 'Chuyển quyền đội trưởng', 'Trao vai trò cho thành viên khác') +
             '<div class="col"><div class="team-card h-100"><div class="top"><span class="team-logo">G</span><div><div class="name">Giải tán đội</div><div class="tag">Xóa mềm, giữ lịch sử thi đấu</div></div></div>' +
-            '<div class="meta"><span></span><button type="button" class="btn btn-ghost" style="padding:6px 12px;color:var(--danger-ink);font-size:.8rem" id="disband-btn">Giải tán đội</button></div></div></div>' +
+            '<div class="meta"><button type="button" class="btn btn-ghost btn-sm dash-danger" id="disband-btn">Giải tán đội</button></div></div></div>' +
             '</div>' +
             '<div class="section-title">Thành viên (' + d.activeMemberCount + ')</div>' +
             '<div class="section-sub">Đội hình hiện tại của đội.</div>' +
