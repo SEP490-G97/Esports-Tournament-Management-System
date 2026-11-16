@@ -54,24 +54,68 @@
     aTitle.addEventListener('input', counters);
     aBody.addEventListener('input', counters);
 
+    // ---- đối tượng: theo vai trò / trừ một số email / chỉ email chỉ định
+    const aMode = $('aMode'), aEmails = $('aEmails');
+    const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+
+    function parseEmails() {
+        const seen = new Set(), list = [], bad = [];
+        aEmails.value.split(/[\s,;]+/).forEach(function (raw) {
+            const e = raw.trim().toLowerCase();
+            if (!e) return;
+            if (!EMAIL_RE.test(e)) { bad.push(e); return; }
+            if (!seen.has(e)) { seen.add(e); list.push(e); }
+        });
+        return { list: list, bad: bad };
+    }
+    function emailsCounter() {
+        const p = parseEmails();
+        $('aEmailsN').textContent = p.list.length + ' email' + (p.bad.length ? ' · ' + p.bad.length + ' không hợp lệ' : '');
+    }
+    function applyMode() {
+        const m = aMode.value;
+        $('aRolesBox').hidden = m === 'ONLY';
+        $('aEmailsBox').hidden = m === 'ROLES';
+        $('aEmailsLabel').textContent = m === 'ONLY' ? 'Gửi cho các email' : 'Loại trừ các email';
+        $('aEmailsHelp').textContent = m === 'ONLY'
+            ? 'Bỏ qua vai trò và cài đặt nhận thông báo của người nhận. Email chưa có tài khoản vẫn nhận được nếu chọn kênh Email. Tối đa 200 email.'
+            : 'Các tài khoản có email này sẽ không nhận thông báo. Tối đa 1000 email.';
+        emailsCounter();
+        refreshAudienceSoon();
+    }
+    function buildRequest() {
+        const m = aMode.value, emails = parseEmails().list;
+        const req = { channel: aChannel.value };
+        if (m === 'ONLY') req.emails = emails;
+        else { req.roles = selectedRoles(); if (m === 'EXCEPT') req.excludeEmails = emails; }
+        return req;
+    }
+    /** Trả thông báo lỗi nhập liệu của phần đối tượng, hoặc '' nếu ổn. */
+    function audienceProblem() {
+        const m = aMode.value;
+        if (m !== 'ONLY' && selectedRoles().length === 0) return 'Hãy chọn ít nhất một nhóm người nhận.';
+        if (m !== 'ROLES') {
+            const p = parseEmails();
+            if (p.bad.length) return 'Email không hợp lệ: ' + p.bad.slice(0, 3).join(', ') + (p.bad.length > 3 ? '…' : '');
+            if (m === 'ONLY' && p.list.length === 0) return 'Hãy nhập ít nhất một email.';
+            if (m === 'ONLY' && p.list.length > 200) return 'Tối đa 200 email chỉ định.';
+            if (m === 'EXCEPT' && p.list.length > 1000) return 'Tối đa 1000 email loại trừ.';
+        }
+        return '';
+    }
+
     let audSeq = 0;
     let audience = null;
     async function refreshAudience() {
-        const roles = selectedRoles();
         audience = null;
-        if (roles.length === 0) {
-            aAudience.className = 'ax-audience zero';
-            aAudience.textContent = 'Hãy chọn ít nhất một nhóm người nhận.';
-            return;
-        }
+        const problem = audienceProblem();
+        if (problem) { ++audSeq; aAudience.className = 'ax-audience zero'; aAudience.textContent = problem; return; }
         const seq = ++audSeq;
         aAudience.className = 'ax-audience';
         U.clear(aAudience);
         aAudience.appendChild(el('span', { class: 'ax-spin' }));
         aAudience.appendChild(document.createTextNode('Đang đếm người nhận…'));
-        const qs = roles.map(function (r) { return 'roles=' + encodeURIComponent(r); })
-            .concat('channel=' + encodeURIComponent(aChannel.value)).join('&');
-        const res = await U.api('/api/admin/announcements/audience?' + qs);
+        const res = await U.api('/api/admin/announcements/audience', { method: 'POST', body: buildRequest() });
         if (seq !== audSeq) return; // có yêu cầu mới hơn
         U.clear(aAudience);
         if (!res.ok) { aAudience.className = 'ax-audience zero'; aAudience.textContent = U.errMsg(res, 'Không đếm được người nhận.'); return; }
@@ -79,23 +123,36 @@
         aAudience.className = 'ax-audience' + (audience.recipients === 0 ? ' zero' : '');
         aAudience.appendChild(document.createTextNode('Sẽ gửi tới '));
         aAudience.appendChild(el('b', { text: U.fmtNumber(audience.recipients) }));
-        aAudience.appendChild(document.createTextNode(' người (' + U.fmtNumber(audience.accounts) + ' tài khoản hoạt động trong nhóm; ' +
-            U.fmtNumber(audience.inApp) + ' nhận trong ứng dụng, ' + U.fmtNumber(audience.email) + ' nhận email).'));
+        let extra = ' người (' + U.fmtNumber(audience.accounts) + ' tài khoản; ' +
+            U.fmtNumber(audience.inApp) + ' nhận trong ứng dụng, ' + U.fmtNumber(audience.email) + ' nhận email)';
+        if (audience.excluded > 0) extra += ' · loại trừ ' + U.fmtNumber(audience.excluded) + ' tài khoản';
+        if (audience.externalEmails > 0) extra += ' · ' + U.fmtNumber(audience.externalEmails) + ' email chưa có tài khoản (chỉ nhận mail)';
+        if (audience.unreachable > 0) extra += ' · ' + U.fmtNumber(audience.unreachable) + ' email chưa có tài khoản sẽ KHÔNG nhận được (kênh Trong ứng dụng)';
+        aAudience.appendChild(document.createTextNode(extra + '.'));
     }
     const refreshAudienceSoon = U.debounce(refreshAudience, 300);
     document.querySelectorAll('#aRoles input').forEach(function (i) { i.addEventListener('change', refreshAudienceSoon); });
     aChannel.addEventListener('change', refreshAudienceSoon);
+    aMode.addEventListener('change', applyMode);
+    aEmails.addEventListener('input', function () { emailsCounter(); refreshAudienceSoon(); });
 
     aSend.addEventListener('click', async function () {
         if (sending) return;
         showErr(aErr, '');
-        const title = aTitle.value.trim(), body = aBody.value.trim(), roles = selectedRoles();
+        const title = aTitle.value.trim(), body = aBody.value.trim();
         if (title.length < 3) return showErr(aErr, 'Tiêu đề phải từ 3 ký tự.');
         if (body.length < 5) return showErr(aErr, 'Nội dung phải từ 5 ký tự.');
-        if (roles.length === 0) return showErr(aErr, 'Hãy chọn ít nhất một nhóm người nhận.');
+        const problem = audienceProblem();
+        if (problem) return showErr(aErr, problem);
         if (audience && audience.recipients === 0) return showErr(aErr, 'Không có người nhận nào với lựa chọn hiện tại.');
 
-        const who = roles.length === 3 ? 'toàn bộ người dùng' : roles.map(function (r) { return ROLE_NAMES[r]; }).join(', ');
+        const mode = aMode.value, roles = selectedRoles(), emails = parseEmails().list;
+        let who;
+        if (mode === 'ONLY') who = emails.length === 1 ? emails[0] : emails.length + ' email chỉ định';
+        else {
+            who = roles.length === 3 ? 'toàn bộ người dùng' : roles.map(function (r) { return ROLE_NAMES[r]; }).join(', ');
+            if (mode === 'EXCEPT' && emails.length) who += ' (trừ ' + emails.length + ' email)';
+        }
         const count = audience ? U.fmtNumber(audience.recipients) + ' người' : 'những người nhận';
         const ok = await U.confirm({
             title: 'Phát thông báo?',
@@ -109,14 +166,15 @@
         U.busy(aSend, true, 'Đang gửi…');
         const res = await U.api('/api/admin/announcements', {
             method: 'POST',
-            body: { title: title, body: body, roles: roles, channel: aChannel.value, linkUrl: aLink.value.trim() || null }
+            body: Object.assign({ title: title, body: body, linkUrl: aLink.value.trim() || null }, buildRequest())
         });
         U.busy(aSend, false);
         sending = false;
         if (!res.ok) { showErr(aErr, U.errMsg(res)); return; }
 
         U.toast('Đã gửi tới ' + U.fmtNumber(res.data.recipients) + ' người' +
-            (res.data.emailQueued ? ' (' + U.fmtNumber(res.data.emailQueued) + ' email đang xếp hàng gửi)' : '') + '.');
+            (res.data.emailQueued ? ' (' + U.fmtNumber(res.data.emailQueued) + ' email đang xếp hàng gửi)' : '') +
+            (res.data.skipped ? ' · bỏ qua ' + res.data.skipped + ' email chưa có tài khoản' : '') + '.');
         aTitle.value = ''; aBody.value = ''; aLink.value = '';
         counters();
         histPage = 1;
@@ -151,7 +209,8 @@
         }
         state.hidden = true;
         d.items.forEach(function (it) {
-            const roles = it.roles.length === 3 ? 'Tất cả' : it.roles.map(function (r) { return ROLE_NAMES[r] || r; }).join(', ');
+            let roles = it.custom ? 'Email chỉ định' : (it.roles.length === 3 ? 'Tất cả' : it.roles.map(function (r) { return ROLE_NAMES[r] || r; }).join(', '));
+            if (!it.custom && it.excluded > 0) roles += ' (trừ ' + it.excluded + ' tài khoản)';
             const meta = U.fmtDateTime(it.sentAt) + ' · ' + roles + ' · ' + (CHANNELS[it.channel] || it.channel) +
                 ' · ' + U.fmtNumber(it.inAppCount) + ' trong ứng dụng, ' + U.fmtNumber(it.emailCount) + ' email' +
                 (it.sentBy ? ' · bởi ' + it.sentBy : '');
@@ -394,6 +453,6 @@
 
     // ------------------------------------------------------------------ khởi động
     counters();
-    refreshAudience();
+    applyMode();
     loadHistory();
 })();

@@ -1,8 +1,10 @@
 ﻿using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.Contracts;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace ETOMS_API.Controllers;
 
@@ -12,9 +14,19 @@ namespace ETOMS_API.Controllers;
 [Route("api/notifications")]
 public class UserNotificationsController : ControllerBase
 {
-    private readonly IUserNotificationService _svc;
+    /// <summary>Kết nối SSE tối đa 10 phút rồi đóng; trình duyệt tự nối lại (và lấy token mới).</summary>
+    public static readonly TimeSpan MaxStreamLifetime = TimeSpan.FromMinutes(10);
+    public static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(25);
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public UserNotificationsController(IUserNotificationService svc) => _svc = svc;
+    private readonly IUserNotificationService _svc;
+    private readonly INotificationHub _hub;
+
+    public UserNotificationsController(IUserNotificationService svc, INotificationHub hub)
+    {
+        _svc = svc;
+        _hub = hub;
+    }
 
     private bool TryGetAccountId(out int id)
     {
@@ -54,5 +66,50 @@ public class UserNotificationsController : ControllerBase
     {
         if (!TryGetAccountId(out var id)) return Unauthorized();
         return Ok(new { marked = await _svc.MarkAllReadAsync(id, ct) });
+    }
+
+    /// <summary>
+    /// GET /api/notifications/stream — Server-Sent Events. Sự kiện "notification" mang một UserNotificationItem (JSON camelCase);
+    /// dòng ": ping" giữ kết nối. Client dùng fetch + Authorization (EventSource không gửi được header).
+    /// </summary>
+    [HttpGet("stream")]
+    public async Task Stream(CancellationToken ct)
+    {
+        if (!TryGetAccountId(out var id)) { Response.StatusCode = StatusCodes.Status401Unauthorized; return; }
+
+        Response.Headers.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache, no-store";
+        Response.Headers["X-Accel-Buffering"] = "no"; // nginx: không đệm
+
+        using var sub = _hub.Subscribe(id);
+        using var life = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        life.CancelAfter(MaxStreamLifetime);
+
+        try
+        {
+            await WriteAsync(": connected\n\n", life.Token);
+            while (!life.IsCancellationRequested)
+            {
+                using var beat = CancellationTokenSource.CreateLinkedTokenSource(life.Token);
+                beat.CancelAfter(HeartbeatInterval);
+                try
+                {
+                    if (!await sub.Reader.WaitToReadAsync(beat.Token)) break; // hub đóng kết nối này
+                    while (sub.Reader.TryRead(out var item))
+                        await WriteAsync("event: notification\ndata: " + JsonSerializer.Serialize(item, Json) + "\n\n", life.Token);
+                }
+                catch (OperationCanceledException) when (!life.IsCancellationRequested)
+                {
+                    await WriteAsync(": ping\n\n", life.Token); // hết hạn nhịp tim, không phải bị hủy
+                }
+            }
+        }
+        catch (OperationCanceledException) { /* client ngắt hoặc hết 10 phút */ }
+    }
+
+    private async Task WriteAsync(string text, CancellationToken ct)
+    {
+        await Response.WriteAsync(text, ct);
+        await Response.Body.FlushAsync(ct);
     }
 }

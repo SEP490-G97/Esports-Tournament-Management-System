@@ -2,6 +2,7 @@
 
 namespace ETOMS_API.Services.Interface;
 
+
 public enum AnnouncementError
 {
     None,
@@ -10,6 +11,8 @@ public enum AnnouncementError
     InvalidRoles,
     InvalidChannel,
     InvalidLink,
+    InvalidEmails,
+    TooManyEmails,
     NoRecipients,
     DuplicateRecent
 }
@@ -22,6 +25,9 @@ public interface IAdminAnnouncementService
 {
     /// <summary>Đếm số người sẽ nhận (chỉ tài khoản ACTIVE, đã tính cài đặt nhận thông báo) để admin xác nhận trước khi gửi.</summary>
     Task<AudienceResult> CountAudienceAsync(string[]? roles, string? channel, CancellationToken ct = default);
+
+    /// <summary>Như trên nhưng tính cả Emails (chỉ định) và ExcludeEmails (loại trừ) trong request.</summary>
+    Task<AudienceResult> CountAudienceAsync(SendAnnouncementRequest request, CancellationToken ct = default);
 
     /// <summary>
     /// Trong một giao dịch: tạo Notification (type SYSTEM) cho từng người nhận, ghi SystemAnnouncement (lịch sử + số lượng)

@@ -117,6 +117,23 @@
     <script src="/js/ui.js"></script>
     <script src="/js/layout.js"></script>
     <script src="/js/admin-common.js"></script>
+    <script>
+                // Vẽ thanh điều hướng admin (mục Tài khoản được đánh dấu). Tự dựng lại nếu admin-common.js là bản cũ.
+                (function () {
+                    if (window.AdminUI && typeof AdminUI.renderNav === 'function') { AdminUI.renderNav('users'); return; }
+                    console.warn('admin-common.js chưa có AdminUI.renderNav: đang dùng nav dự phòng. Hãy thay admin-common.js bằng bản mới.');
+                    var nav = document.getElementById('admin-nav');
+                    if (!nav) return;
+                    [['users', '/admin/users.html', 'Tài khoản'], ['games', '/admin/games.html', 'Danh mục Game'],
+                     ['dashboard', '/admin/dashboard.html', 'Thống kê'], ['announcements', '/admin/announcements.html', 'Thông báo & Banner']
+                    ].forEach(function (x) {
+                        var a = document.createElement('a');
+                        a.href = x[1]; a.textContent = x[2];
+                        if (x[0] === 'users') { a.className = 'active'; a.setAttribute('aria-current', 'page'); }
+                        nav.appendChild(a);
+                    });
+                })();
+    </script>
     <script src="/js/pages/admin-users.js"></script>
 </body>
 </html>
