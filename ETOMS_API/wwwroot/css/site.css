@@ -1276,3 +1276,33 @@ textarea.input { min-height: 110px; resize: vertical; }
 .past-tag { color: var(--muted-2); font-weight: 400; font-size: .8rem; }
 textarea.input { min-height: 110px; resize: vertical; }
 #banner-preview { max-width: 100%; max-height: 160px; border-radius: 10px; margin-top: 8px; border: 1px solid var(--border); }
+
+/* --- POR-01: trang chủ — nhà tài trợ thật (UC-42), khu "Đang phát" (UC-46), nút tựa game --- */
+.min-w-0 { min-width: 0; }
+.sponsor-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 18px 14px; text-align: center; border-style: solid; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+.sponsor-card:hover { border-color: var(--primary); color: var(--ink); transform: translateY(-2px); }
+.sponsor-logo, .sponsor-logo-lg { object-fit: contain; border-radius: 12px; background: rgba(255,255,255,.06); flex: none; }
+.sponsor-logo { width: 64px; height: 64px; }
+.sponsor-logo-lg { width: 96px; height: 96px; }
+.sponsor-initial { display: grid; place-items: center; font-weight: 800; font-size: 1.6rem; color: var(--cyan); border: 1px solid var(--border); }
+.sponsor-logo-lg.sponsor-initial { font-size: 2.2rem; color: #2fd4e6; border-color: rgba(255,255,255,.18); }
+.sponsor-name { font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sponsor-tour { font-size: .8rem; color: var(--muted); font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-main .sponsor-ghost { color: #e9edf6; border-color: rgba(255,255,255,.35); }
+@media (max-width: 575.98px) { .sponsor-logo-lg { display: none; } }
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-right: 6px; animation: live-pulse 1.4s ease-in-out infinite; }
+.ad-label .live-dot { color: #ff4d5e; }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+.live-band { background: var(--bg); border-bottom: 1px solid var(--border-soft); padding: 32px 0; }
+.live-card { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border: 1px solid var(--border); border-left: 3px solid #ff4d5e; border-radius: 14px; background: var(--panel); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; min-width: 0; }
+.live-card:hover { border-color: #ff4d5e; color: var(--ink); transform: translateY(-2px); }
+.live-card .badge { align-self: flex-start; }
+.live-card-title { font-weight: 800; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.live-card-sub { font-size: .84rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-card-go { font-size: .84rem; font-weight: 700; color: var(--primary); margin-top: auto; }
+.game-chip-link { position: relative; color: inherit; text-decoration: none; cursor: pointer; }
+.game-chip-link:hover, .game-chip-link:focus-visible { color: inherit; border-color: var(--primary); }
+.game-chip-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.game-chip-ext { position: absolute; top: 8px; right: 10px; font-size: .75rem; color: var(--muted); }
+.game-chip-link:hover .game-chip-ext { color: var(--primary); }

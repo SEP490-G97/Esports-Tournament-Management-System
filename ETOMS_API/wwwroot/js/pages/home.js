@@ -146,6 +146,15 @@
         root.innerHTML = html;
     }
 
+    // Chỉ nhận URL https tuyệt đối (chặn javascript:, data:, http://...) trước khi gắn vào href.
+    function safeHttpsUrl(value) {
+        if (typeof value !== 'string' || !value) return null;
+        try {
+            var u = new URL(value);
+            return u.protocol === 'https:' && u.hostname ? u.href : null;
+        } catch (e) { return null; }
+    }
+
     function renderGames(list) {
         var root = document.getElementById('games-list');
         var html = '';
@@ -153,10 +162,13 @@
             var icon = g.logoUrl
                 ? '<img src="' + Ui.escapeHtml(g.logoUrl) + '" alt="' + Ui.escapeHtml(g.title) + '" />'
                 : '<span class="game-ico">' + Ui.escapeHtml(g.shortCode && g.shortCode.length > 0 ? g.shortCode.substring(0, 1) : '?') + '</span>';
-            html +=
-                '<div class="col-6 col-sm-4 col-lg-2"><div class="game-chip h-100">' + icon +
-                '<div><div class="gt">' + Ui.escapeHtml(g.title) + '</div><div class="gc">' + Ui.escapeHtml(g.shortCode) + '</div></div>' +
-                '</div></div>';
+            var body = icon + '<div><div class="gt">' + Ui.escapeHtml(g.title) + '</div><div class="gc">' + Ui.escapeHtml(g.shortCode) + '</div></div>';
+            var url = safeHttpsUrl(g.websiteUrl);
+            html += '<div class="col-6 col-sm-4 col-lg-2">' + (url
+                ? '<a class="game-chip game-chip-link h-100" href="' + Ui.escapeHtml(url) + '" target="_blank" rel="noopener noreferrer"' +
+                  ' title="Mở trang chủ ' + Ui.escapeHtml(g.title) + ' (tab mới)" aria-label="Trang chủ ' + Ui.escapeHtml(g.title) + ' (mở tab mới)">' +
+                  body + '<span class="game-chip-ext" aria-hidden="true">↗</span></a>'
+                : '<div class="game-chip h-100">' + body + '</div>') + '</div>';
         });
         root.innerHTML = html;
     }
@@ -168,6 +180,62 @@
     }
 
     var NEWS_IMAGES = ['/images/news/news-1.jpg', '/images/news/news-2.jpg', '/images/news/news-3.jpg'];
+
+    // UC-46 — kênh đang phát trực tiếp; bấm vào mở đúng kênh đó ở tab "Trực tiếp" của giải.
+    function renderLive(list) {
+        var band = document.getElementById('live-band');
+        var row = document.getElementById('live-row');
+        if (!band || !row) return;
+        if (!list || !list.length) { band.hidden = true; return; }
+        var esc = Ui.escapeHtml;
+        row.innerHTML = list.map(function (l) {
+            return '<div class="col-12 col-md-6 col-xl-3"><a class="live-card h-100" href="/tournament/live.html?id=' + Number(l.tournamentId) +
+                '&stream=' + Number(l.livestreamId) + '">' +
+                '<span class="badge badge-live"><span class="live-dot"></span>Đang phát</span>' +
+                '<span class="live-card-title">' + esc(l.title) + '</span>' +
+                '<span class="live-card-sub">' + esc(l.tournamentName) + ' · ' + esc(l.platformLabel) + '</span>' +
+                '<span class="live-card-go">Xem ngay →</span></a></div>';
+        }).join('');
+        band.hidden = false;
+    }
+
+    // UC-42 — nhà tài trợ thật của các giải đang công khai. Ô đầu (hạng cao nhất) to, các ô sau nhỏ.
+    // Bấm được: website nhà tài trợ (tab mới) và trang giải được tài trợ.
+    function renderSponsors(list) {
+        var band = document.getElementById('sponsor-band');
+        var row = document.getElementById('sponsor-row');
+        if (!band || !row) return;
+        if (!list || !list.length) { band.hidden = true; return; }
+        var esc = Ui.escapeHtml;
+        function logo(s, cls) {
+            var src = Ui.safeUrl(s.logoUrl);
+            return src
+                ? '<img class="' + cls + '" src="' + esc(src) + '" alt="Logo ' + esc(s.name) + '" loading="lazy" />'
+                : '<span class="' + cls + ' sponsor-initial">' + esc((s.name || '?').trim().charAt(0).toUpperCase()) + '</span>';
+        }
+        var main = list[0];
+        var mainSite = Ui.safeUrl(main.websiteUrl);
+        var html = '<div class="col-12' + (list.length > 1 ? ' col-lg-6' : '') + '"><div class="ad-slot ad-main h-100">' +
+            '<div class="min-w-0"><div class="ad-kicker">Nhà tài trợ hạng ' + esc(main.tierLabel) + '</div>' +
+            '<div class="ad-title">' + esc(main.name) + '</div>' +
+            '<div class="ad-sub">Đồng hành cùng ' + esc(main.tournamentName) + '.</div>' +
+            '<div class="btn-row mt-3 mb-0">' +
+            (mainSite ? '<a class="btn btn-primary btn-sm" href="' + esc(mainSite) + '" target="_blank" rel="noopener noreferrer sponsored">Website nhà tài trợ ↗</a>' : '') +
+            '<a class="btn btn-ghost btn-sm sponsor-ghost" href="/bracket/view.html?id=' + Number(main.tournamentId) + '">Xem giải</a></div></div>' +
+            logo(main, 'sponsor-logo-lg') + '</div></div>';
+        list.slice(1).forEach(function (s) {
+            var site = Ui.safeUrl(s.websiteUrl);
+            var href = site || '/bracket/view.html?id=' + Number(s.tournamentId);
+            html += '<div class="col-6 col-lg-3"><a class="ad-slot sponsor-card h-100" href="' + esc(href) + '"' +
+                (site ? ' target="_blank" rel="noopener noreferrer sponsored"' : '') + '>' +
+                logo(s, 'sponsor-logo') +
+                '<span class="sponsor-name">' + esc(s.name) + '</span>' +
+                '<span class="badge badge-gold">Hạng ' + esc(s.tierLabel) + '</span>' +
+                '<span class="sponsor-tour">' + esc(s.tournamentName) + '</span></a></div>';
+        });
+        row.innerHTML = html;
+        band.hidden = false;
+    }
 
     function renderNews(list) {
         var root = document.getElementById('news-root');
@@ -242,6 +310,8 @@
             renderTeams(summary.teams);
             renderGames(summary.games);
             renderNews(summary.news);
+            renderSponsors(summary.sponsors);
+            renderLive(summary.liveNow);
         } catch (e) {
             renderFeatured([]);
             renderTeams([]);

@@ -1,8 +1,9 @@
-using ETOMS_API.DTOs.Home;
+﻿using ETOMS_API.DTOs.Home;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
+using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -54,6 +55,7 @@ public class HomeApiController : ApiControllerBase
             .OrderBy(g => g.Title)
             .Select(g => new GameCardDto { GameId = g.GameId, Title = g.Title, ShortCode = g.ShortCode, LogoUrl = g.LogoUrl })
             .ToListAsync();
+        foreach (var g in games) g.WebsiteUrl = GameWebsite.For(g.ShortCode);
 
         var counts = await _db.Database.SqlQuery<HomeCountsRow>($@"
             SELECT
@@ -128,9 +130,51 @@ public class HomeApiController : ApiControllerBase
             })
             .ToListAsync();
 
+        // Nhà tài trợ (UC-42) của các giải đang công khai — hạng cao lên trước. Giải đã hủy chỉ hiện khi
+        // Ban tổ chức chọn giữ logo (ShowWhenCancelled). Chỉ lấy 3 cho khu "Nhà tài trợ" trên trang chủ.
+        var sponsorRows = await _uow.Repository<TournamentSponsor>().Query()
+            .Where(s => s.Tournament.Status == "PUBLISHED" || s.Tournament.Status == "ONGOING" || s.Tournament.Status == "COMPLETED"
+                     || (s.Tournament.Status == "CANCELLED" && s.ShowWhenCancelled))
+            .OrderBy(s => s.Tier == "DIAMOND" ? 0 : s.Tier == "GOLD" ? 1 : s.Tier == "SILVER" ? 2 : s.Tier == "BRONZE" ? 3 : 4)
+            .ThenBy(s => s.Tournament.Status == "ONGOING" ? 0 : s.Tournament.Status == "PUBLISHED" ? 1 : 2)
+            .ThenBy(s => s.DisplayOrder)
+            .Take(3)
+            .Select(s => new { s.Name, s.LogoUrl, s.WebsiteUrl, s.Tier, s.TournamentId, TournamentName = s.Tournament.Name })
+            .ToListAsync();
+        var sponsors = sponsorRows.Select(s => new HomeSponsorDto
+        {
+            Name = s.Name, LogoUrl = s.LogoUrl, WebsiteUrl = s.WebsiteUrl, Tier = s.Tier,
+            TierLabel = s.Tier switch
+            {
+                "DIAMOND" => "Kim cương", "GOLD" => "Vàng", "SILVER" => "Bạc", "BRONZE" => "Đồng", _ => "Đối tác"
+            },
+            TournamentId = s.TournamentId, TournamentName = s.TournamentName
+        }).ToList();
+
+        // Livestream ĐANG PHÁT (UC-46) của giải không phải Nháp/đã hủy — hiện khu "Đang phát trực tiếp".
+        var liveRows = await _uow.Repository<Livestream>().Query()
+            .Where(l => l.Status == "LIVE" && l.Tournament.Status != "DRAFT" && l.Tournament.Status != "CANCELLED")
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(4)
+            .Select(l => new
+            {
+                l.LivestreamId, l.TournamentId, TournamentName = l.Tournament.Name, l.Title, l.Platform,
+                TeamA = l.Match != null && l.Match.TeamA != null ? l.Match.TeamA.Name : null,
+                TeamB = l.Match != null && l.Match.TeamB != null ? l.Match.TeamB.Name : null
+            })
+            .ToListAsync();
+        var liveNow = liveRows.Select(l => new HomeLiveDto
+        {
+            LivestreamId = l.LivestreamId, TournamentId = l.TournamentId, TournamentName = l.TournamentName,
+            Title = !string.IsNullOrWhiteSpace(l.Title) ? l.Title!
+                : l.TeamA != null ? $"{l.TeamA} vs {l.TeamB ?? "Chưa xác định"}" : "Phát trực tiếp " + l.TournamentName,
+            PlatformLabel = ETOMS_API.Utils.StreamEmbed.PlatformLabel(l.Platform)
+        }).ToList();
+
         return new HomeSummaryDto
         {
-            Stats = stats, Games = games, Featured = featuredList, Events = events, Teams = teams, News = news
+            Stats = stats, Games = games, Featured = featuredList, Events = events, Teams = teams, News = news,
+            Sponsors = sponsors, LiveNow = liveNow
         };
     }
 
