@@ -43,15 +43,14 @@
                     </div>
 
                     <div class="ax-row">
-                        <fieldset class="ax-field">
-                            <legend class="ax-label">Gửi tới</legend>
-                            <div class="ax-checks" id="aRoles">
-                                <label class="ax-check"><input type="checkbox" value="PLAYER" checked> Người chơi</label>
-                                <label class="ax-check"><input type="checkbox" value="ORGANIZER" checked> Ban tổ chức</label>
-                                <label class="ax-check"><input type="checkbox" value="ADMIN" checked> Quản trị viên</label>
-                            </div>
-                            <div class="ax-help">Chọn cả ba = toàn bộ người dùng.</div>
-                        </fieldset>
+                        <div class="ax-field">
+                            <label class="ax-label" for="aMode">Đối tượng</label>
+                            <select class="ax-select" id="aMode">
+                                <option value="ROLES">Theo nhóm vai trò</option>
+                                <option value="EXCEPT">Tất cả (hoặc nhóm) trừ một số email</option>
+                                <option value="ONLY">Chỉ gửi cho email chỉ định</option>
+                            </select>
+                        </div>
                         <div class="ax-field">
                             <label class="ax-label" for="aChannel">Kênh gửi</label>
                             <select class="ax-select" id="aChannel">
@@ -59,8 +58,23 @@
                                 <option value="EMAIL">Email</option>
                                 <option value="BOTH">Trong ứng dụng + Email</option>
                             </select>
-                            <div class="ax-help">Chỉ gửi tới người đã bật nhận thông báo qua kênh đó.</div>
                         </div>
+                    </div>
+
+                    <fieldset class="ax-field" id="aRolesBox">
+                        <legend class="ax-label">Nhóm người nhận</legend>
+                        <div class="ax-checks" id="aRoles">
+                            <label class="ax-check"><input type="checkbox" value="PLAYER" checked> Người chơi</label>
+                            <label class="ax-check"><input type="checkbox" value="ORGANIZER" checked> Ban tổ chức</label>
+                            <label class="ax-check"><input type="checkbox" value="ADMIN" checked> Quản trị viên</label>
+                        </div>
+                        <div class="ax-help" id="aRolesHelp">Chọn cả ba = toàn bộ người dùng. Chỉ gửi tới người đã bật nhận thông báo qua kênh đã chọn.</div>
+                    </fieldset>
+
+                    <div class="ax-field" id="aEmailsBox" hidden>
+                        <label class="ax-label" for="aEmails"><span id="aEmailsLabel">Email</span> <span class="ax-count" id="aEmailsN">0 email</span></label>
+                        <textarea class="ax-textarea" id="aEmails" rows="3" placeholder="a@gmail.com, b@gmail.com — mỗi email một dòng hoặc cách nhau bằng dấu phẩy" spellcheck="false"></textarea>
+                        <div class="ax-help" id="aEmailsHelp"></div>
                     </div>
 
                     <div class="ax-field">

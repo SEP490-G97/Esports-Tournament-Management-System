@@ -1,7 +1,7 @@
 ﻿// Chuông thông báo trong app. Dùng: EtomsNotify.mount(slotElement) sau khi đã xác định người dùng đăng nhập.
 (function () {
     'use strict';
-    var POLL_MS = 60000, PAGE = 10;
+    var POLL_MS = 120000, PAGE = 10;   // polling chỉ là lưới an toàn; thông báo mới đến qua luồng real-time (SSE)
     var mounted = false;
 
     function esc(s) { return window.Ui ? Ui.escapeHtml(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
@@ -67,6 +67,7 @@
             var b = document.createElement('button');
             b.type = 'button';
             b.className = 'etn-item' + (n.isRead ? '' : ' unread');
+            b.setAttribute('data-id', n.id);
             b.innerHTML = '<div class="t">' + (n.isRead ? '' : '<i></i>') + '<span>' + esc(n.title) + '</span></div>' +
                 '<div class="b">' + esc(n.body) + '</div><div class="d">' + esc(when(n.sentAt)) + '</div>';
             b.addEventListener('click', async function () {
@@ -112,6 +113,64 @@
                 list.querySelectorAll('.etn-item.unread').forEach(function (x) { x.classList.remove('unread'); var i = x.querySelector('.t i'); if (i) i.remove(); });
             } else allBtn.disabled = false;
         });
+
+        // ---- real-time -------------------------------------------------------------------
+        function toast(n) {
+            var host = document.getElementById('etn-toasts');
+            if (!host) { host = document.createElement('div'); host.id = 'etn-toasts'; host.className = 'etn-toasts'; host.setAttribute('aria-live', 'polite'); document.body.appendChild(host); }
+            while (host.children.length >= 3) host.removeChild(host.firstChild);
+            var t = document.createElement('button');
+            t.type = 'button'; t.className = 'etn-toast';
+            t.innerHTML = '<b>' + esc(n.title) + '</b><span>' + esc(n.body) + '</span>';
+            t.addEventListener('click', function (e) { e.stopPropagation(); t.remove(); open(true); });
+            host.appendChild(t);
+            setTimeout(function () { t.remove(); }, 7000);
+        }
+        function onPush(n) {
+            if (!n || typeof n.id !== 'number') return;
+            if (panel.hidden || !list.querySelector('[data-id="' + n.id + '"]')) setUnread(unread + 1);
+            if (!panel.hidden && !list.querySelector('[data-id="' + n.id + '"]')) {
+                var empty = list.querySelector('.etn-state'); if (empty) empty.remove();
+                list.insertBefore(row(n), list.firstChild);
+            }
+            toast(n);
+        }
+
+        var backoff = 2000, stopped = false;
+        async function connect() {
+            if (stopped) return;
+            var gotData = false;
+            try {
+                var res = await Auth.apiFetch('/api/notifications/stream', { headers: { 'Accept': 'text/event-stream' } });
+                if (!res || !res.ok || !res.body) throw new Error('stream ' + (res && res.status));
+                var reader = res.body.getReader(), dec = new TextDecoder(), buf = '';
+                backoff = 2000;
+                poll();                                   // bù thông báo đến trong lúc mất kết nối
+                for (; ;) {
+                    var chunk = await reader.read();
+                    if (chunk.done) break;
+                    gotData = true;
+                    buf += dec.decode(chunk.value, { stream: true }).replace(/\r\n/g, '\n');
+                    var i;
+                    while ((i = buf.indexOf('\n\n')) >= 0) {
+                        var frame = buf.slice(0, i); buf = buf.slice(i + 2);
+                        var ev = 'message', data = '';
+                        frame.split('\n').forEach(function (ln) {
+                            if (ln.indexOf('event:') === 0) ev = ln.slice(6).trim();
+                            else if (ln.indexOf('data:') === 0) data += ln.slice(5).trim();
+                        });
+                        if (ev === 'notification' && data) { try { onPush(JSON.parse(data)); } catch (e) { /* bỏ qua khung lỗi */ } }
+                    }
+                }
+            } catch (e) { /* mất mạng / server khởi động lại: thử nối lại bên dưới */ }
+            if (stopped) return;
+            // Server chủ động đóng sau ~10 phút (đổi token) → nối lại ngay; lỗi thật → lùi dần tới 60 giây.
+            var wait = gotData ? 500 : backoff;
+            if (!gotData) backoff = Math.min(backoff * 2, 60000);
+            setTimeout(connect, wait);
+        }
+        window.addEventListener('beforeunload', function () { stopped = true; });
+        connect();
 
         async function poll() {
             if (document.hidden) return;

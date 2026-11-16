@@ -16,11 +16,11 @@ public class AdminAnnouncementsController : AdminControllerBase
     public async Task<IActionResult> History([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
         => Ok(await _svc.HistoryAsync(page, pageSize, ct));
 
-    /// <summary>GET /api/admin/announcements/audience?roles=PLAYER&amp;roles=ORGANIZER&amp;channel=BOTH — số người sẽ nhận.</summary>
-    [HttpGet("audience")]
-    public async Task<IActionResult> Audience([FromQuery] string[]? roles, [FromQuery] string? channel, CancellationToken ct)
+    /// <summary>POST /api/admin/announcements/audience — đếm người sẽ nhận (cùng body với gửi; Title/Body không cần).</summary>
+    [HttpPost("audience")]
+    public async Task<IActionResult> Audience([FromBody] SendAnnouncementRequest request, CancellationToken ct)
     {
-        var r = await _svc.CountAudienceAsync(roles, channel, ct);
+        var r = await _svc.CountAudienceAsync(request ?? new SendAnnouncementRequest(), ct);
         return r.Error == AnnouncementError.None ? Ok(r.Data) : Map(r.Error);
     }
 
@@ -40,6 +40,8 @@ public class AdminAnnouncementsController : AdminControllerBase
         AnnouncementError.InvalidChannel => Err(400, "CHANNEL_INVALID", "Kênh gửi phải là IN_APP, EMAIL hoặc BOTH."),
         AnnouncementError.InvalidLink => Err(400, "LINK_INVALID",
             "Liên kết phải là đường dẫn nội bộ bắt đầu bằng \"/\" hoặc URL https."),
+        AnnouncementError.InvalidEmails => Err(400, "EMAILS_INVALID", "Có địa chỉ email không hợp lệ."),
+        AnnouncementError.TooManyEmails => Err(400, "EMAILS_TOO_MANY", "Quá nhiều email (tối đa 200 email chỉ định, 1000 email loại trừ)."),
         AnnouncementError.NoRecipients => Err(409, "NO_RECIPIENTS",
             "Không có người nhận nào (không có tài khoản ACTIVE bật nhận thông báo qua kênh đã chọn trong nhóm đã chọn)."),
         AnnouncementError.DuplicateRecent => Err(409, "DUPLICATE_RECENT",
