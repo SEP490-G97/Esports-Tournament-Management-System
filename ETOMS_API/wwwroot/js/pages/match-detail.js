@@ -5,9 +5,9 @@
     // ---- Cấu hình điểm tích hợp với các module khác -------------------------------------------------
     // Mỗi thao tác trỏ tới trang/chức năng thuộc module riêng. Chưa có trang thì để null → hiện thông báo.
     var TOURNAMENT_URL = function (id) { return '/tournament.html?id=' + id; };
-    var LOGIN_URL = 'auth/login.html';
+    var LOGIN_URL = '/login.html';
     var ACTION_ROUTES = {
-        CHECK_IN: null,        // vd: function (d) { return '/match-checkin.html?id=' + d.matchId; }
+        CHECK_IN: function (d) { return '/checkin.html?id=' + d.matchId; },
         SUBMIT_REPORT: null,
         OPEN_DISPUTE: null,
         REFEREE_START: null,

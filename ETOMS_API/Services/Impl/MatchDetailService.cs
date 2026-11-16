@@ -2,6 +2,7 @@
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Services.Interface;
+using ETOMS_API.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
@@ -108,7 +109,8 @@ public class MatchDetailService : IMatchDetailService
         if (captain)
         {
             bool checkedIn = capA ? m.TeamAcheckedInAt != null : m.TeamBcheckedInAt != null;
-            if (m.Status == "READY" && m.CheckInOpenAt != null && m.CheckInOpenAt <= now && !checkedIn)
+            if (m.Status == "READY" && m.TeamAid != null && m.TeamBid != null && !checkedIn
+                && CheckInRules.PhaseOf(m.ScheduledAt, now) == CheckInPhase.Open)
                 actions.Add(MatchActions.CheckIn);
             int myTeam = capA ? ta!.TeamId : tb!.TeamId;
             if ((m.Status == "LIVE" || m.Status == "WAITING_REPORT") && !reports.Any(r => r.TeamId == myTeam))
@@ -132,7 +134,7 @@ public class MatchDetailService : IMatchDetailService
             m.MatchId,
             new MatchTournamentView(t.TournamentId, t.Name, t.Format, t.Status, t.StreamUrl),
             round,
-            m.Status, m.BestOf, m.ScheduledAt, m.CheckInOpenAt, m.ReportDeadlineAt, m.VerifiedAt,
+            m.Status, m.BestOf, m.ScheduledAt, CheckInRules.OpensAt(m.ScheduledAt), m.ReportDeadlineAt, m.VerifiedAt,
             View(ta, m.ScoreA, m.TeamAcheckedInAt), View(tb, m.ScoreB, m.TeamBcheckedInAt),
             m.ScoreA, m.ScoreB, m.WinnerTeamId, m.ResultSource,
             referee,

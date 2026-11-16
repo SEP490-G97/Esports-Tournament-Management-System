@@ -483,3 +483,140 @@
         animation: none;
     }
 }
+
+/* ---------- Check-in ---------- */
+.ci-page {
+    max-width: 760px;
+}
+
+.ci-clock {
+    text-align: center;
+    padding: 8px 0 4px;
+}
+
+    .ci-clock .lbl {
+        color: var(--muted);
+        font-size: .9rem;
+        margin-bottom: 6px;
+    }
+
+    .ci-clock .t {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+        font-variant-numeric: tabular-nums;
+        color: var(--ink);
+        line-height: 1.1;
+    }
+
+    .ci-clock .sub {
+        color: var(--muted-2);
+        font-size: .82rem;
+        margin-top: 6px;
+    }
+
+    .ci-clock.urgent .t {
+        color: var(--danger-ink);
+    }
+
+.ci-bar {
+    height: 6px;
+    background: var(--panel-2);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 14px auto 0;
+    max-width: 360px;
+}
+
+    .ci-bar > i {
+        display: block;
+        height: 100%;
+        background: var(--primary);
+        width: 0;
+        transition: width 1s linear;
+    }
+
+.ci-teams {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.ci-team {
+    background: var(--panel-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+    min-width: 0;
+}
+
+    .ci-team.me {
+        border-color: var(--primary);
+    }
+
+    .ci-team .who {
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--muted-2);
+        font-weight: 600;
+    }
+
+.ci-status {
+    font-size: .8rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid var(--border);
+}
+
+    .ci-status.ok {
+        background: var(--success-bg);
+        color: var(--success-ink);
+        border-color: transparent;
+    }
+
+.ci-cta {
+    text-align: center;
+    margin-top: 20px;
+}
+
+    .ci-cta .md-btn {
+        min-width: 220px;
+        justify-content: center;
+        font-size: 1rem;
+        padding: 13px 22px;
+    }
+
+.ci-msg {
+    margin-top: 10px;
+    font-size: .9rem;
+    color: var(--muted);
+}
+
+    .ci-msg.err {
+        color: var(--danger-ink);
+    }
+
+    .ci-msg.ok {
+        color: var(--success-ink);
+        font-weight: 600;
+    }
+
+@media (max-width: 575px) {
+    .ci-clock .t {
+        font-size: 2.3rem;
+    }
+
+    .ci-teams {
+        grid-template-columns: 1fr;
+    }
+}
