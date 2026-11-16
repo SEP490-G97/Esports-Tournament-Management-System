@@ -49,6 +49,26 @@ public sealed class ProfilesController : ApiControllerBase
         return accessDenied ?? FromResult(await _profileService.UploadAvatarAsync(accountId, file, cancellationToken));
     }
 
+    // PRF-01: lấy ảnh từ liên kết người dùng dán (mọi đuôi, kể cả link Google Hình ảnh) để trang hồ sơ cắt
+    // khung rồi gửi lại qua /avatar. Chỉ chủ tài khoản; không lưu gì; chống SSRF trong RemoteImageFetcher.
+    [HttpPost("{accountId:int}/avatar/fetch")]
+    public async Task<IActionResult> FetchAvatarFromUrl(int accountId, [FromBody] FetchAvatarRequest request, CancellationToken cancellationToken)
+    {
+        var accessDenied = RequireOwner(accountId);
+        if (accessDenied is not null) return accessDenied;
+        var (image, error) = await RemoteImageFetcher.FetchAsync(request?.Url, cancellationToken);
+        if (image is null)
+            return BadRequest(new { message = error, fieldErrors = new Dictionary<string, string> { ["AvatarUrl"] = error! } });
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(image.Bytes, image.ContentType);
+    }
+
+    public sealed class FetchAvatarRequest
+    {
+        public string? Url { get; set; }
+    }
+
     [HttpPut("{accountId:int}/games/{gameId:int}")]
     public async Task<IActionResult> UpsertGameAccount(
         int accountId,

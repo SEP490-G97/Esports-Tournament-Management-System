@@ -100,12 +100,7 @@
             section('Đơn chờ duyệt', pendingRows) +
             section('Tranh chấp đang mở', disputeRows) +
             section('Tổng quan', overview) +
-            '</div>' +
-            '<div class="btn-row mt-4">' +
-            '<a class="btn btn-ghost" href="/tournament/manage.html?id=' + tournamentId + '">Quản lý giải</a>' +
-            '<a class="btn btn-ghost" href="/tournament/rulebook.html?id=' + tournamentId + '">Thể lệ giải</a>' +
-            '<a class="btn btn-ghost" href="/tournament/referees.html?id=' + tournamentId + '">Gán trọng tài</a>' +
-            '</div>';
+            '</div>';   // các lối tắt (quản lý, thể lệ, trọng tài…) đã có ở thanh bên — không lặp lại ở đây
     }
 
     document.addEventListener('DOMContentLoaded', async function () {

@@ -31,12 +31,11 @@ public class HomeApiController : ApiControllerBase
         _cache = cache;
     }
 
-    // Đếm Teams/Players/Tournaments trong 1 round-trip thay vì 3 — database ở xa (MySQL
-    // 15.135.76.150) nên gộp bớt lượt gọi qua lại giúp trang chủ bớt lag.
+    // Đếm Teams/Players/Tournaments trong 1 round-trip thay vì 3 — database ở xa nên gộp bớt lượt gọi qua lại.
     private sealed record HomeCountsRow(int Teams, int Players, int Tournaments);
 
     // GET /api/home/summary — cache RAM 30 giây: dữ liệu trang chủ đổi chậm, database ở xa
-    // nên lượt tải lại trong 30 giây không cần hỏi DB nữa (vẫn thấy dữ liệu mới sau đó).
+    // nên lượt tải lại trong 30 giây không cần hỏi DB nữa.
     [HttpGet("summary")]
     public async Task<IActionResult> GetSummary()
     {
@@ -53,9 +52,10 @@ public class HomeApiController : ApiControllerBase
         var games = await _uow.Repository<Game>().Query()
             .Where(g => g.Status == "ACTIVE")
             .OrderBy(g => g.Title)
-            .Select(g => new GameCardDto { GameId = g.GameId, Title = g.Title, ShortCode = g.ShortCode, LogoUrl = g.LogoUrl })
+            .Select(g => new GameCardDto { GameId = g.GameId, Title = g.Title, ShortCode = g.ShortCode, LogoUrl = g.LogoUrl,
+                // Số giải công khai của game (ô tựa game ở trang chủ bấm vào lọc giải theo game).
+                TournamentCount = g.Tournaments.Count(t => t.Status != "DRAFT" && t.Status != "CANCELLED") })
             .ToListAsync();
-        foreach (var g in games) g.WebsiteUrl = GameWebsite.For(g.ShortCode);
 
         var counts = await _db.Database.SqlQuery<HomeCountsRow>($@"
             SELECT
@@ -84,7 +84,7 @@ public class HomeApiController : ApiControllerBase
             .Select(t => new
             {
                 t.TournamentId, t.Name, Game = t.Game.Title, t.Status, t.MaxTeams, t.BannerUrl, t.PrizeStructure,
-                t.RegOpenAt, t.RegCloseAt, t.BracketLockedAt,
+                t.RegOpenAt, t.RegCloseAt, t.BracketLockedAt, t.StartAt,
                 Teams = t.Registrations.Count(r => r.Status != "DRAFT" && r.Status != "REJECTED" && r.Status != "WITHDRAWN")
             })
             .Take(6).ToListAsync();
@@ -102,16 +102,47 @@ public class HomeApiController : ApiControllerBase
             ImageUrl = string.IsNullOrWhiteSpace(t.BannerUrl) ? "/images/tournament-cover.svg" : t.BannerUrl!
         }).ToList();
 
-        var events = featured.Select(t => new EventTickerDto
+        // Dòng chạy "SỰ KIỆN": nhãn theo trạng thái THẬT của giải (không phải giải đã xuất bản nào cũng đang
+        // nhận đăng ký). Giải đang mở đăng ký -> bấm vào trang đăng ký của chính giải đó; còn lại -> trang giải.
+        // Ngày hiển thị theo giờ Việt Nam (DB lưu UTC).
+        static string VnDate(DateTime utc) => utc.AddHours(7).ToString("dd/MM/yyyy");
+        var events = featured.Select(t =>
         {
-            Label = t.Status == "ONGOING" ? "ĐANG DIỄN RA" : "ĐĂNG KÝ",
-            Text = t.Status == "ONGOING" ? $"{t.Name} đang diễn ra"
-                : $"Mở đăng ký {t.Name} — hạn chót {t.RegCloseAt:dd/MM/yyyy}"
+            var open = t.Status == "PUBLISHED" && t.BracketLockedAt is null && t.RegOpenAt <= now && now < t.RegCloseAt;
+            var overview = "/bracket/view.html?id=" + t.TournamentId;
+            if (t.Status == "ONGOING")
+                return new EventTickerDto { Label = "ĐANG DIỄN RA", Text = $"{t.Name} đang diễn ra", Url = "/tournament/live.html?id=" + t.TournamentId, Kind = "LIVE" };
+            if (open)
+                return new EventTickerDto { Label = "ĐĂNG KÝ", Text = $"Mở đăng ký {t.Name} — hạn chót {VnDate(t.RegCloseAt)}", Url = "/registration/register.html?tournamentId=" + t.TournamentId, Kind = "REGISTER" };
+            if (now < t.RegOpenAt)
+                return new EventTickerDto { Label = "SẮP MỞ ĐĂNG KÝ", Text = $"{t.Name} — mở đăng ký từ {VnDate(t.RegOpenAt)}", Url = overview, Kind = "UPCOMING" };
+            return new EventTickerDto { Label = "SẮP KHỞI TRANH", Text = $"{t.Name} — đã đóng đăng ký, khai mạc {VnDate(t.StartAt)}", Url = overview, Kind = "UPCOMING" };
         }).ToList();
 
-        // Đội tuyển nổi bật — lấy từ module TEAM (Iteration 1), dữ liệu thật.
-        var teams = (await _teamService.GetAllTeamsAsync())
-            .Where(t => t.Status == "ACTIVE").Take(6).ToList();
+        // Đội tuyển nổi bật — chỉ đội đủ người thi đấu, lọc + sắp xếp + giới hạn ở SQL, lấy 50 rồi chọn 6 trong bộ nhớ.
+        var candidates = await _uow.Repository<Team>().Query()
+            .Where(t => t.Status == "ACTIVE"
+                && t.TeamMembers.Count(m => m.Status == "ACTIVE" && m.Slot == "STARTER") >= t.Game.MinStarters)
+            .OrderByDescending(t => t.MatchWinnerTeams.Count(m => m.Status == "VERIFIED"))
+            .ThenByDescending(t => t.TeamMembers.Count(m => m.Status == "ACTIVE"))
+            .ThenBy(t => t.Name)
+            .Take(50)
+            .Select(t => new
+            {
+                t.TeamId, t.Name, t.Tag, t.LogoUrl, t.GameId, GameTitle = t.Game.Title,
+                CaptainName = t.CaptainAccount.FullName,
+                Members = t.TeamMembers.Count(m => m.Status == "ACTIVE"),
+                MaxRoster = t.Game.MaxStarters + t.Game.MaxSubstitutes,
+                Wins = t.MatchWinnerTeams.Count(m => m.Status == "VERIFIED")
+            })
+            .ToListAsync();
+        var picked = candidates.GroupBy(t => t.GameId).Select(g => g.First()).ToList();
+        picked.AddRange(candidates.Where(t => !picked.Contains(t)));
+        var teams = picked.Take(6).Select(t => new HomeTeamDto
+        {
+            TeamId = t.TeamId, Name = t.Name, Tag = t.Tag, LogoUrl = t.LogoUrl, GameTitle = t.GameTitle, CaptainName = t.CaptainName,
+            MemberCount = t.Members, MaxRoster = t.MaxRoster, Wins = t.Wins
+        }).ToList();
 
         // Tin tức — ContentItem Kind='NEWS', Status='PUBLISHED'. Tin ghim (IsPinned) lên đầu,
         // còn lại xếp theo ngày đăng mới nhất (UC-13, UC-43).

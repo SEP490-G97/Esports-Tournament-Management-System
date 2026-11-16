@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=grpal-20261115" />
+    <link rel="stylesheet" href="/css/site.css?v=dragon-20261116" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -22,6 +22,8 @@
             <div class="hero-slide" style="background-image:url('/images/hero2.jpg')"></div>
             <div class="hero-slide" style="background-image:url('/images/hero3.jpg')"></div>
             <div class="hero-scrim"></div>
+            <!-- Rồng bay 3D (home-hero3d.js). Không có WebGL hoặc bật "giảm chuyển động" thì canvas để trống. -->
+            <canvas id="hero-3d" aria-hidden="true" data-model="/models/dragon.glb" data-forward="z" data-size="5"></canvas>
             <div class="hero-dots">
                 <button type="button" class="active" data-slide="0" aria-label="Ảnh 1"></button>
                 <button type="button" data-slide="1" aria-label="Ảnh 2"></button>
@@ -30,7 +32,7 @@
             <div class="wrap row align-items-center g-4 hero-inner">
                 <div class="col-12 col-lg-7 hero-text">
                     <div class="eyebrow">Nền tảng quản lý giải đấu thể thao điện tử</div>
-                    <h1>Tổ chức &amp; chinh phục <span class="grad">giải đấu E-Sports</span> của bạn</h1>
+                    <h1 class="hero-title">Tổ chức &amp; chinh phục <span class="grad">giải đấu E-Sports</span> của bạn</h1>
                     <p>Đăng ký đội, vận hành nhánh đấu, báo cáo kết quả minh bạch và theo dõi bảng xếp hạng — tất cả trong một nền tảng duy nhất.</p>
                     <div class="btn-row home-hero-actions">
                         <a class="btn btn-primary btn-lg" href="/team/index.html">Xem đội tuyển</a>
@@ -42,11 +44,11 @@
                     </div>
                 </div>
                 <div class="col-12 col-lg-5">
-                    <div class="row g-3">
-                        <div class="col-6"><div class="stat-tile"><div class="n" id="stat-tournaments" data-count="0">0</div><div class="l">Giải đấu</div></div></div>
-                        <div class="col-6"><div class="stat-tile"><div class="n" id="stat-teams" data-count="0">0</div><div class="l">Đội tuyển</div></div></div>
-                        <div class="col-6"><div class="stat-tile"><div class="n" id="stat-players" data-count="0">0</div><div class="l">Người chơi</div></div></div>
-                        <div class="col-6"><div class="stat-tile"><div class="n" id="stat-games" data-count="0">0</div><div class="l">Tựa game</div></div></div>
+                    <div class="row g-3" id="hero-stats">
+                        <div class="col-6"><div class="stat-tile"><div class="n stat-loading" id="stat-tournaments">—</div><div class="l">Giải đấu</div></div></div>
+                        <div class="col-6"><div class="stat-tile"><div class="n stat-loading" id="stat-teams">—</div><div class="l">Đội tuyển</div></div></div>
+                        <div class="col-6"><div class="stat-tile"><div class="n stat-loading" id="stat-players">—</div><div class="l">Người chơi</div></div></div>
+                        <div class="col-6"><div class="stat-tile"><div class="n stat-loading" id="stat-games">—</div><div class="l">Tựa game</div></div></div>
                     </div>
                 </div>
             </div>
@@ -134,9 +136,13 @@
     <div id="confirm-modal-root"></div>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
-    <script src="/js/api.js?v=dlg-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=fast-20261115"></script>
-    <script src="/js/pages/home.js?v=gl-20261115" defer></script>
+    <script src="/js/layout.js?v=rules-20261116"></script>
+    <script src="/js/pages/home.js?v=dragon-20261116d" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
+    <script src="/js/pages/home-hero3d.js?v=dragon-20261116d" defer></script>
 </body>
 </html>

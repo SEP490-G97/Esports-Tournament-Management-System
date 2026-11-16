@@ -38,6 +38,41 @@ namespace ETOMS_API.Controllers
             }
         }
 
+        // Quay lại bước 1 của trình tạo giải: sửa bản nháp đã có (không tạo giải mới).
+        [HttpPut("{id}/step1")]
+        public async Task<IActionResult> UpdateStep1(int id, [FromBody] Step1GeneralInfoDto dto)
+        {
+            var denied = await CheckCanManageAsync(id);
+            if (denied is not null) return denied;
+            try
+            {
+                await _setupService.UpdateStep1GeneralInfoAsync(id, _currentUser.UserId!.Value, dto);
+                return Ok(new { Message = "Đã cập nhật thông tin giải.", TournamentId = id });
+            }
+            catch (Exception ex)
+            {
+                return Fail(ex);
+            }
+        }
+
+        // Đơn vị tổ chức hiển thị cố định trên bước 1: tên tài khoản + đơn vị tổ chức đã duyệt tài khoản phụ trách.
+        [HttpGet("organizer-identity")]
+        public async Task<IActionResult> GetOrganizerIdentity()
+        {
+            if (!_currentUser.IsAuthenticated) return Unauthorized();
+            if (!await _setupService.IsOrganizerOrAdminAsync(_currentUser.UserId!.Value))
+                return StatusCode(403, new { Message = "Chỉ Ban tổ chức/Admin được tạo giải đấu." });
+            return Ok(await _setupService.GetOrganizerIdentityAsync(_currentUser.UserId!.Value));
+        }
+
+        // Danh sách ngân hàng cho ô chọn "Ngân hàng nhận phí" (bước 4 và trang Sửa thông tin) — server kiểm cùng danh sách này.
+        [HttpGet("banks")]
+        public IActionResult GetBanks()
+        {
+            if (!_currentUser.IsAuthenticated) return Unauthorized();
+            return Ok(ETOMS_API.Utils.BankAccount.Banks.Select(b => new { b.Code, b.Name }));
+        }
+
         // TOUR-02: Step 2 Timeline & Quy mô — chỉ người đã tạo giải hoặc Admin.
         [HttpPut("{id}/step2-timeline")]
         public async Task<IActionResult> UpdateStep2(int id, [FromBody] Step2TimelineDto dto)

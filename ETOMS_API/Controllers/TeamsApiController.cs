@@ -48,6 +48,37 @@ public class TeamsApiController : ApiControllerBase
         return Ok(await _teamService.GetMyTeamsAsync(_currentUser.UserId!.Value));
     }
 
+    // GET /api/teams/player-search?q=&gameId= — TEAM-01: tìm tuyển thủ để mời khi tạo đội (cần đăng nhập).
+    [HttpGet("player-search")]
+    public async Task<IActionResult> SearchPlayers([FromQuery] string? q, [FromQuery] int gameId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.SearchPlayersAsync(q, gameId, _currentUser.UserId!.Value));
+    }
+
+    // GET /api/teams/invitations — lời mời vào đội đang chờ tài khoản này trả lời.
+    [HttpGet("invitations")]
+    public async Task<IActionResult> GetMyInvitations()
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return Ok(await _teamService.GetMyInvitationsAsync(_currentUser.UserId!.Value));
+    }
+
+    // POST /api/teams/invitations/{teamMemberId}/accept | /decline — chỉ chính người được mời.
+    [HttpPost("invitations/{teamMemberId:int}/accept")]
+    public async Task<IActionResult> AcceptInvitation(int teamMemberId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.RespondInvitationAsync(teamMemberId, _currentUser.UserId!.Value, true));
+    }
+
+    [HttpPost("invitations/{teamMemberId:int}/decline")]
+    public async Task<IActionResult> DeclineInvitation(int teamMemberId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.RespondInvitationAsync(teamMemberId, _currentUser.UserId!.Value, false));
+    }
+
     // GET /api/teams/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetDetail(int id)

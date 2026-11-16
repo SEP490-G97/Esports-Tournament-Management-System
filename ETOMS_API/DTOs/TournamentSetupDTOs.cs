@@ -5,7 +5,9 @@
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string? BannerUrl { get; set; }
+        // Bỏ qua — đơn vị tổ chức lấy theo tài khoản tạo giải (OrganizationId tùy chọn, xem GetOrganizerIdentityAsync).
         public string OrganizerName { get; set; } = string.Empty;
+        public int? OrganizationId { get; set; }
         public string Location { get; set; } = string.Empty;
         public string ContactInfo { get; set; } = string.Empty;
         public int GameId { get; set; }
@@ -74,5 +76,20 @@
         public bool RequirePaymentBill { get; set; }
         public bool RequireIgnVerify { get; set; }
         public List<string> AdditionalChecklistItems { get; set; } = new();
+    }
+}
+namespace ETOMS_API.DTOs.TournamentSetup
+{
+    // Đơn vị tổ chức hiển thị cố định trên form tạo giải: tên tài khoản hoặc một đơn vị tổ chức đã duyệt.
+    public class OrganizerIdentityDto
+    {
+        public string AccountName { get; set; } = string.Empty;
+        public List<OrganizerOrganizationOption> Organizations { get; set; } = new();
+    }
+
+    public class OrganizerOrganizationOption
+    {
+        public int OrganizationId { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 }

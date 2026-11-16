@@ -107,7 +107,7 @@
         });
         flash.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Không có quyền truy cập</h3>' +
             '<p>' + Ui.escapeHtml(message) + '</p>' +
-            '<a class="btn btn-ghost mt-3" href="/">Về trang chủ</a></div></div>';
+            '<a class="btn btn-ghost mt-3" href="/registration/organizer.html">Về Giải của tôi</a></div></div>';
     }
 
     async function load() {

@@ -54,8 +54,13 @@
 
     function generateFormHtml(tree, teams) {
         var manualRows = teams.map(function (t, i) { return manualRowHtml(t, i); }).join('');
-        var disabled = tree.approvedTeamCount < 2 ? 'disabled' : '';
-        var warn = tree.approvedTeamCount < 2 ? '<div class="hint" style="color:var(--warn);margin-top:8px">Cần ít nhất 2 đội đã duyệt để sinh nhánh đấu.</div>' : '';
+        // Còn nhận đăng ký thì chưa sinh nhánh (UC-20: đóng đăng ký rồi mới sinh) — máy chủ cũng chặn.
+        var stillOpen = !!tree.registrationStillOpen;
+        var closeAt = tree.regCloseAt ? new Date(/Z$|[+-]\d\d:\d\d$/.test(tree.regCloseAt) ? tree.regCloseAt : tree.regCloseAt + 'Z').toLocaleString('vi-VN') : '';
+        var disabled = (tree.approvedTeamCount < 2 || stillOpen) ? 'disabled' : '';
+        var warn = stillOpen
+            ? '<div class="hint" style="color:var(--warn);margin-top:8px">Giải còn nhận đăng ký đến ' + Ui.escapeHtml(closeAt) + '. Sinh nhánh sau khi đóng đăng ký để danh sách đội đã chốt.</div>'
+            : tree.approvedTeamCount < 2 ? '<div class="hint" style="color:var(--warn);margin-top:8px">Cần ít nhất 2 đội đã duyệt để sinh nhánh đấu.</div>' : '';
 
         return '<div class="card-etoms form-narrow" style="margin-bottom:28px"><div class="body">' +
             '<div class="section-title mt-0">' + (tree.hasBracket ? 'Sinh lại nhánh đấu' : 'Sinh nhánh đấu') + '</div>' +
@@ -88,6 +93,14 @@
         var groups = groupByPreserveOrder(groupMatches, function (m) { return m.roundLabel; });
 
         var html = '';
+        if (tree.format === 'DOUBLE_ELIMINATION' && knockout.length > 0) {
+            // BRK-05 Loại kép: nhánh thắng vẽ dạng cây; nhánh thua + chung kết tổng xếp theo cột vòng.
+            html += '<div class="section-sub">Sơ đồ tóm tắt; xem bản tương tác ở tab “Nhánh đấu”. Thua 2 trận mới bị loại: đội thua ở nhánh thắng rơi xuống nhánh thua.</div>' +
+                '<div class="section-title mt-0">Nhánh thắng</div><div id="de-winners"></div>' +
+                '<div class="section-title" style="margin-top:26px">Nhánh thua</div><div id="de-losers"></div>' +
+                '<div class="section-title" style="margin-top:26px">Chung kết tổng</div><div id="de-grand"></div>';
+            return html;
+        }
         if (knockout.length > 0) {
             html += '<div class="section-title mt-0">Sơ đồ nhánh đấu</div>' +
                 '<div class="section-sub">Sơ đồ tóm tắt; xem bản tương tác ở tab “Nhánh đấu”.</div>' +
@@ -119,6 +132,30 @@
         return html;
     }
 
+    // Nhánh thua có vòng 1-1 (không gộp đôi như cây loại trực tiếp) nên xếp mỗi vòng một cột.
+    function renderRoundColumns(container, matches) {
+        if (!container) return;
+        var byRound = {};
+        matches.forEach(function (m) { (byRound[m.roundNo] = byRound[m.roundNo] || []).push(m); });
+        var rounds = Object.keys(byRound).map(Number).sort(function (a, b) { return a - b; });
+        if (!rounds.length) { container.innerHTML = '<div class="hint">Không có trận.</div>'; return; }
+        var name = function (m, side) {
+            var id = side === 'A' ? m.teamAId : m.teamBId, nm = side === 'A' ? m.teamAName : m.teamBName;
+            var win = m.winnerTeamId != null && m.winnerTeamId === id;
+            return '<div class="bn' + (win ? ' win' : '') + '">' + Ui.escapeHtml(nm || 'Chờ xác định') + '</div>';
+        };
+        container.innerHTML = '<div class="de-cols">' + rounds.map(function (r) {
+            var list = byRound[r].slice().sort(function (a, b) { return a.positionInRound - b.positionInRound; });
+            // Tiêu đề khối đã ghi "Nhánh thua" nên cột chỉ cần "Vòng 2", "Chung kết nhánh thua"...
+            var title = (list[0].roundLabel || ('Vòng ' + r)).replace(/ · Trận \d+$/, '').replace(/^Nhánh (thắng|thua) · /, '');
+            return '<div class="de-col"><div class="de-col-title">' + Ui.escapeHtml(title) + '</div>' + list.map(function (m) {
+                var link = m.isReadyToPick && m.matchId != null
+                    ? '<a class="badge badge-soft mt-1" style="text-decoration:none" href="/result/evidence.html?matchId=' + m.matchId + '">Xem/Báo cáo kết quả →</a>' : '';
+                return '<div class="bracket-card">' + name(m, 'A') + name(m, 'B') + link + '</div>';
+            }).join('') + '</div>';
+        }).join('') + '</div>';
+    }
+
     function render(tree, teams) {
         var root = document.getElementById('manage-root');
         var lockedBadge = tree.isLocked
@@ -142,6 +179,13 @@
 
         var knockoutRoot = document.getElementById('knockout-tree');
         if (knockoutRoot) renderBracketTree(knockoutRoot, tree.matches.filter(function (m) { return m.stageType === 'KNOCKOUT'; }));
+        var deWinners = document.getElementById('de-winners');
+        if (deWinners) {
+            var inStage = function (no) { return tree.matches.filter(function (m) { return m.stageType === 'KNOCKOUT' && m.stageNo === no; }); };
+            renderBracketTree(deWinners, inStage(1));
+            renderRoundColumns(document.getElementById('de-losers'), inStage(2));
+            renderRoundColumns(document.getElementById('de-grand'), inStage(3));
+        }
 
         var seedSelect = document.getElementById('seedingMethod');
         if (seedSelect) {

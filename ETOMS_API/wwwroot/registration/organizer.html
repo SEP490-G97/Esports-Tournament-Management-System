@@ -9,29 +9,49 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=grpal-20261115" />
+    <link rel="stylesheet" href="/css/site.css?v=de-20261116" />
 </head>
 <body>
     <div id="site-header"></div>
     <main class="container-etoms">
         <div class="registration-hub-head">
             <div class="page-head">
-                <a class="back-link" href="/registration/index.html">← Trung tâm đăng ký</a>
-                <div class="eyebrow mt-3">Không gian ban tổ chức</div>
+                <div class="eyebrow">Không gian ban tổ chức</div>
                 <h1>Giải đấu của tôi</h1>
                 <p>Danh sách giải bạn đứng tên tổ chức, kèm lối vào nhanh tới từng khu vực quản lý.</p>
             </div>
             <a class="btn btn-primary" href="/tournament-setup/index.html">+ Tạo giải mới</a>
         </div>
         <div id="organizer-flash" aria-live="polite"></div>
-        <div id="organizer-tournaments" class="feature-list" aria-live="polite">
+
+        <!-- Lọc theo giai đoạn (kèm số lượng) -->
+        <div id="ohub-phases" class="ohub-phases" role="tablist" aria-label="Lọc theo giai đoạn"></div>
+
+        <!-- Tìm kiếm / lọc game / sắp xếp -->
+        <form id="ohub-toolbar" class="ohub-toolbar" role="search" onsubmit="return false">
+            <label class="visually-hidden" for="ohub-q">Tìm giải theo tên</label>
+            <input id="ohub-q" class="input" type="search" maxlength="100" placeholder="Tìm theo tên giải…" autocomplete="off" />
+            <label class="visually-hidden" for="ohub-game">Lọc theo tựa game</label>
+            <select id="ohub-game" class="select"><option value="">Mọi tựa game</option></select>
+            <label class="visually-hidden" for="ohub-sort">Sắp xếp</label>
+            <select id="ohub-sort" class="select">
+                <option value="action">Cần xử lý trước</option>
+                <option value="start">Khai mạc gần nhất</option>
+                <option value="created">Mới tạo</option>
+                <option value="name">Tên A → Z</option>
+            </select>
+        </form>
+
+        <div id="ohub-summary" class="hint mb-2" aria-live="polite"></div>
+        <div id="organizer-tournaments" class="ohub-grid" aria-live="polite">
             <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
         </div>
+        <div id="ohub-pager"></div>
     </main>
     <script src="/js/auth.js?v=login-20261115"></script>
-    <script src="/js/api.js?v=dlg-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=fast-20261115"></script>
-    <script src="/js/pages/registration-organizer-space.js?v=role-20261115" defer></script>
+    <script src="/js/layout.js?v=rules-20261116"></script>
+    <script src="/js/pages/registration-organizer-space.js?v=hub2-20261116" defer></script>
 </body>
 </html>

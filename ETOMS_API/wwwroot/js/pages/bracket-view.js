@@ -40,15 +40,48 @@
             '<span class="grow">Giải đang có ' + Number(t.liveStreams) + ' kênh phát trực tiếp.</span><span class="fw-bold">Xem ngay →</span></a>';
         if (t.status === 'CANCELLED') notices += '<div class="alert alert-danger mb-3"><strong>Giải đã bị hủy.</strong> Lý do: ' + esc(t.cancelReason || 'Không ghi lý do') + '</div>';
 
-        // Khối đăng ký: chỉ hiện khi đang mở; đủ suất thì báo đơn sẽ vào danh sách chờ.
+        // ===== Khối đầu trang: một câu trạng thái + MỘT hành động chính theo giai đoạn =====
         var full = t.approvedTeams >= t.maxTeams;
-        var cta = t.registrationOpen
-            ? '<div class="card-etoms ov-cta mb-3"><div class="body d-flex flex-wrap align-items-center justify-content-between gap-3">' +
-              '<div><div class="fw-bold">Đang mở đăng ký đến ' + esc(fmtDateTime(t.regCloseAt)) + '</div>' +
-              '<div class="hint">' + (full ? 'Đã đủ ' + t.maxTeams + ' suất — đơn mới sẽ vào danh sách chờ.' : 'Còn ' + (t.maxTeams - t.approvedTeams) + '/' + t.maxTeams + ' suất.') + '</div></div>' +
-              '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + id + '">Đăng ký cho đội</a>' +
-              '</div></div>'
-            : '';
+        var now = Date.now();
+        var at = function (iso) { return iso ? new Date(/Z$/.test(iso) ? iso : iso + 'Z').getTime() : null; };
+        var heroText, heroSub = '', primary = '', secondary = '';
+        if (t.status === 'CANCELLED') {
+            heroText = 'Giải đã bị hủy';
+        } else if (t.registrationOpen) {
+            heroText = 'Đang nhận đăng ký đến ' + fmtDateTime(t.regCloseAt);
+            heroSub = full ? 'Đã đủ ' + t.maxTeams + ' suất — đơn mới vào danh sách chờ.' : 'Còn ' + (t.maxTeams - t.approvedTeams) + ' trên ' + t.maxTeams + ' suất.';
+            primary = '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + id + '">Đăng ký cho đội</a>';
+            secondary = '<a class="btn btn-ghost" href="/tournament/rulebook-history.html?id=' + id + '">Đọc thể lệ</a>';
+        } else if (t.status === 'PUBLISHED' && at(t.regOpenAt) > now) {
+            heroText = 'Mở đăng ký từ ' + fmtDateTime(t.regOpenAt);
+            heroSub = 'Khai mạc ' + fmtDateTime(t.startAt) + '.';
+            secondary = '<a class="btn btn-ghost" href="/tournament/rulebook-history.html?id=' + id + '">Đọc thể lệ</a>';
+        } else if (t.status === 'ONGOING') {
+            heroText = 'Giải đang diễn ra';
+            heroSub = t.approvedTeams ? t.approvedTeams + ' đội tham dự.' : 'Đang cập nhật thông tin đội.';
+            primary = '<a class="btn btn-primary" href="/tournament/bracket.html?id=' + id + '">Xem nhánh đấu &amp; kết quả</a>';
+            if (t.liveStreams > 0) secondary = '<a class="btn btn-ghost" href="/tournament/live.html?id=' + id + '">Xem trực tiếp</a>';
+        } else if (t.status === 'COMPLETED') {
+            heroText = 'Giải đã kết thúc';
+            primary = '<a class="btn btn-primary" href="/tournament/bracket.html?id=' + id + '">Xem kết quả</a>';
+            secondary = '<a class="btn btn-ghost" href="/tournament/standings.html?id=' + id + '">Bảng xếp hạng</a>';
+        } else if (t.status === 'DRAFT') {
+            heroText = 'Bản nháp';
+        } else {
+            heroText = 'Đã đóng đăng ký — chờ khai mạc ' + fmtDateTime(t.startAt);
+            primary = '<a class="btn btn-primary" href="/tournament/participants.html?id=' + id + '">Xem đội tham dự</a>';
+        }
+        var cta = '<section class="card-etoms ov-hero mb-3"><div class="body">' +
+            '<div class="ov-hero-top"><div class="minw-0"><div class="ov-hero-title">' + esc(heroText) + '</div>' +
+            (heroSub ? '<div class="hint">' + esc(heroSub) + '</div>' : '') + '</div>' +
+            '<div class="ov-hero-actions">' + secondary + primary + '</div></div>' +
+            '<div class="ov-facts">' +
+            fact('Tựa game', esc(t.game)) +
+            fact('Thể thức', esc(t.formatLabel)) +
+            fact('Đội tham dự', t.approvedTeams + '<small>/' + t.maxTeams + '</small>') +
+            fact('Lệ phí', t.entryFee > 0 ? Number(t.entryFee).toLocaleString('vi-VN') + 'đ' : 'Miễn phí') +
+            fact('Khai mạc', esc(fmtDate(t.startAt))) +
+            '</div></div></section>';
 
         var format = esc(t.formatLabel);
         if (t.groupCount) format += ' · ' + t.groupCount + ' bảng' + (t.advancePerGroup ? ', mỗi bảng ' + t.advancePerGroup + ' đội đi tiếp' : '');
@@ -61,42 +94,38 @@
             [t.requirePaymentProof && t.entryFee > 0, 'Biên lai chuyển khoản lệ phí']
         ].filter(function (r) { return r[0]; });
 
+        // Thứ tự đọc: đầu trang (trạng thái + hành động + 5 ô nhanh) -> tiến độ -> giới thiệu & giải thưởng
+        // -> thông tin chi tiết (thu gọn). Đội tham dự / nhánh đấu / thể lệ / trực tiếp nằm ở thanh bên, không lặp lại.
         document.getElementById('overview-root').innerHTML = notices + cta +
+            '<section class="card-etoms mb-3"><div class="body"><div class="ov-h">Tiến độ giải</div>' + timeline(t) + '</div></section>' +
             '<div class="row g-3">' +
-            '<div class="col-12 col-lg-7 d-flex flex-column gap-3">' +
-            '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Giới thiệu</div>' +
-            (t.description ? '<p class="ov-desc">' + esc(t.description) + '</p>' : '<p class="hint mb-0">Ban tổ chức chưa viết mô tả cho giải.</p>') +
-            '</div></section>' +
-            '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Thông tin chung</div>' +
-            row('Đơn vị tổ chức', esc(t.organizingUnit || 'Chưa ghi')) +
-            row('Tựa game', esc(t.game)) +
-            row('Thể thức', format) +
-            row('Quy mô', t.maxTeams + ' đội · mỗi đội ' + t.starterCount + ' chính thức + tối đa ' + t.maxSubstitutes + ' dự bị') +
-            row('Hình thức', place + (t.region ? ' · ' + esc(t.region) : '')) +
-            (t.contactInfo ? row('Liên hệ', esc(t.contactInfo)) : '') +
-            '</div></section>' +
-            '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Yêu cầu hồ sơ đăng ký</div>' +
-            (requirements.length
-                ? '<ul class="ov-list">' + requirements.map(function (r) { return '<li>' + esc(r[1]) + '</li>'; }).join('') + '</ul>'
-                : '<p class="hint mb-0">Không yêu cầu hồ sơ bổ sung.</p>') +
-            '</div></section>' +
+            '<div class="col-12 col-lg-7"><section class="card-etoms h-100"><div class="body"><div class="ov-h">Giới thiệu</div>' +
+            (t.description ? '<p class="ov-desc mb-0">' + esc(t.description) + '</p>' : '<p class="hint mb-0">Ban tổ chức chưa viết giới thiệu cho giải.</p>') +
+            '</div></section></div>' +
+            '<div class="col-12 col-lg-5"><section class="card-etoms h-100"><div class="body"><div class="ov-h">Giải thưởng</div>' +
+            '<div class="ov-prize">' + (t.prize ? esc(t.prize) : '<span class="hint">Chưa công bố.</span>') + '</div>' +
+            '</div></section></div>' +
             '</div>' +
-            '<div class="col-12 col-lg-5 d-flex flex-column gap-3">' +
-            '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Mốc thời gian</div>' + timeline(t) + '</div></section>' +
-            '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Lệ phí &amp; giải thưởng</div>' +
-            row('Lệ phí tham gia', t.entryFee > 0 ? Number(t.entryFee).toLocaleString('vi-VN') + 'đ / đội' : 'Miễn phí') +
-            '<div class="ov-prize">' + (t.prize ? esc(t.prize) : '<span class="hint">Ban tổ chức chưa công bố cơ cấu giải thưởng.</span>') + '</div>' +
-            '</div></section>' +
-            '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Xem thêm</div>' +
-            '<div class="d-grid gap-2">' +
-            '<a class="btn btn-ghost" href="/tournament/participants.html?id=' + id + '">Đội tham dự (' + t.approvedTeams + '/' + t.maxTeams +
-            (t.waitlistedTeams ? ', ' + t.waitlistedTeams + ' chờ' : '') + ')</a>' +
-            '<a class="btn btn-ghost" href="/tournament/bracket.html?id=' + id + '">Nhánh đấu, lịch thi đấu &amp; kết quả</a>' +
-            '<a class="btn btn-ghost" href="/tournament/live.html?id=' + id + '">Xem trực tiếp (livestream &amp; tỉ số)</a>' +
-            '<a class="btn btn-ghost" href="/tournament/rulebook-history.html?id=' + id + '">' +
-            (t.hasRulebook ? 'Thể lệ giải (phiên bản ' + t.rulebookVersion + ')' : 'Thể lệ giải (chưa công bố)') + '</a>' +
-            '</div></div></section>' +
-            '</div></div>';
+            '<details class="card-etoms ov-more mt-3"><summary>Thông tin chi tiết</summary><div class="body pt-0">' +
+            row('Đơn vị tổ chức', esc(t.organizingUnit || 'Chưa ghi')) +
+            row('Thể thức', format) +
+            row('Đội hình mỗi đội', t.starterCount + ' chính thức' + (t.maxSubstitutes ? ', tối đa ' + t.maxSubstitutes + ' dự bị' : '')) +
+            row('Hình thức', place + (t.region ? ' · ' + esc(t.region) : '')) +
+            row('Lệ phí', t.entryFee > 0 ? Number(t.entryFee).toLocaleString('vi-VN') + 'đ / đội' : 'Miễn phí') +
+            row('Hồ sơ cần nộp', requirements.length ? requirements.map(function (r) { return esc(r[1]); }).join('; ') : 'Không yêu cầu thêm') +
+            (t.contactInfo ? row('Liên hệ', esc(t.contactInfo)) : '') +
+            row('Thể lệ', t.hasRulebook ? '<a href="/tournament/rulebook-history.html?id=' + id + '">Phiên bản ' + t.rulebookVersion + '</a>' : 'Chưa công bố') +
+            '</div></details>';
+    }
+
+    function fact(label, value) {
+        return '<div class="ov-fact"><span class="k">' + esc(label) + '</span><span class="v">' + value + '</span></div>';
+    }
+
+    function fmtDate(iso) {
+        if (!iso) return 'Chưa xác định';
+        var d = new Date(/Z$/.test(iso) ? iso : iso + 'Z');
+        return isNaN(d.getTime()) ? 'Chưa xác định' : d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
     document.addEventListener('DOMContentLoaded', async function () {

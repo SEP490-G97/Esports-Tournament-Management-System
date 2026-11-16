@@ -6,7 +6,9 @@ namespace ETOMS_API.Services.Interface
     public interface ITournamentSetupService
     {
         Task<int> CreateStep1GeneralInfoAsync(int organizerAccountId, Step1GeneralInfoDto dto);
+        Task<bool> UpdateStep1GeneralInfoAsync(int tournamentId, int organizerAccountId, Step1GeneralInfoDto dto);
         Task<bool> UpdateStep2TimelineAsync(int tournamentId, Step2TimelineDto dto);
+        Task<OrganizerIdentityDto> GetOrganizerIdentityAsync(int accountId);
         Task<Step3BoBoardDto> GetStep3BoConfigAsync(int tournamentId);
         Task<bool> UpdateStep3BoConfigAsync(int tournamentId, Step3BoConfigDto dto);
         Task<bool> UpdateStep4FinanceAsync(int tournamentId, Step4FinanceDto dto);

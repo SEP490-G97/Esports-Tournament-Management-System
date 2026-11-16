@@ -50,6 +50,30 @@ public class TeamService : ITeamService
                 m.GameId == request.GameId && m.AccountId == captainAccountId && m.Status == "ACTIVE"))
             return Result<int>.FieldFailure(nameof(request.GameId), "Bạn đã thuộc một đội trong tựa game này, không thể tạo thêm đội.");
 
+        var description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        if (description is { Length: > 500 })
+            return Result<int>.FieldFailure(nameof(request.Description), "Giới thiệu đội tối đa 500 ký tự.");
+
+        // Mời tuyển thủ ngay khi tạo đội (không bắt buộc) — kiểm hết TRƯỚC khi tạo để không sinh đội dở dang.
+        var game = await _uow.Repository<Game>().GetByIdAsync(request.GameId);
+        var inviteIds = (request.InviteAccountIds ?? new List<int>()).Where(id => id > 0).Distinct().ToList();
+        var maxInvites = Math.Max(0, (game?.MaxStarters ?? 1) + (game?.MaxSubstitutes ?? 0) - 1);
+        if (inviteIds.Contains(captainAccountId))
+            return Result<int>.FieldFailure(nameof(request.InviteAccountIds), "Không cần mời chính mình — bạn là đội trưởng.");
+        if (inviteIds.Count > maxInvites)
+            return Result<int>.FieldFailure(nameof(request.InviteAccountIds), $"Tựa game này mỗi đội tối đa {maxInvites + 1} người, nên chỉ mời được tối đa {maxInvites} tuyển thủ.");
+        var invitees = inviteIds.Count == 0 ? new List<Account>() : await _uow.Repository<Account>().Query()
+            .Where(a => inviteIds.Contains(a.AccountId) && a.Status == "ACTIVE" && a.Role == "PLAYER").ToListAsync();
+        if (invitees.Count != inviteIds.Count)
+            return Result<int>.FieldFailure(nameof(request.InviteAccountIds), "Có tuyển thủ được mời không tồn tại hoặc đang bị khóa.");
+        var busy = inviteIds.Count == 0 ? new List<int>() : await _uow.Repository<TeamMember>().Query()
+            .Where(m => m.GameId == request.GameId && m.Status == "ACTIVE" && inviteIds.Contains(m.AccountId))
+            .Select(m => m.AccountId).Distinct().ToListAsync();
+        if (busy.Count > 0)
+            return Result<int>.FieldFailure(nameof(request.InviteAccountIds),
+                "Đã thuộc một đội của tựa game này nên không mời được: " + string.Join(", ", invitees.Where(a => busy.Contains(a.AccountId)).Select(a => a.FullName)) + ".");
+
+        var now = DateTime.UtcNow;
         var team = new Team
         {
             GameId = request.GameId,
@@ -57,28 +81,165 @@ public class TeamService : ITeamService
             Name = name,
             Tag = tag,
             LogoUrl = request.LogoUrl,
+            Description = description,
             Status = "ACTIVE",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now
         };
         await _uow.Repository<Team>().AddAsync(team);
-        await _uow.SaveChangesAsync();
 
-        // Đội trưởng là một thành viên chính thức.
+        // Đội trưởng là một thành viên chính thức. Gắn qua navigation để đội + thành viên + lời mời lưu trong MỘT lần.
         await _uow.Repository<TeamMember>().AddAsync(new TeamMember
         {
-            TeamId = team.TeamId,
-            GameId = team.GameId,
+            Team = team,
+            GameId = request.GameId,
             AccountId = captainAccountId,
             Slot = "STARTER",
             Direction = "JOIN_BY_CODE",
             Status = "ACTIVE",
-            JoinedAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
+            JoinedAt = now,
+            CreatedAt = now
         });
+        foreach (var invitee in invitees)
+        {
+            // Lời mời chờ tuyển thủ chấp nhận; vị trí chính thức/dự bị xếp lại lúc chấp nhận.
+            await _uow.Repository<TeamMember>().AddAsync(new TeamMember
+            {
+                Team = team,
+                GameId = request.GameId,
+                AccountId = invitee.AccountId,
+                Slot = "STARTER",
+                Direction = "INVITED",
+                Status = "PENDING",
+                Message = "Mời tham gia ngay khi lập đội.",
+                CreatedAt = now
+            });
+            await _uow.Repository<Notification>().AddAsync(new Notification
+            {
+                AccountId = invitee.AccountId,
+                NotificationType = "SYSTEM",
+                Title = "Lời mời vào đội " + name,
+                Body = $"{creator.FullName} mời bạn tham gia đội {name} [{tag}] ({game?.Title}). Vào \"Các đội của tôi\" để chấp nhận hoặc từ chối.",
+                LinkUrl = "/team/mine.html#invitations",
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = now
+            });
+        }
         await _uow.SaveChangesAsync();
 
-        return Result<int>.Success(team.TeamId, "Tạo đội thành công.");
+        return Result<int>.Success(team.TeamId, invitees.Count == 0
+            ? "Tạo đội thành công."
+            : $"Tạo đội thành công. Đã gửi lời mời tới {invitees.Count} tuyển thủ.");
     }
+
+    // ===== TEAM-01: tìm tuyển thủ để mời ngay khi tạo đội =====
+    public async Task<Result<IReadOnlyList<PlayerSearchItemDto>>> SearchPlayersAsync(string? query, int gameId, int requesterAccountId)
+    {
+        var q = (query ?? string.Empty).Trim();
+        if (q.Length < 2 || q.Length > 50)
+            return Result<IReadOnlyList<PlayerSearchItemDto>>.FieldFailure("q", "Nhập từ 2 đến 50 ký tự để tìm tuyển thủ.");
+        if (!await _uow.Repository<Game>().AnyAsync(g => g.GameId == gameId && g.Status == "ACTIVE"))
+            return Result<IReadOnlyList<PlayerSearchItemDto>>.FieldFailure("gameId", "Hãy chọn tựa game trước khi tìm tuyển thủ.");
+
+        // Tìm theo họ tên hoặc tên trong game của tựa game đang chọn. Chỉ tuyển thủ đang hoạt động.
+        var list = await _uow.Repository<Account>().Query()
+            .Where(a => a.Status == "ACTIVE" && a.Role == "PLAYER" && a.AccountId != requesterAccountId
+                && (a.FullName.Contains(q) || a.PlayerCredentials.Any(c => c.GameId == gameId && c.CredentialType == "IN_GAME_NAME" && c.Value != null && c.Value.Contains(q))))
+            .OrderBy(a => a.FullName)
+            .Take(10)
+            .Select(a => new PlayerSearchItemDto
+            {
+                AccountId = a.AccountId,
+                FullName = a.FullName,
+                AvatarUrl = a.AvatarUrl,
+                InGameName = a.PlayerCredentials.Where(c => c.GameId == gameId && c.CredentialType == "IN_GAME_NAME").Select(c => c.Value).FirstOrDefault(),
+                AlreadyInTeam = a.TeamMembers.Any(m => m.GameId == gameId && m.Status == "ACTIVE")
+            })
+            .ToListAsync();
+        return Result<IReadOnlyList<PlayerSearchItemDto>>.Success(list);
+    }
+
+    // ===== Lời mời vào đội phía tuyển thủ (TeamMember INVITED + PENDING) =====
+    public async Task<IReadOnlyList<MyTeamInvitationDto>> GetMyInvitationsAsync(int accountId)
+        => await _uow.Repository<TeamMember>().Query()
+            .Where(m => m.AccountId == accountId && m.Direction == "INVITED" && m.Status == "PENDING" && m.Team.Status == "ACTIVE")
+            .OrderByDescending(m => m.CreatedAt)
+            .Select(m => new MyTeamInvitationDto
+            {
+                TeamMemberId = m.TeamMemberId,
+                TeamId = m.TeamId,
+                TeamName = m.Team.Name,
+                TeamTag = m.Team.Tag,
+                LogoUrl = m.Team.LogoUrl,
+                GameTitle = m.Team.Game.Title,
+                CaptainName = m.Team.CaptainAccount.FullName,
+                Message = m.Message,
+                InvitedAt = m.CreatedAt
+            })
+            .ToListAsync();
+
+    public async Task<Result> RespondInvitationAsync(int teamMemberId, int accountId, bool accept)
+    {
+        var m = await _uow.Repository<TeamMember>().Query()
+            .Include(x => x.Team)
+            .FirstOrDefaultAsync(x => x.TeamMemberId == teamMemberId && x.AccountId == accountId
+                && x.Direction == "INVITED" && x.Status == "PENDING");
+        if (m is null) return Result.Failure("Không tìm thấy lời mời hoặc lời mời đã được xử lý.", StatusCodes.Status404NotFound);
+
+        var me = await _uow.Repository<Account>().GetByIdAsync(accountId);
+        string Who() => me?.FullName ?? "Tuyển thủ";
+        if (!accept)
+        {
+            m.Status = "REJECTED";
+            _uow.Repository<TeamMember>().Update(m);
+            await NotifyCaptainAsync(m.Team, $"{Who()} đã từ chối lời mời vào đội {m.Team.Name}.");
+            await _uow.SaveChangesAsync();
+            return Result.Success("Đã từ chối lời mời.");
+        }
+
+        if (m.Team.Status != "ACTIVE") return Result.Failure("Đội đã giải tán, lời mời không còn hiệu lực.");
+        if (me is null || me.Status != "ACTIVE") return Result.Failure("Tài khoản của bạn đang không hoạt động.");
+        if (me.Role != "PLAYER") return Result.Failure(NotPlayerMessage, StatusCodes.Status403Forbidden);
+        if (await IsRosterLockedAsync(m.TeamId)) return Result.Failure("Đội đang thi đấu nên tạm khóa đội hình, hãy chấp nhận sau khi giải kết thúc.");
+        if (await _uow.Repository<TeamMember>().AnyAsync(x => x.AccountId == accountId && x.GameId == m.GameId && x.Status == "ACTIVE"))
+            return Result.Failure("Bạn đã thuộc một đội khác của tựa game này. Rời đội đó trước khi nhận lời mời.");
+
+        var game = await _uow.Repository<Game>().GetByIdAsync(m.GameId);
+        var (starters, subs) = await CountSlotsAsync(m.TeamId);
+        if (game is not null && starters < game.MaxStarters) m.Slot = "STARTER";
+        else if (game is not null && subs < game.MaxSubstitutes) m.Slot = "SUBSTITUTE";
+        else return Result.Failure("Đội đã đủ quân số theo luật của tựa game.");
+
+        m.Status = "ACTIVE";
+        m.JoinedAt = DateTime.UtcNow;
+        _uow.Repository<TeamMember>().Update(m);
+        await NotifyCaptainAsync(m.Team, $"{Who()} đã nhận lời mời và gia nhập đội {m.Team.Name}.");
+        try { await _uow.SaveChangesAsync(); }
+        catch (DbUpdateException)
+        {
+            return Result.Failure("Không thể gia nhập: bạn đã thuộc một đội khác trong tựa game này.");
+        }
+        return Result.Success($"Đã gia nhập đội {m.Team.Name}.");
+    }
+
+    // Chỉ tài khoản tuyển thủ thuộc đội: Ban tổ chức / Admin không có đội (Admin cấp tài khoản BTC riêng, UC-43).
+    private const string NotPlayerMessage = "Chỉ tài khoản tuyển thủ được tham gia đội. Ban tổ chức và quản trị viên dùng tài khoản riêng, không có đội.";
+
+    private Task<bool> IsPlayerAsync(int accountId)
+        => _uow.Repository<Account>().AnyAsync(a => a.AccountId == accountId && a.Role == "PLAYER");
+
+    private async Task NotifyCaptainAsync(Team team, string body)
+        => await _uow.Repository<Notification>().AddAsync(new Notification
+        {
+            AccountId = team.CaptainAccountId,
+            NotificationType = "SYSTEM",
+            Title = "Phản hồi lời mời vào đội",
+            Body = body,
+            LinkUrl = "/team/roster.html?id=" + team.TeamId,
+            Channel = "IN_APP",
+            IsRead = false,
+            SentAt = DateTime.UtcNow
+        });
 
     public async Task<IReadOnlyList<TeamListItemDto>> GetAllTeamsAsync(TeamSearchRequest? filter = null)
         => await ToListItems(FilterTeams(filter ?? new TeamSearchRequest())).ToListAsync();
@@ -178,7 +339,11 @@ public class TeamService : ITeamService
                 Name = t.Name,
                 Tag = t.Tag,
                 LogoUrl = t.LogoUrl,
+                Description = t.Description,
                 GameTitle = t.Game.Title,
+                GameMinStarters = t.Game.MinStarters,
+                GameMaxStarters = t.Game.MaxStarters,
+                GameMaxSubstitutes = t.Game.MaxSubstitutes,
                 CaptainName = t.CaptainAccount.FullName,
                 Status = t.Status,
                 CreatedAt = t.CreatedAt
@@ -303,6 +468,8 @@ public class TeamService : ITeamService
     public async Task<Result<int>> JoinByCodeAsync(string code, int accountId)
     {
         code = code.Trim().ToUpperInvariant();
+        if (!await IsPlayerAsync(accountId))
+            return Result<int>.Failure(NotPlayerMessage, StatusCodes.Status403Forbidden);
 
         var team = await _uow.Repository<Team>().Query().FirstOrDefaultAsync(t => t.InviteCode == code);
         if (team is null)
@@ -386,7 +553,7 @@ public class TeamService : ITeamService
         var team = await _uow.Repository<Team>().GetByIdAsync(teamId);
         if (team is null) return Result.Failure("Không tìm thấy đội.");
         if (team.CaptainAccountId != captainAccountId) return Result.Failure("Chỉ đội trưởng được thao tác.");
-        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Roster đang bị khóa do đội đang thi đấu.");
+        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Đội hình đang bị khóa vì đội có giải đã chốt nhánh hoặc đang thi đấu.");
         if (targetAccountId == team.CaptainAccountId) return Result.Failure("Không thể đổi vị trí của đội trưởng.");
 
         var m = await _uow.Repository<TeamMember>().Query()
@@ -412,7 +579,7 @@ public class TeamService : ITeamService
         var team = await _uow.Repository<Team>().GetByIdAsync(teamId);
         if (team is null) return Result.Failure("Không tìm thấy đội.");
         if (team.CaptainAccountId != captainAccountId) return Result.Failure("Chỉ đội trưởng được thao tác.");
-        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Roster đang bị khóa do đội đang thi đấu.");
+        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Đội hình đang bị khóa vì đội có giải đã chốt nhánh hoặc đang thi đấu.");
         if (targetAccountId == team.CaptainAccountId) return Result.Failure("Không thể loại đội trưởng khỏi đội.");
 
         var m = await _uow.Repository<TeamMember>().Query()
@@ -430,11 +597,14 @@ public class TeamService : ITeamService
         var team = await _uow.Repository<Team>().GetByIdAsync(teamId);
         if (team is null) return Result.Failure("Không tìm thấy đội.");
         if (team.CaptainAccountId != captainAccountId) return Result.Failure("Chỉ đội trưởng được duyệt đơn.");
-        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Roster đang bị khóa do đội đang thi đấu.");
+        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Đội hình đang bị khóa vì đội có giải đã chốt nhánh hoặc đang thi đấu.");
 
         var m = await _uow.Repository<TeamMember>().Query()
             .FirstOrDefaultAsync(x => x.TeamId == teamId && x.AccountId == targetAccountId && x.Status == "PENDING");
         if (m is null) return Result.Failure("Không tìm thấy đơn chờ duyệt.");
+        // Lời mời do đội gửi phải do chính tuyển thủ chấp nhận — đội trưởng không duyệt thay.
+        if (m.Direction == "INVITED") return Result.Failure("Đây là lời mời đội đã gửi, đang chờ tuyển thủ chấp nhận. Đội trưởng chỉ có thể hủy lời mời.");
+        if (!await IsPlayerAsync(targetAccountId)) return Result.Failure("Người này không phải tài khoản tuyển thủ (Ban tổ chức / quản trị viên không tham gia đội).");
 
         var game = await _uow.Repository<Game>().GetByIdAsync(team.GameId);
         var (starters, subs) = await CountSlotsAsync(teamId);
@@ -466,7 +636,7 @@ public class TeamService : ITeamService
         m.Status = "REJECTED";
         _uow.Repository<TeamMember>().Update(m);
         await _uow.SaveChangesAsync();
-        return Result.Success("Đã từ chối đơn.");
+        return Result.Success(m.Direction == "INVITED" ? "Đã hủy lời mời." : "Đã từ chối đơn.");
     }
 
     // ===== TEAM-07: Chuyển quyền đội trưởng =====
@@ -476,7 +646,7 @@ public class TeamService : ITeamService
         if (team is null) return Result.Failure("Không tìm thấy đội.");
         if (team.CaptainAccountId != currentCaptainAccountId) return Result.Failure("Chỉ đội trưởng hiện tại được chuyển quyền.");
         if (newCaptainAccountId == currentCaptainAccountId) return Result.Failure("Người nhận phải khác đội trưởng hiện tại.");
-        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Roster đang bị khóa do đội đang thi đấu.");
+        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Đội hình đang bị khóa vì đội có giải đã chốt nhánh hoặc đang thi đấu.");
 
         var newCap = await _uow.Repository<TeamMember>().Query()
             .FirstOrDefaultAsync(m => m.TeamId == teamId && m.AccountId == newCaptainAccountId && m.Status == "ACTIVE");
@@ -507,7 +677,7 @@ public class TeamService : ITeamService
         if (team.CaptainAccountId == accountId)
             return Result.Failure("Đội trưởng phải chuyển quyền hoặc giải tán đội trước khi rời.");
         if (await IsRosterLockedAsync(teamId))
-            return Result.Failure("Đội đang thi đấu, roster bị khóa. Vui lòng liên hệ BTC/Trọng tài.");
+            return Result.Failure("Đội hình đang bị khóa vì đội có giải đã chốt nhánh hoặc đang thi đấu. Vui lòng liên hệ BTC/Trọng tài.");
 
         var m = await _uow.Repository<TeamMember>().Query()
             .FirstOrDefaultAsync(x => x.TeamId == teamId && x.AccountId == accountId && x.Status == "ACTIVE");
@@ -551,7 +721,7 @@ public class TeamService : ITeamService
             e.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
             return (IReadOnlyList<GameOptionDto>)await _uow.Repository<Game>().Query()
                 .Where(g => g.Status == "ACTIVE").OrderBy(g => g.Title)
-                .Select(g => new GameOptionDto { GameId = g.GameId, Title = g.Title })
+                .Select(g => new GameOptionDto { GameId = g.GameId, Title = g.Title, MaxStarters = g.MaxStarters, MaxSubstitutes = g.MaxSubstitutes })
                 .ToListAsync();
         }))!;
 
@@ -616,9 +786,13 @@ public class TeamService : ITeamService
         return (slots.Count(s => s == "STARTER"), slots.Count(s => s == "SUBSTITUTE"));
     }
 
+    // Roster khóa khi đội có đơn đã duyệt ở giải đang diễn ra (TEAM-03) HOẶC giải đã khóa nhánh mà chưa kết thúc
+    // (BRK-03: "Chốt sơ đồ, khóa Roster của mọi đội") — để đội không tụt dưới số người thi đấu sau khi đã chốt.
     private Task<bool> IsRosterLockedAsync(int teamId)
         => _uow.Repository<Registration>().AnyAsync(r =>
-            r.TeamId == teamId && r.Status == "APPROVED" && r.Tournament.Status == "ONGOING");
+            r.TeamId == teamId && r.Status == "APPROVED"
+            && (r.Tournament.Status == "ONGOING"
+                || (r.Tournament.BracketLockedAt != null && r.Tournament.Status != "COMPLETED" && r.Tournament.Status != "CANCELLED")));
 
     private Task<bool> IsInUnfinishedTournamentAsync(int teamId)
         => _uow.Repository<Registration>().AnyAsync(r =>

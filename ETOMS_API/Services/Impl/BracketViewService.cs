@@ -51,7 +51,9 @@ public class BracketViewService : IBracketViewService
         if (nodes.Count == 0 && !isOrganizer)
         {
             dto.CanViewBracket = false;
-            dto.Notice = "Ban tổ chức chưa sinh nhánh đấu. Dưới đây là các đội đã được duyệt tham gia.";
+            dto.Notice = DateTime.UtcNow < t.RegCloseAt
+                ? $"Giải đang nhận đăng ký đến {t.RegCloseAt.AddHours(7):HH:mm dd/MM/yyyy}. Nhánh đấu được sinh sau khi đóng đăng ký — dưới đây là các đội đã được duyệt."
+                : "Ban tổ chức chưa sinh nhánh đấu. Dưới đây là các đội đã được duyệt tham gia.";
             dto.Participants = await _uow.Repository<Registration>().Query()
                 .Where(r => r.TournamentId == tournamentId && r.Status == "APPROVED")
                 .Select(r => r.Team.Name)
@@ -97,14 +99,17 @@ public class BracketViewService : IBracketViewService
         var lastStage = knockout.Max(n => n.StageNo);
         var multiStage = dto.HasGroupStage || knockout.Select(n => n.StageNo).Distinct().Count() > 1;
         var version = new StringBuilder();
+        // Loại kép: 3 khối Nhánh thắng / Nhánh thua / Chung kết tổng (StageNo 1/2/3), nhãn và ô chờ theo DoubleElimination.
+        var de = DoubleElimination.IsDoubleElimination(t.Format) ? new DoubleElimination.Layout(knockout) : null;
 
         foreach (var stage in knockout.GroupBy(n => n.StageNo).OrderBy(g => g.Key))
         {
             var stageNodes = stage.ToList();
             var finalRound = stageNodes.Max(n => n.RoundNo ?? 0);
-            bool IsThird(BracketNode n) => ThirdPlaceMatch.IsNode(n.StageType, n.StageNo, n.RoundNo, n.PositionInRound, n.ParentNodeId, lastStage, finalRound);
+            bool IsThird(BracketNode n) => de is null && ThirdPlaceMatch.IsNode(n.StageType, n.StageNo, n.RoundNo, n.PositionInRound, n.ParentNodeId, lastStage, finalRound);
             string Label(BracketNode n)
             {
+                if (de is not null) return de.ShortMatchLabel(n);
                 if (IsThird(n)) return ThirdPlaceMatch.Label;
                 var round = BracketLabels.KnockoutRound(finalRound, n.RoundNo);
                 return round == "Chung kết" ? round : $"{round} · Trận {n.PositionInRound}";
@@ -118,6 +123,16 @@ public class BracketViewService : IBracketViewService
             BracketSlotDto Slot(BracketNode n, int? teamId, int side)
             {
                 if (teamId is int id) return new BracketSlotDto { TeamId = id, Name = teams.TryGetValue(id, out var nm) ? nm : "Đội #" + id };
+                if (de is not null)
+                {
+                    var feeder = de.Feeder(n, side == 0);
+                    if (feeder is not { } f) return new BracketSlotDto { Name = "Chưa xác định" };
+                    if (!f.Loser && f.From.IsBye && f.From.SeedTeamId is int byeTeam)
+                        return new BracketSlotDto { TeamId = byeTeam, Name = teams.TryGetValue(byeTeam, out var bn) ? bn : "Đội #" + byeTeam };
+                    // Cùng khối thì nhãn ngắn ("Thắng Bán kết · Trận 1"), khác khối ghi đủ tên nhánh.
+                    var from = f.From.StageNo == n.StageNo ? de.ShortMatchLabel(f.From) : de.MatchLabel(f.From);
+                    return new BracketSlotDto { Name = (f.Loser ? "Thua " : "Thắng ") + from };
+                }
                 var child = Children(n).ElementAtOrDefault(side);
                 if (child is null) return new BracketSlotDto { Name = "Chưa xác định" };
                 if (child.IsBye && child.SeedTeamId is int seed && !IsThird(n))
@@ -128,9 +143,10 @@ public class BracketViewService : IBracketViewService
             var view = new BracketStageViewDto
             {
                 StageNo = stage.Key,
-                Label = multiStage ? $"Giai đoạn {stage.Key} · Knockout" : "Nhánh knockout",
+                Label = de is not null ? DoubleElimination.StageLabel(stage.Key)
+                    : multiStage ? $"Giai đoạn {stage.Key} · Knockout" : "Nhánh knockout",
                 Rounds = stageNodes.Select(n => n.RoundNo ?? 0).Distinct().OrderBy(r => r)
-                    .Select(r => new BracketRoundViewDto { RoundNo = r, Label = BracketLabels.KnockoutRound(finalRound, r) }).ToList()
+                    .Select(r => new BracketRoundViewDto { RoundNo = r, Label = de?.ShortRoundLabel(stage.Key, r) ?? BracketLabels.KnockoutRound(finalRound, r) }).ToList()
             };
 
             foreach (var n in stageNodes.OrderBy(n => n.RoundNo).ThenBy(n => n.PositionInRound))
@@ -139,7 +155,9 @@ public class BracketViewService : IBracketViewService
                 var node = new BracketNodeViewDto
                 {
                     NodeId = n.BracketNodeId,
-                    ParentNodeId = n.ParentNodeId,
+                    // Loại kép: đường nối sang khối khác (chung kết nhánh thắng/thua -> chung kết tổng) không vẽ,
+                    // ô chờ đã ghi "Thắng Chung kết nhánh thắng"...
+                    ParentNodeId = de is not null && !stageNodes.Any(x => x.BracketNodeId == n.ParentNodeId) ? null : n.ParentNodeId,
                     RoundNo = n.RoundNo ?? 0,
                     Position = n.PositionInRound ?? 0,
                     Label = Label(n),

@@ -22,6 +22,14 @@ public class CreateTeamRequest
     [Display(Name = "Tựa game chủ đạo")]
     public int GameId { get; set; }
 
+    // Giới thiệu / khẩu hiệu đội (TEAM-01 "Slogan"), không bắt buộc.
+    [StringLength(500, ErrorMessage = "Giới thiệu đội tối đa 500 ký tự.")]
+    [Display(Name = "Giới thiệu đội")]
+    public string? Description { get; set; }
+
+    // Tuyển thủ được mời ngay khi tạo đội (không bắt buộc): mỗi người nhận một lời mời chờ chấp nhận.
+    public List<int>? InviteAccountIds { get; set; }
+
     // Đường dẫn logo sau khi upload thành công (Controller gán).
     public string? LogoUrl { get; set; }
 }

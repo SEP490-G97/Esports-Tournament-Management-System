@@ -322,7 +322,14 @@ public class ResultService : IResultService
     private async Task AdvanceWinnerAsync(Match match, int winnerTeamId)
     {
         var node = await _uow.Repository<BracketNode>().GetByIdAsync(match.BracketNodeId);
-        if (node?.ParentNodeId is null) return;
+        if (node is null) return;
+        if (node.StageType == "KNOCKOUT" && DoubleElimination.IsDoubleElimination(await _uow.Repository<Tournament>().Query()
+                .Where(t => t.TournamentId == match.TournamentId).Select(t => t.Format).FirstOrDefaultAsync()))
+        {
+            await AdvanceDoubleEliminationAsync(match, node, winnerTeamId);
+            return;
+        }
+        if (node.ParentNodeId is null) return;
 
         var parentMatch = await _uow.Repository<Match>().Query()
             .FirstOrDefaultAsync(m => m.BracketNodeId == node.ParentNodeId.Value);
@@ -331,6 +338,30 @@ public class ResultService : IResultService
         bool isLeftChild = (node.PositionInRound ?? 1) % 2 == 1;
         if (isLeftChild) parentMatch.TeamAid = winnerTeamId; else parentMatch.TeamBid = winnerTeamId;
         _uow.Repository<Match>().Update(parentMatch);
+        await _uow.SaveChangesAsync();
+    }
+
+    // BRK-05 Loại kép: đội thắng đi tiếp theo ParentNodeId; đội thua ở nhánh thắng rơi xuống nhánh thua
+    // (thua ở nhánh thua hoặc chung kết tổng là bị loại). Ô đích tính xác định (DoubleElimination.Layout), nên
+    // phán quyết lại (VAR, khiếu nại) chỉ ghi đè đúng hai ô đó.
+    private async Task AdvanceDoubleEliminationAsync(Match match, BracketNode node, int winnerTeamId)
+    {
+        var nodes = await _uow.Repository<BracketNode>().Query()
+            .Where(n => n.TournamentId == match.TournamentId && n.StageType == "KNOCKOUT").ToListAsync();
+        var layout = new DoubleElimination.Layout(nodes);
+        int? loserTeamId = match.TeamAid == winnerTeamId ? match.TeamBid : match.TeamAid;
+
+        async Task Place(DoubleElimination.Slot? slot, int teamId)
+        {
+            if (slot is null) return;
+            var target = await _uow.Repository<Match>().Query().FirstOrDefaultAsync(m => m.BracketNodeId == slot.Node.BracketNodeId);
+            if (target is null) return;
+            if (slot.SideA) target.TeamAid = teamId; else target.TeamBid = teamId;
+            _uow.Repository<Match>().Update(target);
+        }
+
+        await Place(layout.WinnerTo(node), winnerTeamId);
+        if (loserTeamId is int loser) await Place(layout.LoserTo(node), loser);
         await _uow.SaveChangesAsync();
     }
 

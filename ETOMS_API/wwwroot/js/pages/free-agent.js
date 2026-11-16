@@ -154,7 +154,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
-        me = await Ui.requireAuth();
+        me = await Ui.requireAuth(['PLAYER']);   // BTC/Admin không có đội nên không dùng Tìm đội
         if (!me) return;
         Ui.consumeFlash(flash());
 

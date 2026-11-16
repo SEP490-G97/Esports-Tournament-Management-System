@@ -4,10 +4,18 @@
         if (!events || !events.length) { root.innerHTML = ''; return; }
         var innerRepeat = Math.max(1, Math.ceil(8.0 / events.length));
         var items = '';
+        // Mỗi mục là một liên kết: "ĐĂNG KÝ" -> trang đăng ký của đúng giải đó, còn lại -> trang giải.
+        // Chỉ bản đầu nhận focus bàn phím; các bản lặp (để chạy vòng) ẩn với trình đọc màn hình.
         for (var half = 0; half < 2; half++) {
             for (var rep = 0; rep < innerRepeat; rep++) {
                 events.forEach(function (e) {
-                    items += '<span class="ticker-item"><b>' + Ui.escapeHtml(e.label) + '</b> ' + Ui.escapeHtml(e.text) + '</span><span class="ticker-dot">◆</span>';
+                    var first = half === 0 && rep === 0;
+                    var url = Ui.safeUrl(e.url);
+                    var inner = '<b class="ticker-label ticker-' + Ui.escapeHtml((e.kind || '').toLowerCase()) + '">' + Ui.escapeHtml(e.label) + '</b> ' + Ui.escapeHtml(e.text);
+                    items += (url
+                        ? '<a class="ticker-item" href="' + Ui.escapeHtml(url) + '" data-kind="' + Ui.escapeHtml(e.kind || '') + '"' + (first ? '' : ' tabindex="-1" aria-hidden="true"') + '>' + inner + '</a>'
+                        : '<span class="ticker-item"' + (first ? '' : ' aria-hidden="true"') + '>' + inner + '</span>') +
+                        '<span class="ticker-dot" aria-hidden="true">◆</span>';
                 });
             }
         }
@@ -16,12 +24,24 @@
             '<span class="ticker-tag">SỰ KIỆN</span>' +
             '<div class="ticker-view"><div class="ticker-track">' + items + '</div></div>' +
             '</div></section>';
+        // Ban tổ chức / Admin không đăng ký thi đấu: bấm "ĐĂNG KÝ" thì mở trang giải thay vì trang đăng ký.
+        root.querySelectorAll('a.ticker-item[data-kind="REGISTER"]').forEach(function (a) {
+            a.addEventListener('click', function (ev) {
+                var role = document.documentElement.getAttribute('data-role');
+                if (role === 'ORGANIZER' || role === 'ADMIN') {
+                    var m = /tournamentId=(\d+)/.exec(a.getAttribute('href') || '');
+                    if (m) { ev.preventDefault(); location.href = '/bracket/view.html?id=' + m[1]; }
+                }
+            });
+        });
     }
 
     function setStat(id, value) {
         var el = document.getElementById(id);
         if (!el) return;
+        el.classList.remove('stat-loading');
         el.setAttribute('data-count', String(value || 0));
+        el.textContent = '0';
     }
 
     function animateCounters() {
@@ -128,31 +148,28 @@
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có đội nào</h3><p>Hãy là đội đầu tiên trên hệ thống.</p><a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/team/create.html">Tạo đội mới</a></div></div>';
             return;
         }
+        // Ô đội dạng thẻ dọc: logo, tên, tựa game, sĩ số theo luật game và số trận thắng.
         var html = '<div class="row g-3">';
         list.forEach(function (t) {
-            var logo = t.logoUrl
-                ? '<img class="team-logo" src="' + Ui.escapeHtml(t.logoUrl) + '" alt="' + Ui.escapeHtml(t.name) + '" />'
-                : '<span class="team-logo">' + Ui.escapeHtml(t.tag && t.tag.length > 0 ? t.tag.substring(0, 1) : '?') + '</span>';
+            var logo = Ui.safeUrl(t.logoUrl)
+                ? '<img class="ht-logo" src="' + Ui.escapeHtml(Ui.safeUrl(t.logoUrl)) + '" alt="" loading="lazy" />'
+                : '<span class="ht-logo ht-logo-text">' + Ui.escapeHtml(t.tag && t.tag.length > 0 ? t.tag.substring(0, 2) : '?') + '</span>';
             html +=
-                '<div class="col-12 col-md-6 col-lg-4">' +
-                '<a class="team-card d-block h-100" href="/team/details.html?id=' + t.teamId + '">' +
-                '<div class="top">' + logo +
-                '<div><div class="name">' + Ui.escapeHtml(t.name) + '</div><div class="tag">[' + Ui.escapeHtml(t.tag) + '] · ' + Ui.escapeHtml(t.gameTitle) + '</div></div>' +
+                '<div class="col-6 col-md-4 col-xl-2">' +
+                '<a class="home-team h-100" href="/team/details.html?id=' + Number(t.teamId) + '" aria-label="Hồ sơ đội ' + Ui.escapeHtml(t.name) + '">' +
+                logo +
+                '<div class="ht-name" title="' + Ui.escapeHtml(t.name) + '">' + Ui.escapeHtml(t.name) + '</div>' +
+                '<div class="ht-tag">[' + Ui.escapeHtml(t.tag) + ']</div>' +
+                '<span class="ht-game">' + Ui.escapeHtml(t.gameTitle) + '</span>' +
+                '<div class="ht-stats">' +
+                '<div><strong>' + Number(t.memberCount) + '<small>/' + Number(t.maxRoster) + '</small></strong><span>thành viên</span></div>' +
+                '<div><strong>' + Number(t.wins) + '</strong><span>trận thắng</span></div>' +
                 '</div>' +
-                '<div class="meta"><span>' + Ui.escapeHtml(t.captainName) + '</span><span class="badge badge-soft">' + t.memberCount + ' thành viên</span></div>' +
+                '<div class="ht-captain" title="Đội trưởng">★ ' + Ui.escapeHtml(t.captainName) + '</div>' +
                 '</a></div>';
         });
         html += '</div>';
         root.innerHTML = html;
-    }
-
-    // Chỉ nhận URL https tuyệt đối (chặn javascript:, data:, http://...) trước khi gắn vào href.
-    function safeHttpsUrl(value) {
-        if (typeof value !== 'string' || !value) return null;
-        try {
-            var u = new URL(value);
-            return u.protocol === 'https:' && u.hostname ? u.href : null;
-        } catch (e) { return null; }
     }
 
     function renderGames(list) {
@@ -162,13 +179,11 @@
             var icon = g.logoUrl
                 ? '<img src="' + Ui.escapeHtml(g.logoUrl) + '" alt="' + Ui.escapeHtml(g.title) + '" />'
                 : '<span class="game-ico">' + Ui.escapeHtml(g.shortCode && g.shortCode.length > 0 ? g.shortCode.substring(0, 1) : '?') + '</span>';
-            var body = icon + '<div><div class="gt">' + Ui.escapeHtml(g.title) + '</div><div class="gc">' + Ui.escapeHtml(g.shortCode) + '</div></div>';
-            var url = safeHttpsUrl(g.websiteUrl);
-            html += '<div class="col-6 col-sm-4 col-lg-2">' + (url
-                ? '<a class="game-chip game-chip-link h-100" href="' + Ui.escapeHtml(url) + '" target="_blank" rel="noopener noreferrer"' +
-                  ' title="Mở trang chủ ' + Ui.escapeHtml(g.title) + ' (tab mới)" aria-label="Trang chủ ' + Ui.escapeHtml(g.title) + ' (mở tab mới)">' +
-                  body + '<span class="game-chip-ext" aria-hidden="true">↗</span></a>'
-                : '<div class="game-chip h-100">' + body + '</div>') + '</div>';
+            // Bấm vào game -> danh sách giải lọc đúng game đó.
+            var n = Number(g.tournamentCount) || 0;
+            var body = icon + '<div class="minw-0"><div class="gt">' + Ui.escapeHtml(g.title) + '</div><div class="gc">' + (n ? n + ' giải' : 'Chưa có giải') + '</div></div>';
+            html += '<div class="col-6 col-sm-4 col-lg-2"><a class="game-chip game-chip-link h-100" href="/tournament/index.html?gameId=' + Number(g.gameId) + '"' +
+                ' aria-label="Xem các giải ' + Ui.escapeHtml(g.title) + '">' + body + '</a></div>';
         });
         root.innerHTML = html;
     }

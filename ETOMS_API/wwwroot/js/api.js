@@ -126,6 +126,8 @@ var Api = (function () {
 
     return {
         openFile: openFile,
+        // fetch có JWT (tự làm mới token khi 401), trả Response thô — cho dữ liệu nhị phân như ảnh.
+        fetchRaw: function (url, opts) { return authedFetch(url, opts); },
         clearCache: function () { shared = {}; },
         get: function (url) { return request('GET', url); },
         post: function (url, body) { return request('POST', url, body, false); },

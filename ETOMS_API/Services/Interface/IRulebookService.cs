@@ -15,4 +15,5 @@ public interface IRulebookService
     Task<IReadOnlyList<RulebookVersionDto>?> GetVersionsAsync(int tournamentId, int? viewerAccountId);
 
     Task<Result<RulebookSavedDto>> SaveRulebookAsync(int tournamentId, SaveRulebookRequest request, int organizerAccountId);
+    Task<Result<string>> UploadRulebookPdfAsync(int tournamentId, IFormFile? file, int organizerAccountId, string webRootPath);
 }

@@ -21,8 +21,17 @@ namespace ETOMS_API.Services.Impl
         }
 
         // FA-01: Đăng tin tuyển thành viên (LFP)
+        // Tìm đội / tuyển người chỉ dành cho tuyển thủ: Ban tổ chức và Admin không có đội (quy tắc 15/11/2026).
+        private async Task EnsurePlayerAsync(int accountId)
+        {
+            var role = await _context.Accounts.Where(a => a.AccountId == accountId).Select(a => a.Role).FirstOrDefaultAsync();
+            if (role != "PLAYER")
+                throw new InvalidOperationException("Chỉ tài khoản tuyển thủ được đăng tin tìm đội, tuyển người hoặc ứng tuyển. Ban tổ chức và quản trị viên không tham gia đội.");
+        }
+
         public async Task<int> CreateLFPPostAsync(int accountId, CreateLFPPostDto dto)
         {
+            await EnsurePlayerAsync(accountId);
             var team = await _context.Teams
                 .Include(t => t.Game)
                 .Include(t => t.TeamMembers)
@@ -60,6 +69,7 @@ namespace ETOMS_API.Services.Impl
         // FA-02: Đăng tin tìm đội (LFT)
         public async Task<int> CreateLFTPostAsync(int accountId, CreateLFTPostDto dto)
         {
+            await EnsurePlayerAsync(accountId);
             var hasCredential = await _context.PlayerCredentials
                 .AnyAsync(pc => pc.AccountId == accountId && pc.GameId == dto.GameId);
             if (!hasCredential)
@@ -144,6 +154,7 @@ namespace ETOMS_API.Services.Impl
         // FA-04: Nộp đơn ứng tuyển theo tin LFP
         public async Task<bool> ApplyToLFPAsync(int accountId, ApplyLFPPostDto dto)
         {
+            await EnsurePlayerAsync(accountId);
             var post = await _context.RecruitmentPosts
                 .Include(p => p.Team)
                 .FirstOrDefaultAsync(p => p.RecruitmentPostId == dto.PostId && p.Status == "OPEN");

@@ -5,8 +5,8 @@
         var msg = p.message ? ' · “' + Ui.escapeHtml(p.message) + '”' : '';
         var actions = locked ? '' :
             '<div style="display:flex;gap:8px">' +
-            '<button type="button" class="btn btn-primary btn-sm" data-act="approve" data-target="' + p.accountId + '">Duyệt</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm text-danger-etoms" data-act="reject" data-target="' + p.accountId + '" data-name="' + Ui.escapeHtml(p.fullName) + '">Từ chối</button>' +
+            (p.direction === 'INVITED' ? '' : '<button type="button" class="btn btn-primary btn-sm" data-act="approve" data-target="' + p.accountId + '">Duyệt</button>') +
+            '<button type="button" class="btn btn-ghost btn-sm text-danger-etoms" data-act="reject" data-target="' + p.accountId + '" data-name="' + Ui.escapeHtml(p.fullName) + '">' + (p.direction === 'INVITED' ? 'Hủy lời mời' : 'Từ chối') + '</button>' +
             '</div>';
         return '<div class="card-etoms"><div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px;border-left:3px solid var(--warn);border-radius:0 14px 14px 0">' +
             '<span class="av" style="width:46px;height:46px;border-radius:11px;background:var(--panel-2);border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--warn)">' + Ui.escapeHtml(p.fullName && p.fullName.length > 0 ? p.fullName.substring(0, 1) : '?') + '</span>' +
@@ -43,13 +43,13 @@
         var root = document.getElementById('roster-root');
 
         var lockedAlert = roster.isLocked
-            ? '<div class="alert" style="background:rgba(246,167,35,.1);border:1px solid rgba(246,167,35,.3);color:var(--warn)">🔒 Đội hình đang <strong>bị khóa</strong> vì đội đang thi đấu trong một giải. Mọi thay đổi thành viên tạm thời bị vô hiệu.</div>'
+            ? '<div class="alert" style="background:rgba(246,167,35,.1);border:1px solid rgba(246,167,35,.3);color:var(--warn)">🔒 Đội hình đang <strong>bị khóa</strong> vì đội có giải đã chốt nhánh đấu hoặc đang thi đấu. Mọi thay đổi thành viên tạm thời bị vô hiệu.</div>'
             : '';
 
         var pendingHtml = '';
         if (roster.pendingMembers.length) {
             pendingHtml = '<div class="section-title mt-0">Đơn chờ duyệt (' + roster.pendingMembers.length + ')</div>' +
-                '<div class="section-sub">Ứng tuyển hoặc lời mời đang chờ đội trưởng xác nhận.</div>' +
+                '<div class="section-sub">Đơn ứng tuyển chờ đội trưởng duyệt; lời mời đội đã gửi chờ chính tuyển thủ chấp nhận (đội trưởng chỉ hủy được).</div>' +
                 '<div class="d-grid gap-3 mb-4">' + roster.pendingMembers.map(function (p) { return pendingItemHtml(p, roster.isLocked); }).join('') + '</div>';
         }
 

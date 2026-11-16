@@ -17,6 +17,9 @@ public partial class Team
 
     public string? LogoUrl { get; set; }
 
+    // Giới thiệu / khẩu hiệu đội (TEAM-01 "Slogan"), không bắt buộc, ≤ 500 ký tự.
+    public string? Description { get; set; }
+
     public string? InviteCode { get; set; }
 
     public DateTime? InviteExpiresAt { get; set; }

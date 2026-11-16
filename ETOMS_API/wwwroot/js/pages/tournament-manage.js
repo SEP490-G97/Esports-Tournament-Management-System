@@ -9,7 +9,7 @@
 
     function checkRow(c) {
         var fix = c.key === 'RULEBOOK' && !c.isOk
-            ? '<a class="btn btn-ghost" href="/tournament/rulebook.html?id=' + tournamentId + '">Soạn thể lệ</a>'
+            ? '<a class="btn btn-ghost" href="/tournament/edit.html?id=' + tournamentId + '#rules">Soạn thể lệ</a>'
             : '';
         return '<div class="member-card" style="justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">' +
             '<div class="grow"><div class="nm">' + Ui.escapeHtml(c.label) + '</div>' +

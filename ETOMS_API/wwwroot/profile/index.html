@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=grpal-20261115" />
+    <link rel="stylesheet" href="/css/site.css?v=de-20261116" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -40,6 +40,7 @@
                     <a href="#profile-privacy">Giấy tờ &amp; riêng tư</a>
                     <a href="#profile-public">Hồ sơ thi đấu</a>
                     <a href="#profile-history">Lịch sử trận</a>
+                    <a href="#organizer-request" id="orq-nav" hidden>Xin làm Ban tổ chức</a>
                 </nav>
                 <p class="profile-aside-note">Email, ngày sinh và số điện thoại không được đưa vào hồ sơ công khai hiện tại.</p>
             </aside>
@@ -63,13 +64,17 @@
                                 <div id="profile-avatar-preview" class="profile-avatar profile-avatar-lg" aria-hidden="true">?</div>
                                 <div class="profile-avatar-actions">
                                     <label class="btn btn-ghost btn-sm mb-0" for="profile-avatar-file">Chọn ảnh từ máy</label>
-                                    <input id="profile-avatar-file" type="file" accept="image/jpeg,image/png" hidden aria-describedby="profile-avatar-hint profile-avatar-file-error" />
+                                    <input id="profile-avatar-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" hidden aria-describedby="profile-avatar-hint profile-avatar-file-error" />
+                                    <button type="button" class="btn btn-ghost btn-sm" id="profile-avatar-recrop" hidden>Căn chỉnh lại</button>
                                     <button type="button" class="btn btn-ghost btn-sm" id="profile-avatar-clear">Bỏ ảnh</button>
                                 </div>
                             </div>
                             <span id="profile-avatar-file-error" class="field-error" data-field-error="AvatarFile"></span>
-                            <input id="profile-avatar" name="AvatarUrl" type="url" class="input mt-2" maxlength="500" placeholder="Hoặc dán liên kết ảnh: https://..." autocomplete="url" aria-describedby="profile-avatar-hint profile-avatar-error" />
-                            <span id="profile-avatar-hint" class="field-hint">Ảnh JPG hoặc PNG, tối đa 2 MB, kích thước từ 64×64 đến 4096×4096 px. Hoặc dán liên kết trực tiếp tới một ảnh (http:// hoặc https://).</span>
+                            <div class="avatar-link-row mt-2">
+                                <input id="profile-avatar" type="text" class="input" maxlength="2000000" placeholder="Hoặc dán liên kết ảnh (vd từ Google: chuột phải → Sao chép địa chỉ hình ảnh)" autocomplete="off" aria-describedby="profile-avatar-hint profile-avatar-error" />
+                                <button type="button" class="btn btn-ghost btn-sm" id="profile-avatar-use-link">Dùng ảnh này</button>
+                            </div>
+                            <span id="profile-avatar-hint" class="field-hint">Ảnh từ máy (JPG, PNG, WEBP, GIF; tối đa 10 MB) hoặc liên kết ảnh bất kỳ đuôi — kể cả liên kết copy từ Google Hình ảnh. Sau khi chọn, bạn kéo/phóng to để căn khung rồi lưu.</span>
                             <span id="profile-avatar-error" class="field-error" data-field-error="AvatarUrl"></span>
                         </div>
                         <div class="row">
@@ -170,15 +175,59 @@
                     </div>
                     <div id="match-history" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
                 </section>
+
+                <!-- UC-43: xin làm Ban tổ chức -> Admin cấp tài khoản Ban tổ chức RIÊNG (không có đội) -->
+                <section id="organizer-request" class="feature-card profile-section" aria-labelledby="organizer-request-title" hidden>
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Quyền tổ chức giải</span><h2 id="organizer-request-title">Xin làm Ban tổ chức</h2></div>
+                        <span class="badge badge-soft" id="orq-status">—</span>
+                    </div>
+                    <p class="muted-copy">Ban tổ chức dùng <strong>tài khoản riêng</strong> do quản trị viên cấp và <strong>không có đội thi đấu</strong>, để không ai vừa tổ chức vừa thi đấu giải của mình. Tài khoản tuyển thủ này và các đội của bạn giữ nguyên.</p>
+                    <div id="orq-flash" aria-live="polite"></div>
+                    <div id="orq-view"></div>
+                    <form id="orq-form" novalidate hidden>
+                        <div class="field">
+                            <label for="orq-note">Mong muốn / lý do muốn làm Ban tổ chức <span class="req">*</span></label>
+                            <textarea id="orq-note" name="Note" class="input" rows="4" maxlength="1000" placeholder="Ví dụ: Tôi phụ trách CLB Esports của trường, muốn tổ chức giải LMHT sinh viên mỗi học kỳ…" aria-describedby="orq-note-hint orq-note-error"></textarea>
+                            <span id="orq-note-hint" class="field-hint"><span id="orq-note-count">0</span>/1000 ký tự — tối thiểu 20.</span>
+                            <span id="orq-note-error" class="field-error" data-field-error="Note"></span>
+                        </div>
+                        <div class="field">
+                            <label for="orq-email">Email muốn dùng cho tài khoản Ban tổ chức <span class="text-muted-2" style="font-weight:400">(không bắt buộc)</span></label>
+                            <input id="orq-email" name="ProposedEmail" type="email" class="input" maxlength="254" placeholder="vd: clb.esports.btc@gmail.com" aria-describedby="orq-email-hint orq-email-error" />
+                            <span id="orq-email-hint" class="field-hint">Phải khác email tài khoản hiện tại. Quản trị viên có thể dùng email này khi cấp tài khoản.</span>
+                            <span id="orq-email-error" class="field-error" data-field-error="ProposedEmail"></span>
+                        </div>
+                        <div class="btn-row"><button type="submit" class="btn btn-primary">Gửi đơn</button></div>
+                    </form>
+                </section>
             </div>
         </div>
     </main>
+    <!-- PRF-01: cắt / căn khung ảnh đại diện -->
+    <dialog id="avatar-crop-dialog" class="crop-dialog" aria-labelledby="crop-title">
+        <div class="crop-head"><h2 id="crop-title">Căn chỉnh ảnh đại diện</h2>
+            <button type="button" class="btn btn-ghost btn-sm" data-crop-cancel aria-label="Đóng">✕</button></div>
+        <p class="hint" id="crop-help">Kéo ảnh để căn vào khung tròn, dùng thanh trượt hoặc lăn chuột để phóng to. Phím mũi tên để dịch chuyển, phím + / − để phóng to.</p>
+        <div class="crop-stage" id="crop-stage" tabindex="0" aria-describedby="crop-help">
+            <canvas id="crop-canvas" width="300" height="300"></canvas>
+        </div>
+        <div class="crop-controls">
+            <label for="crop-zoom" class="hint m-0">Thu phóng</label>
+            <input id="crop-zoom" type="range" min="1" max="4" step="0.01" value="1" />
+            <button type="button" class="btn btn-ghost btn-sm" id="crop-reset">Đặt lại</button>
+        </div>
+        <div class="btn-row">
+            <button type="button" class="btn btn-primary" id="crop-save">Lưu ảnh đại diện</button>
+            <button type="button" class="btn btn-ghost" data-crop-cancel>Hủy</button>
+        </div>
+    </dialog>
     <div id="confirm-modal-root"></div>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
-    <script src="/js/api.js?v=dlg-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=fast-20261115"></script>
-    <script src="/js/pages/profile.js?v=prf-20261115" defer></script>
+    <script src="/js/layout.js?v=rules-20261116"></script>
+    <script src="/js/pages/profile.js?v=orq-20261115" defer></script>
 </body>
 </html>

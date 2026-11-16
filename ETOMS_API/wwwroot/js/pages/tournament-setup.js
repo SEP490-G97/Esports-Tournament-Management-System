@@ -32,11 +32,29 @@ async function loadGameSelect() {
         var games = Array.isArray(res) ? res : (res && res.data ? res.data : []);
         gameSelect.innerHTML = games.length > 0
             ? '<option value="">-- Chọn tựa game --</option>' + games.map(function (g) {
-                return '<option value="' + g.gameId + '">' + Ui.escapeHtml(g.title) + '</option>';
+                // Kèm luật đội hình của game để BTC biết mỗi đội cần bao nhiêu người.
+                var rule = g.maxStarters ? ' · ' + g.maxStarters + ' chính thức' + (g.maxSubstitutes ? ' + ' + g.maxSubstitutes + ' dự bị' : '') : '';
+                return '<option value="' + g.gameId + '">' + Ui.escapeHtml(g.title + rule) + '</option>';
             }).join('')
             : '<option value="">-- Chưa có tựa game khả dụng --</option>';
     } catch (e) {
         gameSelect.innerHTML = '<option value="">-- Không thể tải danh sách game --</option>';
+    }
+}
+
+// Đơn vị tổ chức gắn với tài khoản: tên tài khoản (mặc định) hoặc đơn vị tổ chức đã duyệt mà tài khoản phụ trách.
+async function loadOrganizerUnit() {
+    var select = document.getElementById('tOrganizerUnit');
+    if (!select) return;
+    try {
+        var who = await Api.get('/api/TournamentSetup/organizer-identity');
+        var orgs = (who && who.organizations) || [];
+        select.innerHTML = '<option value="">' + Ui.escapeHtml(who.accountName || 'Tài khoản của bạn') + ' (tài khoản của bạn)</option>' +
+            orgs.map(function (o) { return '<option value="' + Number(o.organizationId) + '">' + Ui.escapeHtml(o.name) + '</option>'; }).join('');
+        select.disabled = orgs.length === 0;   // chỉ có một lựa chọn thì khóa luôn cho rõ là không sửa được
+    } catch (e) {
+        select.innerHTML = '<option value="">Tài khoản của bạn</option>';
+        select.disabled = true;
     }
 }
 
@@ -45,7 +63,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (!user) return;
 
     Ui.consumeFlash(flashBox());
-    await loadGameSelect();
+    wireStepTabs();
+    await Promise.all([loadGameSelect(), loadOrganizerUnit()]);
 
     // Ẩn/hiện khối cấu hình Hybrid (TOUR-04) khi chọn Thể thức; vòng tròn không có trận tranh hạng Ba.
     var formatSelect = document.getElementById('tFormat');
@@ -53,7 +72,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     var thirdPlace = document.getElementById('chkThirdPlace');
     function syncFormat() {
         hybridBlock.style.display = formatSelect.value === 'HYBRID' ? 'block' : 'none';
-        thirdPlace.disabled = formatSelect.value === 'ROUND_ROBIN';
+        // Tranh hạng Ba chỉ có ở loại trực tiếp / vòng bảng rồi loại trực tiếp (loại kép đã có nhánh thua).
+        thirdPlace.disabled = !(formatSelect.value === 'SINGLE_ELIMINATION' || formatSelect.value === 'HYBRID');
         if (thirdPlace.disabled) thirdPlace.checked = false;
     }
     formatSelect.addEventListener('change', syncFormat);
@@ -84,7 +104,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             name: name,
             description: document.getElementById('tDesc').value,
             gameId: gameId,
-            organizerName: document.getElementById('tOrganizerName').value,
+            organizationId: parseInt(document.getElementById('tOrganizerUnit').value, 10) || null,
             location: '',
             format: selectedFormat,
             hasThirdPlaceMatch: thirdPlace.checked,
@@ -93,10 +113,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
         try {
+            // Đã có bản nháp (người dùng quay lại bước 1) -> SỬA bản nháp đó, không tạo thêm giải mới.
+            if (currentTournamentId) {
+                await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step1', payload);
+                markSaved(1); switchStep(2);
+                Ui.showAlert(flashBox(), 'success', 'Đã cập nhật thông tin giải. Kiểm tra lại thời gian và số đội.');
+                return;
+            }
             var res = await Api.post('/api/TournamentSetup/step1', payload);
             currentTournamentId = res.tournamentId || res;
             document.getElementById('lblTournamentId').textContent = currentTournamentId;
-            switchStep(2);
+            markSaved(1); switchStep(2);
             Ui.showAlert(flashBox(), 'success', 'Đã khởi tạo bản nháp giải đấu. Tiếp tục cài đặt thời gian và số đội.');
         } catch (err) {
             Ui.applyFieldErrors(step1Form, err.fieldErrors);
@@ -130,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 tournamentEndDate: end.toISOString(),
                 maxTeams: maxTeams
             });
-            switchStep(3);
+            markSaved(2); switchStep(3);
         } catch (err) {
             showError(err.message);
         }
@@ -138,37 +165,75 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // TOUR-06: Bước 4 - Tài chính
     var step4Form = document.getElementById('step4Form');
+    var feeInput = document.getElementById('tEntryFee');
+    var bankSelect = document.getElementById('tBankName');
+    var numberInput = document.getElementById('tAccountNumber');
+    var holderInput = document.getElementById('tAccountName');
+    BankAccount.fillSelect(bankSelect);
+    BankAccount.wireInputs(numberInput, holderInput);
+    // Có lệ phí -> hiện dấu * bắt buộc ở khối tài khoản.
+    function syncFeeRequired() {
+        document.querySelector('[data-fee-req]').hidden = !(Number(feeInput.value) > 0);
+    }
+    feeInput.addEventListener('input', syncFeeRequired);
+    syncFeeRequired();
+
     step4Form.addEventListener('submit', async function (e) {
         e.preventDefault();
         Ui.clearAlert(flashBox());
+        Ui.clearFieldErrors(step4Form);
         if (!currentTournamentId) return;
 
-        var feeRaw = (document.getElementById('tEntryFee').value || '0').trim();
+        var feeRaw = (feeInput.value || '0').trim();
         if (!/^\d+$/.test(feeRaw) || Number(feeRaw) > 100000000)
             return showError('Lệ phí tham gia phải là số nguyên từ 0 đến 100.000.000 VNĐ.');
         var fee = Number(feeRaw);
-        var bank = document.getElementById('tBankName').value.trim();
-        var number = document.getElementById('tAccountNumber').value.trim();
-        var holder = document.getElementById('tAccountName').value.trim();
-        if (fee > 0 && (!bank || !number || !holder))
-            return showError('Giải có lệ phí phải nhập đủ ngân hàng, số tài khoản và chủ tài khoản nhận phí.');
-        if (number && !/^\d{6,20}$/.test(number)) return showError('Số tài khoản chỉ gồm chữ số, dài 6–20 số.');
+        holderInput.value = BankAccount.normalizeHolder(holderInput.value);
+        var bad = BankAccount.validate(fee, bankSelect.value, numberInput.value, holderInput.value);
+        if (bad) {
+            var errs = {}; errs[bad.field] = bad.message;
+            Ui.applyFieldErrors(step4Form, errs);
+            return showError(bad.message);
+        }
 
         try {
             await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step4-finance', {
                 entryFee: fee,
-                bankName: bank,
-                accountNumber: number,
-                accountName: holder,
+                bankName: bankSelect.value,
+                accountNumber: numberInput.value.trim(),
+                accountName: holderInput.value,
                 prizePoolDescription: document.getElementById('tPrize').value
             });
+            markSaved(4);
             switchStep(5);
         } catch (err) {
             showError(err.message);
         }
     });
 
-    // TOUR-07: Bước 5 - Yêu cầu hồ sơ & Công bố
+    // Bước 5 - Thể lệ & bộ luật (soạn trên web / tải PDF / chọn bộ luật) — bỏ qua được, sửa sau ở Sửa thông tin.
+    document.getElementById('saveStep5').addEventListener('click', async function () {
+        if (!currentTournamentId || !rulesEditor) { markSaved(5); return switchStep(6); }
+        var btn = this;
+        btn.disabled = true;
+        try {
+            var r = await rulesEditor.save();
+            if (r.messages.length) Ui.showAlert(flashBox(), 'success', r.messages.join(' '));
+            markSaved(5); switchStep(6);
+        } catch (err) {
+            showError(err.message || 'Không lưu được thể lệ.');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+    document.getElementById('skipStep5').addEventListener('click', function () { markSaved(5); switchStep(6); });
+
+    // Nút "← Quay lại" ở mỗi bước: về bước trước, giữ nguyên dữ liệu đã nhập (lưu lại sẽ cập nhật bản nháp).
+    document.querySelectorAll('[data-back]').forEach(function (b) {
+        b.addEventListener('click', function () { Ui.clearAlert(flashBox()); switchStep(parseInt(b.dataset.back, 10)); });
+    });
+
+    // TOUR-07: Bước 6 - Yêu cầu hồ sơ & Công bố
     var step5Form = document.getElementById('step5Form');
     step5Form.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -236,25 +301,71 @@ async function submitStep3() {
 
     try {
         await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step3-bo-config', payload);
-        switchStep(4);
+        markSaved(3); switchStep(4);
     } catch (err) {
         showError(err.message);
     }
 }
 
 // Chuyển tab trong Wizard
+// Bước 5: khối Thể lệ & bộ luật (js/rules-editor.js), dựng một lần khi lần đầu vào bước 5.
+var rulesEditor = null;
+async function loadStep5() {
+    if (rulesEditor || !currentTournamentId) return;
+    try { rulesEditor = await RulesEditor.mount(document.getElementById('rulesRoot'), currentTournamentId); }
+    catch (e) { document.getElementById('rulesRoot').innerHTML = '<div class="hint">Không tải được phần thể lệ — có thể bỏ qua và bổ sung sau.</div>'; }
+}
+
+// Thanh bước bấm được: về bất kỳ bước đã qua, hoặc tiến tới bước đã từng tới (maxReached).
+// Sửa bước 1–2 (game, thể thức, số đội) làm đổi các vòng đấu nên phải đi lại từ bước kế tiếp.
+var currentStep = 1, maxReached = 1, dirtySteps = {};
+function markSaved(step) {
+    var changed = dirtySteps[step] !== false;   // lần lưu đầu, hoặc có sửa từ lần lưu trước
+    dirtySteps[step] = false;
+    maxReached = step <= 2 && changed ? step + 1 : Math.max(maxReached, step + 1);
+}
+function goToStep(n) {
+    if (!n || n === currentStep || n > maxReached) return;
+    if (n > currentStep && dirtySteps[currentStep])
+        return showError('Bước ' + currentStep + ' có thay đổi chưa lưu — bấm nút "Lưu" ở cuối bước trước khi sang bước sau.');
+    Ui.clearAlert(flashBox());
+    switchStep(n);
+}
+function wireStepTabs() {
+    document.querySelectorAll('.wizard-steps [data-step]').forEach(function (tab) {
+        var n = parseInt(tab.dataset.step, 10);
+        tab.addEventListener('click', function () { goToStep(n); });
+        tab.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToStep(n); }
+        });
+    });
+    // Gõ/chọn gì trong một bước thì bước đó "chưa lưu" cho tới khi bấm Lưu.
+    for (var i = 1; i <= 6; i++) (function (step) {
+        var panel = document.getElementById('panelStep' + step);
+        if (!panel) return;
+        ['input', 'change'].forEach(function (ev) { panel.addEventListener(ev, function () { dirtySteps[step] = true; }); });
+    })(i);
+}
+
 function switchStep(stepNum) {
-    for (var i = 1; i <= 5; i++) {
+    currentStep = stepNum;
+    if (stepNum > maxReached) maxReached = stepNum;
+    for (var i = 1; i <= 6; i++) {
         var panel = document.getElementById('panelStep' + i);
         var tab = document.getElementById('tabStep' + i);
         if (panel) panel.style.display = (i === stepNum) ? 'block' : 'none';
         if (tab) {
-            // Giao diện bước (màu, đánh dấu đã xong) nằm trong site.css: .step-tab.active / .step-tab.done
+            // Giao diện bước nằm trong site.css: .step-tab.active / .done / .reachable
+            var reachable = i <= maxReached && i !== stepNum;
             tab.classList.toggle('active', i === stepNum);
-            tab.classList.toggle('done', i < stepNum);
+            tab.classList.toggle('done', i < stepNum || (reachable && i < maxReached));
+            tab.classList.toggle('reachable', reachable);
+            if (reachable) { tab.setAttribute('role', 'button'); tab.tabIndex = 0; tab.title = 'Về bước ' + i; }
+            else { tab.removeAttribute('role'); tab.removeAttribute('tabindex'); tab.removeAttribute('title'); }
             if (i === stepNum) tab.setAttribute('aria-current', 'step'); else tab.removeAttribute('aria-current');
         }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (stepNum === 3) loadStep3();
+    if (stepNum === 5) loadStep5();
 }

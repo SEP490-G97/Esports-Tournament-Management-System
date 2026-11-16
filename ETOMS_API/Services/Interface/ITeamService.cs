@@ -8,6 +8,13 @@ public interface ITeamService
     // TEAM-01: tạo đội. Trả về TeamId mới nếu thành công, hoặc lỗi theo field.
     Task<Result<int>> CreateTeamAsync(CreateTeamRequest request, int captainAccountId);
 
+    // TEAM-01: tìm tuyển thủ (họ tên / tên trong game) để mời ngay khi tạo đội.
+    Task<Result<IReadOnlyList<PlayerSearchItemDto>>> SearchPlayersAsync(string? query, int gameId, int requesterAccountId);
+
+    // Lời mời vào đội phía tuyển thủ: xem, chấp nhận hoặc từ chối.
+    Task<IReadOnlyList<MyTeamInvitationDto>> GetMyInvitationsAsync(int accountId);
+    Task<Result> RespondInvitationAsync(int teamMemberId, int accountId, bool accept);
+
     // Danh sách đội — có tìm kiếm/lọc/sắp xếp (q, gameId, status, sort).
     Task<IReadOnlyList<TeamListItemDto>> GetAllTeamsAsync(TeamSearchRequest? filter = null);
     // Trang Đội tuyển: lọc + phân trang, kiểm tra tham số và báo lỗi tiếng Việt theo từng ô.

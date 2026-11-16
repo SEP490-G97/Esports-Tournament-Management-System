@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=grpal-20261115" />
+    <link rel="stylesheet" href="/css/site.css?v=de-20261116" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -18,24 +18,25 @@
         <div class="page-head">
             <div class="eyebrow">Quản lý sự kiện</div>
             <h1>Trình tạo giải đấu</h1>
-            <p>Quy trình 5 bước để thiết lập, cấu hình thể thức và công bố giải đấu thể thao điện tử lên hệ thống.</p>
+            <p>Quy trình 6 bước để thiết lập, cấu hình thể thức và công bố giải đấu thể thao điện tử lên hệ thống.</p>
         </div>
 
         <div id="flash"></div>
 
         <!-- Thanh các bước: tournament-setup.js bật class active/done -->
         <ol class="wizard-steps" aria-label="Các bước tạo giải">
-            <li id="tabStep1" class="step-tab active"><span class="step-no">1</span>Thông tin &amp; Thể thức</li>
-            <li id="tabStep2" class="step-tab"><span class="step-no">2</span>Timeline &amp; Quy mô</li>
-            <li id="tabStep3" class="step-tab"><span class="step-no">3</span>Thể thức BO</li>
-            <li id="tabStep4" class="step-tab"><span class="step-no">4</span>Tài chính</li>
-            <li id="tabStep5" class="step-tab"><span class="step-no">5</span>Công bố</li>
+            <li id="tabStep1" class="step-tab active" data-step="1"><span class="step-no">1</span>Thông tin</li>
+            <li id="tabStep2" class="step-tab" data-step="2"><span class="step-no">2</span>Thời gian</li>
+            <li id="tabStep3" class="step-tab" data-step="3"><span class="step-no">3</span>Số ván (BO)</li>
+            <li id="tabStep4" class="step-tab" data-step="4"><span class="step-no">4</span>Tài chính</li>
+            <li id="tabStep5" class="step-tab" data-step="5"><span class="step-no">5</span>Thể lệ</li>
+            <li id="tabStep6" class="step-tab" data-step="6"><span class="step-no">6</span>Công bố</li>
         </ol>
 
         <!-- BƯỚC 1: Thông tin chung + Cấu hình Thể thức (TOUR-01, TOUR-03, TOUR-04) -->
         <div id="panelStep1" class="card-etoms">
             <div class="body">
-                <h3 class="wizard-title">Bước 1: Thông tin &amp; cấu hình thể thức</h3>
+                <h3 class="wizard-title">Bước 1: Thông tin giải &amp; thể thức thi đấu</h3>
                 <p class="muted-copy mb-4">Cung cấp thông tin cơ bản, tựa game thi đấu và mô hình thể thức giải đấu.</p>
 
                 <form id="step1Form">
@@ -55,21 +56,26 @@
                             <span class="field-error" data-field-error="GameId"></span>
                         </div>
                         <div class="field">
-                            <label>Đơn vị tổ chức / Tên BTC</label>
-                            <input type="text" id="tOrganizerName" class="input" placeholder="Ví dụ: Khoa CNTT FPT">
+                            <label for="tOrganizerUnit">Đơn vị tổ chức</label>
+                            <!-- Gắn với tài khoản đang tạo giải: tên tài khoản hoặc đơn vị tổ chức đã được duyệt mà bạn phụ trách -->
+                            <select id="tOrganizerUnit" class="select" aria-describedby="tOrganizerUnitHint">
+                                <option value="">Đang tải…</option>
+                            </select>
+                            <span id="tOrganizerUnitHint" class="field-hint">Lấy theo tài khoản đang tạo giải, không nhập tay. Muốn đứng tên một CLB/đơn vị, hãy đăng ký đơn vị ở trang Tổ chức.</span>
                         </div>
                     </div>
 
                     <!-- TOUR-03: Cấu hình Thể thức -->
                     <div class="form-grid mt-2">
                         <div class="field">
-                            <label>Thể thức giải đấu (Format) <span class="req">*</span></label>
-                            <select id="tFormat" class="select select-accent" required>
-                                <option value="SINGLE_ELIMINATION">Loại trực tiếp đơn (Single Elimination)</option>
-                                <option value="DOUBLE_ELIMINATION" disabled>Loại trực tiếp kép (Double Elimination) — chưa hỗ trợ</option>
-                                <option value="ROUND_ROBIN">Vòng tròn tính điểm (Round Robin)</option>
-                                <option value="HYBRID">Nhiều giai đoạn (Hybrid: Vòng bảng + Knockout)</option>
+                            <label for="tFormat">Thể thức thi đấu (cách xếp cặp) <span class="req">*</span></label>
+                            <select id="tFormat" class="select select-accent" required aria-describedby="tFormatHint">
+                                <option value="SINGLE_ELIMINATION">Loại trực tiếp — thua 1 trận là bị loại</option>
+                                <option value="DOUBLE_ELIMINATION">Loại kép — thua 2 trận mới bị loại (nhánh thắng + nhánh thua)</option>
+                                <option value="ROUND_ROBIN">Vòng tròn tính điểm — mọi đội gặp nhau</option>
+                                <option value="HYBRID">Vòng bảng rồi loại trực tiếp</option>
                             </select>
+                            <span id="tFormatHint" class="field-hint">Số ván mỗi trận (BO1/BO3/BO5) chọn riêng ở bước 3.</span>
                         </div>
                         <div class="field check-field check-field-inline">
                             <input type="checkbox" id="chkThirdPlace" checked>
@@ -137,6 +143,7 @@
                         <input type="number" id="tMaxTeams" class="input" value="16" min="4" max="128" step="1" required>
                     </div>
                     <div class="btn-row">
+                        <button type="button" class="btn btn-ghost" data-back="1">← Quay lại</button>
                         <button type="submit" class="btn btn-primary">Lưu &amp; sang bước 3 ➔</button>
                     </div>
                 </form>
@@ -146,11 +153,12 @@
         <!-- BƯỚC 3: Cấu hình Best-of -->
         <div id="panelStep3" class="card-etoms" style="display: none;">
             <div class="body">
-                <h3 class="wizard-title">Bước 3: Cấu hình thể thức đấu (Best of X)</h3>
+                <h3 class="wizard-title">Bước 3: Số ván mỗi trận (Best of)</h3>
                 <p class="muted-copy mb-3">Chọn số ván mỗi trận (Best of) cho từng vòng loại trực tiếp. Các vòng được tính từ thể thức và số đội đã nhập ở bước 1–2.</p>
                 <div id="boRounds" class="bo-rounds" aria-live="polite"><div class="hint">Đang tải các vòng…</div></div>
                 <div class="btn-row">
-                    <button onclick="submitStep3()" class="btn btn-primary">Lưu thể thức &amp; sang bước 4 ➔</button>
+                    <button type="button" class="btn btn-ghost" data-back="2">← Quay lại</button>
+                    <button onclick="submitStep3()" class="btn btn-primary">Lưu số ván &amp; sang bước 4 ➔</button>
                 </div>
             </div>
         </div>
@@ -161,38 +169,64 @@
                 <h3 class="wizard-title">Bước 4: Lệ phí tham gia &amp; cơ cấu giải thưởng</h3>
                 <form id="step4Form">
                     <div class="field">
-                        <label>Lệ phí tham gia (VNĐ)</label>
-                        <input type="number" id="tEntryFee" class="input" value="0" min="0" max="100000000" step="1000">
+                        <label for="tEntryFee">Lệ phí tham gia (VNĐ)</label>
+                        <input type="number" id="tEntryFee" class="input" value="0" min="0" max="100000000" step="1000" aria-describedby="tEntryFeeHint">
+                        <span id="tEntryFeeHint" class="field-hint">Để 0 nếu giải miễn phí. Có lệ phí thì bắt buộc nhập tài khoản nhận phí bên dưới.</span>
                     </div>
-                    <div class="form-grid">
-                        <div class="field">
-                            <label>Tên ngân hàng nhận phí</label>
-                            <input type="text" id="tBankName" class="input" placeholder="Ví dụ: MBBank">
+                    <!-- LI-02: hệ thống không thu tiền hộ, chỉ hiện tài khoản này cho đội tự chuyển khoản và nộp biên lai. -->
+                    <fieldset id="bankFields" class="bank-fields">
+                        <legend>Tài khoản nhận lệ phí <span class="req" data-fee-req hidden>*</span></legend>
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="tBankName">Ngân hàng</label>
+                                <select id="tBankName" class="select">
+                                    <option value="">Đang tải danh sách ngân hàng…</option>
+                                </select>
+                                <span class="field-error" data-field-error="BankName"></span>
+                            </div>
+                            <div class="field">
+                                <label for="tAccountNumber">Số tài khoản</label>
+                                <input type="text" id="tAccountNumber" class="input" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="6–20 chữ số, ví dụ 0987654321">
+                                <span class="field-error" data-field-error="AccountNumber"></span>
+                            </div>
                         </div>
-                        <div class="field">
-                            <label>Số tài khoản</label>
-                            <input type="text" id="tAccountNumber" class="input" inputmode="numeric" maxlength="20" placeholder="Ví dụ: 0987654321">
+                        <div class="field mb-0">
+                            <label for="tAccountName">Chủ tài khoản</label>
+                            <input type="text" id="tAccountName" class="input" autocomplete="off" maxlength="100" placeholder="NGUYEN VAN A" aria-describedby="tAccountNameHint">
+                            <span id="tAccountNameHint" class="field-hint">Ghi đúng như trên app ngân hàng: in hoa, không dấu (gõ có dấu sẽ tự chuyển).</span>
+                            <span class="field-error" data-field-error="AccountName"></span>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label>Chủ tài khoản</label>
-                        <input type="text" id="tAccountName" class="input" placeholder="Ví dụ: NGUYEN VAN A">
-                    </div>
+                    </fieldset>
                     <div class="field">
                         <label>Mô tả giải thưởng (Prize Pool)</label>
                         <textarea id="tPrize" class="input" rows="2" placeholder="Ví dụ: Top 1: 5 Triệu VNĐ, Top 2: 2 Triệu VNĐ..."></textarea>
                     </div>
                     <div class="btn-row">
+                        <button type="button" class="btn btn-ghost" data-back="3">← Quay lại</button>
                         <button type="submit" class="btn btn-primary">Lưu tài chính &amp; sang bước 5 ➔</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- BƯỚC 5: Công bố -->
+        <!-- BƯỚC 5: Thể lệ & bộ luật (soạn trên web và/hoặc tải PDF) -->
         <div id="panelStep5" class="card-etoms" style="display: none;">
             <div class="body">
-                <h3 class="wizard-title wizard-title-success">Bước 5: Yêu cầu hồ sơ &amp; công bố giải đấu</h3>
+                <h3 class="wizard-title">Bước 5: Thể lệ &amp; bộ luật</h3>
+                <p class="muted-copy mb-3">Đội đăng ký phải đọc và đồng ý thể lệ. Có thể soạn ngay ở đây, tải file PDF, hoặc bỏ qua rồi bổ sung sau ở trang Sửa thông tin.</p>
+                <div id="rulesRoot"><div class="hint">Đang tải…</div></div>
+                <div class="btn-row mt-3">
+                    <button type="button" class="btn btn-ghost" data-back="4">← Quay lại</button>
+                    <button type="button" class="btn btn-ghost" id="skipStep5">Bỏ qua, làm sau</button>
+                    <button type="button" class="btn btn-primary" id="saveStep5">Lưu &amp; sang bước 6 ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BƯỚC 6: Công bố -->
+        <div id="panelStep6" class="card-etoms" style="display: none;">
+            <div class="body">
+                <h3 class="wizard-title wizard-title-success">Bước 6: Yêu cầu hồ sơ &amp; công bố giải đấu</h3>
                 <form id="step5Form">
                     <div class="field check-field">
                         <input type="checkbox" id="chkStudentCard" checked>
@@ -207,7 +241,8 @@
                         <label for="chkIgn">Yêu cầu xác thực tên in-game (IGN)</label>
                     </div>
                     <div class="btn-row">
-                        <button type="submit" class="btn btn-success btn-lg w-100">Hoàn tất &amp; công bố giải đấu</button>
+                        <button type="button" class="btn btn-ghost" data-back="5">← Quay lại</button>
+                        <button type="submit" class="btn btn-success btn-lg">Hoàn tất &amp; công bố giải đấu</button>
                     </div>
                 </form>
             </div>
@@ -218,9 +253,11 @@
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
-    <script src="/js/api.js?v=dlg-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=fast-20261115"></script>
-    <script src="/js/pages/tournament-setup.js?v=bo-20261115"></script>
+    <script src="/js/layout.js?v=rules-20261116"></script>
+    <script src="/js/rules-editor.js?v=rules-20261116"></script>
+    <script src="/js/bank-account.js?v=bank-20261116"></script>
+    <script src="/js/pages/tournament-setup.js?v=de-20261116"></script>
 </body>
 </html>

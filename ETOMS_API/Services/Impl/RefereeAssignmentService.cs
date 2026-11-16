@@ -54,6 +54,15 @@ public class RefereeAssignmentService : IRefereeAssignmentService
         var knockout = rows.Where(m => m.StageType == "KNOCKOUT").ToList();
         var lastStage = knockout.Count == 0 ? 0 : knockout.Max(m => m.StageNo);
         var finalRound = knockout.Where(m => m.StageNo == lastStage).Select(m => m.RoundNo ?? 0).DefaultIfEmpty(0).Max();
+        // BRK-05 Loại kép: nhãn theo nhánh (Nhánh thắng · Bán kết, Nhánh thua · Vòng 2, Chung kết tổng).
+        var de = DoubleElimination.IsDoubleElimination(tournament.Format)
+            ? new DoubleElimination.Layout(knockout.Select(m => new BracketNode
+            {
+                StageNo = m.StageNo, StageType = m.StageType, RoundNo = m.RoundNo, PositionInRound = m.PositionInRound, ParentNodeId = m.ParentNodeId
+            }))
+            : null;
+        string DeLabel(int stage, int? round, int? pos) =>
+            de!.MatchLabel(de.Get(stage, round ?? 0, pos ?? 0) ?? new BracketNode { StageNo = stage, RoundNo = round, PositionInRound = pos });
 
         return new RefereeBoardDto
         {
@@ -65,12 +74,17 @@ public class RefereeAssignmentService : IRefereeAssignmentService
             Rounds = rows.Where(m => m.RoundNo is not null)
                 .Select(m => (m.StageNo, RoundNo: m.RoundNo!.Value))
                 .Distinct()
-                .Select(r => new RefereeRoundDto { StageNo = r.StageNo, RoundNo = r.RoundNo, Label = $"Giai đoạn {r.StageNo} · Vòng {r.RoundNo}" })
+                .Select(r => new RefereeRoundDto
+                {
+                    StageNo = r.StageNo, RoundNo = r.RoundNo,
+                    Label = de is not null ? de.RoundLabel(r.StageNo, r.RoundNo) : $"Giai đoạn {r.StageNo} · Vòng {r.RoundNo}"
+                })
                 .ToList(),
             Matches = rows.Select(m => new RefereeMatchDto
             {
                 MatchId = m.MatchId,
-                RoundLabel = ThirdPlaceMatch.IsNode(m.StageType, m.StageNo, m.RoundNo, m.PositionInRound, m.ParentNodeId, lastStage, finalRound)
+                RoundLabel = de is not null && m.StageType == "KNOCKOUT" ? DeLabel(m.StageNo, m.RoundNo, m.PositionInRound)
+                    : ThirdPlaceMatch.IsNode(m.StageType, m.StageNo, m.RoundNo, m.PositionInRound, m.ParentNodeId, lastStage, finalRound)
                     ? ThirdPlaceMatch.Label
                     : RoundLabel(m.RoundNo, m.GroupLabel),
                 TeamAName = m.TeamA ?? UnknownTeam,

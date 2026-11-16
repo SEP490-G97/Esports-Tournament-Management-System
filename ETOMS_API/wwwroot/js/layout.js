@@ -189,9 +189,7 @@
             ['/tournament/stage-transition.html', 'Chuyển vòng']
         ]],
         ['Cấu hình giải', [
-            ['/tournament/edit.html', 'Sửa thông tin'],
-            ['/tournament/rulebook.html', 'Soạn thể lệ'],
-            ['/tournament/ruleset.html', 'Bộ luật'],
+            ['/tournament/edit.html', 'Sửa thông tin & thể lệ'],
             ['/tournament/clone.html', 'Nhân bản'],
             ['/tournament/cancel.html', 'Hủy giải']
         ]]

@@ -62,11 +62,14 @@
             '<div class="sub"><span>' + Ui.escapeHtml(team.gameTitle) + '</span>' +
             '<span>· Đội trưởng: <strong class="text-ink">' + Ui.escapeHtml(team.captainName) + '</strong></span>' +
             '<span>· Thành lập ' + fmtMonthYear(team.createdAt) + '</span>' + statusBadge +
-            '</div></div></div></div></div>' +
+            '</div>' + (team.description ? '<p class="team-description">' + Ui.escapeHtml(team.description) + '</p>' : '') + '</div></div></div></div>' +
             '<div class="row g-3 my-4">' +
-            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Sĩ số</div><div class="num accent">' + team.memberCount + '</div><div class="sub">thành viên</div></div></div>' +
-            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Chính thức</div><div class="num">' + team.starterCount + '</div><div class="sub">người</div></div></div>' +
-            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Dự bị</div><div class="num">' + team.subCount + '</div><div class="sub">người</div></div></div>' +
+            // Sĩ số kèm luật đội hình của tựa game (vd FC Online đấu 1v1: 1 chính thức, 0 dự bị).
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Sĩ số</div><div class="num accent">' + team.memberCount +
+                '<span class="num-of">/' + (team.gameMaxStarters + team.gameMaxSubstitutes) + '</span></div><div class="sub">' +
+                (team.starterCount >= team.gameMinStarters ? 'đủ người thi đấu theo luật ' + Ui.escapeHtml(team.gameTitle) : '<span class="text-warn">thiếu người — cần ít nhất ' + team.gameMinStarters + ' chính thức</span>') + '</div></div></div>' +
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Chính thức</div><div class="num">' + team.starterCount + '<span class="num-of">/' + team.gameMaxStarters + '</span></div><div class="sub">tối thiểu ' + team.gameMinStarters + ' người</div></div></div>' +
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Dự bị</div><div class="num">' + team.subCount + '<span class="num-of">/' + team.gameMaxSubstitutes + '</span></div><div class="sub">' + (team.gameMaxSubstitutes === 0 ? 'tựa game không có dự bị' : 'tối đa ' + team.gameMaxSubstitutes + ' người') + '</div></div></div>' +
             '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Trạng thái</div><div class="num" style="font-size:1.3rem;margin-top:14px">' + (team.status === 'ACTIVE' ? 'Hoạt động' : 'Giải tán') + '</div></div></div>' +
             '</div>' +
             '<div class="section-title">Thành tích thi đấu</div>' +

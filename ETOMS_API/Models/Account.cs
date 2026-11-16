@@ -37,6 +37,11 @@ public partial class Account
 
     public DateTime? OrganizerRequestedAt { get; set; }
 
+    // UC-43: mong muốn / lý do xin làm Ban tổ chức và email đề xuất cho tài khoản BTC riêng (Admin cấp).
+    public string? OrganizerRequestNote { get; set; }
+
+    public string? OrganizerRequestEmail { get; set; }
+
     public DateTime? EmailVerifiedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }

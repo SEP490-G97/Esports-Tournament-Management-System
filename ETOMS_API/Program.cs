@@ -181,6 +181,8 @@ builder.Services.AddDbContext<EtomsDbContext>((sp, options) => options
 PendingSchema.Detect(mysqlConnectionString);
 
 builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
+builder.Services.AddScoped<IOrganizerRequestService, OrganizerRequestService>();   // UC-43 xin làm BTC -> Admin cấp tài khoản BTC riêng
+builder.Services.AddScoped<OrganizerHubService>();   // trang "Giải của tôi" của Ban tổ chức
 builder.Services.AddScoped<IOneTimeTokenService, OneTimeTokenService>();
 builder.Services.AddScoped<IAccountSecurityService, AccountSecurityService>();
 builder.Services.AddScoped(typeof(ETOMS_API.Repositories.Interface.IGenericRepository<>), typeof(ETOMS_API.Repositories.Impl.GenericRepository<>));
@@ -259,8 +261,12 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
 });
 
 app.UseDefaultFiles();
+// .glb (model 3D rồng trang chủ) không có trong bảng MIME mặc định → thiếu dòng này là 404.
+var staticTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+staticTypes.Mappings[".glb"] = "model/gltf-binary";
 app.UseStaticFiles(new StaticFileOptions
 {
+    ContentTypeProvider = staticTypes,
     // Trang .html không có ?v= như CSS/JS: thiếu Cache-Control thì trình duyệt tự giữ bản cũ một thời gian
     // (người dùng vẫn thấy giao diện trước khi sửa). "no-cache" = vẫn lưu nhưng luôn hỏi lại máy chủ
     // (ETag/Last-Modified) trước khi dùng, nên chỉ tốn một yêu cầu 304 nhẹ khi file không đổi.

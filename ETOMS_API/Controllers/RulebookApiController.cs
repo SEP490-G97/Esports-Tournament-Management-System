@@ -46,4 +46,15 @@ public class RulebookApiController : ApiControllerBase
 
         return FromResult(await _rulebookService.SaveRulebookAsync(tournamentId, request, _currentUser.UserId.Value));
     }
+
+    // POST /api/tournaments/{id}/rulebook/pdf — thể lệ dạng file PDF (≤ 10 MB), chỉ Ban tổ chức của giải.
+    [HttpPost("pdf")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(11 * 1024 * 1024)]
+    public async Task<IActionResult> UploadPdf(int tournamentId, IFormFile? file, [FromServices] IWebHostEnvironment env)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        var webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        return FromResult(await _rulebookService.UploadRulebookPdfAsync(tournamentId, file, _currentUser.UserId!.Value, webRoot));
+    }
 }

@@ -109,6 +109,8 @@ public partial class EtomsDbContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValue("NONE");
             entity.Property(e => e.OrganizerRequestedAt).HasPrecision(0);
+            entity.Property(e => e.OrganizerRequestNote).HasMaxLength(1000);
+            entity.Property(e => e.OrganizerRequestEmail).HasMaxLength(254).IsUnicode(false);
             entity.Property(e => e.PasswordHash)
                 .HasMaxLength(255)
                 .IsUnicode(false);
@@ -971,6 +973,7 @@ public partial class EtomsDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.InviteExpiresAt).HasPrecision(0);
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)

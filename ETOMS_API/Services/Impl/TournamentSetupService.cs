@@ -33,6 +33,68 @@ namespace ETOMS_API.Services.Impl
         // wizard chỉ hỏi những thứ này ở bước 2 — nên bước 1 ghi giá trị tạm hợp lệ, bước 2 ghi đè.
         public async Task<int> CreateStep1GeneralInfoAsync(int organizerAccountId, Step1GeneralInfoDto dto)
         {
+            var v = await ValidateStep1Async(organizerAccountId, dto);
+            // Mốc tạm: mở đăng ký từ ngày mai 1 tuần, khai mạc sau đó 2 ngày (bước 2 sẽ đặt lại).
+            var today = DateTime.UtcNow.Date;
+            var tournament = new Tournament
+            {
+                OrganizerAccountId = organizerAccountId,
+                BannerUrl = string.IsNullOrWhiteSpace(dto.BannerUrl) ? null : dto.BannerUrl.Trim(),
+                Region = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim(),
+                ContactInfo = string.IsNullOrWhiteSpace(dto.ContactInfo) ? null : dto.ContactInfo.Trim(),
+                MaxTeams = v.Format == "HYBRID" ? NextPowerOfTwo(Math.Max(16, v.GroupCount!.Value * 2)) : 16,
+                RegOpenAt = today.AddDays(1),
+                RegCloseAt = today.AddDays(8),
+                StartAt = today.AddDays(10),
+                Status = "DRAFT",
+                RulebookVersion = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+            ApplyStep1(tournament, v, gameChanged: true);
+            _context.Tournaments.Add(tournament);
+            await _context.SaveChangesAsync();
+            return tournament.TournamentId;
+        }
+
+        // Quay lại bước 1 của trình tạo giải: SỬA bản nháp đã tạo (không sinh thêm giải nháp mới).
+        public async Task<bool> UpdateStep1GeneralInfoAsync(int tournamentId, int organizerAccountId, Step1GeneralInfoDto dto)
+        {
+            var tournament = await _context.Tournaments.FindAsync(tournamentId);
+            if (tournament == null || tournament.Status != "DRAFT")
+                throw new ArgumentException("Giải đấu không tồn tại hoặc đã công bố — sửa ở trang Sửa thông tin.");
+            var v = await ValidateStep1Async(tournament.OrganizerAccountId, dto);
+            var gameChanged = tournament.GameId != v.Game.GameId;
+            ApplyStep1(tournament, v, gameChanged);
+            if (v.Format == "HYBRID" && tournament.MaxTeams < v.GroupCount!.Value * 2)
+                tournament.MaxTeams = NextPowerOfTwo(v.GroupCount.Value * 2);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        private sealed record Step1Values(string Name, string Format, Game Game, int? GroupCount, int? AdvancePerGroup,
+            string? Description, bool HasThirdPlace, string OrganizingUnit, int? OrganizationId);
+
+        private static void ApplyStep1(Tournament t, Step1Values v, bool gameChanged)
+        {
+            t.Name = v.Name;
+            t.Description = v.Description;
+            t.OrganizingUnit = v.OrganizingUnit;
+            t.OrganizationId = v.OrganizationId;
+            t.GameId = v.Game.GameId;
+            t.Format = v.Format;
+            t.HasThirdPlaceMatch = v.HasThirdPlace;
+            t.GroupCount = v.GroupCount;
+            t.AdvancePerGroup = v.AdvancePerGroup;
+            if (gameChanged)
+            {
+                // Đội hình theo luật của tựa game mới.
+                t.StarterCount = Math.Max(1, v.Game.MinStarters);
+                t.MaxSubstitutes = Math.Max(0, v.Game.MaxSubstitutes);
+            }
+        }
+
+        private async Task<Step1Values> ValidateStep1Async(int organizerAccountId, Step1GeneralInfoDto dto)
+        {
             var name = (dto.Name ?? "").Trim();
             if (name.Length < 3 || name.Length > 200)
                 throw new ArgumentException("Tên giải đấu phải từ 3 đến 200 ký tự.");
@@ -40,8 +102,6 @@ namespace ETOMS_API.Services.Impl
             var format = (dto.Format ?? "").Trim().ToUpperInvariant();
             if (!Formats.Contains(format))
                 throw new ArgumentException("Thể thức giải đấu không hợp lệ.");
-            if (format == "DOUBLE_ELIMINATION")
-                throw new ArgumentException("Thể thức Loại kép (Double Elimination) chưa hỗ trợ sinh nhánh đấu — vui lòng chọn thể thức khác.");
 
             var game = await _context.Games.FindAsync(dto.GameId);
             if (game == null || game.Status != "ACTIVE")
@@ -63,42 +123,30 @@ namespace ETOMS_API.Services.Impl
             }
 
             var description = (dto.Description ?? "").Trim();
-            var organizingUnit = (dto.OrganizerName ?? "").Trim();
-            if (organizingUnit.Length > 200) throw new ArgumentException("Tên đơn vị tổ chức tối đa 200 ký tự.");
-
-            // Mốc tạm: mở đăng ký từ ngày mai 1 tuần, khai mạc sau đó 2 ngày (bước 2 sẽ đặt lại).
-            var today = DateTime.UtcNow.Date;
-            var tournament = new Tournament
+            // Đơn vị tổ chức GẮN với tài khoản tạo giải, không gõ tay: tên tài khoản, hoặc một đơn vị tổ chức
+            // đã duyệt mà tài khoản là chủ nhiệm / người điều hành giải (Tournament.OrganizationID, v2.2).
+            var identity = await GetOrganizerIdentityAsync(organizerAccountId);
+            string organizingUnit;
+            int? organizationId = null;
+            if (dto.OrganizationId is int orgId)
             {
-                Name = name,
-                Description = description.Length == 0 ? null : description,
-                BannerUrl = string.IsNullOrWhiteSpace(dto.BannerUrl) ? null : dto.BannerUrl.Trim(),
-                OrganizingUnit = organizingUnit.Length == 0 ? null : organizingUnit,
-                Region = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim(),
-                ContactInfo = string.IsNullOrWhiteSpace(dto.ContactInfo) ? null : dto.ContactInfo.Trim(),
-                GameId = game.GameId,
-                OrganizerAccountId = organizerAccountId,
+                var org = identity.Organizations.FirstOrDefault(o => o.OrganizationId == orgId)
+                    ?? throw new ArgumentException("Bạn chỉ chọn được đơn vị tổ chức đã duyệt mà bạn là chủ nhiệm hoặc người điều hành giải.");
+                organizingUnit = org.Name;
+                organizationId = org.OrganizationId;
+            }
+            else
+            {
+                organizingUnit = identity.AccountName;
+            }
+            if (organizingUnit.Length > 200) organizingUnit = organizingUnit[..200];
+            if (description.Length > 4000) throw new ArgumentException("Mô tả giải tối đa 4000 ký tự.");
 
-                Format = format,
-                HasThirdPlaceMatch = format != "ROUND_ROBIN" && dto.HasThirdPlaceMatch,
-                GroupCount = groupCount,
-                AdvancePerGroup = advancePerGroup,
-
-                MaxTeams = format == "HYBRID" ? NextPowerOfTwo(Math.Max(16, groupCount!.Value * 2)) : 16,
-                StarterCount = Math.Max(1, game.MinStarters),
-                MaxSubstitutes = Math.Max(0, game.MaxSubstitutes),
-                RegOpenAt = today.AddDays(1),
-                RegCloseAt = today.AddDays(8),
-                StartAt = today.AddDays(10),
-
-                Status = "DRAFT",
-                RulebookVersion = 1,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Tournaments.Add(tournament);
-            await _context.SaveChangesAsync();
-            return tournament.TournamentId;
+            return new Step1Values(name, format, game, groupCount, advancePerGroup,
+                description.Length == 0 ? null : description,
+                // Tranh hạng Ba chỉ có ở loại trực tiếp / vòng bảng rồi loại trực tiếp (loại kép: hạng Ba là đội thua chung kết nhánh thua).
+                format is "SINGLE_ELIMINATION" or "HYBRID" && dto.HasThirdPlaceMatch,
+                organizingUnit, organizationId);
         }
 
         // TOUR-02: Step 2 Timeline & Quy mô
@@ -246,18 +294,12 @@ namespace ETOMS_API.Services.Impl
             if (dto.EntryFee < 0 || dto.EntryFee > 100_000_000)
                 throw new ArgumentException("Lệ phí tham gia phải từ 0 đến 100.000.000 VNĐ.");
 
-            var bank = (dto.BankName ?? "").Trim();
-            var number = (dto.AccountNumber ?? "").Trim();
-            var holder = (dto.AccountName ?? "").Trim();
-            if (dto.EntryFee > 0 && (bank.Length == 0 || number.Length == 0 || holder.Length == 0))
-                throw new ArgumentException("Giải có lệ phí phải nhập đủ ngân hàng, số tài khoản và chủ tài khoản nhận phí.");
-            if (number.Length > 0 && !System.Text.RegularExpressions.Regex.IsMatch(number, "^[0-9]{6,20}$"))
-                throw new ArgumentException("Số tài khoản chỉ gồm chữ số, dài 6–20 số.");
-            if (bank.Length > 100 || holder.Length > 100)
-                throw new ArgumentException("Tên ngân hàng và chủ tài khoản tối đa 100 ký tự.");
+            // Ngân hàng phải nằm trong danh sách, số tài khoản 6–20 chữ số, chủ tài khoản IN HOA không dấu.
+            var error = ETOMS_API.Utils.BankAccount.TryCompose(dto.EntryFee, dto.BankName, dto.AccountNumber, dto.AccountName, out var bankInfo);
+            if (error is not null) throw new ArgumentException(error);
 
             tournament.EntryFee = dto.EntryFee;
-            tournament.BankAccountInfo = number.Length == 0 ? null : $"{bank} | STK: {number} | ChuTK: {holder}";
+            tournament.BankAccountInfo = bankInfo;
             tournament.PrizeStructure = string.IsNullOrWhiteSpace(dto.PrizePoolDescription) ? null : dto.PrizePoolDescription.Trim();
 
             await _context.SaveChangesAsync();
@@ -279,6 +321,21 @@ namespace ETOMS_API.Services.Impl
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        // Đơn vị tổ chức của tài khoản tạo giải: tên tài khoản + các đơn vị tổ chức đã duyệt (ACTIVE) mà tài khoản
+        // đang là chủ nhiệm (CHAIR) hoặc người điều hành giải (TOURNAMENT_OPERATOR).
+        public async Task<OrganizerIdentityDto> GetOrganizerIdentityAsync(int accountId)
+        {
+            var name = await _context.Accounts.Where(a => a.AccountId == accountId).Select(a => a.FullName).FirstOrDefaultAsync() ?? string.Empty;
+            var orgs = await _context.OrganizationMembers
+                .Where(m => m.AccountId == accountId && m.Status == "ACTIVE"
+                    && (m.Role == "CHAIR" || m.Role == "TOURNAMENT_OPERATOR")
+                    && m.Organization.Status == "ACTIVE")
+                .OrderBy(m => m.Organization.Name)
+                .Select(m => new OrganizerOrganizationOption { OrganizationId = m.OrganizationId, Name = m.Organization.Name })
+                .ToListAsync();
+            return new OrganizerIdentityDto { AccountName = name.Trim(), Organizations = orgs };
         }
 
         public async Task<bool> IsOrganizerOrAdminAsync(int accountId)
