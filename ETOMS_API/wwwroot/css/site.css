@@ -1306,3 +1306,15 @@ textarea.input { min-height: 110px; resize: vertical; }
 .game-chip-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .game-chip-ext { position: absolute; top: 8px; right: 10px; font-size: .75rem; color: var(--muted); }
 .game-chip-link:hover .game-chip-ext { color: var(--primary); }
+
+/* POR-02: bộ lọc danh sách giải */
+.dir-filters { display: grid; gap: 34px 16px; padding: 18px 18px 30px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); align-items: end; }
+.dir-filters .field { margin-bottom: 0; min-width: 0; position: relative; }
+.dir-filters .dir-search { grid-column: 1 / -1; }
+/* Lỗi nằm dưới ô, không đẩy lệch hàng các ô bên cạnh (khoảng hàng 34px chừa sẵn chỗ). */
+.dir-filters .field-error { position: absolute; left: 0; right: 0; top: calc(100% + 4px); font-size: .78rem; line-height: 1.25; }
+.dir-actions { display: flex; gap: 10px; }
+.dir-actions .btn { min-height: calc(.95rem * 1.5 + 26px); white-space: nowrap; }
+@media (min-width: 992px) { .dir-filters .dir-search { grid-column: span 2; } }
+@media (max-width: 575.98px) { .dir-actions { grid-column: 1 / -1; } .dir-actions .btn { flex: 1; } }
+.dir-pager { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; margin-top: 24px; }

@@ -221,6 +221,7 @@ builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
 builder.Services.AddScoped<IBracketViewService, BracketViewService>();
 builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
 builder.Services.AddScoped<ITournamentCancelService, TournamentCancelService>();
+builder.Services.AddScoped<ITournamentDirectoryService, TournamentDirectoryService>();
 
 var app = builder.Build();
 
