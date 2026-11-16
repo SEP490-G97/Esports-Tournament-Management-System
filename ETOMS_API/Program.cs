@@ -135,6 +135,9 @@ builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 
+//Hub
+builder.Services.AddSingleton<INotificationHub, NotificationHub>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -156,6 +159,7 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseHttpsRedirection();
+app.UseMiddleware<ETOMS_API.Utils.RequestAbortedMiddleware>();
 app.UseRouting();
 app.UseSession();
 app.UseCors();
