@@ -5,14 +5,15 @@
     // ---- Cấu hình điểm tích hợp với các module khác -------------------------------------------------
     // Mỗi thao tác trỏ tới trang/chức năng thuộc module riêng. Chưa có trang thì để null → hiện thông báo.
     var TOURNAMENT_URL = function (id) { return '/tournament.html?id=' + id; };
-    var LOGIN_URL = '/login.html';
+    var LOGIN_URL = 'auth/login.html';
     var ACTION_ROUTES = {
         CHECK_IN: function (d) { return '/checkin.html?id=' + d.matchId; },
         SUBMIT_REPORT: null,
         OPEN_DISPUTE: null,
         REFEREE_START: null,
         REFEREE_SCORE: null,
-        MANAGE: null
+        MANAGE: null,
+        MANUAL_CHECKIN: null   // xử lý ngay trên trang bằng hộp thoại (openManualCheckIn)
     };
     var ACTION_LABELS = {
         CHECK_IN: ['Check-in', true],
@@ -20,7 +21,8 @@
         OPEN_DISPUTE: ['Khiếu nại / báo lỗi', false],
         REFEREE_START: ['Bắt đầu trận', true],
         REFEREE_SCORE: ['Nhập tỉ số', true],
-        MANAGE: ['Quản lý trận', false]
+        MANAGE: ['Quản lý trận', false],
+        MANUAL_CHECKIN: ['Check-in thủ công', true]
     };
     var STATUS = {
         PENDING: ['Chờ xác định đội', ''], READY: ['Sẵn sàng', 'info'], LIVE: ['Đang diễn ra', 'live'],
@@ -87,6 +89,13 @@
             var open = d.dispute.status === 'OPEN' || d.dispute.status === 'UNDER_REVIEW';
             h.push('<div class="md-notice danger" role="status"><strong>Trận có tranh chấp</strong> — ' + esc(DISPUTE[d.dispute.status] || d.dispute.status) +
                 (open ? '. Kết quả có thể thay đổi sau phán quyết.' : '.') + '</div>');
+        }
+
+        if (d.noShow) {
+            var names = d.noShow.teamIds.map(function (id) { return id === d.teamA.teamId ? d.teamA.name : id === d.teamB.teamId ? d.teamB.name : '#' + id; });
+            h.push('<div class="md-notice danger" role="status"><strong>Cờ No-show</strong> — ' + esc(names.join(', ')) +
+                (d.noShow.kind === 'DOUBLE' ? ' đều vắng mặt, trận đang chờ BTC quyết định.' : ' vắng mặt, trận đã xử thắng trắng cho đối thủ.') +
+                ' Nếu lý do đi trễ được chấp thuận, dùng “Check-in thủ công” để gỡ cờ và cho thi đấu tiếp.</div>');
         }
 
         h.push('<section class="md-card" aria-label="Thông tin trận"><div class="md-head"><div>' +
@@ -168,10 +177,55 @@
     root.addEventListener('click', function (e) {
         var b = e.target.closest('[data-action]');
         if (!b || !lastData) return;
-        var route = ACTION_ROUTES[b.getAttribute('data-action')];
+        var act = b.getAttribute('data-action');
+        if (act === 'MANUAL_CHECKIN') { openManualCheckIn(lastData); return; }
+        var route = ACTION_ROUTES[act];
         if (typeof route === 'function') { location.href = route(lastData); return; }
         toast('Chức năng này chưa được tích hợp vào trang.');
     });
+
+    // ---- Check-in thủ công (MAT-04): chỉ BTC / admin thấy nút; máy chủ kiểm tra lại quyền ----
+    function openManualCheckIn(d) {
+        var cand = (d.noShow ? d.noShow.teamIds : [d.teamA, d.teamB].filter(function (t) { return t.teamId && !t.checkedIn; }).map(function (t) { return t.teamId; }));
+        var nameOf = function (id) { return id === d.teamA.teamId ? d.teamA.name : id === d.teamB.teamId ? d.teamB.name : '#' + id; };
+        var dlg = document.createElement('dialog');
+        dlg.className = 'md-dialog';
+        dlg.innerHTML = '<form method="dialog" id="mciForm" novalidate><h2>Check-in thủ công</h2>' +
+            '<p class="md-muted">' + (d.noShow ? 'Gỡ cờ No-show và cho đội tiếp tục thi đấu.' : 'Đánh dấu đội đã có mặt.') + ' Lý do sẽ được ghi vào Audit Log.</p>' +
+            '<fieldset class="md-fs"><legend>Đội được check-in</legend>' + cand.map(function (id) {
+                return '<label class="md-check"><input type="checkbox" name="team" value="' + id + '" checked> ' + esc(nameOf(id)) + '</label>';
+            }).join('') + '</fieldset>' +
+            '<label class="md-lbl" for="mciReason">Lý do được chấp thuận <span class="md-muted" id="mciN">0/500</span></label>' +
+            '<textarea id="mciReason" maxlength="500" rows="3" class="md-ta" placeholder="Vd: Đội báo trễ 10 phút do sự cố mạng, đã xác nhận với trọng tài."></textarea>' +
+            '<div class="md-notice danger" id="mciErr" role="alert" hidden></div>' +
+            '<div class="md-actions" style="justify-content:flex-end;margin-top:12px"><button type="button" class="md-btn" id="mciCancel">Hủy</button>' +
+            '<button type="button" class="md-btn primary" id="mciOk">Xác nhận</button></div></form>';
+        document.body.appendChild(dlg);
+        var $ = function (id) { return dlg.querySelector(id); };
+        var close = function () { dlg.close(); dlg.remove(); };
+        $('#mciCancel').onclick = close;
+        dlg.addEventListener('cancel', function () { dlg.remove(); });
+        $('#mciReason').addEventListener('input', function () { $('#mciN').textContent = this.value.length + '/500'; });
+        $('#mciOk').onclick = async function () {
+            var err = $('#mciErr'), btn = this, reason = $('#mciReason').value.trim();
+            var teams = Array.prototype.map.call(dlg.querySelectorAll('input[name=team]:checked'), function (x) { return parseInt(x.value, 10); });
+            err.hidden = true;
+            if (!teams.length) { err.textContent = 'Chọn ít nhất một đội.'; err.hidden = false; return; }
+            if (reason.length < 10) { err.textContent = 'Lý do phải từ 10 ký tự.'; err.hidden = false; return; }
+            btn.disabled = true; btn.textContent = 'Đang xử lý…';
+            try {
+                var r = await Api.post('/api/organizer/matches/' + d.matchId + '/manual-check-in', { teamIds: teams, reason: reason });
+                close();
+                toast(r && r.noShowFlagRemoved ? 'Đã gỡ cờ No-show, trận được tiếp tục.' : 'Đã check-in thủ công.');
+                load(true);
+            } catch (e) {
+                err.textContent = (e && e.message) || 'Không thực hiện được.'; err.hidden = false;
+                btn.disabled = false; btn.textContent = 'Xác nhận';
+            }
+        };
+        dlg.showModal();
+        $('#mciReason').focus();
+    }
 
     function showError(msg, retry) {
         root.hidden = true; stateEl.hidden = false;

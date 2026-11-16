@@ -28,4 +28,18 @@ public class DoubleEliminationResultListener : IMatchResultListener
         if (r.Error != BracketError.None)
             throw new InvalidOperationException($"Không đưa đội đi tiếp được cho trận {matchId}: {r.Error}");
     }
+
+    public async Task OnResultRevertAsync(int matchId, CancellationToken ct)
+    {
+        var format = await _db.Set<Match>().AsNoTracking().Where(m => m.MatchId == matchId)
+            .Join(_db.Set<Tournament>().AsNoTracking(), m => m.TournamentId, t => t.TournamentId, (m, t) => t.Format)
+            .FirstOrDefaultAsync(ct);
+        if (format != "DOUBLE_ELIMINATION") return;
+
+        var e = await _de.RollbackAsync(matchId, ct);
+        if (e == BracketError.DownstreamStarted)
+            throw new ResultRollbackBlockedException("Trận kế tiếp trong nhánh đã bắt đầu nên không thể hoàn tác kết quả này.");
+        if (e != BracketError.None)
+            throw new InvalidOperationException($"Không hoàn tác được nhánh cho trận {matchId}: {e}");
+    }
 }

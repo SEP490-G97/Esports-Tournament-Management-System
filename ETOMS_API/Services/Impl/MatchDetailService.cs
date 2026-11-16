@@ -1,4 +1,5 @@
-﻿using ETOMS_API.DTOs;
+﻿
+using ETOMS_API.DTOs;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Services.Interface;
@@ -126,6 +127,20 @@ public class MatchDetailService : IMatchDetailService
         }
         if (isOrganizer && m.Status != "CANCELLED") actions.Add(MatchActions.Manage);
 
+        // BTC / admin: cờ No-show còn hiệu lực + khả năng check-in thủ công (MAT-04). Chỉ người có quyền mới thấy thông tin này.
+        MatchNoShowView? noShow = null;
+        if (isOrganizer && t.Status != "CANCELLED" && t.Status != "COMPLETED" && m.TeamAid != null && m.TeamBid != null)
+        {
+            var flag = await NoShowFlags.ReadAsync(_db, matchId, m.Status, ct);
+            if (flag.Kind != NoShowKind.None)
+            {
+                noShow = new MatchNoShowView(flag.Kind.ToString().ToUpperInvariant(), flag.TeamIds);
+                actions.Add(MatchActions.ManualCheckIn);
+            }
+            else if (m.Status == "READY" && (m.TeamAcheckedInAt == null || m.TeamBcheckedInAt == null))
+                actions.Add(MatchActions.ManualCheckIn);
+        }
+
         MatchTeamView View(Team? team, int? score, DateTime? checkedAt) => new(
             team?.TeamId, team?.Name, team?.Tag, team?.LogoUrl, score, checkedAt != null,
             team != null && m.WinnerTeamId != null && m.WinnerTeamId == team.TeamId);
@@ -141,7 +156,7 @@ public class MatchDetailService : IMatchDetailService
             games.Select(g => new MatchGameView(g.GameNo, g.ScoreA, g.ScoreB, g.WinnerTeamId)).ToList(),
             evidenceVisible, evidence, room,
             shownDispute == null ? null : new MatchDisputeView(shownDispute.DisputeId, shownDispute.Status, shownDispute.OpenReason),
-            new MatchViewerView(role, relation), actions));
+            new MatchViewerView(role, relation), actions, noShow));
     }
 
     /// <summary>Đặt tên vòng: Double Elimination (UB/LB/GF), vòng bảng, hoặc loại trực tiếp (Tứ kết/Bán kết/Chung kết).</summary>

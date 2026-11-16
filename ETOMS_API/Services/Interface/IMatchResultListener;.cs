@@ -4,5 +4,11 @@
     public interface IMatchResultListener
     {
         Task OnResultAsync(int matchId, CancellationToken ct);
+
+        /// <summary>
+        /// Gọi TRƯỚC khi kết quả của trận bị gỡ (vd BTC gỡ cờ No-show) để hoàn tác bước đã làm ở <see cref="OnResultAsync"/>.
+        /// Ném <see cref="ResultRollbackBlockedException"/> nếu không thể hoàn tác (vd trận kế tiếp đã bắt đầu).
+        /// </summary>
+        Task OnResultRevertAsync(int matchId, CancellationToken ct);
     }
 }

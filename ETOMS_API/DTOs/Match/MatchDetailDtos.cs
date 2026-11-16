@@ -15,6 +15,8 @@ public record MatchRoomView(string? Code, string? Password);
 
 public record MatchDisputeView(int DisputeId, string Status, string OpenReason);
 
+public record MatchNoShowView(string Kind, IReadOnlyList<int> TeamIds);
+
 public record MatchViewerView(string Role, string Relation);
 
 public record MatchTournamentView(int TournamentId, string Name, string Format, string Status, string? StreamUrl);
@@ -47,4 +49,5 @@ public record MatchDetailResponse(
     MatchRoomView? Room,
     MatchDisputeView? Dispute,
     MatchViewerView Viewer,
-    IReadOnlyList<string> Actions);
+    IReadOnlyList<string> Actions,
+    MatchNoShowView? NoShow = null);

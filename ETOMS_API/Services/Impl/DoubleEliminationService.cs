@@ -126,22 +126,26 @@ public class DoubleEliminationService : IDoubleEliminationService
 
     // ------------------------------------------------------------------ chuyển đội
 
-    public async Task<BracketAdvanceResult> AdvanceAsync(int matchId, CancellationToken ct = default)
+    private sealed record Ctx(BracketPlan Plan, PlannedMatch Current, Func<PlannedMatch, Match?> Resolve,
+        int TeamA, int TeamB, int Winner);
+
+    /// <summary>Nạp kế hoạch nhánh và trận hiện tại; trận phải đã có kết quả cuối (VERIFIED / WALKOVER) với đội thắng.</summary>
+    private async Task<(Ctx? Ctx, BracketError Error)> PrepareAsync(int matchId, CancellationToken ct)
     {
         var match = await _db.Set<Match>().FirstOrDefaultAsync(m => m.MatchId == matchId, ct);
-        if (match == null) return new(BracketError.MatchNotFound);
-        if (match.BracketNodeId == null) return new(BracketError.NotInBracket);
+        if (match == null) return (null, BracketError.MatchNotFound);
+        if (match.BracketNodeId == null) return (null, BracketError.NotInBracket);
 
         var nodes = await _db.Set<BracketNode>().Where(n => n.TournamentId == match.TournamentId).ToListAsync(ct);
         nodes = nodes.Where(n => IsBracketLabel(n.GroupLabel)).ToList();
-        if (!nodes.Any(n => n.BracketNodeId == match.BracketNodeId)) return new(BracketError.NotInBracket);
+        if (!nodes.Any(n => n.BracketNodeId == match.BracketNodeId)) return (null, BracketError.NotInBracket);
 
-        if (match.Status != "VERIFIED" && match.Status != "WALKOVER") return new(BracketError.MatchNotFinished);
+        if (match.Status != "VERIFIED" && match.Status != "WALKOVER") return (null, BracketError.MatchNotFinished);
         if (match.WinnerTeamId == null || match.TeamAid == null || match.TeamBid == null)
-            return new(BracketError.MatchNotFinished);
+            return (null, BracketError.MatchNotFinished);
         int teamA = Convert.ToInt32(match.TeamAid), teamB = Convert.ToInt32(match.TeamBid);
         int winner = Convert.ToInt32(match.WinnerTeamId);
-        if (winner != teamA && winner != teamB) return new(BracketError.MatchNotFinished);
+        if (winner != teamA && winner != teamB) return (null, BracketError.MatchNotFinished);
 
         // Khôi phục kế hoạch từ số nút: không tính trận reset thì luôn có đúng 2n-2 trận.
         bool hasReset = nodes.Any(n => n.GroupLabel == LabelGrand && n.RoundNo == 2);
@@ -149,8 +153,8 @@ public class DoubleEliminationService : IDoubleEliminationService
         int teamCount = (nonReset + 2) / 2;
         BracketPlan plan;
         try { plan = DoubleEliminationPlanner.Build(teamCount, hasReset); }
-        catch (ArgumentOutOfRangeException) { return new(BracketError.NotInBracket); }
-        if (plan.Matches.Count != nodes.Count) return new(BracketError.NotInBracket);
+        catch (ArgumentOutOfRangeException) { return (null, BracketError.NotInBracket); }
+        if (plan.Matches.Count != nodes.Count) return (null, BracketError.NotInBracket);
 
         var matches = await _db.Set<Match>().Where(m => m.TournamentId == match.TournamentId).ToListAsync(ct);
         var byNode = matches.Where(m => m.BracketNodeId != null)
@@ -164,23 +168,30 @@ public class DoubleEliminationService : IDoubleEliminationService
         }
 
         var current = plan.Matches.FirstOrDefault(pm => Resolve(pm)?.MatchId == matchId);
-        if (current == null) return new(BracketError.NotInBracket);
+        if (current == null) return (null, BracketError.NotInBracket);
+        return (new Ctx(plan, current, Resolve, teamA, teamB, winner), BracketError.None);
+    }
 
-        var outcome = DoubleEliminationEngine.Advance(plan, current.No, teamA, teamB,
-            winner == teamA ? Slot.A : Slot.B);
+    public async Task<BracketAdvanceResult> AdvanceAsync(int matchId, CancellationToken ct = default)
+    {
+        var (c, error) = await PrepareAsync(matchId, ct);
+        if (c == null) return new(error);
+        var plan = c.Plan;
+        var outcome = DoubleEliminationEngine.Advance(plan, c.Current.No, c.TeamA, c.TeamB,
+            c.Winner == c.TeamA ? Slot.A : Slot.B);
 
         // Kiểm tra trước khi ghi: trận đích phải chưa bắt đầu.
         var targets = new List<(Match Target, Slot Slot, int TeamId)>();
         foreach (var p in outcome.Placements)
         {
-            var target = Resolve(plan.Get(p.MatchNo));
+            var target = c.Resolve(plan.Get(p.MatchNo));
             if (target == null) return new(BracketError.NotInBracket);
             bool isReset = plan.ResetNo == p.MatchNo;
             if (!Editable(target.Status) && !(isReset && target.Status == "CANCELLED"))
                 return new(BracketError.DownstreamStarted);
             targets.Add((target, p.Slot, p.TeamId));
         }
-        Match? resetMatch = plan.ResetNo is int rn ? Resolve(plan.Get(rn)) : null;
+        Match? resetMatch = plan.ResetNo is int rn ? c.Resolve(plan.Get(rn)) : null;
         if (outcome.ResetVoided && resetMatch != null && !Editable(resetMatch.Status) && resetMatch.Status != "CANCELLED")
             return new(BracketError.DownstreamStarted);
 
@@ -202,6 +213,45 @@ public class DoubleEliminationService : IDoubleEliminationService
         var infos = targets.Select(x => new BracketPlacementInfo(x.Target.MatchId, x.Slot.ToString(), x.TeamId)).ToList();
         return new(BracketError.None, new BracketAdvanced(matchId, infos, outcome.EliminatedTeamId,
             outcome.ResetActivated, outcome.ResetVoided, outcome.ChampionTeamId));
+    }
+
+    /// <summary>
+    /// Hoàn tác việc đưa đội đi tiếp của một trận (khi kết quả bị gỡ, vd BTC gỡ cờ No-show). Chỉ khi mọi trận đích chưa bắt đầu.
+    /// Không mở giao dịch riêng để người gọi gộp chung với việc sửa chính trận đó.
+    /// </summary>
+    public async Task<BracketError> RollbackAsync(int matchId, CancellationToken ct = default)
+    {
+        var (c, error) = await PrepareAsync(matchId, ct);
+        if (c == null) return error;
+        var plan = c.Plan;
+        var outcome = DoubleEliminationEngine.Advance(plan, c.Current.No, c.TeamA, c.TeamB,
+            c.Winner == c.TeamA ? Slot.A : Slot.B);
+
+        var targets = new List<(Match Target, Slot Slot, int TeamId, bool IsReset)>();
+        foreach (var p in outcome.Placements)
+        {
+            var target = c.Resolve(plan.Get(p.MatchNo));
+            if (target == null) return BracketError.NotInBracket;
+            bool isReset = plan.ResetNo == p.MatchNo;
+            if (!Editable(target.Status)) return BracketError.DownstreamStarted;
+            targets.Add((target, p.Slot, p.TeamId, isReset));
+        }
+        Match? resetMatch = plan.ResetNo is int rn ? c.Resolve(plan.Get(rn)) : null;
+        if (outcome.ResetVoided && resetMatch != null && !Editable(resetMatch.Status) && resetMatch.Status != "CANCELLED")
+            return BracketError.DownstreamStarted;
+
+        foreach (var (target, slot, teamId, _) in targets)
+        {
+            // Chỉ gỡ ô đang giữ đúng đội đã được đưa xuống
+            if (slot == Slot.A && target.TeamAid == teamId) target.TeamAid = null;
+            if (slot == Slot.B && target.TeamBid == teamId) target.TeamBid = null;
+            if (target.TeamAid == null || target.TeamBid == null) target.Status = "PENDING";
+        }
+        // Reset từng bị hủy vì GF1 đã có kết quả → trở lại chờ
+        if (outcome.ResetVoided && resetMatch != null && resetMatch.Status == "CANCELLED")
+            resetMatch.Status = "PENDING";
+        await _db.SaveChangesAsync(ct);
+        return BracketError.None;
     }
 
     private static bool IsBracketLabel(string? l) => l == LabelUpper || l == LabelLower || l == LabelGrand;

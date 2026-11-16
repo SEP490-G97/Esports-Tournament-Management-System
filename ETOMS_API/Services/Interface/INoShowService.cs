@@ -2,6 +2,10 @@
 
 public record NoShowScanResult(int Scanned, int Walkovers, int DoubleNoShows, IReadOnlyList<int> ListenerFailures);
 
+public class ResultRollbackBlockedException : Exception
+{
+    public ResultRollbackBlockedException(string message) : base(message) { }
+}
 
 /// <summary>
 /// Quét các trận READY đã quá giờ thi đấu mà có đội chưa check-in:
