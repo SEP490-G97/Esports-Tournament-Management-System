@@ -66,16 +66,17 @@
             '  </button>' +
             '  <div class="nav-user-menu" id="nav-user-menu">' +
             (me.role ? '    <span class="nav-user-role">' + Ui.escapeHtml(roleLabel(me.role)) + '</span>' : '') +
-            // Theo PermissionMatrix: đội (TEAM) và đơn đăng ký (REG-01..05) chỉ của tuyển thủ/đội trưởng;
-            // tạo giải (TOUR) và truyền thông (MKT) chỉ của Ban tổ chức.
-            (me.role === 'PLAYER'
-                ? '    <a class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam" href="/team/mine.html">Các đội của tôi</a>' : '') +
+            // Mục RIÊNG từng vai trò (PermissionMatrix) — đầu trang chỉ giữ mục chung. Mỗi việc một lối vào:
+            // "Tạo giải mới" nằm ở trang Giải đấu của tôi; "Đơn của đội" ở Đơn đăng ký của tôi.
             '    <a class="nav-user-menu-item" href="/profile/index.html">Hồ sơ cá nhân</a>' +
             (me.role === 'PLAYER'
-                ? '    <a class="nav-user-menu-item" href="/registration/mine.html">Đơn đăng ký của tôi</a>' : '') +
+                ? '    <a class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam" href="/team/mine.html">Các đội của tôi</a>' +
+                  '    <a class="nav-user-menu-item" href="/registration/mine.html">Đơn đăng ký của tôi</a>' +
+                  '    <a class="nav-user-menu-item" href="/free-agent/index.html">Tìm đội / tìm thành viên</a>' : '') +
             (me.role === 'ORGANIZER'
                 ? '    <a class="nav-user-menu-item" href="/registration/organizer.html">Giải đấu của tôi</a>' +
-                  '    <a class="nav-user-menu-item" href="/tournament-setup/index.html">Tạo giải mới</a>' +
+                  '    <a class="nav-user-menu-item" href="/result/disputes.html">Tranh chấp</a>' +
+                  '    <a class="nav-user-menu-item" href="/organization/index.html?mine=1">Đơn vị tổ chức của tôi</a>' +
                   '    <a class="nav-user-menu-item" href="/marketing/tools.html">Công cụ truyền thông</a>' : '') +
             (me.role === 'ADMIN' ? '    <a class="nav-user-menu-item" href="/admin/index.html">Bảng quản trị</a>' : '') +
             '    <div class="nav-user-menu-sep"></div>' +
@@ -380,11 +381,13 @@
         });
     }
 
+    // Đổi số này mỗi khi sửa partials/*.html để trình duyệt không dùng bản menu cũ đã nhớ.
+    var PARTIAL_VERSION = 'menu-20261116';
     async function injectPartial(url, targetId) {
         var target = document.getElementById(targetId);
         if (!target) return;
         try {
-            var res = await fetch(url);
+            var res = await fetch(url + '?v=' + PARTIAL_VERSION);
             target.innerHTML = await res.text();
         } catch (e) { /* thiếu nav/modal vẫn chạy tiếp được, không chặn trang */ }
     }

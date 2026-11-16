@@ -114,7 +114,7 @@
                 : 'Tải biên lai nếu có. ETOMS chỉ lưu bằng chứng, không thực hiện hoặc xác minh giao dịch.';
             var bankInfo = document.getElementById('payment-bank-info');
             bankInfo.textContent = options.bankAccountInfo || 'Ban tổ chức chưa cung cấp thông tin tài khoản nhận lệ phí.';
-            document.getElementById('payment-amount').value = options.entryFee;
+            document.getElementById('payment-amount').value = Number(options.entryFee).toLocaleString('vi-VN') + ' đ';
             document.getElementById('payment-proof').required = options.requirePaymentProof;
             document.getElementById('payment-proof-required').hidden = !options.requirePaymentProof;
         }
@@ -184,8 +184,6 @@
             body.append('saveAsDraft', isDraft ? 'true' : 'false');
             body.append('acceptRulebook', 'true');
             if (promotionLinkCode) body.append('promotionLinkCode', promotionLinkCode);
-            var amount = document.getElementById('payment-amount').value;
-            if (amount) body.append('declaredAmount', amount);
             if (file && !isDraft) body.append('paymentProof', file);
 
             var button = event.currentTarget.querySelector('[type="submit"]');

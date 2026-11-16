@@ -24,6 +24,14 @@
             actions += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
             if (m.slot === 'SUBSTITUTE' && roster.canAddStarter) {
                 actions += '<button type="button" class="btn btn-ghost btn-sm" data-act="slot-starter" data-target="' + m.accountId + '">Lên chính thức</button>';
+            } else if (m.slot === 'SUBSTITUTE') {
+                // Đã đủ suất chính thức: đổi chỗ với một người chính thức (không cần loại ai).
+                var starters = roster.members.filter(function (x) { return x.slot === 'STARTER' && !x.isCaptain; });
+                if (starters.length) {
+                    actions += '<select class="select select-sm" data-swap-for="' + m.accountId + '" aria-label="Chọn người chính thức để đổi chỗ">' +
+                        starters.map(function (s) { return '<option value="' + s.accountId + '">Đổi với ' + Ui.escapeHtml(s.fullName) + '</option>'; }).join('') +
+                        '</select><button type="button" class="btn btn-ghost btn-sm" data-act="swap" data-target="' + m.accountId + '">Đổi chỗ</button>';
+                }
             }
             if (m.slot === 'STARTER' && roster.canAddSub) {
                 actions += '<button type="button" class="btn btn-ghost btn-sm" data-act="slot-sub" data-target="' + m.accountId + '">Xuống dự bị</button>';
@@ -95,6 +103,11 @@
                 res = await Api.post('/api/teams/' + teamId + '/members/' + targetAccountId + '/slot', { NewSlot: 'STARTER' });
             } else if (act === 'slot-sub') {
                 res = await Api.post('/api/teams/' + teamId + '/members/' + targetAccountId + '/slot', { NewSlot: 'SUBSTITUTE' });
+            } else if (act === 'swap') {
+                var pick = document.querySelector('[data-swap-for="' + targetAccountId + '"]');
+                res = await Api.post('/api/teams/' + teamId + '/members/swap-slot', {
+                    StarterAccountId: parseInt(pick.value, 10), SubstituteAccountId: parseInt(targetAccountId, 10)
+                });
             } else if (act === 'transfer') {
                 if (!(await window.etomsConfirm('Chuyển quyền đội trưởng cho ' + name + '?'))) return;
                 res = await Api.post('/api/teams/' + teamId + '/captain', { NewCaptainAccountId: parseInt(targetAccountId, 10) });

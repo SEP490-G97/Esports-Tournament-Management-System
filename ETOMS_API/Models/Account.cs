@@ -106,7 +106,6 @@ public partial class Account
 
     public virtual ICollection<Tournament> TournamentBracketLockedByAccounts { get; set; } = new List<Tournament>();
 
-    public virtual ICollection<TournamentFollow> TournamentFollows { get; set; } = new List<TournamentFollow>();
 
     public virtual ICollection<Tournament> TournamentOrganizerAccounts { get; set; } = new List<Tournament>();
 

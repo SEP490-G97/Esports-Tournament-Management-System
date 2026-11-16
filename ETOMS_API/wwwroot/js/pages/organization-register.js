@@ -93,6 +93,14 @@
     document.addEventListener('DOMContentLoaded', async function () {
         var me = await Ui.requireAuth();
         if (!me) return;
+        // Đơn vị tổ chức gồm các tài khoản Ban tổ chức — tuyển thủ/Admin không lập đơn vị (máy chủ cũng chặn).
+        if (me.role !== 'ORGANIZER') {
+            var main = document.querySelector('main');
+            main.innerHTML = '<div class="card-etoms mt-4"><div class="empty"><h3>Chỉ tài khoản Ban tổ chức được lập đơn vị</h3>' +
+                '<p>Muốn tổ chức giải, hãy gửi yêu cầu làm Ban tổ chức ở Hồ sơ cá nhân. Admin sẽ cấp tài khoản Ban tổ chức riêng cho bạn.</p>' +
+                '<a class="btn btn-primary mt-2" href="/profile/index.html#organizer-request">Xin làm Ban tổ chức</a></div></div>';
+            return;
+        }
         accountId = Number(me.userId);
         wireDocumentUpload();
         document.getElementById('organization-form').addEventListener('submit', async function (event) {

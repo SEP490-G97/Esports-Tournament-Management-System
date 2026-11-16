@@ -67,7 +67,6 @@ public partial class EtomsDbContext : DbContext
 
     public virtual DbSet<Tournament> Tournaments { get; set; }
 
-    public virtual DbSet<TournamentFollow> TournamentFollows { get; set; }
 
     public virtual DbSet<TournamentSponsor> TournamentSponsors { get; set; }
 
@@ -1101,30 +1100,6 @@ public partial class EtomsDbContext : DbContext
             entity.HasOne(d => d.Organization).WithMany(p => p.Tournaments)
                 .HasForeignKey(d => d.OrganizationId)
                 .HasConstraintName("FK_Tournament_Organization");
-        });
-
-        modelBuilder.Entity<TournamentFollow>(entity =>
-        {
-            entity.ToTable("TournamentFollow");
-
-            entity.HasIndex(e => new { e.AccountId, e.TournamentId }, "UQ_TournamentFollow").IsUnique();
-
-            entity.Property(e => e.TournamentFollowId).HasColumnName("TournamentFollowID");
-            entity.Property(e => e.AccountId).HasColumnName("AccountID");
-            entity.Property(e => e.FollowedAt)
-                .HasPrecision(0)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.TournamentId).HasColumnName("TournamentID");
-
-            entity.HasOne(d => d.Account).WithMany(p => p.TournamentFollows)
-                .HasForeignKey(d => d.AccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_TournamentFollow_Acc");
-
-            entity.HasOne(d => d.Tournament).WithMany(p => p.TournamentFollows)
-                .HasForeignKey(d => d.TournamentId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_TournamentFollow_Tour");
         });
 
         modelBuilder.Entity<TournamentSponsor>(entity =>

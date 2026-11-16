@@ -191,6 +191,7 @@ builder.Services.AddScoped<ETOMS_API.Services.Interface.IProfileService, ETOMS_A
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ETOMS_API.Services.Impl.OrganizationService>();
 builder.Services.AddScoped<ITournamentMarketingService, TournamentMarketingService>();
 builder.Services.AddScoped<IRankingService, RankingService>();
+builder.Services.AddScoped<NewsFeedService>();
 builder.Services.AddScoped<ITournamentRegistrationService, TournamentRegistrationService>();
 builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
 builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();

@@ -17,6 +17,7 @@ namespace ETOMS_API.Services.Interface
         // Quyền tạo giải: chỉ ORGANIZER/ADMIN. STUB TẠM thay module TOUR (Nguyễn Quang Anh) —
         // commit trước chưa kiểm quyền nên Player vẫn tạo được giải, bổ sung lại cho đúng.
         Task<bool> IsOrganizerOrAdminAsync(int accountId);
+        Task<bool> SetBannerAsync(int tournamentId, string bannerUrl);
 
         // Quyền sửa/công bố 1 giải đã có: ADMIN, hoặc đúng người đã tạo giải đó.
         Task<bool?> CanManageAsync(int tournamentId, int accountId);

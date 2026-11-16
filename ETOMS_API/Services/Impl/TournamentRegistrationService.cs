@@ -369,7 +369,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             {
                 RecordKind = "PROOF",
                 FileUrl = storedPaymentProof.RelativePath,
-                DeclaredAmount = declaredAmount,
+                DeclaredAmount = tournament.EntryFee,   // lệ phí do Ban tổ chức đặt, đội không tự khai số tiền
                 IsCurrent = true,
                 RecordedByAccountId = accountId,
                 RecordedAt = now
@@ -603,7 +603,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             RegistrationId = registrationId,
             RecordKind = "PROOF",
             FileUrl = stored.RelativePath,
-            DeclaredAmount = declaredAmount,
+            DeclaredAmount = registration.Tournament.EntryFee,   // lệ phí do Ban tổ chức đặt
             IsCurrent = true,
             RecordedByAccountId = accountId,
             RecordedAt = DateTime.UtcNow

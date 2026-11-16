@@ -165,6 +165,26 @@ namespace ETOMS_API.Controllers
                 "Không lưu được giải đấu: dữ liệu chưa hợp lệ (kiểm tra lại số đội, mốc thời gian, cấu hình vòng bảng).")
         });
 
+        // Ảnh bìa giải: tệp tải lên (file) hoặc liên kết (url, kể cả link trang Google Ảnh). Dùng ở bước 1 trình tạo
+        // giải và trang Sửa thông tin. Giải đã kết thúc/hủy thì không đổi.
+        [HttpPost("{id}/banner")]
+        [RequestSizeLimit(6 * 1024 * 1024)]
+        public async Task<IActionResult> UploadBanner(int id, [FromForm] IFormFile? file, [FromForm] string? url,
+            [FromServices] IWebHostEnvironment env, CancellationToken ct)
+        {
+            var denied = await CheckCanManageAsync(id);
+            if (denied is not null) return denied;
+            var (saved, error) = await ETOMS_API.Utils.BannerImage.SaveAsync(file, url, env, ct);
+            if (saved is null) return BadRequest(new { Message = error });
+            var ok = await _setupService.SetBannerAsync(id, saved);
+            if (!ok)
+            {
+                ETOMS_API.Utils.ImageUploader.Delete(saved, env);
+                return BadRequest(new { Message = "Giải đã kết thúc hoặc đã hủy nên không đổi ảnh bìa." });
+            }
+            return Ok(new { Message = "Đã cập nhật ảnh bìa.", BannerUrl = saved });
+        }
+
         private async Task<IActionResult?> CheckCanManageAsync(int tournamentId)
         {
             if (!_currentUser.IsAuthenticated) return Unauthorized();

@@ -12,6 +12,7 @@ public interface IOrganizationService
     Task<Result<PublicOrganizationResponse>> GetPublicProfileAsync(int organizationId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<PublicOrganizationResponse>>> GetPublicOrganizationsAsync(CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<OrganizationMemberResponse>>> GetMembersAsync(int organizationId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<MyOrganizationResponse>>> GetMyOrganizationsAsync(int accountId, CancellationToken cancellationToken);
     Task<Result<OrganizationMemberResponse>> InviteMemberAsync(int organizationId, InviteOrganizationMemberRequest request, CancellationToken cancellationToken);
     Task<Result<OrganizationMemberResponse>> AcceptInvitationAsync(int organizationId, int memberId, int accountId, CancellationToken cancellationToken);
     Task<Result<OrganizationMemberResponse>> UpdateMemberRoleAsync(int organizationId, int memberId, string role, CancellationToken cancellationToken);

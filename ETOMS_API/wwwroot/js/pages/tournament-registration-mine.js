@@ -62,7 +62,6 @@
             var proof = item.paymentStatus === 'UNPAID' && item.requirePaymentProof && item.entryFee > 0
                 ? '<form class="payment-proof-form" data-registration-id="' + item.registrationId + '">' +
                     '<label>Biên lai lệ phí <input class="input" name="file" type="file" accept=".jpg,.jpeg,.png,.pdf" required /></label>' +
-                    '<label>Số tiền khai báo <input class="input" name="declaredAmount" type="number" min="0" step="0.01" /></label>' +
                     '<button class="btn btn-ghost" type="submit">Tải biên lai</button></form>'
                 : '';
             var withdraw = canWithdraw(item.status)
@@ -122,7 +121,6 @@
                 if (!file) return;
                 var body = new FormData();
                 body.append('file', file);
-                if (form.elements.declaredAmount.value) body.append('declaredAmount', form.elements.declaredAmount.value);
                 var button = form.querySelector('[type="submit"]');
                 button.disabled = true;
                 try {

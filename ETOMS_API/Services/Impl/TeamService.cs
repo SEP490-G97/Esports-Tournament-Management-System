@@ -574,6 +574,34 @@ public class TeamService : ITeamService
         return Result.Success("Đã cập nhật vị trí.");
     }
 
+    // Đổi chỗ một tuyển thủ chính thức với một tuyển thủ dự bị trong cùng một lần — dùng khi đã đủ cả hai loại suất
+    // (trước đây phải loại bớt một người mới đổi được). Đội trưởng không đổi vị trí.
+    public async Task<Result> SwapSlotsAsync(int teamId, int starterAccountId, int substituteAccountId, int captainAccountId)
+    {
+        var team = await _uow.Repository<Team>().GetByIdAsync(teamId);
+        if (team is null) return Result.Failure("Không tìm thấy đội.");
+        if (team.CaptainAccountId != captainAccountId) return Result.Failure("Chỉ đội trưởng được thao tác.");
+        if (await IsRosterLockedAsync(teamId)) return Result.Failure("Đội hình đang bị khóa vì đội có giải đã chốt nhánh hoặc đang thi đấu.");
+        if (starterAccountId == team.CaptainAccountId || substituteAccountId == team.CaptainAccountId)
+            return Result.Failure("Không thể đổi vị trí của đội trưởng.");
+
+        var members = await _uow.Repository<TeamMember>().Query()
+            .Where(x => x.TeamId == teamId && x.Status == "ACTIVE" && (x.AccountId == starterAccountId || x.AccountId == substituteAccountId))
+            .ToListAsync();
+        var starter = members.FirstOrDefault(x => x.AccountId == starterAccountId);
+        var sub = members.FirstOrDefault(x => x.AccountId == substituteAccountId);
+        if (starter is null || sub is null) return Result.Failure("Thành viên không thuộc đội.");
+        if (starter.Slot != "STARTER" || sub.Slot != "SUBSTITUTE")
+            return Result.Failure("Cần chọn một tuyển thủ chính thức và một tuyển thủ dự bị để đổi chỗ.");
+
+        starter.Slot = "SUBSTITUTE";
+        sub.Slot = "STARTER";
+        _uow.Repository<TeamMember>().Update(starter);
+        _uow.Repository<TeamMember>().Update(sub);
+        await _uow.SaveChangesAsync();
+        return Result.Success("Đã đổi chỗ chính thức và dự bị.");
+    }
+
     public async Task<Result> KickMemberAsync(int teamId, int targetAccountId, int captainAccountId)
     {
         var team = await _uow.Repository<Team>().GetByIdAsync(teamId);

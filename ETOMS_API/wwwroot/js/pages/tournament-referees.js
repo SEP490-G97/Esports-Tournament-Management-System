@@ -80,10 +80,12 @@
         document.getElementById('candidate-list').innerHTML = '';
     }
 
-    function renderCandidates(candidates) {
+    function renderCandidates(candidates, q) {
         var box = document.getElementById('candidate-list');
         if (!candidates.length) {
-            box.innerHTML = '<div class="hint">Không tìm thấy tài khoản phù hợp.</div>';
+            box.innerHTML = q
+                ? '<div class="hint">Không tìm thấy trọng tài phù hợp.</div>'
+                : '<div class="hint">Đơn vị đứng tên giải chưa có thành viên vai trò Trọng tài. Chủ nhiệm đơn vị mời tài khoản Ban tổ chức vào đơn vị rồi đổi vai trò thành "Trọng tài" ở trang Quản lý đơn vị.</div>';
             return;
         }
         box.innerHTML = '';
@@ -98,23 +100,23 @@
         });
     }
 
+    // Giải đứng tên đơn vị: danh sách = các Trọng tài của đơn vị (hiện ngay, gõ để lọc).
+    async function loadCandidates(q) {
+        try {
+            renderCandidates(await Api.get(base() + '/referee-candidates?q=' + encodeURIComponent(q || '')), q);
+        } catch (err) {
+            Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+        }
+    }
+
     function wirePicker() {
         var input = document.getElementById('referee-search');
         input.addEventListener('input', function () {
             clearTimeout(searchTimer);
             var q = input.value.trim();
-            if (q.length < 2) {
-                document.getElementById('candidate-list').innerHTML = '';
-                return;
-            }
-            searchTimer = setTimeout(async function () {
-                try {
-                    renderCandidates(await Api.get(base() + '/referee-candidates?q=' + encodeURIComponent(q)));
-                } catch (err) {
-                    Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
-                }
-            }, 250);
+            searchTimer = setTimeout(function () { loadCandidates(q); }, 250);
         });
+        loadCandidates('');
 
         var roundBtn = document.getElementById('assign-round');
         if (roundBtn) roundBtn.addEventListener('click', assignRound);

@@ -132,6 +132,9 @@ namespace ETOMS_API.Services.Impl
                 .Select(p => new
                 {
                     PostId = p.RecruitmentPostId,
+                    // TeamId (tin LFP) để biết mình đã ứng tuyển chưa; GameId để đội trưởng mời đúng đội cùng tựa game (tin LFT).
+                    p.TeamId,
+                    p.GameId,
                     PostType = p.PostType == PostLookingForTeam ? "LFT" : "LFP",
                     p.Title,
                     p.Content,
@@ -298,6 +301,47 @@ namespace ETOMS_API.Services.Impl
             };
 
             _context.TeamMembers.Add(inviteMember);
+            // Báo tuyển thủ được mời: bấm vào là tới trang Lời mời để chấp nhận / từ chối.
+            _context.Notifications.Add(new Notification
+            {
+                AccountId = dto.PlayerAccountId,
+                NotificationType = "SYSTEM",
+                Title = "Lời mời vào đội",
+                Body = $"Đội {team.Name} mời bạn tham gia. Mở trang Lời mời để chấp nhận hoặc từ chối.",
+                LinkUrl = "/team/invites.html",
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // Đơn ứng tuyển đang chờ của tuyển thủ (hiện ở Hồ sơ; trang Tìm đội dùng để ẩn nút "Ứng tuyển" đã nộp).
+        public async Task<List<MyApplicationDto>> GetMyApplicationsAsync(int accountId)
+        {
+            return await _context.TeamMembers.AsNoTracking()
+                .Where(m => m.AccountId == accountId && m.Status == "PENDING" && m.Direction == "APPLIED")
+                .OrderByDescending(m => m.JoinedAt)
+                .Select(m => new MyApplicationDto
+                {
+                    TeamMemberId = m.TeamMemberId,
+                    TeamId = m.TeamId,
+                    TeamName = m.Team.Name,
+                    TeamTag = m.Team.Tag,
+                    GameTitle = m.Team.Game.Title,
+                    SentAt = m.JoinedAt
+                })
+                .ToListAsync();
+        }
+
+        // Rút đơn ứng tuyển đang chờ (chỉ người nộp). Ghi REJECTED như khi đội từ chối, để giữ lịch sử.
+        public async Task<bool> WithdrawApplicationAsync(int accountId, int teamMemberId)
+        {
+            var m = await _context.TeamMembers.FirstOrDefaultAsync(x => x.TeamMemberId == teamMemberId
+                && x.AccountId == accountId && x.Status == "PENDING" && x.Direction == "APPLIED")
+                ?? throw new KeyNotFoundException("Không tìm thấy đơn ứng tuyển đang chờ.");
+            m.Status = "REJECTED";
             await _context.SaveChangesAsync();
             return true;
         }

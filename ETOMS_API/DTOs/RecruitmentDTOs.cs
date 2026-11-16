@@ -80,3 +80,17 @@ namespace ETOMS_API.DTOs.Recruitment
         public string Message { get; set; } = string.Empty;
     }
 }
+
+namespace ETOMS_API.DTOs.Recruitment
+{
+    // Đơn ứng tuyển đang chờ của tuyển thủ (Hồ sơ > Đơn ứng tuyển).
+    public class MyApplicationDto
+    {
+        public int TeamMemberId { get; set; }
+        public int TeamId { get; set; }
+        public string TeamName { get; set; } = string.Empty;
+        public string TeamTag { get; set; } = string.Empty;
+        public string GameTitle { get; set; } = string.Empty;
+        public DateTime? SentAt { get; set; }
+    }
+}

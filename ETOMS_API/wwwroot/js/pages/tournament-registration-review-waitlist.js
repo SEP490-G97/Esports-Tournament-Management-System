@@ -10,7 +10,7 @@
         });
 
         items.forEach(function (item) {
-            var card = root.querySelector('[data-registration-id="' + item.registrationId + '"]');
+            var card = root.querySelector('article[data-registration-id="' + item.registrationId + '"]');
             if (!card) return;
             var message = '';
             if (item.status === 'WAITLISTED') {

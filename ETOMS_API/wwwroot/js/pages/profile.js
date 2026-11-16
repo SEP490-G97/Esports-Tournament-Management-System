@@ -641,6 +641,32 @@
         });
     }
 
+    // Đơn ứng tuyển vào đội đang chờ duyệt (trang Tìm đội) — xem và rút đơn.
+    async function loadApplications() {
+        var box = document.getElementById('my-applications');
+        var list = await Api.get('/api/Recruitment/my-applications') || [];
+        box.innerHTML = list.length ? list.map(function (a) {
+            return '<div class="feature-list-item"><div><div class="item-title"><a href="/team/details.html?id=' + Number(a.teamId) + '">' +
+                Ui.escapeHtml(a.teamName) + ' [' + Ui.escapeHtml(a.teamTag) + ']</a></div>' +
+                '<div class="item-sub">' + Ui.escapeHtml(a.gameTitle) + (a.sentAt ? ' · gửi ' + Ui.escapeHtml(fmtTime(a.sentAt)) : '') + ' · Chờ đội trưởng duyệt</div></div>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-withdraw="' + Number(a.teamMemberId) + '">Rút đơn</button></div>';
+        }).join('') : '<p class="muted-copy">Bạn không có đơn ứng tuyển nào đang chờ. <a href="/free-agent/index.html">Tìm đội</a></p>';
+        box.querySelectorAll('[data-withdraw]').forEach(function (b) {
+            b.addEventListener('click', async function () {
+                if (window.etomsConfirm && !(await window.etomsConfirm('Rút đơn ứng tuyển vào đội này?'))) return;
+                b.disabled = true;
+                try {
+                    var res = await Api.post('/api/Recruitment/applications/' + b.dataset.withdraw + '/withdraw');
+                    Ui.showAlert(document.getElementById('applications-flash'), 'success', res.message || 'Đã rút đơn.');
+                    await loadApplications();
+                } catch (err) {
+                    Ui.showAlert(document.getElementById('applications-flash'), 'danger', err.message);
+                    b.disabled = false;
+                }
+            });
+        });
+    }
+
     async function loadOrganizerRequest() {
         var dto = await Api.get('/api/me/organizer-request');
         renderOrganizerRequest(dto && dto.role ? dto : (dto && dto.data));
@@ -690,15 +716,24 @@
         }
         wireForms();
         wireOrganizerRequest();
-        var sections = [
-            loadProfile,
-            loadGames,
-            loadIdentityDocuments,
-            loadPreferences,
-            loadPublicProfile,
-            loadMatchHistory,
-            loadOrganizerRequest
-        ];
+        // Ban tổ chức / Admin không có đội, không thi đấu: ẩn phần chỉ dành cho tuyển thủ (tên trong game,
+        // minh chứng định danh để thi đấu, hồ sơ thi đấu, lịch sử trận).
+        var isPlayer = me.role === 'PLAYER';
+        if (!isPlayer) {
+            ['profile-game-section', 'profile-public', 'profile-history', 'profile-applications'].forEach(function (id) {
+                var s = document.getElementById(id); if (s) s.hidden = true;
+                var link = document.querySelector('a[href="#' + id + '"]'); if (link) link.hidden = true;
+            });
+            var identityBlock = document.getElementById('identity-form');
+            if (identityBlock) identityBlock.closest('.profile-subsection').hidden = true;
+            var privacyTitle = document.getElementById('profile-privacy-title');
+            if (privacyTitle) privacyTitle.textContent = 'Thông báo';
+            var privacyLink = document.querySelector('a[href="#profile-privacy"]');
+            if (privacyLink) privacyLink.textContent = 'Thông báo';
+        }
+        var sections = isPlayer
+            ? [loadProfile, loadGames, loadIdentityDocuments, loadPreferences, loadPublicProfile, loadMatchHistory, loadOrganizerRequest, loadApplications]
+            : [loadProfile, loadPreferences, loadOrganizerRequest];
         var results = await Promise.allSettled(sections.map(function (load) { return load(); }));
         var failures = results.filter(function (result) { return result.status === 'rejected'; });
         if (failures.length) {

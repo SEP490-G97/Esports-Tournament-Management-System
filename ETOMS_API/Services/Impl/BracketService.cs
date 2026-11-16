@@ -580,7 +580,7 @@ public class BracketService : IBracketService
         var isDefault = string.IsNullOrWhiteSpace(tournament.TieBreakerOrder);
         var order = isDefault
             ? TieBreakerCriteria.DefaultOrder.ToList()
-            : tournament.TieBreakerOrder!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            : GroupStandingCalculator.ParseOrder(tournament.TieBreakerOrder);   // đổi mã tiếng Anh cũ về tên tiếng Việt
 
         return new TieBreakerConfigDto { TournamentId = tournamentId, IsDefault = isDefault, Order = order };
     }

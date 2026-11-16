@@ -40,10 +40,23 @@ public static class GroupStandingCalculator
     // Trận đã xong: có kết quả, hoặc đã hủy (không tính điểm).
     public static bool IsFinished(GroupMatch m) => m.Status is "VERIFIED" or "WALKOVER" or "CANCELLED";
 
+    // Trang duyệt đơn cũ từng lưu mã tiếng Anh (HEAD_TO_HEAD...) vào cùng cột này — đọc vào thì đổi về tên
+    // tiếng Việt để tính hạng đúng thứ tự Ban tổ chức đã chọn (và trang Tiêu chí phân định không hiện tiếng Anh).
+    private static readonly Dictionary<string, string> LegacyCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["HEAD_TO_HEAD"] = HeadToHead,
+        ["GAME_DIFFERENCE"] = GameDifference,
+        ["TOTAL_GAMES_WON"] = GamesWon,
+        ["RANDOM_DRAW"] = DrawLots
+    };
+
     public static List<string> ParseOrder(string? stored)
     {
         if (string.IsNullOrWhiteSpace(stored)) return DefaultOrder.ToList();
-        return stored.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        var order = stored.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(c => LegacyCodes.TryGetValue(c, out var vi) ? vi : c).Distinct().ToList();
+        // Thiếu/lạ tiêu chí (dữ liệu hỏng) thì dùng thứ tự mặc định thay vì tính sai.
+        return order.Count == DefaultOrder.Count && DefaultOrder.All(order.Contains) ? order : DefaultOrder.ToList();
     }
 
     // decidedOrder: thứ tự Ban tổ chức chọn cho những đội đang hòa (mỗi danh sách là một nhóm hòa).

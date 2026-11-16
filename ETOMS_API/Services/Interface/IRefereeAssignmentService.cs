@@ -11,7 +11,7 @@ public interface IRefereeAssignmentService
 
     Task<RefereeBoardDto?> GetBoardAsync(int tournamentId);
 
-    Task<IReadOnlyList<RefereeCandidateDto>> SearchCandidatesAsync(string? keyword);
+    Task<IReadOnlyList<RefereeCandidateDto>> SearchCandidatesAsync(int tournamentId, string? keyword);
 
     Task<Result> AssignRefereeAsync(int tournamentId, int matchId, int? refereeAccountId);
 

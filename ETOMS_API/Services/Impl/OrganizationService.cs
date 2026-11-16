@@ -28,7 +28,8 @@ public sealed class OrganizationService : IOrganizationService
     {
         "CHAIR",
         "TOURNAMENT_OPERATOR",
-        "MARKETING"
+        "MARKETING",
+        "REFEREE"
     };
 
     private readonly IUnitOfWork _unitOfWork;
@@ -83,11 +84,21 @@ public sealed class OrganizationService : IOrganizationService
                 "Loại đơn vị không hợp lệ.");
         }
 
-        var creatorExists = await _unitOfWork.Repository<Account>().Query()
-            .AnyAsync(account => account.AccountId == creatorAccountId, cancellationToken);
-        if (!creatorExists)
+        var creator = await _unitOfWork.Repository<Account>().Query().AsNoTracking()
+            .Where(account => account.AccountId == creatorAccountId)
+            .Select(account => new { account.Role, account.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (creator is null)
         {
             return Result.Failure<OrganizationCreatedResponse>("Không tìm thấy tài khoản đăng ký.", StatusCodes.Status404NotFound);
+        }
+        // Ban tổ chức là một tổ chức gồm các tài khoản Ban tổ chức (Admin cấp riêng). Tuyển thủ muốn tổ chức giải
+        // thì xin làm Ban tổ chức ở Hồ sơ cá nhân trước, không tự lập đơn vị bằng tài khoản tuyển thủ.
+        if (creator.Role != "ORGANIZER" || creator.Status != "ACTIVE")
+        {
+            return Result.Failure<OrganizationCreatedResponse>(
+                "Chỉ tài khoản Ban tổ chức được lập đơn vị tổ chức. Tuyển thủ hãy gửi yêu cầu làm Ban tổ chức ở trang Hồ sơ cá nhân.",
+                StatusCodes.Status403Forbidden);
         }
 
         var organization = new Organization
@@ -384,6 +395,29 @@ public sealed class OrganizationService : IOrganizationService
         return Result.Success<IReadOnlyList<OrganizationMemberResponse>>(members);
     }
 
+    public async Task<Result<IReadOnlyList<MyOrganizationResponse>>> GetMyOrganizationsAsync(int accountId, CancellationToken cancellationToken)
+    {
+        var rows = await _unitOfWork.Repository<OrganizationMember>().Query().AsNoTracking()
+            .Where(member => member.AccountId == accountId && member.Status != "REMOVED")
+            .Select(member => new
+            {
+                member.OrganizationId,
+                member.Organization.Name,
+                OrgStatus = member.Organization.Status,
+                member.OrganizationMemberId,
+                member.Role,
+                member.Status
+            })
+            .ToListAsync(cancellationToken);
+        // Lời mời đang chờ lên đầu để người dùng thấy ngay việc cần làm.
+        IReadOnlyList<MyOrganizationResponse> list = rows
+            .OrderBy(r => r.Status == "INVITED" ? 0 : 1).ThenBy(r => r.Name)
+            .Select(r => new MyOrganizationResponse(r.OrganizationId, r.Name, r.OrgStatus, OrganizationStatusLabel(r.OrgStatus),
+                r.OrganizationMemberId, r.Role, MemberRoleLabel(r.Role), r.Status, MemberStatusLabel(r.Status)))
+            .ToList();
+        return Result.Success(list);
+    }
+
     public async Task<Result<OrganizationMemberResponse>> InviteMemberAsync(
         int organizationId,
         InviteOrganizationMemberRequest request,
@@ -401,22 +435,34 @@ public sealed class OrganizationService : IOrganizationService
         }
 
         var role = request.Role.Trim().ToUpperInvariant();
-        if (!MemberRoles.Contains(role))
+        // Mời chỉ cho vai trò thành viên; chủ nhiệm đổi qua "Bàn giao chủ nhiệm" (một đơn vị một chủ nhiệm).
+        if (!MemberRoles.Contains(role) || role == "CHAIR")
         {
             return Result<OrganizationMemberResponse>.FieldFailure(nameof(request.Role), "Vai trò thành viên không hợp lệ.");
         }
 
+        // Mời theo email (dễ dùng) hoặc mã tài khoản. Thành viên đơn vị phải là tài khoản Ban tổ chức đang hoạt động.
+        var email = (request.Email ?? string.Empty).Trim();
+        if (email.Length == 0 && request.AccountId < 1)
+        {
+            return Result<OrganizationMemberResponse>.FieldFailure(nameof(request.Email), "Nhập email tài khoản Ban tổ chức cần mời.");
+        }
         var account = await _unitOfWork.Repository<Account>().Query()
             .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.AccountId == request.AccountId, cancellationToken);
+            .FirstOrDefaultAsync(item => email.Length > 0 ? item.Email == email : item.AccountId == request.AccountId, cancellationToken);
         if (account is null)
         {
-            return Result.Failure<OrganizationMemberResponse>("Không tìm thấy tài khoản được mời.", StatusCodes.Status404NotFound);
+            return Result<OrganizationMemberResponse>.FieldFailure(nameof(request.Email), "Không tìm thấy tài khoản có email này.");
+        }
+        if (account.Role != "ORGANIZER" || account.Status != "ACTIVE")
+        {
+            return Result<OrganizationMemberResponse>.FieldFailure(nameof(request.Email),
+                "Chỉ mời được tài khoản Ban tổ chức. Người này cần được Admin cấp tài khoản Ban tổ chức trước.");
         }
 
         var existing = await _unitOfWork.Repository<OrganizationMember>().Query()
             .AnyAsync(member => member.OrganizationId == organizationId
-                && member.AccountId == request.AccountId
+                && member.AccountId == account.AccountId
                 && member.Status != "REMOVED", cancellationToken);
         if (existing)
         {
@@ -426,11 +472,23 @@ public sealed class OrganizationService : IOrganizationService
         var member = new OrganizationMember
         {
             OrganizationId = organizationId,
-            AccountId = request.AccountId,
+            AccountId = account.AccountId,
             Role = role,
             Status = "INVITED"
         };
         _unitOfWork.Repository<OrganizationMember>().Add(member);
+        // Báo người được mời: bấm vào là tới đúng đơn vị để Chấp nhận (trước đây không có thông báo nên không ai biết có lời mời).
+        _unitOfWork.Repository<Notification>().Add(new Notification
+        {
+            AccountId = account.AccountId,
+            NotificationType = "SYSTEM",
+            Title = "Lời mời vào đơn vị tổ chức",
+            Body = $"Bạn được mời vào đơn vị \"{organization.Name}\" với vai trò {MemberRoleLabel(role)}. Mở đơn vị để chấp nhận lời mời.",
+            LinkUrl = "/organization/details.html?id=" + organizationId,
+            Channel = "IN_APP",
+            IsRead = false,
+            SentAt = DateTime.UtcNow
+        });
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(new OrganizationMemberResponse(
@@ -493,9 +551,9 @@ public sealed class OrganizationService : IOrganizationService
         CancellationToken cancellationToken)
     {
         var normalizedRole = role.Trim().ToUpperInvariant();
-        if (normalizedRole is not ("TOURNAMENT_OPERATOR" or "MARKETING"))
+        if (normalizedRole is not ("TOURNAMENT_OPERATOR" or "MARKETING" or "REFEREE"))
         {
-            return Result<OrganizationMemberResponse>.FieldFailure(nameof(role), "Vai trò mới chỉ được là TOURNAMENT_OPERATOR hoặc MARKETING.");
+            return Result<OrganizationMemberResponse>.FieldFailure(nameof(role), "Vai trò mới chỉ được là Điều hành giải, Truyền thông hoặc Trọng tài.");
         }
 
         var member = await _unitOfWork.Repository<OrganizationMember>().Query()
@@ -742,6 +800,7 @@ public sealed class OrganizationService : IOrganizationService
         "CHAIR" => "Chủ nhiệm đơn vị",
         "TOURNAMENT_OPERATOR" => "Điều hành giải",
         "MARKETING" => "Truyền thông",
+        "REFEREE" => "Trọng tài",
         _ => "Không xác định"
     };
 

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=dragon-20261116" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -34,14 +34,7 @@
                     <div class="eyebrow">Nền tảng quản lý giải đấu thể thao điện tử</div>
                     <h1 class="hero-title">Tổ chức &amp; chinh phục <span class="grad">giải đấu E-Sports</span> của bạn</h1>
                     <p>Đăng ký đội, vận hành nhánh đấu, báo cáo kết quả minh bạch và theo dõi bảng xếp hạng — tất cả trong một nền tảng duy nhất.</p>
-                    <div class="btn-row home-hero-actions">
-                        <a class="btn btn-primary btn-lg" href="/team/index.html">Xem đội tuyển</a>
-                        <a class="btn btn-ghost btn-lg" href="/team/create.html" data-hide-roles="ORGANIZER ADMIN">Tạo đội ngay</a>
-                        <a class="btn btn-ghost btn-lg" href="/registration/index.html" data-hide-roles="ORGANIZER ADMIN">Đăng ký tham gia giải</a>
-                        <a class="btn btn-ghost btn-lg" href="/tournament-setup/index.html" data-hide-roles="GUEST PLAYER ADMIN">Tạo giải mới</a>
-                        <a class="btn btn-ghost btn-lg" href="/registration/organizer.html" data-hide-roles="GUEST PLAYER ADMIN">Giải đấu của tôi</a>
-                        <a class="btn btn-ghost btn-lg" href="/rankings/index.html">Bảng xếp hạng</a>
-                    </div>
+                    <!-- Mục 8 (17/11): bỏ hàng nút ở khung đầu — mọi lối vào đã có trên thanh menu và menu tài khoản. -->
                 </div>
                 <div class="col-12 col-lg-5">
                     <div class="row g-3" id="hero-stats">
@@ -75,7 +68,7 @@
                 <div><div class="eyebrow">Đang diễn ra &amp; sắp tới</div><h2>Giải đấu nổi bật</h2></div>
                 <div class="d-flex flex-wrap gap-2">
                     <a class="btn btn-ghost" href="/tournament/index.html">Xem tất cả giải</a>
-                    <a class="btn btn-ghost" href="/registration/index.html" data-hide-roles="ORGANIZER ADMIN">Trung tâm đăng ký</a>
+                    <a class="btn btn-ghost" href="/tournament/index.html?state=REGISTRATION" data-hide-roles="ORGANIZER ADMIN">Giải đang mở đăng ký</a>
                 </div>
             </div>
             <div id="featured-list"></div>
@@ -138,8 +131,8 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=crop-20261115"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=rules-20261116"></script>
-    <script src="/js/pages/home.js?v=dragon-20261116d" defer></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/home.js?v=feat-20261117" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=de-20261116" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -104,6 +104,11 @@
                         <textarea id="tDesc" class="input" rows="3" placeholder="Giới thiệu về quy mô, giải thưởng, thể thức..."></textarea>
                     </div>
 
+                    <div class="field mt-3">
+                        <label>Ảnh bìa giải</label>
+                        <div id="bannerRoot"></div>
+                    </div>
+
                     <div class="btn-row">
                         <button type="submit" class="btn btn-primary">Lưu &amp; sang bước 2 ➔</button>
                     </div>
@@ -115,7 +120,7 @@
         <div id="panelStep2" class="card-etoms" style="display: none;">
             <div class="body">
                 <h3 class="wizard-title">Bước 2: Cài đặt thời gian &amp; số đội</h3>
-                <p class="text-gold text-small mb-4">Đang thiết lập cho giải đấu ID: <strong id="lblTournamentId">--</strong></p>
+                <p class="muted-copy mb-4">Giải: <strong id="lblTournamentId">--</strong></p>
 
                 <form id="step2Form">
                     <div class="form-grid">
@@ -255,9 +260,10 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=crop-20261115"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=rules-20261116"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
     <script src="/js/rules-editor.js?v=rules-20261116"></script>
     <script src="/js/bank-account.js?v=bank-20261116"></script>
-    <script src="/js/pages/tournament-setup.js?v=de-20261116"></script>
+    <script src="/js/banner-picker.js?v=banner-20261117"></script>
+    <script src="/js/pages/tournament-setup.js?v=banner-20261117"></script>
 </body>
 </html>

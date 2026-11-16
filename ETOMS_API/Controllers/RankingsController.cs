@@ -23,6 +23,11 @@ public sealed class RankingsController : ApiControllerBase
         {
             return BadRequest(new { message = "Bộ lọc tựa game và mùa giải phải là số dương." });
         }
+        // Điểm thành tích chỉ so được trong cùng một tựa game — không trả bảng trộn nhiều game.
+        if (gameId is null)
+        {
+            return BadRequest(new { message = "Vui lòng chọn tựa game để xem bảng xếp hạng." });
+        }
 
         return Ok(new
         {

@@ -133,10 +133,18 @@
         el('advance-field').hidden = format !== 'HYBRID';
         el('third-field').hidden = !(format === 'SINGLE_ELIMINATION' || format === 'HYBRID');
         if (el('third-field').hidden) el('HasThirdPlaceMatch').checked = false;
-        var url = el('BannerUrl').value.trim();
-        var img = el('banner-preview');
-        img.hidden = !url;
-        if (url && img.getAttribute('src') !== url) img.src = url;
+    }
+
+    // Ảnh bìa (mục 22): tải tệp hoặc dán link bất kỳ, lưu ngay. Cập nhật cả ô ẩn + giá trị gốc để nút
+    // "Lưu thay đổi" sau đó không coi là đổi và không ghi đè lại ảnh cũ.
+    var bannerPicker = null;
+    function mountBanner(b) {
+        if (bannerPicker) { bannerPicker.show(b.values.bannerUrl); return; }
+        bannerPicker = BannerPicker.mount(el('bannerRoot'), {
+            tournamentId: function () { return tournamentId; },
+            current: b.values.bannerUrl,
+            onSaved: function (url) { el('BannerUrl').value = url; if (board) board.values.bannerUrl = url; }
+        });
     }
 
     function render(b) {
@@ -149,6 +157,7 @@
         fill(b);
         applyLocks(b);
         syncVisibility();
+        mountBanner(b);
         mountRules();
     }
 
@@ -198,7 +207,6 @@
     function wire() {
         var form = el('edit-form');
         ['Format', 'IsOnline'].forEach(function (id) { el(id).addEventListener('change', syncVisibility); });
-        el('BannerUrl').addEventListener('change', syncVisibility);
         wireBank();
         DATES.forEach(function (f) {
             var input = el(f);

@@ -173,6 +173,14 @@ public class TeamsApiController : ApiControllerBase
         return FromResult(await _teamService.RevokeInviteAsync(id, _currentUser.UserId!.Value));
     }
 
+    // POST /api/teams/{id}/members/swap-slot — đổi chỗ một chính thức với một dự bị (khi đã đủ suất cả hai loại).
+    [HttpPost("{id:int}/members/swap-slot")]
+    public async Task<IActionResult> SwapSlots(int id, [FromBody] SwapSlotRequest body)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.SwapSlotsAsync(id, body.StarterAccountId, body.SubstituteAccountId, _currentUser.UserId!.Value));
+    }
+
     // POST /api/teams/{id}/members/{targetAccountId}/slot — đổi chính thức/dự bị.
     [HttpPost("{id:int}/members/{targetAccountId:int}/slot")]
     public async Task<IActionResult> ChangeSlot(int id, int targetAccountId, [FromBody] ChangeSlotRequest body)
@@ -232,6 +240,7 @@ public class TeamsApiController : ApiControllerBase
 
 // Body nhỏ cho 2 action không có DTO sẵn ở tầng Application (vì MVC truyền thẳng qua route/form).
 public class ChangeSlotRequest { public string NewSlot { get; set; } = string.Empty; }
+public class SwapSlotRequest { public int StarterAccountId { get; set; } public int SubstituteAccountId { get; set; } }
 public class TransferCaptainRequest { public int NewCaptainAccountId { get; set; } }
 
 

@@ -123,22 +123,20 @@ namespace ETOMS_API.Services.Impl
             }
 
             var description = (dto.Description ?? "").Trim();
-            // Đơn vị tổ chức GẮN với tài khoản tạo giải, không gõ tay: tên tài khoản, hoặc một đơn vị tổ chức
-            // đã duyệt mà tài khoản là chủ nhiệm / người điều hành giải (Tournament.OrganizationID, v2.2).
+            // Hướng 1 (nhóm chốt 17/11): Ban tổ chức là một TỔ CHỨC — giải luôn đứng tên một đơn vị tổ chức đã duyệt mà
+            // tài khoản là Chủ nhiệm hoặc Điều hành giải (Tournament.OrganizationID). Tài khoản chưa thuộc đơn vị nào
+            // thì phải lập đơn vị (chờ Admin duyệt) hoặc được một đơn vị mời vào trước. Không gõ tay tên đơn vị.
             var identity = await GetOrganizerIdentityAsync(organizerAccountId);
-            string organizingUnit;
-            int? organizationId = null;
-            if (dto.OrganizationId is int orgId)
-            {
-                var org = identity.Organizations.FirstOrDefault(o => o.OrganizationId == orgId)
-                    ?? throw new ArgumentException("Bạn chỉ chọn được đơn vị tổ chức đã duyệt mà bạn là chủ nhiệm hoặc người điều hành giải.");
-                organizingUnit = org.Name;
-                organizationId = org.OrganizationId;
-            }
-            else
-            {
-                organizingUnit = identity.AccountName;
-            }
+            if (identity.Organizations.Count == 0)
+                throw new ArgumentException("Bạn chưa thuộc đơn vị tổ chức nào đã được duyệt (với vai trò Chủ nhiệm hoặc Điều hành giải). Hãy lập đơn vị ở trang Tổ chức hoặc nhờ chủ nhiệm một đơn vị mời bạn.");
+            var org = dto.OrganizationId is int orgId
+                ? identity.Organizations.FirstOrDefault(o => o.OrganizationId == orgId)
+                  ?? throw new ArgumentException("Bạn chỉ chọn được đơn vị tổ chức đã duyệt mà bạn là chủ nhiệm hoặc người điều hành giải.")
+                : identity.Organizations.Count == 1
+                    ? identity.Organizations[0]
+                    : throw new ArgumentException("Hãy chọn đơn vị tổ chức đứng tên giải.");
+            string organizingUnit = org.Name;
+            int? organizationId = org.OrganizationId;
             if (organizingUnit.Length > 200) organizingUnit = organizingUnit[..200];
             if (description.Length > 4000) throw new ArgumentException("Mô tả giải tối đa 4000 ký tự.");
 
@@ -163,12 +161,8 @@ namespace ETOMS_API.Services.Impl
 
             if (close <= DateTime.UtcNow)
                 throw new ArgumentException("Thời gian đóng đăng ký phải ở tương lai.");
-            if (open >= close)
-                throw new ArgumentException("Thời gian mở đăng ký phải trước thời gian đóng đăng ký.");
-            if (close > start)
-                throw new ArgumentException("Thời gian đóng đăng ký phải trước hoặc bằng ngày bắt đầu thi đấu.");
-            if (start >= end)
-                throw new ArgumentException("Ngày bắt đầu thi đấu phải trước ngày kết thúc.");
+            if (ETOMS_API.Utils.TournamentTimeline.Check(open, close, start, end) is { } bad)
+                throw new ArgumentException(bad.Message);
 
             if (dto.MaxTeams < 4 || dto.MaxTeams > 128 || !IsPowerOfTwo(dto.MaxTeams))
                 throw new ArgumentException("Số đội tối đa phải là lũy thừa của 2, từ 4 đến 128 (4, 8, 16, 32, 64, 128).");
@@ -336,6 +330,15 @@ namespace ETOMS_API.Services.Impl
                 .Select(m => new OrganizerOrganizationOption { OrganizationId = m.OrganizationId, Name = m.Organization.Name })
                 .ToListAsync();
             return new OrganizerIdentityDto { AccountName = name.Trim(), Organizations = orgs };
+        }
+
+        public async Task<bool> SetBannerAsync(int tournamentId, string bannerUrl)
+        {
+            var t = await _context.Tournaments.FindAsync(tournamentId);
+            if (t is null || t.Status is "COMPLETED" or "CANCELLED") return false;
+            t.BannerUrl = bannerUrl;
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> IsOrganizerOrAdminAsync(int accountId)

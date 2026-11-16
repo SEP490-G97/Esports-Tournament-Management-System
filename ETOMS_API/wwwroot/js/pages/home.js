@@ -97,32 +97,28 @@
 
     // Nút dưới thẻ giải: tuyển thủ thấy "Đăng ký cho đội" khi giải đang mở đăng ký; Ban tổ chức của
     // CHÍNH giải đó thấy "Quản lý đăng ký" (đang mở đăng ký) hoặc "Quản lý giải" (đã đóng/đang diễn ra).
-    function featActions(t, isOrganizer) {
-        var buttons = '';
-        if (t.registrationOpen)
-            buttons += '<a class="btn btn-primary btn-sm" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>';
-        if (isOrganizer)
-            buttons += t.registrationOpen
-                ? '<a class="btn btn-ghost btn-sm" href="/registration/review.html?tournamentId=' + Number(t.tournamentId) + '">Quản lý đăng ký</a>'
-                : '<a class="btn btn-ghost btn-sm" href="/tournament/manage.html?id=' + Number(t.tournamentId) + '">Quản lý giải</a>';
+    // Chỉ nút cho người tham gia (đăng ký cho đội). Ban tổ chức quản lý giải ở "Giải đấu của tôi", không đặt ở trang chủ.
+    function featActions(t) {
+        var buttons = t.registrationOpen
+            ? '<a class="btn btn-primary btn-sm" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>'
+            : '';
         // Luôn có hàng nút (kể cả rỗng) với chiều cao cố định để mọi thẻ trong hàng cao bằng nhau.
         return '<div class="btn-row feat-actions">' + buttons + '</div>';
     }
 
-    function renderFeatured(list, organizedIds) {
+    // Một hàng 4 giải, bấm ‹ › hai bên để trượt (vuốt được trên điện thoại).
+    function renderFeatured(list) {
         var root = document.getElementById('featured-list');
         if (!list || !list.length) {
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có giải đấu nào</h3><p>Các giải đã công bố sẽ hiển thị tại đây.</p></div></div>';
             return;
         }
-        organizedIds = organizedIds || {};
-        var html = '<div class="row g-4">';
+        var html = '<div class="feat-carousel"><button type="button" class="feat-nav prev" aria-label="Giải trước">‹</button>' +
+            '<div class="feat-track" tabindex="0" aria-label="Giải đấu nổi bật">';
         list.forEach(function (t) {
             var pct = t.maxTeams === 0 ? 0 : Math.floor(t.teams * 100 / t.maxTeams);
             html +=
-                // Cột flex: thẻ giãn theo chiều cao, hàng nút nằm TRONG cột (trước đây thẻ h-100 + nút ở dưới
-                // làm nút tràn đè lên thẻ của hàng sau).
-                '<div class="col-12 col-md-6 col-lg-4 d-flex flex-column">' +
+                '<div class="feat-slide d-flex flex-column">' +
                 '<a class="feat-card d-block flex-grow-1" href="/bracket/view.html?id=' + t.tournamentId + '" style="color:inherit">' +
                 '<div class="feat-cover" style="background-image:linear-gradient(180deg, rgba(10,14,23,.2), rgba(10,14,23,.8)), url(\'' + Ui.escapeHtml(t.imageUrl) + '\')">' +
                 '<span class="badge ' + Ui.escapeHtml(t.statusClass) + '">' + Ui.escapeHtml(t.status) + '</span>' +
@@ -135,11 +131,23 @@
                 '</div>' +
                 '<div class="feat-bar"><span style="width:' + pct + '%"></span></div>' +
                 '</div></a>' +
-                featActions(t, organizedIds[t.tournamentId]) +
+                featActions(t) +
                 '</div>';
         });
-        html += '</div>';
+        html += '</div><button type="button" class="feat-nav next" aria-label="Giải sau">›</button></div>';
         root.innerHTML = html;
+
+        var track = root.querySelector('.feat-track');
+        var prev = root.querySelector('.feat-nav.prev'), next = root.querySelector('.feat-nav.next');
+        function sync() {
+            prev.disabled = track.scrollLeft <= 2;
+            next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+        }
+        prev.addEventListener('click', function () { track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' }); });
+        next.addEventListener('click', function () { track.scrollBy({ left: track.clientWidth, behavior: 'smooth' }); });
+        track.addEventListener('scroll', sync, { passive: true });
+        window.addEventListener('resize', sync);
+        sync();
     }
 
     function renderTeams(list) {
@@ -252,33 +260,49 @@
         band.hidden = false;
     }
 
+    // Tin mới nhất (ETOMS + báo, /api/news). Bấm tin báo mở bài gốc ở tab mới; tin ETOMS mở trang Tin tức.
     function renderNews(list) {
         var root = document.getElementById('news-root');
         if (!list || !list.length) {
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có tin tức nào</h3></div></div>';
             return;
         }
+        var esc = Ui.escapeHtml;
+        function href(n) { return n.isInternal ? n.url : Ui.safeUrl(n.url); }
+        function target(n) { return n.isInternal ? '' : ' target="_blank" rel="noopener noreferrer nofollow"'; }
+        function cover(n, i) {
+            var img = Ui.safeUrl(n.imageUrl) || NEWS_IMAGES[i % NEWS_IMAGES.length];
+            return esc(img).replace(/'/g, '%27');
+        }
         var lead = list[0];
-        var rest = list.slice(1);
+        var rest = list.slice(1, 5);
 
         var leadHtml =
-            '<div class="news-lead"><div class="news-cover" style="background-image:linear-gradient(180deg, rgba(10,14,23,.15), rgba(10,14,23,.75)), url(\'' + NEWS_IMAGES[0] + '\')"><span class="news-cat">Tin tức</span></div>' +
+            '<a class="news-lead" href="' + esc(href(lead) || '/news/index.html') + '"' + target(lead) + ' style="color:inherit">' +
+            '<div class="news-cover" style="background-image:linear-gradient(180deg, rgba(10,14,23,.15), rgba(10,14,23,.75)), url(\'' + cover(lead, 0) + '\')"><span class="news-cat">' + esc(lead.sourceName) + '</span></div>' +
             '<div class="news-lead-body">' +
             (lead.publishedAt ? '<div class="news-meta">' + fmtDate(lead.publishedAt) + '</div>' : '') +
-            '<h3>' + Ui.escapeHtml(lead.title) + '</h3>' +
-            '<p>' + Ui.escapeHtml(lead.excerpt) + '</p>' +
-            '</div></div>';
+            '<h3>' + esc(lead.title) + '</h3>' +
+            (lead.summary ? '<p>' + esc(lead.summary) + '</p>' : '') +
+            '</div></a>';
 
         var listHtml = '<div class="news-list">';
         rest.forEach(function (n, i) {
-            var img = NEWS_IMAGES[(i + 1) % NEWS_IMAGES.length];
             listHtml +=
-                '<div class="news-item"><span class="news-thumb" style="background-image:url(\'' + img + '\');background-size:cover;background-position:center;color:transparent"></span>' +
-                '<div><div class="news-cat-sm">Tin tức</div><h4>' + Ui.escapeHtml(n.title) + '</h4></div></div>';
+                '<a class="news-item" href="' + esc(href(n) || '/news/index.html') + '"' + target(n) + ' style="color:inherit">' +
+                '<span class="news-thumb" style="background-image:url(\'' + cover(n, i + 1) + '\');background-size:cover;background-position:center;color:transparent"></span>' +
+                '<div><div class="news-cat-sm">' + esc(n.sourceName) + '</div><h4>' + esc(n.title) + '</h4></div></a>';
         });
-        listHtml += '</div>';
+        listHtml += '<a class="btn btn-ghost btn-sm mt-2" href="/news/index.html">Xem tất cả tin tức →</a></div>';
 
         root.innerHTML = '<div class="news-grid">' + leadHtml + listHtml + '</div>';
+    }
+
+    async function loadNews() {
+        try {
+            var res = await Api.get('/api/news?pageSize=5');
+            renderNews(res.items || []);
+        } catch (e) { renderNews([]); }
     }
 
     function wireSubscribeForm() {
@@ -313,25 +337,17 @@
             setStat('stat-players', summary.stats.players);
             setStat('stat-games', summary.stats.games);
 
-            // "Quản lý đăng ký" chỉ nên hiện cho đúng Ban tổ chức của giải đó — hỏi riêng
-            // (không gộp vào /api/home/summary, vì API đó dùng chung 1 cache 30s cho mọi người xem).
-            var organizedIds = {};
-            try {
-                var mine = await Api.get('/api/marketing/mine/tournaments');
-                (mine.data || mine || []).forEach(function (t) { organizedIds[t.tournamentId] = true; });
-            } catch (e) { /* chưa đăng nhập hoặc không phải Ban tổ chức — không hiện nút nào cả */ }
-
-            renderFeatured(summary.featured, organizedIds);
+            renderFeatured(summary.featured);
             renderTeams(summary.teams);
             renderGames(summary.games);
-            renderNews(summary.news);
+            loadNews();   // không chờ: tin báo lấy từ nguồn ngoài, chậm cũng không giữ trang chủ
             renderSponsors(summary.sponsors);
             renderLive(summary.liveNow);
         } catch (e) {
             renderFeatured([]);
             renderTeams([]);
             renderGames([]);
-            renderNews([]);
+            loadNews();
         }
         wireReveal();
         animateCounters();

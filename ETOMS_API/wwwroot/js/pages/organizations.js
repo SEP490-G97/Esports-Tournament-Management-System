@@ -69,7 +69,7 @@
             });
             return '<article class="feature-card" data-review-id="' + Number(item.organizationId) + '">' +
                 '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h3>' + Ui.escapeHtml(item.name) + '</h3><div class="muted-copy">' + Ui.escapeHtml(organizationTypeLabel(item.organizationType)) + ' · gửi ' + Ui.escapeHtml(new Date(item.createdAt).toLocaleString('vi-VN')) + '</div></div><span class="badge badge-gold">' + Ui.escapeHtml(item.statusLabel) + '</span></div>' +
-                '<div class="feature-list mt-3">' + checklist + '</div><div class="review-documents mt-3">' + docs + '</div><p class="field-hint">Chỉ xem được tên và loại giấy tờ trong bản thử nghiệm; không thể mở hoặc kiểm tra nội dung tệp.</p>' +
+                '<div class="feature-list mt-3">' + checklist + '</div><div class="review-documents mt-3">' + docs + '</div>' +
                 '<div class="field mt-3"><label for="review-reason-' + Number(item.organizationId) + '">Lý do từ chối</label><input id="review-reason-' + Number(item.organizationId) + '" class="input review-reason" maxlength="1000" placeholder="Bắt buộc nếu từ chối hồ sơ" /></div>' +
                 '<div class="btn-row"><button type="button" class="btn btn-primary" data-review-decision="APPROVE" data-reviewer="' + reviewerId + '"' + (missingRequiredDocument ? ' disabled title="Cần đủ giấy tờ bắt buộc mới có thể duyệt."' : '') + '>Duyệt</button><button type="button" class="btn btn-ghost" data-review-decision="REJECT" data-reviewer="' + reviewerId + '">Từ chối</button></div><div class="review-flash mt-3"></div>' +
                 '</article>';
@@ -108,6 +108,38 @@
         applyOrganizationFilters();
     }
 
+    // "Đơn vị của tôi" (Ban tổ chức): đơn vị đang tham gia, đơn vị chờ duyệt, lời mời chờ chấp nhận.
+    async function loadMine() {
+        var section = document.getElementById('my-orgs');
+        var root = document.getElementById('my-orgs-list');
+        section.hidden = false;
+        var response = await Api.get('/api/organizations/mine');
+        var items = response.data || [];
+        root.innerHTML = items.length ? items.map(function (o) {
+            var invited = o.memberStatus === 'INVITED';
+            var action = invited
+                ? '<button type="button" class="btn btn-primary btn-sm" data-accept-org="' + Number(o.organizationId) + '" data-member="' + Number(o.organizationMemberId) + '">Chấp nhận lời mời</button>'
+                : '<a class="btn btn-ghost btn-sm" href="/organization/details.html?id=' + Number(o.organizationId) + '">' + (o.role === 'CHAIR' ? 'Quản lý đơn vị' : 'Xem đơn vị') + '</a>';
+            return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(o.name) + '</div>' +
+                '<div class="item-sub">' + Ui.escapeHtml(o.roleLabel) + ' · ' + Ui.escapeHtml(invited ? 'Được mời, chưa chấp nhận' : o.memberStatusLabel) +
+                ' · Đơn vị: ' + Ui.escapeHtml(o.statusLabel) + '</div></div>' + action + '</div>';
+        }).join('') : '<div class="card-etoms"><div class="empty"><p>Bạn chưa thuộc đơn vị nào. Bấm "Đăng ký đơn vị" để lập mới, hoặc nhờ chủ nhiệm một đơn vị mời bạn bằng email tài khoản này.</p></div></div>';
+        root.querySelectorAll('[data-accept-org]').forEach(function (button) {
+            button.addEventListener('click', async function () {
+                button.disabled = true;
+                try {
+                    var res = await Api.post('/api/organizations/' + button.dataset.acceptOrg + '/members/' + button.dataset.member + '/accept');
+                    Ui.showAlert(flash, 'success', res.message || 'Đã tham gia đơn vị.');
+                    await loadMine();
+                } catch (error) {
+                    showFailure(error, 'Không thể chấp nhận lời mời.');
+                    button.disabled = false;
+                }
+            });
+        });
+        if (Ui.qs('mine')) section.scrollIntoView({ block: 'start' });
+    }
+
     async function loadReviewQueue(reviewerId) {
         var response = await Api.get('/api/organizations/review-queue');
         renderReviewQueue(response.data || [], reviewerId);
@@ -125,6 +157,10 @@
 
         try {
             var me = await Ui.currentUser();
+            var role = me && me.isAuthenticated ? me.role : null;
+            document.getElementById('org-register-btn').hidden = role !== 'ORGANIZER';
+            document.getElementById('org-player-note').hidden = role !== 'PLAYER';
+            if (role === 'ORGANIZER') await loadMine();
             if (me && me.role === 'ADMIN') {
                 document.getElementById('review-section').hidden = false;
                 await loadReviewQueue(Number(me.userId));

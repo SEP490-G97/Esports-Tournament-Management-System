@@ -1,8 +1,12 @@
+// RNK: bảng xếp hạng đội theo TỪNG tựa game (điểm của vw_Leaderboard chỉ so được trong cùng một game).
 (function () {
     var gameSelect = document.getElementById('ranking-game');
     var seasonSelect = document.getElementById('ranking-season');
     var body = document.getElementById('ranking-list');
     var flash = document.getElementById('ranking-flash');
+    var COLS = 5;
+
+    function row(text) { return '<tr><td colspan="' + COLS + '">' + text + '</td></tr>'; }
 
     function render(entries) {
         body.innerHTML = entries.length ? entries.map(function (entry) {
@@ -12,30 +16,27 @@
             return '<tr><td>#' + entry.rank + '</td><td>' + logo +
                 '<a href="/rankings/team.html?teamId=' + entry.teamId + '">' +
                 Ui.escapeHtml(entry.teamName) + ' [' + Ui.escapeHtml(entry.teamTag) + ']</a></td>' +
-                '<td>' + Ui.escapeHtml(entry.gameName) + '</td><td>' + (entry.season ? Ui.escapeHtml(String(entry.season)) : 'Tất cả mùa') + '</td>' +
                 '<td>' + entry.tournamentPlayed + '</td><td>' + entry.titleCount + '</td>' +
-                '<td><strong>' + entry.achievementPoint + '</strong></td></tr>';
-        }).join('') : '<tr><td colspan="7">Chưa có thành tích đã chốt phù hợp bộ lọc.</td></tr>';
+                '<td>' + entry.achievementPoint + '</td></tr>';
+        }).join('') : row('Tựa game này chưa có giải nào kết thúc trong mùa đã chọn.');
     }
 
     async function load() {
-        var query = new URLSearchParams();
-        if (gameSelect.value) query.set('gameId', gameSelect.value);
+        if (!gameSelect.value) return;
+        var query = new URLSearchParams({ gameId: gameSelect.value });
         if (seasonSelect.value) query.set('season', seasonSelect.value);
-        body.innerHTML = '<tr><td colspan="7">Đang tải…</td></tr>';
+        body.innerHTML = row('Đang tải…');
         try {
             var response = await Api.get('/api/rankings?' + query.toString());
-            var entries = response.data || [];
-            render(entries);
+            render(response.data || []);
         } catch (error) {
-            body.innerHTML = '<tr><td colspan="7">Không thể tải bảng xếp hạng.</td></tr>';
+            body.innerHTML = row('Không thể tải bảng xếp hạng.');
             Ui.showAlert(flash, 'danger', (error && error.message) || 'Không thể tải bảng xếp hạng.');
         }
     }
 
     async function loadSeasons() {
-        var query = gameSelect.value ? '?gameId=' + encodeURIComponent(gameSelect.value) : '';
-        var response = await Api.get('/api/rankings/seasons' + query);
+        var response = await Api.get('/api/rankings/seasons?gameId=' + encodeURIComponent(gameSelect.value));
         var current = seasonSelect.value;
         seasonSelect.innerHTML = '<option value="">Tất cả mùa</option>' +
             (response.data || []).map(function (season) {
@@ -46,27 +47,40 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', async function () {
-        try {
-            var response = await Api.get('/api/home/summary');
-            var games = response.games || [];
-            gameSelect.innerHTML += games.map(function (game) {
-                return '<option value="' + game.gameId + '">' + Ui.escapeHtml(game.title) + '</option>';
-            }).join('');
-            await loadSeasons();
-            await load();
-        } catch (error) {
-            Ui.showAlert(flash, 'danger', (error && error.message) || 'Không thể tải bộ lọc bảng xếp hạng.');
-        }
-    });
-
-    document.getElementById('ranking-apply').addEventListener('click', load);
-    gameSelect.addEventListener('change', async function () {
+    async function onGameChange() {
+        Ui.clearAlert(flash);
         try {
             await loadSeasons();
             await load();
         } catch (error) {
             Ui.showAlert(flash, 'danger', (error && error.message) || 'Không thể cập nhật mùa giải.');
         }
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        try {
+            var response = await Api.get('/api/home/summary');
+            var games = response.games || [];
+            if (!games.length) { gameSelect.innerHTML = '<option value="">Chưa có tựa game</option>'; body.innerHTML = row('Chưa có tựa game nào.'); return; }
+            gameSelect.innerHTML = games.map(function (game) {
+                return '<option value="' + game.gameId + '">' + Ui.escapeHtml(game.title) + '</option>';
+            }).join('');
+            // ?gameId= trên đường dẫn (vd từ trang đội) chọn sẵn game đó; không có thì lấy game đầu danh sách.
+            var wanted = Ui.qsInt('gameId');
+            if (wanted !== null && games.some(function (g) { return g.gameId === wanted; })) gameSelect.value = String(wanted);
+            else {
+                // Không chỉ định: mở sẵn game đầu tiên đã có mùa giải (có giải kết thúc), tránh bảng trống.
+                for (var i = 0; i < games.length; i++) {
+                    var s = await Api.get('/api/rankings/seasons?gameId=' + games[i].gameId);
+                    if ((s.data || []).length) { gameSelect.value = String(games[i].gameId); break; }
+                }
+            }
+            await onGameChange();
+        } catch (error) {
+            Ui.showAlert(flash, 'danger', (error && error.message) || 'Không thể tải bộ lọc bảng xếp hạng.');
+        }
     });
+
+    gameSelect.addEventListener('change', onGameChange);
+    seasonSelect.addEventListener('change', load);
 })();

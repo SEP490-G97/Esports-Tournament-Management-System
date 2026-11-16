@@ -39,6 +39,7 @@ public interface ITeamService
     // TEAM-03: quản lý roster
     Task<RosterDto?> GetRosterAsync(int teamId);
     Task<Result> ChangeSlotAsync(int teamId, int targetAccountId, string newSlot, int captainAccountId);
+    Task<Result> SwapSlotsAsync(int teamId, int starterAccountId, int substituteAccountId, int captainAccountId);
     Task<Result> KickMemberAsync(int teamId, int targetAccountId, int captainAccountId);
 
     // Duyệt / từ chối đơn ứng tuyển - lời mời đang chờ (TeamMember.Status = PENDING).

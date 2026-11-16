@@ -17,10 +17,23 @@
         if (linkHtml) select.insertAdjacentHTML('afterend', '<div class="hint mt-1">' + linkHtml + '</div>');
     }
 
+    // Đội mình làm đội trưởng (theo tựa game) — để hiện nút "Mời vào đội" trên tin tìm đội cùng game.
+    var captainTeamByGame = {};
+    // Đội mình đã nộp đơn ứng tuyển và đang chờ — tin của đội đó hiện "Đã ứng tuyển" thay cho nút.
+    var appliedTeamIds = {};
+
+    async function loadMyApplications() {
+        if (!me || me.role !== 'PLAYER') return;
+        try {
+            (await Api.get('/api/Recruitment/my-applications') || []).forEach(function (a) { appliedTeamIds[a.teamId] = true; });
+        } catch (e) { /* không tải được thì vẫn hiện nút; máy chủ chặn nộp trùng */ }
+    }
+
     async function loadSelectOptions() {
         // LFP: chỉ đội mình làm ĐỘI TRƯỞNG mới được đăng tin tuyển (FA-01).
         try {
             var teams = (await Api.get('/api/teams/my-teams')).filter(function (t) { return t.isCaptain; });
+            teams.forEach(function (t) { if (t.gameId) captainTeamByGame[t.gameId] = t; });
             if (teams.length > 0) {
                 document.getElementById('lfpTeamId').innerHTML = '<option value="">-- Chọn đội --</option>' + teams.map(function (t) {
                     return '<option value="' + t.teamId + '">' + Ui.escapeHtml(t.name) + ' [' + Ui.escapeHtml(t.tag) + '] · ' + Ui.escapeHtml(t.gameTitle) + '</option>';
@@ -77,14 +90,48 @@
                     '<p>' + Ui.escapeHtml(item.content) + '</p>' +
                     '<small>Người đăng: ' + Ui.escapeHtml(item.authorName) + (formatDate(item.createdAt) ? ' · ' + formatDate(item.createdAt) : '') + '</small>' +
                     '</div>' +
-                    (type === 'LFP' && canApply && Number(item.authorAccountId) !== Number(me.userId) ? '<button type="button" class="btn btn-primary" data-apply="' + Number(item.postId) + '">Ứng tuyển</button>' : '') +
+                    actionHtml(type, item, canApply) +
                     '</article>';
             }).join('');
             container.querySelectorAll('[data-apply]').forEach(function (btn) {
                 btn.addEventListener('click', function () { applyPost(Number(btn.dataset.apply), btn); });
             });
+            container.querySelectorAll('[data-invite]').forEach(function (btn) {
+                btn.addEventListener('click', function () { invitePlayer(btn); });
+            });
         } catch (err) {
             container.innerHTML = '<div class="empty"><h3>Không tải được bảng tin</h3><p>' + Ui.escapeHtml(err.message) + '</p></div>';
+        }
+    }
+
+    function actionHtml(type, item, canApply) {
+        if (!me || Number(item.authorAccountId) === Number(me.userId)) return '';
+        if (type === 'LFP' && canApply) {
+            return appliedTeamIds[item.teamId]
+                ? '<span class="badge badge-soft">Đã ứng tuyển · chờ duyệt</span>'
+                : '<button type="button" class="btn btn-primary" data-apply="' + Number(item.postId) + '">Ứng tuyển</button>';
+        }
+        // Tin tìm đội (LFT): đội trưởng của đội cùng tựa game mời thẳng tuyển thủ (FA — mời tuyển thủ tự do).
+        var team = type === 'LFT' && captainTeamByGame[item.gameId];
+        if (team) {
+            return '<button type="button" class="btn btn-primary" data-invite="' + Number(item.authorAccountId) + '" data-team="' + Number(team.teamId) +
+                '" data-team-name="' + Ui.escapeHtml(team.name) + '" data-player="' + Ui.escapeHtml(item.authorName) + '">Mời vào đội</button>';
+        }
+        return '';
+    }
+
+    async function invitePlayer(button) {
+        var ok = await window.etomsConfirm('Mời ' + button.dataset.player + ' vào đội ' + button.dataset.teamName + '? Người được mời sẽ nhận thông báo và tự chấp nhận hoặc từ chối.',
+            { title: 'Mời vào đội', okText: 'Gửi lời mời' });
+        if (!ok) return;
+        button.disabled = true;
+        try {
+            var res = await Api.post('/api/Recruitment/invite', { teamId: Number(button.dataset.team), playerAccountId: Number(button.dataset.invite) });
+            Ui.showAlert(flash(), 'success', res.message || 'Đã gửi lời mời.');
+            button.outerHTML = '<span class="badge badge-soft">Đã mời · chờ trả lời</span>';
+        } catch (err) {
+            showError(err.message || 'Không gửi được lời mời.');
+            button.disabled = false;
         }
     }
 
@@ -99,6 +146,7 @@
         try {
             await Api.post('/api/Recruitment/apply', { postId: postId, message: message });
             Ui.showAlert(flash(), 'success', 'Đã nộp đơn ứng tuyển. Đơn đang chờ đội trưởng duyệt.');
+            button.outerHTML = '<span class="badge badge-soft">Đã ứng tuyển · chờ duyệt</span>';
         } catch (err) {
             showError(err.message || 'Không nộp được đơn ứng tuyển.');
             button.disabled = false;
@@ -191,7 +239,7 @@
             };
         }, 'Đã đăng tin tìm đội.', 'LFT');
 
-        if (me.role === 'PLAYER') await loadSelectOptions();
+        if (me.role === 'PLAYER') await Promise.all([loadSelectOptions(), loadMyApplications()]);
         await Promise.all([loadBoard('LFP'), loadBoard('LFT')]);
     });
 })();

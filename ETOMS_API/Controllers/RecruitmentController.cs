@@ -96,6 +96,29 @@ namespace ETOMS_API.Controllers
             }
         }
 
+        // Đơn ứng tuyển đang chờ của tôi (Hồ sơ; trang Tìm đội ẩn nút "Ứng tuyển" với đội đã nộp).
+        [HttpGet("my-applications")]
+        public async Task<IActionResult> MyApplications()
+        {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
+            return Ok(await _recruitmentService.GetMyApplicationsAsync(accountId));
+        }
+
+        [HttpPost("applications/{teamMemberId:int}/withdraw")]
+        public async Task<IActionResult> WithdrawApplication(int teamMemberId)
+        {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
+            try
+            {
+                await _recruitmentService.WithdrawApplicationAsync(accountId, teamMemberId);
+                return Ok(new { Message = "Đã rút đơn ứng tuyển." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
+            }
+        }
+
         [HttpPost("invite")]
         public async Task<IActionResult> InvitePlayer([FromBody] InviteFreeAgentDto dto)
         {

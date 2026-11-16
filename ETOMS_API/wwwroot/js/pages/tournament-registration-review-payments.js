@@ -24,7 +24,7 @@
 
     function render(root, items, context) {
         items.forEach(function (item) {
-            var card = root.querySelector('[data-registration-id="' + item.registrationId + '"]');
+            var card = root.querySelector('article[data-registration-id="' + item.registrationId + '"]');
             if (!card) return;
             var actions = card.querySelector('.registration-payment-actions');
             if (item.entryFee <= 0) {
@@ -72,7 +72,7 @@
     }
 
     async function updatePaymentStatus(button, context) {
-        var card = button.closest('[data-registration-id]');
+        var card = button.closest('article[data-registration-id]');
         var note = card.querySelector('#payment-note-' + button.dataset.registrationId).value.trim();
         card.querySelectorAll('[data-payment-status]').forEach(function (action) { action.disabled = true; });
         try {
@@ -106,7 +106,7 @@
             Ui.showAlert(context.flash, 'success', result.message || 'Đã ghi nhận trạng thái hoàn lệ phí.');
             await context.reload();
         } catch (error) {
-            Ui.showAlert(form.closest('[data-registration-id]').querySelector('.review-flash'),
+            Ui.showAlert(form.closest('article[data-registration-id]').querySelector('.review-flash'),
                 'danger',
                 error.message || 'Không thể ghi nhận trạng thái hoàn.');
             button.disabled = false;

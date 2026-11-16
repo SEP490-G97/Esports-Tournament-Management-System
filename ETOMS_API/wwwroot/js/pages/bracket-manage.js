@@ -168,7 +168,9 @@
 
         var html =
             '<div class="btn-row mb-4">' +
-            '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định</a>' +
+            // Tiêu chí phân định khi bằng điểm (BRK-07) chỉ dùng cho bảng điểm: vòng tròn / vòng bảng.
+            (tree.format === 'ROUND_ROBIN' || tree.format === 'HYBRID'
+                ? '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định (khi bằng điểm)</a>' : '') +
             (tree.hasBracket && !tree.isLocked ? '<a class="btn btn-primary" href="/tournament/bracket.html?id=' + tree.tournamentId + '">Đổi chỗ đội (kéo thả trên sơ đồ)</a>' : '') +
             (tree.isLocked ? '<button type="button" class="btn btn-ghost" id="unlock-btn">Mở khóa nhánh</button>' : '') +
             '</div>' +

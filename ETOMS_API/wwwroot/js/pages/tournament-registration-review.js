@@ -32,7 +32,7 @@
 
     async function loadDisciplineHistory(items) {
         await Promise.all(items.map(async function (item) {
-            var card = root.querySelector('[data-registration-id="' + item.registrationId + '"]');
+            var card = root.querySelector('article[data-registration-id="' + item.registrationId + '"]');
             if (!card) return;
             try {
                 var response = await Api.get('/api/tournaments/' + tournamentId + '/registrations/' + item.registrationId);
@@ -84,11 +84,7 @@
             '<p>Thử đổi bộ lọc hoặc quay lại sau khi có đội gửi đăng ký.</p></div></div>';
 
         loadDisciplineHistory(items);
-        if (window.RegistrationReviewTieBreakers) {
-            window.RegistrationReviewTieBreakers.render(
-                summary.tieBreakerOrder || [],
-                context);
-        }
+        // Tiêu chí phân định (BRK-07) không thuộc việc duyệt đơn — cấu hình ở trang Chia nhánh > "Tiêu chí phân định".
         if (window.RegistrationReviewDecisions) {
             window.RegistrationReviewDecisions.render(root, items, context);
         }
@@ -101,7 +97,7 @@
     }
 
     function hideManagementUi(message) {
-        ['dev-banner', 'review-toolbar', 'review-list-section', 'review-tiebreaker'].forEach(function (id) {
+        ['dev-banner', 'review-toolbar', 'review-list-section'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
@@ -150,5 +146,15 @@
             searchTimer = window.setTimeout(load, 250);
         });
         load();
+
+        // Mục 10 (17/11): đội nộp đơn/giấy tờ mới thì Ban tổ chức thấy mà không cần tải lại trang — hỏi lại máy chủ
+        // mỗi 30 giây khi tab đang mở. Bỏ qua lượt làm mới nếu đang gõ lý do / ghi chú để không mất chữ đang nhập.
+        window.setInterval(function () {
+            if (document.visibilityState !== 'visible') return;
+            var typing = Array.from(root.querySelectorAll('input, textarea')).some(function (el) {
+                return el === document.activeElement || (el.type !== 'file' && el.value);
+            });
+            if (!typing) load();
+        }, 30000);
     });
 })();

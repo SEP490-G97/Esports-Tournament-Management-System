@@ -87,7 +87,7 @@ public class HomeApiController : ApiControllerBase
                 t.RegOpenAt, t.RegCloseAt, t.BracketLockedAt, t.StartAt,
                 Teams = t.Registrations.Count(r => r.Status != "DRAFT" && r.Status != "REJECTED" && r.Status != "WITHDRAWN")
             })
-            .Take(6).ToListAsync();
+            .Take(12).ToListAsync();   // trang chủ hiện 4 giải/lượt, bấm ‹ › để trượt
 
         var featuredList = featured.Select(t => new FeaturedTournamentDto
         {

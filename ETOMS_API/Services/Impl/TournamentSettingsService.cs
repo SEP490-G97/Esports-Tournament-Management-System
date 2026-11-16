@@ -144,9 +144,7 @@ public class TournamentSettingsService : ITournamentSettingsService
         var newEnd = Changed("EndAt") ? end : (t.EndAt is DateTime oe ? Utc(oe) : null);
         if (timelineChanged)
         {
-            if (newOpen >= newClose) return Fail("RegCloseAt", "Thời gian đóng đăng ký phải sau thời gian mở đăng ký.");
-            if (newClose >= newStart) return Fail("RegCloseAt", "Thời gian đóng đăng ký phải trước ngày khai mạc.");
-            if (newEnd is DateTime endAt && endAt < newStart) return Fail("EndAt", "Ngày kết thúc không được trước ngày khai mạc.");
+            if (TournamentTimeline.Check(newOpen, newClose, newStart, newEnd) is { } bad) return Fail(bad.Field, bad.Message);
         }
         if (Changed("MaxTeams"))
         {

@@ -627,9 +627,9 @@ body { overflow-x: hidden; }
 .profile-section-heading h2, .management-heading h2 { margin: 4px 0 0; }
 .field-hint { display: block; color: var(--muted-2); font-size: .8rem; margin-top: 6px; line-height: 1.45; }
 .profile-form-actions, .registration-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
-.profile-game-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; align-items: end; gap: 14px; }
+.profile-game-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; align-items: start; gap: 14px; }
 .profile-game-form .field { margin-bottom: 0; min-width: 0; }
-.profile-game-form .btn { margin-bottom: 20px; }
+.profile-game-form .profile-game-action .btn { margin: 0; white-space: nowrap; }
 .profile-subsection { min-width: 0; }
 .profile-subsection + .profile-subsection { border-left: 1px solid var(--border-soft); padding-left: 24px; }
 .profile-subsection h3 { font-weight: 800; font-size: 1rem; margin: 0 0 8px; }
@@ -702,6 +702,7 @@ body { overflow-x: hidden; }
   .org-page-hero .btn { width: 100%; }
   .profile-game-form, .profile-privacy-grid, .management-action-grid, .registration-field-grid { grid-template-columns: 1fr; }
   .profile-game-form .btn { margin: 0; }
+  .profile-game-action label { display: none; }
   .profile-subsection + .profile-subsection { border-left: 0; border-top: 1px solid var(--border-soft); padding: 20px 0 0; }
   .org-filters { grid-template-columns: 1fr; width: 100%; }
   .review-section .feature-list { grid-template-columns: 1fr; }
@@ -1707,3 +1708,69 @@ strong, b { font-weight: 600; }
 .de-cols { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 6px; }
 .de-col { flex: 0 0 230px; display: flex; flex-direction: column; justify-content: space-around; gap: 12px; }
 .de-col-title { font-size: .82rem; font-weight: 500; color: var(--muted); }
+
+/* Trang Tin tức */
+.news-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.news-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.news-chip { border: 1px solid var(--border); background: var(--panel); color: var(--muted); border-radius: 999px; padding: 7px 14px; font-size: .88rem; font-weight: 500; cursor: pointer; }
+.news-chip small { opacity: .7; margin-left: 4px; }
+.news-chip.active, .news-chip:hover { border-color: var(--primary); color: var(--ink); background: var(--primary-050); }
+.news-search { max-width: 320px; }
+.news-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.news-card { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--panel); color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
+.news-card:hover { border-color: var(--primary); transform: translateY(-2px); color: inherit; }
+.news-card-img { aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--primary-050), var(--bg-2)) center / cover no-repeat; display: grid; place-items: center; color: var(--muted); font-weight: 600; }
+.news-card-body { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px; flex: 1; }
+.news-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .8rem; color: var(--muted); }
+.news-card h3 { font-size: 1rem; font-weight: 600; line-height: 1.4; margin: 0; }
+.news-card p { font-size: .88rem; color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.news-card-more { margin-top: auto; font-size: .85rem; color: var(--cyan); }
+@media (max-width: 600px) { .news-search { max-width: none; width: 100%; } }
+
+/* Trang Quản lý đơn vị: mô tả vai trò */
+.org-role-guide { margin: 14px 0 0; padding-left: 18px; color: var(--muted); font-size: .86rem; line-height: 1.6; }
+.org-role-guide b { color: var(--ink); font-weight: 600; }
+
+/* Trang chủ: Giải đấu nổi bật — một hàng 4 giải, nút trượt hai bên */
+.feat-carousel { position: relative; display: flex; align-items: stretch; gap: 10px; }
+.feat-track { flex: 1; min-width: 0; display: flex; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 2px; }
+.feat-track::-webkit-scrollbar { display: none; }
+.feat-slide { flex: 0 0 calc((100% - 60px) / 4); scroll-snap-align: start; min-width: 0; }
+.feat-nav { flex: none; align-self: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); color: var(--ink); font-size: 1.5rem; line-height: 1; display: grid; place-items: center; cursor: pointer; }
+.feat-nav:hover:not(:disabled) { border-color: var(--primary); }
+.feat-nav:disabled { opacity: .35; cursor: default; }
+@media (max-width: 991.98px) { .feat-slide { flex-basis: calc((100% - 20px) / 2); } }
+@media (max-width: 575.98px) { .feat-slide { flex-basis: 85%; } .feat-nav { display: none; } }
+/* Hồ sơ của Ban tổ chức/Admin: ẩn khối minh chứng định danh thì khối thông báo không còn vạch ngăn bên trái */
+.profile-subsection[hidden] + .profile-subsection { border-left: 0; padding-left: 0; }
+
+/* Ô ảnh bìa giải (trình tạo giải, Sửa thông tin) */
+.banner-picker { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.banner-preview { aspect-ratio: 16 / 9; border: 1px dashed var(--border); border-radius: 12px; background: var(--bg-2) center / cover no-repeat; display: grid; place-items: center; color: var(--muted); font-size: .85rem; }
+.banner-preview.has-image { border-style: solid; }
+.banner-preview.has-image span { display: none; }
+.banner-actions { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.banner-link { display: flex; gap: 8px; }
+.banner-link .input { flex: 1; min-width: 0; }
+.banner-picker.is-busy { opacity: .6; pointer-events: none; }
+@media (max-width: 640px) { .banner-picker { grid-template-columns: 1fr; } }
+
+/* Trang Trạng thái & xuất bản: thanh 5 giai đoạn */
+.phase-steps { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 0; margin: 0 0 16px; }
+.phase-steps li { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-size: .85rem; min-width: 0; }
+.phase-steps .no { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--border); font-size: .8rem; font-weight: 600; }
+.phase-steps .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phase-steps li.done { color: var(--ink); border-color: rgba(39,199,111,.45); }
+.phase-steps li.done .no { background: var(--success); border-color: var(--success); color: #fff; }
+.phase-steps li.current { color: var(--ink); border-color: var(--primary); background: var(--primary-050); }
+.phase-steps li.current .no { background: var(--primary); border-color: var(--primary); color: #fff; }
+.phase-now { border: 1px solid var(--primary); border-radius: 12px; padding: 14px 16px; background: var(--primary-050); }
+.phase-now-head { font-size: .9rem; color: var(--muted); margin-bottom: 4px; }
+.phase-now-head b { color: var(--ink); font-weight: 600; }
+.phase-others { margin-top: 10px; }
+.phase-row { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 8px 2px; border-bottom: 1px solid var(--border-soft); font-size: .88rem; }
+.phase-row > span:first-child { min-width: 150px; font-weight: 500; }
+.phase-row.done > span:first-child::before { content: "✓ "; color: var(--success); }
+@media (max-width: 760px) { .phase-steps { grid-template-columns: 1fr; } }
+.select.select-sm { width: auto; min-width: 0; padding: 5px 30px 5px 9px; font-size: .82rem; border-radius: 8px; }
+.banner-actions label.btn { align-self: flex-start; }

@@ -33,7 +33,7 @@ async function loadGameSelect() {
         gameSelect.innerHTML = games.length > 0
             ? '<option value="">-- Chọn tựa game --</option>' + games.map(function (g) {
                 // Kèm luật đội hình của game để BTC biết mỗi đội cần bao nhiêu người.
-                var rule = g.maxStarters ? ' · ' + g.maxStarters + ' chính thức' + (g.maxSubstitutes ? ' + ' + g.maxSubstitutes + ' dự bị' : '') : '';
+                var rule = g.maxStarters ? ' · ' + g.maxStarters + ' chính thức' + (g.maxSubstitutes ? ', dự bị không bắt buộc (tối đa ' + g.maxSubstitutes + ')' : '') : '';
                 return '<option value="' + g.gameId + '">' + Ui.escapeHtml(g.title + rule) + '</option>';
             }).join('')
             : '<option value="">-- Chưa có tựa game khả dụng --</option>';
@@ -46,15 +46,27 @@ async function loadGameSelect() {
 async function loadOrganizerUnit() {
     var select = document.getElementById('tOrganizerUnit');
     if (!select) return;
+    // Ban tổ chức là một tổ chức: giải luôn đứng tên một đơn vị đã duyệt mà bạn là Chủ nhiệm / Điều hành giải.
+    var submit = document.querySelector('#step1Form button[type="submit"]');
+    var hint = document.getElementById('tOrganizerUnitHint');
     try {
         var who = await Api.get('/api/TournamentSetup/organizer-identity');
         var orgs = (who && who.organizations) || [];
-        select.innerHTML = '<option value="">' + Ui.escapeHtml(who.accountName || 'Tài khoản của bạn') + ' (tài khoản của bạn)</option>' +
-            orgs.map(function (o) { return '<option value="' + Number(o.organizationId) + '">' + Ui.escapeHtml(o.name) + '</option>'; }).join('');
-        select.disabled = orgs.length === 0;   // chỉ có một lựa chọn thì khóa luôn cho rõ là không sửa được
+        if (!orgs.length) {
+            select.innerHTML = '<option value="">Chưa thuộc đơn vị nào</option>';
+            select.disabled = true;
+            if (submit) submit.disabled = true;
+            hint.innerHTML = 'Bạn cần thuộc một đơn vị tổ chức đã được duyệt (Chủ nhiệm hoặc Điều hành giải) mới tạo được giải. ' +
+                '<a href="/organization/index.html?mine=1">Lập đơn vị hoặc xem lời mời</a>.';
+            return;
+        }
+        select.innerHTML = orgs.map(function (o) { return '<option value="' + Number(o.organizationId) + '">' + Ui.escapeHtml(o.name) + '</option>'; }).join('');
+        select.disabled = orgs.length === 1;   // chỉ một đơn vị thì khóa cho rõ là không đổi được
+        hint.textContent = 'Giải đứng tên đơn vị tổ chức bạn đang là Chủ nhiệm hoặc Điều hành giải.';
     } catch (e) {
-        select.innerHTML = '<option value="">Tài khoản của bạn</option>';
+        select.innerHTML = '<option value="">Không tải được đơn vị</option>';
         select.disabled = true;
+        if (submit) submit.disabled = true;
     }
 }
 
@@ -78,6 +90,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
     formatSelect.addEventListener('change', syncFormat);
     syncFormat();
+
+    // Ảnh bìa (mục 22): chọn ngay ở bước 1, tải lên khi bước 1 lưu xong (lúc đó mới có mã giải).
+    var banner = BannerPicker.mount(document.getElementById('bannerRoot'), {
+        tournamentId: function () { return currentTournamentId; },
+        current: null
+    });
 
     // TOUR-01, TOUR-03, TOUR-04: Bước 1 - Thông tin & Thể thức
     var step1Form = document.getElementById('step1Form');
@@ -116,13 +134,15 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Đã có bản nháp (người dùng quay lại bước 1) -> SỬA bản nháp đó, không tạo thêm giải mới.
             if (currentTournamentId) {
                 await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step1', payload);
+                document.getElementById('lblTournamentId').textContent = name;
                 markSaved(1); switchStep(2);
                 Ui.showAlert(flashBox(), 'success', 'Đã cập nhật thông tin giải. Kiểm tra lại thời gian và số đội.');
                 return;
             }
             var res = await Api.post('/api/TournamentSetup/step1', payload);
             currentTournamentId = res.tournamentId || res;
-            document.getElementById('lblTournamentId').textContent = currentTournamentId;
+            document.getElementById('lblTournamentId').textContent = name;
+            await banner.flush();
             markSaved(1); switchStep(2);
             Ui.showAlert(flashBox(), 'success', 'Đã khởi tạo bản nháp giải đấu. Tiếp tục cài đặt thời gian và số đội.');
         } catch (err) {
@@ -140,10 +160,15 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         var open = readDate('tRegOpen'), close = readDate('tRegClose'), start = readDate('tStart'), end = readDate('tEnd');
         if (!open || !close || !start || !end) return showError('Vui lòng nhập đủ 4 mốc thời gian.');
+        // Cùng luật với máy chủ (Utils/TournamentTimeline.cs).
+        var HOUR = 3600 * 1000;
         if (close <= new Date()) return showError('Thời gian đóng đăng ký phải ở tương lai.');
-        if (open >= close) return showError('Thời gian mở đăng ký phải trước thời gian đóng đăng ký.');
-        if (close > start) return showError('Thời gian đóng đăng ký phải trước hoặc bằng ngày bắt đầu thi đấu.');
-        if (start >= end) return showError('Ngày bắt đầu thi đấu phải trước ngày kết thúc.');
+        if (open >= close) return showError('Thời gian đóng đăng ký phải sau thời gian mở đăng ký.');
+        if (close - open < 24 * HOUR) return showError('Thời gian nhận đăng ký phải kéo dài ít nhất 1 ngày (đóng đăng ký sau mở đăng ký từ 24 giờ trở lên).');
+        if (close > start) return showError('Ngày khai mạc phải sau thời gian đóng đăng ký.');
+        if (start - close < HOUR) return showError('Khai mạc phải sau đóng đăng ký ít nhất 1 giờ để Ban tổ chức duyệt đơn và sinh nhánh đấu.');
+        if (end <= start) return showError('Ngày kết thúc phải sau ngày khai mạc.');
+        if (end - start < HOUR) return showError('Giải phải kéo dài ít nhất 1 giờ tính từ khai mạc.');
 
         var maxTeams = readInt('tMaxTeams', 4, 128);
         if (maxTeams === null || (maxTeams & (maxTeams - 1)) !== 0)

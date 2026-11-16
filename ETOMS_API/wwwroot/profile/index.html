@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=de-20261116" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -39,6 +39,7 @@
                     <a href="#profile-game-section">Tài khoản game</a>
                     <a href="#profile-privacy">Giấy tờ &amp; riêng tư</a>
                     <a href="#profile-public">Hồ sơ thi đấu</a>
+                    <a href="#profile-applications">Đơn ứng tuyển</a>
                     <a href="#profile-history">Lịch sử trận</a>
                     <a href="#organizer-request" id="orq-nav" hidden>Xin làm Ban tổ chức</a>
                 </nav>
@@ -117,7 +118,11 @@
                             <span id="in-game-name-error" class="field-error" data-field-error="InGameName"></span>
                             <span id="game-account-hint" class="field-hint">Chọn tựa game để thêm tên mới hoặc cập nhật tên đang liên kết.</span>
                         </div>
-                        <button id="game-submit" class="btn btn-primary" type="submit">Thêm tên game</button>
+                        <!-- Nhãn trống để nút thẳng hàng với ô nhập (form canh theo đỉnh vì cột phải có dòng gợi ý). -->
+                        <div class="field profile-game-action">
+                            <label aria-hidden="true">&nbsp;</label>
+                            <button id="game-submit" class="btn btn-primary" type="submit">Thêm tên game</button>
+                        </div>
                     </form>
                     <h3 class="section-title">Tên game đã liên kết</h3>
                     <div id="profile-games" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
@@ -130,7 +135,7 @@
                     <div class="profile-privacy-grid">
                         <div class="profile-subsection">
                             <h3>Minh chứng định danh</h3>
-                            <p class="muted-copy">Chỉ tải JPG, PNG hoặc PDF tối đa 10 MB khi đang thử nghiệm bằng dữ liệu giả. Tệp được lưu riêng tư; hiện chưa có trạng thái xét duyệt.</p>
+                            <p class="muted-copy">Thẻ sinh viên hoặc CCCD, dùng khi giải yêu cầu giấy tờ định danh. Tệp được lưu riêng tư, chỉ Ban tổ chức giải bạn đăng ký mới xem được.</p>
                             <form id="identity-form" novalidate>
                                 <div class="field">
                                     <label for="identity-file">Chọn tệp minh chứng</label>
@@ -167,6 +172,15 @@
                     </div>
                     <p class="muted-copy">Tên hiển thị, ảnh đại diện, tên game, đội tuyển và thành tích có thể xuất hiện với người khác.</p>
                     <div id="public-profile"><p class="muted-copy">Đang tải hồ sơ công khai...</p></div>
+                </section>
+
+                <!-- Tuyển thủ: các đội mình đã ứng tuyển và đang chờ đội trưởng duyệt. -->
+                <section id="profile-applications" class="feature-card profile-section" aria-labelledby="profile-applications-title">
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Tìm đội</span><h2 id="profile-applications-title">Đơn ứng tuyển đang chờ</h2></div>
+                    </div>
+                    <div id="applications-flash" aria-live="polite"></div>
+                    <div id="my-applications" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
                 </section>
 
                 <section id="profile-history" class="feature-card profile-section" aria-labelledby="profile-history-title">
@@ -227,7 +241,7 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=crop-20261115"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=rules-20261116"></script>
-    <script src="/js/pages/profile.js?v=orq-20261115" defer></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/profile.js?v=app-20261117" defer></script>
 </body>
 </html>

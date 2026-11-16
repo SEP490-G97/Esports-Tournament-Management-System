@@ -2,7 +2,7 @@
     function render(root, items, context) {
         items.forEach(function (item) {
             if (item.status !== 'PENDING' || item.waitlistExpiresAt) return;
-            var card = root.querySelector('[data-registration-id="' + item.registrationId + '"]');
+            var card = root.querySelector('article[data-registration-id="' + item.registrationId + '"]');
             if (!card) return;
             card.querySelector('.registration-decision-actions').innerHTML =
                 '<div class="field mt-3"><label for="review-reason-' + item.registrationId + '">Lý do từ chối</label>' +
@@ -20,7 +20,7 @@
     }
 
     async function decide(button, context) {
-        var card = button.closest('[data-registration-id]');
+        var card = button.closest('article[data-registration-id]');
         var reason = card.querySelector('#review-reason-' + button.dataset.registrationId).value.trim();
         var decision = button.dataset.decision;
         if (decision === 'REJECT' && !reason) {

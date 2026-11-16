@@ -11,5 +11,7 @@ namespace ETOMS_API.Services.Interface
         Task<bool> ApplyToLFPAsync(int accountId, ApplyLFPPostDto dto);
         Task<bool> ReviewApplicationAsync(int captainAccountId, int requestId, ReviewApplicationDto dto);
         Task<bool> InviteFreeAgentAsync(int captainAccountId, InviteFreeAgentDto dto);
+        Task<List<MyApplicationDto>> GetMyApplicationsAsync(int accountId);
+        Task<bool> WithdrawApplicationAsync(int accountId, int teamMemberId);
     }
 }

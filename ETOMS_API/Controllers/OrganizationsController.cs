@@ -23,6 +23,14 @@ public sealed class OrganizationsController : ApiControllerBase
     public async Task<IActionResult> GetPublicOrganizations(CancellationToken cancellationToken)
         => FromResult(await _organizationService.GetPublicOrganizationsAsync(cancellationToken));
 
+    // Đơn vị của tài khoản đang đăng nhập (kể cả đơn vị chờ duyệt và lời mời chưa chấp nhận).
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine(CancellationToken cancellationToken)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _organizationService.GetMyOrganizationsAsync(_currentUser.UserId!.Value, cancellationToken));
+    }
+
     [HttpGet("{organizationId:int}")]
     public async Task<IActionResult> GetPublicProfile(int organizationId, CancellationToken cancellationToken)
         => FromResult(await _organizationService.GetPublicProfileAsync(organizationId, cancellationToken));
