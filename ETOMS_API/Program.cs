@@ -126,6 +126,7 @@ builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ET
 builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
 builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<IMatchDetailService, MatchDetailService>();
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
