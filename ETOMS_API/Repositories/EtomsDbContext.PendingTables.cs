@@ -22,6 +22,17 @@ public partial class EtomsDbContext
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
+        // MySql.EntityFrameworkCore (provider Oracle chính thức) đọc cột DATE ra DateTime ở tầng
+        // thấp, không tự chuyển được sang DateOnly như Pomelo — thiếu dòng này thì bất kỳ tài khoản
+        // nào có DateOfBirth khác NULL sẽ làm /auth/login và /auth/register crash 500
+        // (InvalidCastException: DateTime -> DateOnly) ngay khi EF đọc lại dòng Account đó.
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.Property(e => e.DateOfBirth).HasConversion(
+                d => d.HasValue ? d.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                d => d.HasValue ? DateOnly.FromDateTime(d.Value) : (DateOnly?)null);
+        });
+
         modelBuilder.Entity<GameRuleset>(entity =>
         {
             entity.ToTable("GameRuleset");
@@ -133,8 +144,16 @@ public partial class EtomsDbContext
 
         // Cột mới trên bảng có sẵn: khi database chưa có cột, MỌI truy vấn đọc entity RegistrationLineup
         // sẽ lỗi "Unknown column". Nhóm đã chọn cách này thay vì tạo bảng riêng.
+        // Chưa có cột (PendingSchema dò lúc khởi động) thì bỏ qua để không làm hỏng đăng ký giải/đội hình.
         modelBuilder.Entity<RegistrationLineup>(entity =>
         {
+            if (!PendingSchema.LineupGamePosition)
+            {
+                entity.Ignore(e => e.GamePosition);
+                entity.Ignore(e => e.GamePositionId);
+                return;
+            }
+
             entity.Property(e => e.GamePositionId).HasColumnName("GamePositionID");
 
             entity.HasOne(d => d.GamePosition).WithMany()

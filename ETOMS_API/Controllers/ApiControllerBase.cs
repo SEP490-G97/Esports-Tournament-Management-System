@@ -3,17 +3,33 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;
 
-// Base dùng chung cho các API controller JSON (song song với MVC, không thay thế).
-// Quy ước response lỗi: { message, fieldErrors } để client (SPA/mobile sau này) gắn
-// lỗi vào đúng field, giống cách MVC đang dùng Result.FieldErrors cho ModelState.
 [ApiController]
 public abstract class ApiControllerBase : ControllerBase
 {
-    protected IActionResult FromResult(Result r)
-        => r.IsSuccess ? Ok(new { message = r.Message }) : BadRequest(ToError(r));
+    protected IActionResult FromResult(Result result)
+        => result.IsSuccess
+            ? Ok(new { message = result.Message })
+            : StatusCode(result.StatusCode, new { message = result.Message, fieldErrors = result.FieldErrors });
 
-    protected IActionResult FromResult<T>(Result<T> r)
-        => r.IsSuccess ? Ok(new { message = r.Message, data = r.Data }) : BadRequest(ToError(r));
+    protected IActionResult FromResult<T>(Result<T> result)
+        => result.IsSuccess
+            ? Ok(new { message = result.Message, data = result.Data })
+            : StatusCode(result.StatusCode, new { message = result.Message, fieldErrors = result.FieldErrors });
 
-    private static object ToError(Result r) => new { message = r.Message, fieldErrors = r.FieldErrors };
+    // Trả tệp riêng tư (biên lai, giấy tờ) — mở thẳng trên trình duyệt nếu là ảnh/PDF; không có tệp
+    // trên máy chủ này thì 404 kèm thông báo, không để lỗi 500.
+    protected IActionResult PrivateFile(PrivateFileStorage storage, string relativePath, string fileName)
+    {
+        var stream = storage.TryOpenRead(relativePath);
+        if (stream is null)
+            return NotFound(new
+            {
+                message = "Không tìm thấy tệp trên máy chủ. Tệp có thể đã bị xóa hoặc chỉ được tải lên ở máy chủ khác.",
+                fieldErrors = new Dictionary<string, string>()
+            });
+        var type = PrivateFileStorage.ContentTypeOf(fileName);
+        return type == "application/octet-stream"
+            ? File(stream, type, fileName)
+            : File(stream, type, enableRangeProcessing: false);
+    }
 }

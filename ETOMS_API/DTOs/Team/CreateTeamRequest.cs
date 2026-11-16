@@ -7,12 +7,12 @@ namespace ETOMS_API.DTOs.Team;
 public class CreateTeamRequest
 {
     [Required(ErrorMessage = "Vui lòng nhập tên đội.")]
-    [StringLength(200, MinimumLength = 2, ErrorMessage = "Tên đội phải từ 2 đến 200 ký tự.")]
+    [StringLength(150, MinimumLength = 2, ErrorMessage = "Tên đội phải từ 2 đến 150 ký tự.")]
     [Display(Name = "Tên đội")]
     public string Name { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Vui lòng nhập thẻ đội (Team Tag).")]
-    [StringLength(20, MinimumLength = 2, ErrorMessage = "Thẻ đội phải từ 2 đến 20 ký tự.")]
+    [StringLength(10, MinimumLength = 2, ErrorMessage = "Thẻ đội phải từ 2 đến 10 ký tự.")]
     [RegularExpression(@"^[A-Za-z0-9]+$", ErrorMessage = "Thẻ đội chỉ gồm chữ cái không dấu và chữ số, không khoảng trắng.")]
     [Display(Name = "Thẻ đội")]
     public string Tag { get; set; } = string.Empty;

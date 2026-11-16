@@ -23,13 +23,13 @@
             return '<option value="' + r.stageNo + ':' + r.roundNo + '">' + Ui.escapeHtml(r.label) + '</option>';
         }).join('');
 
-        return '<div class="card-etoms" style="margin-bottom:18px"><div class="body">' +
+        return '<div class="card-etoms mb-3"><div class="body">' +
             '<div class="field"><label for="referee-search">Chọn trọng tài</label>' +
             '<input id="referee-search" class="input" autocomplete="off" placeholder="Nhập tên hoặc email, ít nhất 2 ký tự" />' +
             '<div class="hint" id="selected-referee">Chưa chọn trọng tài.</div>' +
             '<div id="candidate-list" style="margin-top:10px"></div></div>' +
             (rounds
-                ? '<div class="field" style="margin-bottom:0"><label for="round-select">Gán cả vòng</label>' +
+                ? '<div class="field mb-0"><label for="round-select">Gán cả vòng</label>' +
                   '<div class="d-flex flex-wrap gap-2"><select id="round-select" class="select filter-select">' + rounds + '</select>' +
                   '<button type="button" class="btn btn-ghost" id="assign-round">Gán cho cả vòng</button></div></div>'
                 : '') +
@@ -66,7 +66,7 @@
 
         document.getElementById('referee-root').innerHTML =
             blocked + (board.canAssign ? pickerHtml(board) : '') + list +
-            '<div class="btn-row" style="margin-top:22px">' +
+            '<div class="btn-row mt-4">' +
             '<a class="btn btn-ghost" href="/tournament/dashboard.html?id=' + tournamentId + '">Bảng điều hành</a></div>';
 
         selected = null;

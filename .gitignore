@@ -17,6 +17,9 @@ appsettings.*.local.json
 .env
 .env.*
 
+# Uploaded identity and organization documents
+ETOMS_API/App_Data/private-uploads/
+
 # NuGet
 *.nupkg
 packages/
@@ -24,3 +27,11 @@ packages/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Ghi chú cá nhân / hướng dẫn demo — chỉ để local, không commit
+DEMO_GUIDE_LOCAL.md
+
+ETOMS_API.Tests/
+
+# Ảnh đại diện người dùng tải lên (lưu trên máy chủ, không đưa vào git)
+ETOMS_API/wwwroot/uploads/avatars/

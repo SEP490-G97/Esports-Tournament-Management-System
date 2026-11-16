@@ -10,6 +10,16 @@ var Ui = (function () {
             .replace(/'/g, '&#39;');
     }
 
+    function safeUrl(value) {
+        if (!value) return '';
+        try {
+            var url = new URL(value, location.origin);
+            return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : '';
+        } catch (e) {
+            return '';
+        }
+    }
+
     // containerEl: phần tử chứa alert (thường là 1 <div id="flash"></div> đầu trang/khối).
     function showAlert(containerEl, type, message) {
         if (!containerEl) return;
@@ -46,17 +56,35 @@ var Ui = (function () {
         return isNaN(n) ? null : n;
     }
 
-    // Bắt buộc đăng nhập: gọi /api/dev-auth/me, nếu chưa đăng nhập thì chuyển hướng sang trang
-    // đăng nhập demo kèm returnUrl (y hệt RedirectToLogin() của MVC cũ). Trả về null khi đang
-    // chuyển hướng (trang sẽ unload nên không cần code gọi tiếp xử lý gì thêm).
-    async function requireAuth() {
-        var me;
-        try { me = await Api.get('/api/dev-auth/me'); } catch (e) { me = { isAuthenticated: false }; }
-        if (!me.isAuthenticated) {
+    // Người dùng hiện tại (đăng nhập thật, JWT) hoặc null nếu là khách. Không chuyển trang.
+    // Kết quả có: isAuthenticated, userId, accountId, displayName, fullName, role.
+    // Gọi nhiều lần trong 1 trang (nav + trang) chỉ hỏi máy chủ 1 lần.
+    var mePromise = null;
+    function currentUser() {
+        if (!mePromise) {
+            mePromise = (async function () {
+                if (!(window.Auth && typeof Auth.tryGetMe === 'function')) return null;
+                var me = await Auth.tryGetMe();
+                if (!me) return null;
+                me.isAuthenticated = true;
+                me.userId = me.accountId = me.id;
+                me.displayName = me.fullName = me.name;
+                return me;
+            })();
+        }
+        return mePromise.then(function (me) { return me ? Object.assign({}, me) : null; });
+    }
+
+    // Bắt buộc đăng nhập: khách thì chuyển sang trang đăng nhập kèm returnUrl và trả về null.
+    // roles (tùy chọn): chỉ cho phép các vai trò này, sai vai trò thì về trang chủ.
+    async function requireAuth(roles) {
+        var me = await currentUser();
+        if (!me) {
             var returnUrl = encodeURIComponent(location.pathname + location.search);
-            location.href = '/dev-auth/index.html?returnUrl=' + returnUrl;
+            location.href = '/auth/login.html?returnUrl=' + returnUrl;
             return null;
         }
+        if (roles && roles.length && roles.indexOf(me.role) < 0) { location.href = '/'; return null; }
         return me;
     }
 
@@ -77,8 +105,8 @@ var Ui = (function () {
     }
 
     return {
-        escapeHtml: escapeHtml, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
-        applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth,
+        escapeHtml: escapeHtml, safeUrl: safeUrl, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
+        applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth, currentUser: currentUser,
         setFlash: setFlash, consumeFlash: consumeFlash
     };
 })();

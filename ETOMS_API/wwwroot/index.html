@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/site.css?v=align2-20261115" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -32,9 +32,13 @@
                     <div class="eyebrow">Nền tảng quản lý giải đấu thể thao điện tử</div>
                     <h1>Tổ chức &amp; chinh phục <span class="grad">giải đấu E-Sports</span> của bạn</h1>
                     <p>Đăng ký đội, vận hành nhánh đấu, báo cáo kết quả minh bạch và theo dõi bảng xếp hạng — tất cả trong một nền tảng duy nhất.</p>
-                    <div class="btn-row">
+                    <div class="btn-row home-hero-actions">
                         <a class="btn btn-primary btn-lg" href="/team/index.html">Xem đội tuyển</a>
-                        <a class="btn btn-ghost btn-lg" href="/team/create.html">Tạo đội ngay</a>
+                        <a class="btn btn-ghost btn-lg" href="/team/create.html" data-hide-roles="ORGANIZER ADMIN">Tạo đội ngay</a>
+                        <a class="btn btn-ghost btn-lg" href="/registration/index.html" data-hide-roles="ORGANIZER ADMIN">Đăng ký tham gia giải</a>
+                        <a class="btn btn-ghost btn-lg" href="/tournament-setup/index.html" data-hide-roles="GUEST PLAYER ADMIN">Tạo giải mới</a>
+                        <a class="btn btn-ghost btn-lg" href="/registration/organizer.html" data-hide-roles="GUEST PLAYER ADMIN">Giải đấu của tôi</a>
+                        <a class="btn btn-ghost btn-lg" href="/rankings/index.html">Bảng xếp hạng</a>
                     </div>
                 </div>
                 <div class="col-12 col-lg-5">
@@ -71,6 +75,7 @@
         <section class="home-section" id="featured">
             <div class="sec-head">
                 <div><div class="eyebrow">Đang diễn ra &amp; sắp tới</div><h2>Giải đấu nổi bật</h2></div>
+                <a class="btn btn-ghost" href="/registration/index.html">Trung tâm đăng ký</a>
             </div>
             <div id="featured-list"></div>
         </section>
@@ -89,13 +94,8 @@
         </section>
 
         <section class="home-section">
-            <div class="sec-head"><div><div class="eyebrow">Đơn giản &amp; minh bạch</div><h2>Vận hành giải đấu trong 4 bước</h2></div></div>
-            <div class="row g-3">
-                <div class="col-12 col-sm-6 col-lg-3"><div class="step h-100"><div class="step-n">1</div><h3>Tạo đội &amp; giải</h3><p>Lập đội tuyển, tạo giải đấu và cấu hình thể lệ chỉ trong vài phút.</p></div></div>
-                <div class="col-12 col-sm-6 col-lg-3"><div class="step h-100"><div class="step-n">2</div><h3>Đăng ký &amp; duyệt</h3><p>Đội nộp hồ sơ, ban tổ chức duyệt minh chứng và lệ phí.</p></div></div>
-                <div class="col-12 col-sm-6 col-lg-3"><div class="step h-100"><div class="step-n">3</div><h3>Thi đấu &amp; báo cáo</h3><p>Sinh nhánh đấu, check-in, báo cáo kết quả mù minh bạch.</p></div></div>
-                <div class="col-12 col-sm-6 col-lg-3"><div class="step h-100"><div class="step-n">4</div><h3>Kết quả &amp; xếp hạng</h3><p>Đối chiếu kết quả, xử lý tranh chấp và cập nhật bảng xếp hạng.</p></div></div>
-            </div>
+            <div class="sec-head"><div><div class="eyebrow">Cập nhật</div><h2>Tin tức</h2></div></div>
+            <div id="news-root"></div>
         </section>
 
         <section class="fullbleed subscribe-band">
@@ -133,11 +133,11 @@
     </main>
 
     <div id="confirm-modal-root"></div>
-
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/ui.js"></script>
-    <script src="/js/layout.js"></script>
-    <script src="/js/pages/home.js" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=dlg-20261115"></script>
+    <script src="/js/ui.js?v=login-20261115"></script>
+    <script src="/js/layout.js?v=side-20261115"></script>
+    <script src="/js/pages/home.js?v=align-20261115" defer></script>
 </body>
 </html>

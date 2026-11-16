@@ -90,18 +90,18 @@
         }, 'Không có tranh chấp nào đang mở.');
 
         var overview =
-            '<div style="font-weight:700;margin-bottom:8px">Đơn đăng ký</div>' + countBadges(d.registrationsByStatus, 'Chưa có đơn đăng ký.') +
+            '<div class="fw-bold mb-2">Đơn đăng ký</div>' + countBadges(d.registrationsByStatus, 'Chưa có đơn đăng ký.') +
             '<div style="font-weight:700;margin:14px 0 8px">Trận đấu (' + d.totalMatches + ')</div>' + countBadges(d.matchesByStatus, 'Chưa có trận đấu.');
 
         document.getElementById('dashboard-root').innerHTML =
             statCards(d) +
-            '<div class="row g-3" style="margin-top:6px">' +
+            '<div class="row g-3 mt-2">' +
             section('Trận đấu hôm nay', todayRows) +
             section('Đơn chờ duyệt', pendingRows) +
             section('Tranh chấp đang mở', disputeRows) +
             section('Tổng quan', overview) +
             '</div>' +
-            '<div class="btn-row" style="margin-top:22px">' +
+            '<div class="btn-row mt-4">' +
             '<a class="btn btn-ghost" href="/tournament/manage.html?id=' + tournamentId + '">Quản lý giải</a>' +
             '<a class="btn btn-ghost" href="/tournament/rulebook.html?id=' + tournamentId + '">Thể lệ giải</a>' +
             '<a class="btn btn-ghost" href="/tournament/referees.html?id=' + tournamentId + '">Gán trọng tài</a>' +

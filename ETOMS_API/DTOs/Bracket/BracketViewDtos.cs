@@ -8,6 +8,8 @@ public class BracketViewDto
     public string FormatLabel { get; set; } = string.Empty;
     public string TournamentStatus { get; set; } = string.Empty;
     public bool IsLocked { get; set; }
+    // Người xem là Ban tổ chức của giải: hiện nút khóa/mở khóa và chế độ đổi chỗ đội.
+    public bool IsOrganizer { get; set; }
     // false: nhánh chưa khóa và người xem không phải Ban tổ chức (UC-20 E1), chỉ xem danh sách đội.
     public bool CanViewBracket { get; set; }
     public string? Notice { get; set; }

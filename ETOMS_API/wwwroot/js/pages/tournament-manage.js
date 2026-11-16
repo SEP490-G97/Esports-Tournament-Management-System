@@ -30,33 +30,25 @@
     }
 
     function render(s) {
-        document.getElementById('page-title').textContent = 'Quản lý giải ' + s.tournamentName;
+        document.getElementById('page-title').textContent = 'Quản lý: ' + s.tournamentName;
 
         var checks = s.status === 'DRAFT'
-            ? '<div class="section-title" style="margin-top:0">Điều kiện xuất bản</div><div style="margin-top:14px">' + s.checks.map(checkRow).join('') + '</div>'
+            ? '<div class="section-title mt-0">Điều kiện xuất bản</div><div class="mt-3">' + s.checks.map(checkRow).join('') + '</div>'
             : '';
         var blocked = s.unpublishBlockedReason
-            ? '<div class="pending-banner" style="margin-top:14px">' + Ui.escapeHtml(s.unpublishBlockedReason) + '</div>'
+            ? '<div class="pending-banner mt-3">' + Ui.escapeHtml(s.unpublishBlockedReason) + '</div>'
             : '';
 
         document.getElementById('manage-root').innerHTML =
             '<div class="card-etoms"><div class="body">' +
-            '<div style="margin-bottom:18px">Trạng thái: <span class="badge ' + Ui.escapeHtml(s.statusClass) + '" id="status-badge">' + Ui.escapeHtml(s.statusLabel) + '</span></div>' +
+            '<div class="mb-3">Trạng thái: <span class="badge ' + Ui.escapeHtml(s.statusClass) + '" id="status-badge">' + Ui.escapeHtml(s.statusLabel) + '</span></div>' +
             checks + blocked +
-            '<div class="btn-row">' + actionsHtml(s) +
-            '<a class="btn btn-ghost" href="/tournament/edit.html?id=' + tournamentId + '">Sửa thông tin giải</a>' +
-            '<a class="btn btn-ghost" href="/tournament/rulebook.html?id=' + tournamentId + '">Thể lệ giải</a>' +
-            '<a class="btn btn-ghost" href="/tournament/ruleset.html?id=' + tournamentId + '">Bộ luật</a>' +
-            '<a class="btn btn-ghost" href="/tournament/dashboard.html?id=' + tournamentId + '">Bảng điều hành</a>' +
-            '<a class="btn btn-ghost" href="/tournament/clone.html?id=' + tournamentId + '">Nhân bản giải</a>' +
-            '<a class="btn btn-ghost" href="/tournament/stage-transition.html?id=' + tournamentId + '">Chuyển sang knockout</a>' +
-            '<a class="btn btn-ghost" href="/tournament/schedule.html?id=' + tournamentId + '">Xếp lịch</a>' +
-            '<a class="btn btn-ghost" href="/tournament/standings.html?id=' + tournamentId + '">Bảng xếp hạng</a>' +
-            '<a class="btn btn-ghost" href="/tournament/bracket.html?id=' + tournamentId + '">Nhánh đấu</a></div>' +
+            (actionsHtml(s) ? '<div class="btn-row">' + actionsHtml(s) + '</div>' : '') +
+            '<p class="hint mt-3 mb-0">Các khu vực quản lý khác (đơn đăng ký, chia nhánh, lịch thi đấu, trọng tài, thể lệ...) nằm ở menu bên trái.</p>' +
             '</div></div>' +
             // Khu vực cảnh báo: thao tác không hoàn tác (TOUR-11).
             '<div class="card-etoms" id="danger-zone" style="margin-top:16px;border-color:var(--danger)"><div class="body">' +
-            '<div class="section-title" style="margin-top:0;color:var(--danger-ink)">Khu vực cảnh báo</div>' +
+            '<div class="section-title mt-0 text-danger-etoms">Khu vực cảnh báo</div>' +
             '<p class="hint" style="margin:6px 0 12px">' + (s.status === 'CANCELLED'
                 ? 'Giải đã bị hủy. Xem lý do và danh sách đội cần hoàn lệ phí.'
                 : 'Hủy giải không hoàn tác được, cần lý do và được báo tới mọi đội trưởng. Không hủy được sau khi nhánh đấu đã khóa.') + '</p>' +

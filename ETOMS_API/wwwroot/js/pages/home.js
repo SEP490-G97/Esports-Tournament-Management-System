@@ -75,18 +75,35 @@
         if (slides.length > 1) start();
     }
 
-    function renderFeatured(list) {
+    // Nút dưới thẻ giải: tuyển thủ thấy "Đăng ký cho đội" khi giải đang mở đăng ký; Ban tổ chức của
+    // CHÍNH giải đó thấy "Quản lý đăng ký" (đang mở đăng ký) hoặc "Quản lý giải" (đã đóng/đang diễn ra).
+    function featActions(t, isOrganizer) {
+        var buttons = '';
+        if (t.registrationOpen)
+            buttons += '<a class="btn btn-primary btn-sm" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>';
+        if (isOrganizer)
+            buttons += t.registrationOpen
+                ? '<a class="btn btn-ghost btn-sm" href="/registration/review.html?tournamentId=' + Number(t.tournamentId) + '">Quản lý đăng ký</a>'
+                : '<a class="btn btn-ghost btn-sm" href="/tournament/manage.html?id=' + Number(t.tournamentId) + '">Quản lý giải</a>';
+        // Luôn có hàng nút (kể cả rỗng) với chiều cao cố định để mọi thẻ trong hàng cao bằng nhau.
+        return '<div class="btn-row feat-actions">' + buttons + '</div>';
+    }
+
+    function renderFeatured(list, organizedIds) {
         var root = document.getElementById('featured-list');
         if (!list || !list.length) {
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có giải đấu nào</h3><p>Các giải đã công bố sẽ hiển thị tại đây.</p></div></div>';
             return;
         }
+        organizedIds = organizedIds || {};
         var html = '<div class="row g-4">';
         list.forEach(function (t) {
             var pct = t.maxTeams === 0 ? 0 : Math.floor(t.teams * 100 / t.maxTeams);
             html +=
-                '<div class="col-12 col-md-6 col-lg-4">' +
-                '<a class="feat-card d-block h-100" href="/bracket/view.html?id=' + t.tournamentId + '" style="color:inherit">' +
+                // Cột flex: thẻ giãn theo chiều cao, hàng nút nằm TRONG cột (trước đây thẻ h-100 + nút ở dưới
+                // làm nút tràn đè lên thẻ của hàng sau).
+                '<div class="col-12 col-md-6 col-lg-4 d-flex flex-column">' +
+                '<a class="feat-card d-block flex-grow-1" href="/bracket/view.html?id=' + t.tournamentId + '" style="color:inherit">' +
                 '<div class="feat-cover" style="background-image:linear-gradient(180deg, rgba(10,14,23,.2), rgba(10,14,23,.8)), url(\'' + Ui.escapeHtml(t.imageUrl) + '\')">' +
                 '<span class="badge ' + Ui.escapeHtml(t.statusClass) + '">' + Ui.escapeHtml(t.status) + '</span>' +
                 '<span class="feat-game">' + Ui.escapeHtml(t.game) + '</span></div>' +
@@ -97,7 +114,9 @@
                 '<div><span class="k">Số đội</span><span class="v">' + t.teams + '/' + t.maxTeams + '</span></div>' +
                 '</div>' +
                 '<div class="feat-bar"><span style="width:' + pct + '%"></span></div>' +
-                '</div></a></div>';
+                '</div></a>' +
+                featActions(t, organizedIds[t.tournamentId]) +
+                '</div>';
         });
         html += '</div>';
         root.innerHTML = html;
@@ -106,7 +125,7 @@
     function renderTeams(list) {
         var root = document.getElementById('teams-list');
         if (!list || !list.length) {
-            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có đội nào</h3><p>Hãy là đội đầu tiên trên hệ thống.</p><a class="btn btn-primary" href="/team/create.html">Tạo đội mới</a></div></div>';
+            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có đội nào</h3><p>Hãy là đội đầu tiên trên hệ thống.</p><a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/team/create.html">Tạo đội mới</a></div></div>';
             return;
         }
         var html = '<div class="row g-3">';
@@ -142,6 +161,43 @@
         root.innerHTML = html;
     }
 
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function fmtDate(iso) {
+        var d = new Date(iso);
+        return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+    }
+
+    var NEWS_IMAGES = ['/images/news/news-1.jpg', '/images/news/news-2.jpg', '/images/news/news-3.jpg'];
+
+    function renderNews(list) {
+        var root = document.getElementById('news-root');
+        if (!list || !list.length) {
+            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có tin tức nào</h3></div></div>';
+            return;
+        }
+        var lead = list[0];
+        var rest = list.slice(1);
+
+        var leadHtml =
+            '<div class="news-lead"><div class="news-cover" style="background-image:linear-gradient(180deg, rgba(10,14,23,.15), rgba(10,14,23,.75)), url(\'' + NEWS_IMAGES[0] + '\')"><span class="news-cat">Tin tức</span></div>' +
+            '<div class="news-lead-body">' +
+            (lead.publishedAt ? '<div class="news-meta">' + fmtDate(lead.publishedAt) + '</div>' : '') +
+            '<h3>' + Ui.escapeHtml(lead.title) + '</h3>' +
+            '<p>' + Ui.escapeHtml(lead.excerpt) + '</p>' +
+            '</div></div>';
+
+        var listHtml = '<div class="news-list">';
+        rest.forEach(function (n, i) {
+            var img = NEWS_IMAGES[(i + 1) % NEWS_IMAGES.length];
+            listHtml +=
+                '<div class="news-item"><span class="news-thumb" style="background-image:url(\'' + img + '\');background-size:cover;background-position:center;color:transparent"></span>' +
+                '<div><div class="news-cat-sm">Tin tức</div><h4>' + Ui.escapeHtml(n.title) + '</h4></div></div>';
+        });
+        listHtml += '</div>';
+
+        root.innerHTML = '<div class="news-grid">' + leadHtml + listHtml + '</div>';
+    }
+
     function wireSubscribeForm() {
         var form = document.getElementById('subscribe-form');
         var flash = document.getElementById('subscribe-flash');
@@ -173,13 +229,24 @@
             setStat('stat-teams', summary.stats.teams);
             setStat('stat-players', summary.stats.players);
             setStat('stat-games', summary.stats.games);
-            renderFeatured(summary.featured);
+
+            // "Quản lý đăng ký" chỉ nên hiện cho đúng Ban tổ chức của giải đó — hỏi riêng
+            // (không gộp vào /api/home/summary, vì API đó dùng chung 1 cache 30s cho mọi người xem).
+            var organizedIds = {};
+            try {
+                var mine = await Api.get('/api/marketing/mine/tournaments');
+                (mine.data || mine || []).forEach(function (t) { organizedIds[t.tournamentId] = true; });
+            } catch (e) { /* chưa đăng nhập hoặc không phải Ban tổ chức — không hiện nút nào cả */ }
+
+            renderFeatured(summary.featured, organizedIds);
             renderTeams(summary.teams);
             renderGames(summary.games);
+            renderNews(summary.news);
         } catch (e) {
             renderFeatured([]);
             renderTeams([]);
             renderGames([]);
+            renderNews([]);
         }
         wireReveal();
         animateCounters();

@@ -23,7 +23,7 @@
         return '<div class="member-card" style="justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px' + (selected ? ';border-left-color:var(--success)' : '') + '">' +
             '<div class="grow"><div class="nm">' + Ui.escapeHtml(o.name) + '</div>' +
             '<div class="rl">' + Ui.escapeHtml(starters + ' chính thức, tối đa ' + o.maxSubstitutes + ' dự bị · ' + (FORMAT_LABELS[o.defaultFormat] || o.defaultFormat)) + '</div>' +
-            (o.mismatchReason && !selected ? '<div class="rl" style="color:var(--danger-ink)">' + Ui.escapeHtml(o.mismatchReason) + '</div>' : '') +
+            (o.mismatchReason && !selected ? '<div class="rl text-danger-etoms">' + Ui.escapeHtml(o.mismatchReason) + '</div>' : '') +
             '</div>' + badge +
             (canPick ? '<button type="button" class="btn btn-primary" data-pick="' + o.gameRulesetId + '">Chọn bộ luật này</button>' : '') +
             '</div>';

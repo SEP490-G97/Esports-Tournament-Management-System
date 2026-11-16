@@ -2,6 +2,7 @@ using System.Data.Common;
 using ETOMS_API.DTOs.Registration;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
+using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ public class LineupPositionService : ILineupPositionService
 
     public async Task<Result<LineupPositionBoardDto>> GetBoardAsync(int registrationId)
     {
+        if (!PendingSchema.LineupGamePosition) return Result<LineupPositionBoardDto>.Failure(SchemaMissingMessage);
         try
         {
             var board = await BuildBoardAsync(registrationId);
@@ -45,6 +47,7 @@ public class LineupPositionService : ILineupPositionService
     // ===== GRL-04: Lưu vị trí của đội hình =====
     public async Task<Result<LineupPositionBoardDto>> SavePositionsAsync(int registrationId, SaveLineupPositionsRequest request)
     {
+        if (!PendingSchema.LineupGamePosition) return Result<LineupPositionBoardDto>.Failure(SchemaMissingMessage);
         try
         {
             var registration = await _uow.Repository<Registration>().Query()
