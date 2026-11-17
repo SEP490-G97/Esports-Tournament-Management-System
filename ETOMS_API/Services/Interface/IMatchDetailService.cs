@@ -24,6 +24,7 @@ public static class MatchActions
     public const string ManualCheckIn = "MANUAL_CHECKIN";
     public const string Substitution = "SUBSTITUTION";
     public const string ReviewSubstitution = "REVIEW_SUBSTITUTION";
+    public const string Lobby = "LOBBY";
 }
 
 public interface IMatchDetailService

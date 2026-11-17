@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    var MATCH_URL = function (id) { return '/match.html?id=' + id; };
+    var MATCH_URL = function (id) { return 'match/match.html?id=' + id; };
     var POLL_MS = 10000;
     var STATUS = { PENDING: ['Chờ duyệt', 'warn'], APPROVED: ['Đã duyệt', 'ok'], REJECTED: ['Bị từ chối', ''], CANCELLED: ['Đã rút', ''] };
 

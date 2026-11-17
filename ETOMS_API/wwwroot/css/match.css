@@ -823,3 +823,163 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Phòng chờ chat (MAT-07) */
+.lb-page {
+    max-width: 860px;
+}
+
+.lb-head-r {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.lb-parts {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.lb-log {
+    height: min(56vh, 520px);
+    overflow-y: auto;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: var(--panel-2);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lb-more {
+    align-self: center;
+}
+
+.lb-empty {
+    margin: auto;
+    text-align: center;
+    color: var(--muted);
+    max-width: 360px;
+    font-size: .9rem;
+}
+
+.lb-day {
+    align-self: center;
+    font-size: .72rem;
+    color: var(--muted-2);
+    text-transform: capitalize;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-soft);
+}
+
+.lb-msg {
+    max-width: 82%;
+    align-self: flex-start;
+}
+
+    .lb-msg.mine {
+        align-self: flex-end;
+    }
+
+.lb-meta {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    font-size: .76rem;
+    color: var(--muted);
+    margin-bottom: 2px;
+    flex-wrap: wrap;
+}
+
+.lb-msg.mine .lb-meta {
+    justify-content: flex-end;
+}
+
+.lb-meta strong {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.lb-role {
+    padding: 0 6px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: .68rem;
+}
+
+.lb-bubble {
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 8px 12px;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+}
+
+.lb-msg.mine .lb-bubble {
+    background: var(--primary-050);
+    color: var(--info-ink);
+    border-color: transparent;
+}
+
+.lb-msg.organizer .lb-role, .lb-msg.referee .lb-role {
+    background: rgba(246,167,35,.14);
+    color: var(--warn);
+    border-color: transparent;
+}
+
+.lb-new {
+    position: relative;
+    margin: 8px auto 0;
+    display: block;
+}
+
+.lb-compose {
+    margin-top: 12px;
+}
+
+.lb-quick {
+    margin-bottom: 8px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.lb-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+    .lb-row textarea {
+        flex: 1;
+        resize: vertical;
+        min-height: 44px;
+        max-height: 160px;
+    }
+
+.lb-count {
+    text-align: right;
+    font-size: .74rem;
+    margin-top: 4px;
+}
+
+@media (max-width: 575px) {
+    .lb-msg {
+        max-width: 94%;
+    }
+
+    .lb-log {
+        height: 52vh;
+    }
+}
+
+.lb-new[hidden], .lb-more[hidden] {
+    display: none;
+}

@@ -136,6 +136,10 @@ public class MatchDetailService : IMatchDetailService
                 actions.Add(MatchActions.ReviewSubstitution);
         }
 
+        // Phòng chờ chat (MAT-07): đội trưởng, BTC, trọng tài của trận — khi đã đủ hai đội.
+        if ((captain || isReferee || isOrganizer) && m.TeamAid != null && m.TeamBid != null && m.Status != "CANCELLED")
+            actions.Add(MatchActions.Lobby);
+
         // BTC / admin: cờ No-show còn hiệu lực + khả năng check-in thủ công (MAT-04). Chỉ người có quyền mới thấy thông tin này.
         MatchNoShowView? noShow = null;
         if (isOrganizer && t.Status != "CANCELLED" && t.Status != "COMPLETED" && m.TeamAid != null && m.TeamBid != null)

@@ -5,7 +5,7 @@
     // ---- Cấu hình điểm tích hợp với các module khác -------------------------------------------------
     // Mỗi thao tác trỏ tới trang/chức năng thuộc module riêng. Chưa có trang thì để null → hiện thông báo.
     var TOURNAMENT_URL = function (id) { return '/tournament.html?id=' + id; };
-    var LOGIN_URL = '/login.html';
+    var LOGIN_URL = 'auth/login.html';
     var ACTION_ROUTES = {
         CHECK_IN: function (d) { return '/checkin.html?id=' + d.matchId; },
         SUBMIT_REPORT: null,
@@ -15,7 +15,8 @@
         MANAGE: null,
         MANUAL_CHECKIN: null,  // xử lý ngay trên trang bằng hộp thoại (openManualCheckIn)
         SUBSTITUTION: function (d) { return '/substitution.html?id=' + d.matchId; },
-        REVIEW_SUBSTITUTION: function (d) { return '/substitution.html?id=' + d.matchId; }
+        REVIEW_SUBSTITUTION: function (d) { return '/substitution.html?id=' + d.matchId; },
+        LOBBY: function (d) { return '/lobby.html?id=' + d.matchId; }
     };
     var ACTION_LABELS = {
         CHECK_IN: ['Check-in', true],
@@ -26,7 +27,8 @@
         MANAGE: ['Quản lý trận', false],
         MANUAL_CHECKIN: ['Check-in thủ công', true],
         SUBSTITUTION: ['Thay người', false],
-        REVIEW_SUBSTITUTION: ['Duyệt thay người', true]
+        REVIEW_SUBSTITUTION: ['Duyệt thay người', true],
+        LOBBY: ['Phòng chờ chat', false]
     };
     var STATUS = {
         PENDING: ['Chờ xác định đội', ''], READY: ['Sẵn sàng', 'info'], LIVE: ['Đang diễn ra', 'live'],

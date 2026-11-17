@@ -7,6 +7,7 @@ using ETOMS_API.Services;
 using ETOMS_API.Services.Impl;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -56,6 +57,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
             NameClaimType = "sub",
             RoleClaimType = "role",
+        };
+        o.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx => {
+                var token = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
         };
     });
 builder.Services.AddAuthorization();
@@ -108,6 +118,7 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlConnectionString));
 builder.Services.AddScoped<IUserNotificationService, UserNotificationService>();
+builder.Services.AddScoped<ISubstitutionService, SubstitutionService>();
 builder.Services.AddScoped<IAdminGameService, AdminGameService>();
 builder.Services.AddScoped<IAdminStatsService, AdminStatsService>();
 builder.Services.AddScoped<IAdminAnnouncementService, AdminAnnouncementService>();
@@ -136,8 +147,11 @@ builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 
-//Hub
 builder.Services.AddSingleton<INotificationHub, NotificationHub>();
+
+//SignalR Chat
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IMatchChatService, MatchChatService>();
 
 var app = builder.Build();
 

@@ -16,7 +16,7 @@ public partial class EtomsDbContext : DbContext
     {
     }
 
-    public virtual DbSet<MatchSubstitution> MatchSubstitutions { get; set; }
+    public virtual DbSet<MatchChatMessage> MatchChatMessages { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -24,44 +24,31 @@ public partial class EtomsDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<MatchSubstitution>(entity =>
+        modelBuilder.Entity<MatchChatMessage>(entity =>
         {
-            entity.HasKey(e => e.MatchSubstitutionId).HasName("PRIMARY");
+            entity.HasKey(e => e.MatchChatMessageId).HasName("PRIMARY");
 
-            entity.ToTable("MatchSubstitution");
+            entity.ToTable("MatchChatMessage");
 
-            entity.HasIndex(e => e.DecidedByAccountId, "FK_MatchSubstitution_DecBy");
+            entity.HasIndex(e => e.TeamId, "FK_MatchChatMessage_Team");
 
-            entity.HasIndex(e => e.InAccountId, "FK_MatchSubstitution_In");
+            entity.HasIndex(e => new { e.MatchId, e.MatchChatMessageId }, "IX_MatchChatMessage_Match");
 
-            entity.HasIndex(e => e.OutAccountId, "FK_MatchSubstitution_Out");
+            entity.HasIndex(e => new { e.SenderAccountId, e.SentAt }, "IX_MatchChatMessage_Sender");
 
-            entity.HasIndex(e => e.RequestedByAccountId, "FK_MatchSubstitution_ReqBy");
-
-            entity.HasIndex(e => e.TeamId, "FK_MatchSubstitution_Team");
-
-            entity.HasIndex(e => new { e.MatchId, e.TeamId, e.Status }, "IX_MatchSubstitution_Match");
-
-            entity.Property(e => e.MatchSubstitutionId).HasColumnName("MatchSubstitutionID");
-            entity.Property(e => e.DecidedAt).HasColumnType("datetime");
-            entity.Property(e => e.DecidedByAccountId).HasColumnName("DecidedByAccountID");
-            entity.Property(e => e.DecisionNote).HasMaxLength(300);
-            entity.Property(e => e.InAccountId)
-                .HasComment("Dự bị vào sân")
-                .HasColumnName("InAccountID");
+            entity.Property(e => e.MatchChatMessageId).HasColumnName("MatchChatMessageID");
+            entity.Property(e => e.Body).HasMaxLength(1000);
             entity.Property(e => e.MatchId).HasColumnName("MatchID");
-            entity.Property(e => e.OutAccountId)
-                .HasComment("Tuyển thủ chính bị thay ra")
-                .HasColumnName("OutAccountID");
-            entity.Property(e => e.Reason).HasMaxLength(300);
-            entity.Property(e => e.RequestedAt)
-                .HasDefaultValueSql("'utc_timestamp()'")
-                .HasColumnType("datetime");
-            entity.Property(e => e.RequestedByAccountId).HasColumnName("RequestedByAccountID");
-            entity.Property(e => e.Status)
+            entity.Property(e => e.SenderAccountId).HasColumnName("SenderAccountID");
+            entity.Property(e => e.SenderRole)
                 .HasMaxLength(20)
-                .HasDefaultValueSql("'PENDING'");
-            entity.Property(e => e.TeamId).HasColumnName("TeamID");
+                .HasComment("Vai trò tại thời điểm gửi: CAPTAIN / ORGANIZER / REFEREE");
+            entity.Property(e => e.SentAt)
+                .HasDefaultValueSql("'utc_timestamp(3)'")
+                .HasColumnType("datetime(3)");
+            entity.Property(e => e.TeamId)
+                .HasComment("Đội của đội trưởng (NULL với BTC / trọng tài)")
+                .HasColumnName("TeamID");
         });
 
         OnModelCreatingPartial(modelBuilder);
