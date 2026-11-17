@@ -22,6 +22,8 @@ public static class MatchActions
     public const string RefereeScore = "REFEREE_SCORE";
     public const string Manage = "MANAGE";
     public const string ManualCheckIn = "MANUAL_CHECKIN";
+    public const string Substitution = "SUBSTITUTION";
+    public const string ReviewSubstitution = "REVIEW_SUBSTITUTION";
 }
 
 public interface IMatchDetailService

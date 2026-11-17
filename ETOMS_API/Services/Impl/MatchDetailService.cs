@@ -127,6 +127,15 @@ public class MatchDetailService : IMatchDetailService
         }
         if (isOrganizer && m.Status != "CANCELLED") actions.Add(MatchActions.Manage);
 
+        // Thay người (MAT-05/06): đội trưởng gửi yêu cầu trước giờ đấu; trọng tài (hoặc BTC nếu không có trọng tài) duyệt.
+        if (m.Status == "READY" && m.TeamAid != null && m.TeamBid != null)
+        {
+            if (captain && m.ScheduledAt != null && now < m.ScheduledAt.Value) actions.Add(MatchActions.Substitution);
+            bool canDecide = isAdmin || (m.RefereeAccountId != null ? isReferee : (me != null && t.OrganizerAccountId == me));
+            if (canDecide && await _db.Set<MatchSubstitution>().AsNoTracking().AnyAsync(x => x.MatchId == matchId && x.Status == "PENDING", ct))
+                actions.Add(MatchActions.ReviewSubstitution);
+        }
+
         // BTC / admin: cờ No-show còn hiệu lực + khả năng check-in thủ công (MAT-04). Chỉ người có quyền mới thấy thông tin này.
         MatchNoShowView? noShow = null;
         if (isOrganizer && t.Status != "CANCELLED" && t.Status != "COMPLETED" && m.TeamAid != null && m.TeamBid != null)
