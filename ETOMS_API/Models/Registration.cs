@@ -13,6 +13,8 @@ public partial class Registration
 
     public int SubmittedByAccountId { get; set; }
 
+    public int? PromotionLinkId { get; set; }
+
     public int? RulebookVersionAccepted { get; set; }
 
     public DateTime? ConsentAt { get; set; }
@@ -36,6 +38,8 @@ public partial class Registration
     public DateTime? ReviewedAt { get; set; }
 
     public virtual ICollection<PaymentRecord> PaymentRecords { get; set; } = new List<PaymentRecord>();
+
+    public virtual PromotionLink? PromotionLink { get; set; }
 
     public virtual ICollection<RegistrationLineup> RegistrationLineups { get; set; } = new List<RegistrationLineup>();
 

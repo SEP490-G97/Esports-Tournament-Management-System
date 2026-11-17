@@ -1,3 +1,4 @@
+using ETOMS_API.Hubs;
 using ETOMS_API.Middleware;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
@@ -125,6 +126,7 @@ builder.Services.AddScoped<IAdminAnnouncementService, AdminAnnouncementService>(
 builder.Services.AddScoped<IAdminBannerService, AdminBannerService>();
 builder.Services.AddSingleton<IMailQueue, MailQueue>();
 builder.Services.AddHostedService<MailQueueWorker>();
+builder.Services.AddHostedService<NoShowWorker>();
 builder.Services.AddScoped<IImageStorage, ImageStorage>();
 builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
 builder.Services.AddScoped<IOneTimeTokenService, OneTimeTokenService>();
@@ -138,6 +140,13 @@ builder.Services.AddSingleton<ETOMS_API.Utils.PrivateFileStorage>();
 builder.Services.AddScoped<ICurrentUser, CurrentUserStub>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IMatchDetailService, MatchDetailService>();
+builder.Services.AddScoped<ICheckInService, CheckInService>();
+builder.Services.AddScoped<IManualCheckInService, ManualCheckInService>();
+builder.Services.AddScoped<INoShowService, NoShowService>();
+builder.Services.AddScoped<IMatchResultListener, IMatchResultListener>();
+builder.Services.AddScoped<IDoubleEliminationService, DoubleEliminationService>();
+
+
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -182,6 +191,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<BanCheckMiddleware>();
 app.UseAuthorization();
+app.MapHub<MatchChatHub>(MatchChatHub.Route);
 app.MapControllers();
 
 app.Run();

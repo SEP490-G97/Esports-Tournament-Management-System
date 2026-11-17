@@ -24,4 +24,10 @@ public partial class MatchChatMessage
     public string Body { get; set; } = null!;
 
     public DateTime SentAt { get; set; }
+
+    public virtual Match Match { get; set; } = null!;
+
+    public virtual Account SenderAccount { get; set; } = null!;
+
+    public virtual Team? Team { get; set; }
 }

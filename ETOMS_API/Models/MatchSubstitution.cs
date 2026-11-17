@@ -34,4 +34,16 @@ public partial class MatchSubstitution
     public DateTime? DecidedAt { get; set; }
 
     public string? DecisionNote { get; set; }
+
+    public virtual Account? DecidedByAccount { get; set; }
+
+    public virtual Account InAccount { get; set; } = null!;
+
+    public virtual Match Match { get; set; } = null!;
+
+    public virtual Account OutAccount { get; set; } = null!;
+
+    public virtual Account RequestedByAccount { get; set; } = null!;
+
+    public virtual Team Team { get; set; } = null!;
 }
