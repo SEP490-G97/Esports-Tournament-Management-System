@@ -27,7 +27,6 @@
         });
     }
 
-<<<<<<< HEAD
     // Nạp js/notifications.js theo yêu cầu (chỉ khi đã đăng nhập) rồi gắn chuông vào đầu ô tài khoản.
     function loadNotifyBell(slot) {
         function go() { if (window.EtomsNotify) window.EtomsNotify.mount(slot); }
@@ -36,12 +35,6 @@
         sc.src = '/js/notifications.js';
         sc.onload = go;
         document.head.appendChild(sc);
-=======
-    // Người dùng hiện tại (JWT, auth.js) — dùng chung kết quả với trang qua Ui.currentUser().
-    async function resolveCurrentUser() {
-        var me = await Ui.currentUser();
-        return me || { isAuthenticated: false };
->>>>>>> 0c5ae06998f9dfb8d533fb18e2bbded0a70b4dd6
     }
 
     async function wireAuthWidget() {
@@ -432,11 +425,4 @@
         document.dispatchEvent(new CustomEvent('etoms:layout-ready'));
         wireTournamentNav(await mePromise);
     });
-<<<<<<< HEAD
 })();
-=======
-
-    // layout.js nạp ở cuối <body>, trước script trang (defer): lúc này khung "Đang tải..." còn nguyên.
-    markLoadingStates();
-})();
->>>>>>> 0c5ae06998f9dfb8d533fb18e2bbded0a70b4dd6
