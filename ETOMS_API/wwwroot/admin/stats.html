@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thống kê hệ thống – ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=adm-20261118">
+
+</head>
+<body>
+    <div id="site-header"></div>
+
+
+    <main class="container-etoms">
+        <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <div class="eyebrow">Quản trị hệ thống</div>
+                <h1>Thống kê hệ thống</h1>
+                <p>Số liệu đếm trực tiếp từ cơ sở dữ liệu: tài khoản, đội, giải đấu, đơn đăng ký và trận đấu.</p>
+            </div>
+            <div class="field mb-0">
+                <label for="months">Khoảng thời gian</label>
+                <select id="months" class="select">
+                    <option value="3">3 tháng gần nhất</option>
+                    <option value="6" selected>6 tháng gần nhất</option>
+                    <option value="12">12 tháng gần nhất</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="flash" aria-live="polite"></div>
+
+        <section class="stats-grid" id="tiles" aria-label="Số liệu tổng"></section>
+
+        <section class="chart-grid">
+            <div class="card-etoms chart-card"><div class="body">
+                <h2>Giải đấu theo trạng thái</h2>
+                <p class="chart-sub">Tổng số giải ở từng trạng thái.</p>
+                <div id="c-status"></div>
+            </div></div>
+            <div class="card-etoms chart-card"><div class="body">
+                <h2>Tựa game có nhiều giải nhất</h2>
+                <p class="chart-sub">Không tính giải còn ở bản nháp.</p>
+                <div id="c-games"></div>
+            </div></div>
+            <div class="card-etoms chart-card"><div class="body">
+                <h2>Tài khoản mới theo tháng</h2>
+                <p class="chart-sub" id="s-accounts">&nbsp;</p>
+                <div id="c-accounts"></div>
+            </div></div>
+            <div class="card-etoms chart-card"><div class="body">
+                <h2>Giải đấu mới theo tháng</h2>
+                <p class="chart-sub" id="s-tournaments">&nbsp;</p>
+                <div id="c-tournaments"></div>
+            </div></div>
+            <div class="card-etoms chart-card"><div class="body">
+                <h2>Đơn đăng ký giải theo tháng</h2>
+                <p class="chart-sub" id="s-registrations">&nbsp;</p>
+                <div id="c-registrations"></div>
+            </div></div>
+        </section>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=form-20261118"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=bell-20261118"></script>
+    <script src="/js/pages/admin-stats.js?v=stats-20261118" defer></script>
+</body>
+</html>

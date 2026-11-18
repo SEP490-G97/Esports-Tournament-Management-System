@@ -29,6 +29,18 @@
             url: '/api/admin/accounts?page=1&pageSize=1', pick: function (d) { return d && typeof d.total === 'number' ? d.total : null; }
         },
         {
+            key: 'stats', overline: 'Thống kê', title: 'Thống kê hệ thống',
+            text: 'Số tài khoản, đội, giải đấu, đơn đăng ký và trận đấu; biểu đồ theo tháng và theo tựa game.',
+            href: '/admin/stats.html', action: 'Xem thống kê',
+            url: '/api/admin/stats?months=3', pick: function (d) { return d && d.tiles ? d.tiles.tournaments : null; }
+        },
+        {
+            key: 'ads', overline: 'Quảng cáo', title: 'Banner & thông báo hệ thống',
+            text: 'Đăng banner sự kiện, quà tặng ở trang chủ và gửi thông báo tới mọi tài khoản theo vai trò.',
+            href: '/admin/ads.html', action: 'Quản lý quảng cáo',
+            url: '/api/admin/banners', pick: count
+        },
+        {
             key: 'news', overline: 'Tin tức', title: 'Tin tức ETOMS',
             text: 'Viết, ghim, ẩn tin của ETOMS hiện ở trang chủ và trang Tin tức.',
             href: '/admin/news.html', action: 'Quản lý tin tức',

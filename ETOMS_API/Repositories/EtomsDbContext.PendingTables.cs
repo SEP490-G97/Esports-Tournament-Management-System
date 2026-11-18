@@ -161,6 +161,41 @@ public partial class EtomsDbContext
                 .HasConstraintName("FK_RegistrationLineup_Position");
         });
 
+        // Banner quảng cáo + thông báo hệ thống: 2 bảng có sẵn của DB chung (không thêm bảng), ánh xạ theo đúng lược đồ.
+        modelBuilder.Entity<SystemBanner>(entity =>
+        {
+            entity.ToTable("SystemBanner");
+            entity.HasIndex(e => new { e.IsActive, e.StartAt, e.EndAt }, "IX_SystemBanner_Live");
+            entity.Property(e => e.SystemBannerId).HasColumnName("SystemBannerID");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.LinkUrl).HasMaxLength(500);
+            entity.Property(e => e.BannerType).HasMaxLength(20);
+            entity.Property(e => e.IsActive).ValueGeneratedNever();
+            entity.Property(e => e.CreatedByAccountId).HasColumnName("CreatedByAccountID");
+            entity.HasOne(d => d.CreatedByAccount).WithMany()
+                .HasForeignKey(d => d.CreatedByAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SystemBanner_By");
+        });
+        modelBuilder.Entity<SystemAnnouncement>(entity =>
+        {
+            entity.ToTable("SystemAnnouncement");
+            entity.HasIndex(e => e.SentAt, "IX_SystemAnnouncement_SentAt");
+            entity.Property(e => e.SystemAnnouncementId).HasColumnName("SystemAnnouncementID");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Body).HasMaxLength(1000);
+            entity.Property(e => e.LinkUrl).HasMaxLength(500);
+            entity.Property(e => e.TargetRoles).HasMaxLength(60);
+            entity.Property(e => e.Channel).HasMaxLength(20);
+            entity.Property(e => e.SentByAccountId).HasColumnName("SentByAccountID");
+            entity.HasOne(d => d.SentByAccount).WithMany()
+                .HasForeignKey(d => d.SentByAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SystemAnnouncement_By");
+        });
+
         // MatchRequest.DecisionNote (thêm 18/11): DB chưa có cột thì bỏ qua (xem PendingSchema).
         modelBuilder.Entity<MatchRequest>(entity =>
         {

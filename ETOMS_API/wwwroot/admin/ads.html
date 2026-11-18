@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quảng cáo &amp; thông báo – ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=adm-20261118">
+
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Quản trị hệ thống</div>
+            <h1>Quảng cáo &amp; thông báo</h1>
+            <p>Banner sự kiện, quà tặng hiện ở trang chủ trong khoảng thời gian đã chọn. Thông báo hệ thống gửi tới mọi tài khoản đang hoạt động theo vai trò.</p>
+        </div>
+
+        <div class="ads-tabs" role="tablist">
+            <button type="button" class="btn btn-ghost" role="tab" id="tab-banners" aria-controls="panel-banners" aria-selected="true">Banner quảng cáo</button>
+            <button type="button" class="btn btn-ghost" role="tab" id="tab-ann" aria-controls="panel-ann" aria-selected="false">Thông báo hệ thống</button>
+        </div>
+
+        <div id="flash" aria-live="polite"></div>
+
+        <!-- ============ Banner ============ -->
+        <div id="panel-banners" role="tabpanel" aria-labelledby="tab-banners">
+            <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-primary" id="btn-new-banner">+ Thêm banner</button></div>
+
+            <section class="card-etoms mb-3" id="banner-editor" hidden><div class="body">
+                <form id="banner-form" novalidate>
+                    <h2 class="h5 mb-3" id="banner-editor-title">Thêm banner</h2>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-8 field mb-0">
+                            <label for="b-title">Tiêu đề <span class="req">*</span></label>
+                            <input id="b-title" class="input" maxlength="200" required placeholder="Ví dụ: Mùa giải FC Online tháng 12">
+                        </div>
+                        <div class="col-12 col-md-4 field mb-0">
+                            <label for="b-type">Loại</label>
+                            <select id="b-type" class="select"><option value="EVENT">Sự kiện</option><option value="GIVEAWAY">Quà tặng</option></select>
+                        </div>
+                        <div class="col-12 field mb-0">
+                            <label for="b-desc">Mô tả ngắn</label>
+                            <input id="b-desc" class="input" maxlength="500" placeholder="Một câu giới thiệu hiện dưới tiêu đề">
+                        </div>
+                        <div class="col-12 col-md-6 field mb-0">
+                            <label for="b-file">Ảnh banner <span class="req">*</span></label>
+                            <input id="b-file" type="file" class="input" accept="image/png,image/jpeg,image/webp">
+                            <small class="field-hint">PNG, JPG hoặc WEBP, tối đa 5 MB. Nên dùng ảnh ngang tỉ lệ 16:7.</small>
+                        </div>
+                        <div class="col-12 col-md-6 field mb-0">
+                            <label for="b-imglink">Hoặc dán liên kết ảnh</label>
+                            <input id="b-imglink" type="url" class="input" maxlength="500" placeholder="https://...">
+                            <small class="field-hint">Ảnh được tải về máy chủ ETOMS. Khi sửa, để trống cả hai ô thì giữ ảnh cũ.</small>
+                        </div>
+                        <div class="col-12 field mb-0">
+                            <label for="b-link">Liên kết khi bấm vào banner</label>
+                            <input id="b-link" class="input" maxlength="500" placeholder="/tournament/index.html hoặc https://...">
+                        </div>
+                        <div class="col-12 col-md-4 field mb-0">
+                            <label for="b-start">Bắt đầu hiển thị <span class="req">*</span></label>
+                            <input id="b-start" type="datetime-local" class="input" required>
+                        </div>
+                        <div class="col-12 col-md-4 field mb-0">
+                            <label for="b-end">Kết thúc hiển thị <span class="req">*</span></label>
+                            <input id="b-end" type="datetime-local" class="input" required>
+                        </div>
+                        <div class="col-12 col-md-4 field mb-0">
+                            <label for="b-order">Thứ tự hiển thị</label>
+                            <input id="b-order" type="number" class="input" min="1" max="99" value="1">
+                        </div>
+                        <div class="col-12 col-md-6"><div class="check-row"><input type="checkbox" id="b-active" checked><label for="b-active">Đang bật</label></div></div>
+                        <div class="col-12 col-md-6 text-md-end">
+                            <button type="button" class="btn btn-ghost" id="b-cancel">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu banner</button>
+                        </div>
+                    </div>
+                </form>
+            </div></section>
+
+            <section class="card-etoms"><div class="body"><div id="banner-list"><div class="empty"><h3>Đang tải…</h3></div></div></div></section>
+        </div>
+
+        <!-- ============ Thông báo hệ thống ============ -->
+        <div id="panel-ann" role="tabpanel" aria-labelledby="tab-ann" hidden>
+            <section class="card-etoms mb-3"><div class="body">
+                <form id="ann-form" novalidate>
+                    <h2 class="h5 mb-3">Gửi thông báo mới</h2>
+                    <div class="field">
+                        <label for="a-title">Tiêu đề <span class="req">*</span></label>
+                        <input id="a-title" class="input" maxlength="200" required>
+                    </div>
+                    <div class="field">
+                        <label for="a-body">Nội dung <span class="req">*</span></label>
+                        <textarea id="a-body" class="input" rows="4" maxlength="1000" required></textarea>
+                    </div>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-4 field mb-0">
+                            <label for="a-link">Liên kết trong ETOMS</label>
+                            <input id="a-link" class="input" maxlength="500" placeholder="/tournament/index.html">
+                        </div>
+                        <div class="col-6 col-md-3 field mb-0">
+                            <label for="a-target">Người nhận</label>
+                            <select id="a-target" class="select"><option value="ALL">Mọi tài khoản</option><option value="PLAYER">Tuyển thủ</option><option value="ORGANIZER">Ban tổ chức</option></select>
+                        </div>
+                        <div class="col-6 col-md-3 field mb-0">
+                            <label for="a-channel">Kênh gửi</label>
+                            <select id="a-channel" class="select"><option value="IN_APP">Trong web</option><option value="EMAIL">Email</option><option value="BOTH">Trong web và email</option></select>
+                        </div>
+                        <div class="col-12 col-md-2 text-md-end"><button type="submit" class="btn btn-primary w-100">Gửi</button></div>
+                    </div>
+                    <small class="field-hint d-block mt-2">Người đã tắt nhận thông báo trong web hoặc qua email ở hồ sơ sẽ không nhận kênh đó.</small>
+                </form>
+            </div></section>
+
+            <section class="card-etoms"><div class="body">
+                <h2 class="h5 mb-3">Đã gửi gần đây</h2>
+                <div id="ann-list"><div class="empty"><h3>Đang tải…</h3></div></div>
+            </div></section>
+        </div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=form-20261118"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=bell-20261118"></script>
+    <script src="/js/pages/admin-ads.js?v=ads-20261118" defer></script>
+</body>
+</html>

@@ -25,8 +25,10 @@
         nav.innerHTML =
             // MỘT menu quản trị cho mọi trang admin (thay thanh tab riêng admin-nav của từng trang).
             '<a href="/admin/index.html" data-nav="admin/index">Tổng quan</a>' +
+            '<a href="/admin/stats.html" data-nav="admin/stats">Thống kê</a>' +
             '<a href="/admin/user.html" data-nav="admin/user">Tài khoản</a>' +
             '<a href="/admin/news.html" data-nav="admin/news">Tin tức</a>' +
+            '<a href="/admin/ads.html" data-nav="admin/ads">Quảng cáo</a>' +
             '<a href="/admin/game-rules.html" data-nav="admin/game-rules">Luật game</a>' +
             '<a href="/organization/index.html" data-nav="organization">Đơn vị</a>';
         var header = document.querySelector('.etoms-nav');
@@ -95,6 +97,7 @@
             }
             if (me.isAuthenticated) {
                 renderUserDropdown(slot, me);
+                wireNotificationBell(slot);
                 await loadMyTeam(me);
             } else {
                 slot.innerHTML = loggedOutHtml;
@@ -159,6 +162,102 @@
             e.preventDefault();
             Auth.logout('/');                                  // thu hồi refresh token, xóa cookie, về trang chủ
         });
+    }
+
+    // Chuông thông báo (bảng Notification, API /api/notifications). Hỏi lại máy chủ mỗi 60 giây (polling — chưa có Hub).
+    // Bấm một thông báo: đánh dấu đã đọc rồi mở liên kết của nó (nếu có).
+    function wireNotificationBell(slot) {
+        var wrap = document.createElement('div');
+        wrap.className = 'nav-bell';
+        wrap.innerHTML =
+            '<button type="button" class="nav-bell-btn" id="nav-bell-btn" aria-expanded="false" aria-label="Thông báo" title="Thông báo">' +
+            '  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9a6 6 0 1 1 12 0c0 4.5 1.8 6.3 2.5 7H3.5C4.2 15.3 6 13.5 6 9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+            '  <span class="nav-bell-count" id="nav-bell-count" hidden>0</span>' +
+            '</button>' +
+            '<div class="nav-bell-menu" id="nav-bell-menu" role="dialog" aria-label="Thông báo">' +
+            '  <div class="nav-bell-head"><b>Thông báo</b><button type="button" class="nav-bell-readall" id="nav-bell-readall">Đánh dấu đã đọc hết</button></div>' +
+            '  <div class="nav-bell-list" id="nav-bell-list"><div class="nav-bell-empty">Đang tải…</div></div>' +
+            '  <button type="button" class="nav-bell-more" id="nav-bell-more" hidden>Xem thêm</button>' +
+            '</div>';
+        slot.insertBefore(wrap, slot.firstChild);
+
+        var btn = document.getElementById('nav-bell-btn'), menu = document.getElementById('nav-bell-menu');
+        var list = document.getElementById('nav-bell-list'), more = document.getElementById('nav-bell-more');
+        var countEl = document.getElementById('nav-bell-count');
+        var page = 1, items = [];
+
+        function setCount(n) {
+            countEl.hidden = !n;
+            countEl.textContent = n > 99 ? '99+' : String(n);
+            btn.setAttribute('aria-label', n ? 'Thông báo, ' + n + ' chưa đọc' : 'Thông báo');
+        }
+        function when(iso) {
+            var d = new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z');
+            if (isNaN(d.getTime())) return '';
+            var mins = Math.round((Date.now() - d.getTime()) / 60000);
+            if (mins < 1) return 'Vừa xong';
+            if (mins < 60) return mins + ' phút trước';
+            if (mins < 1440) return Math.floor(mins / 60) + ' giờ trước';
+            return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        function render() {
+            if (!items.length) { list.innerHTML = '<div class="nav-bell-empty">Chưa có thông báo nào.</div>'; return; }
+            list.innerHTML = items.map(function (n) {
+                return '<button type="button" class="nav-bell-item' + (n.isRead ? '' : ' unread') + '" data-id="' + n.notificationId + '">' +
+                    '<span class="t">' + Ui.escapeHtml(n.title || '') + '</span>' +
+                    (n.body ? '<span class="b">' + Ui.escapeHtml(n.body) + '</span>' : '') +
+                    '<span class="w">' + when(n.sentAt) + '</span></button>';
+            }).join('');
+        }
+        async function load(reset) {
+            if (reset) { page = 1; items = []; }
+            try {
+                var res = await Api.get('/api/notifications?page=' + page + '&pageSize=10');
+                items = items.concat(res.items || []);
+                setCount(res.unread || 0);
+                more.hidden = items.length >= (res.total || 0);
+                render();
+            } catch (e) { list.innerHTML = '<div class="nav-bell-empty">Không tải được thông báo.</div>'; }
+        }
+        async function poll() {
+            if (document.hidden) return;
+            try { setCount((await Api.get('/api/notifications/unread-count')).unread || 0); } catch (e) { }
+        }
+        function close() { menu.classList.remove('show'); btn.setAttribute('aria-expanded', 'false'); }
+
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = menu.classList.toggle('show');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) load(true);
+        });
+        document.addEventListener('click', function (e) { if (menu.classList.contains('show') && !wrap.contains(e.target)) close(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && menu.classList.contains('show')) { close(); btn.focus(); } });
+        more.addEventListener('click', function (e) { e.stopPropagation(); page++; load(false); });
+        document.getElementById('nav-bell-readall').addEventListener('click', async function (e) {
+            e.stopPropagation();
+            try { await Api.post('/api/notifications/read-all', {}); } catch (err) { return; }
+            items.forEach(function (n) { n.isRead = true; });
+            setCount(0);
+            render();
+        });
+        list.addEventListener('click', async function (e) {
+            var el = e.target.closest('.nav-bell-item');
+            if (!el) return;
+            var n = items.find(function (x) { return x.notificationId === Number(el.dataset.id); });
+            if (!n) return;
+            if (!n.isRead) {
+                try { await Api.post('/api/notifications/' + n.notificationId + '/read', {}); n.isRead = true; } catch (err) { }
+                setCount(Math.max(0, items.filter(function (x) { return !x.isRead; }).length));
+                poll();
+                render();
+            }
+            // Chỉ mở liên kết nội bộ (bắt đầu bằng một dấu /).
+            if (n.linkUrl && /^\/(?!\/)/.test(n.linkUrl)) location.href = n.linkUrl;
+        });
+
+        poll();
+        setInterval(poll, 60 * 1000);
     }
 
     // Nhớ tạm trong tab (sessionStorage) những câu hỏi lặp lại MỖI lần chuyển trang — database ở xa nên mỗi câu

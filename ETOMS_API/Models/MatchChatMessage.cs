@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ETOMS_API.Models;
 
-// Khớp bảng MatchChatMessage trên DB chung (Hải dựng lại 17/11 cho MAT-07 phòng chờ) — giống bản ở nhánh main.
+// Khớp bảng MatchChatMessage trên DB chung (bảng đã đổi cấu trúc ngày 17/11): Body, SenderRole, TeamID.
 public partial class MatchChatMessage
 {
     public long MatchChatMessageId { get; set; }
