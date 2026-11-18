@@ -13,6 +13,8 @@ public partial class Registration
 
     public int SubmittedByAccountId { get; set; }
 
+    public int? PromotionLinkId { get; set; }
+
     public int? RulebookVersionAccepted { get; set; }
 
     public DateTime? ConsentAt { get; set; }

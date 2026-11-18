@@ -31,4 +31,6 @@ public partial class MatchPickBan
     public virtual GameMap GameMap { get; set; } = null!;
 
     public virtual Account RecordedByAccount { get; set; } = null!;
+
+    public virtual Team? Team { get; set; }
 }

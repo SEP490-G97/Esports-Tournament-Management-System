@@ -20,4 +20,6 @@ public partial class GameMap
     public DateTime CreatedAt { get; set; }
 
     public virtual GameRuleset GameRuleset { get; set; } = null!;
+
+    public virtual ICollection<MatchPickBan> MatchPickBans { get; set; } = new List<MatchPickBan>();
 }

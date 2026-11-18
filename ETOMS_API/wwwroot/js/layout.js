@@ -6,7 +6,7 @@
         var path = location.pathname.toLowerCase();
         document.querySelectorAll('#etomsNavCollapse nav a[data-nav]').forEach(function (a) {
             var key = a.getAttribute('data-nav');
-            var match = (key === 'home' && path === '/' ) ||
+            var match = (key === 'home' && path === '/') ||
                 (key !== 'home' && path.indexOf('/' + key) === 0);
             a.classList.toggle('active', match);
         });
@@ -19,36 +19,22 @@
             var isLight = document.documentElement.getAttribute('data-theme') === 'light';
             if (isLight) {
                 document.documentElement.removeAttribute('data-theme');
-                try { localStorage.setItem('etoms-theme', 'dark'); } catch (e) {}
+                try { localStorage.setItem('etoms-theme', 'dark'); } catch (e) { }
             } else {
                 document.documentElement.setAttribute('data-theme', 'light');
-                try { localStorage.setItem('etoms-theme', 'light'); } catch (e) {}
+                try { localStorage.setItem('etoms-theme', 'light'); } catch (e) { }
             }
         });
     }
 
-    // Đọc người dùng hiện tại theo 2 nguồn (để nhóm test song song):
-    //   1. Đăng nhập thật bằng JWT (AUTH-02, auth.js) nếu trang có nạp auth.js.
-    //   2. Đăng nhập thử /dev-auth (session, chỉ Development).
-    // Trả về cùng một dạng { isAuthenticated, userId, displayName, role, source }.
-    async function resolveCurrentUser() {
-        if (window.Auth && typeof Auth.tryGetMe === 'function') {
-            var jwtMe = await Auth.tryGetMe();                 // không chuyển hướng khi chưa đăng nhập
-            if (jwtMe) {
-                return {
-                    isAuthenticated: true,
-                    userId: jwtMe.id || jwtMe.accountId,
-                    displayName: jwtMe.name || jwtMe.fullName || jwtMe.email || '',
-                    role: jwtMe.role,
-                    source: 'jwt'
-                };
-            }
-        }
-        try {
-            var devMe = await Api.get('/api/dev-auth/me');
-            if (devMe && devMe.isAuthenticated) { devMe.source = 'dev'; return devMe; }
-        } catch (e) { /* ngoài Development endpoint trả 404 */ }
-        return { isAuthenticated: false };
+    // Nạp js/notifications.js theo yêu cầu (chỉ khi đã đăng nhập) rồi gắn chuông vào đầu ô tài khoản.
+    function loadNotifyBell(slot) {
+        function go() { if (window.EtomsNotify) window.EtomsNotify.mount(slot); }
+        if (window.EtomsNotify) return go();
+        var sc = document.createElement('script');
+        sc.src = '/js/notifications.js';
+        sc.onload = go;
+        document.head.appendChild(sc);
     }
 
     async function wireAuthWidget() {
@@ -56,10 +42,19 @@
         if (!slot) return;
         var loggedOutHtml = '<a class="btn btn-primary nav-auth-login" href="/auth/login.html">Đăng nhập</a>';
         try {
-            var me = await resolveCurrentUser();
-            if (me.isAuthenticated) {
-                renderUserDropdown(slot, me);
-                await loadMyTeam(me);
+            var me = await Auth.tryGetMe();            // JWT: không chuyển hướng khi chưa đăng nhập
+            if (me) {
+                var name = me.name || me.email || '';
+                slot.innerHTML =
+                    '<span class="av" aria-hidden="true">' + Ui.escapeHtml((name || '?').substring(0, 1).toUpperCase()) + '</span>' +
+                    '<span class="nav-auth-hello"><span class="nav-auth-hi">Xin chào,</span> ' +
+                    '<span class="who">' + Ui.escapeHtml(name) + '</span></span>' +
+                    '<a class="btn btn-ghost nav-auth-logout" href="#" id="nav-logout">Đăng xuất</a>';
+                document.getElementById('nav-logout').addEventListener('click', function (e) {
+                    e.preventDefault();
+                    Auth.logout('/');                  // thu hồi refresh token, xóa cookie, về trang chủ
+                });
+                loadNotifyBell(slot);                   // chuông thông báo (ADM-08)
             } else {
                 slot.innerHTML = loggedOutHtml;
             }

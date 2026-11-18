@@ -37,6 +37,10 @@ public partial class Account
 
     public DateTime? OrganizerRequestedAt { get; set; }
 
+    public string? OrganizerRequestNote { get; set; }
+
+    public string? OrganizerRequestEmail { get; set; }
+
     public DateTime? EmailVerifiedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }
@@ -55,11 +59,11 @@ public partial class Account
 
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();
 
-    public virtual ICollection<MatchChatMessage> MatchChatMessageReportedByAccounts { get; set; } = new List<MatchChatMessage>();
-
-    public virtual ICollection<MatchChatMessage> MatchChatMessageSenderAccounts { get; set; } = new List<MatchChatMessage>();
+    public virtual ICollection<MatchChatMessage> MatchChatMessages { get; set; } = new List<MatchChatMessage>();
 
     public virtual ICollection<MatchGame> MatchGames { get; set; } = new List<MatchGame>();
+
+    public virtual ICollection<MatchPickBan> MatchPickBans { get; set; } = new List<MatchPickBan>();
 
     public virtual ICollection<MatchReport> MatchReports { get; set; } = new List<MatchReport>();
 
@@ -70,6 +74,14 @@ public partial class Account
     public virtual ICollection<MatchRequest> MatchRequestOutAccounts { get; set; } = new List<MatchRequest>();
 
     public virtual ICollection<MatchRequest> MatchRequestRequestedByAccounts { get; set; } = new List<MatchRequest>();
+
+    public virtual ICollection<MatchSubstitution> MatchSubstitutionDecidedByAccounts { get; set; } = new List<MatchSubstitution>();
+
+    public virtual ICollection<MatchSubstitution> MatchSubstitutionInAccounts { get; set; } = new List<MatchSubstitution>();
+
+    public virtual ICollection<MatchSubstitution> MatchSubstitutionOutAccounts { get; set; } = new List<MatchSubstitution>();
+
+    public virtual ICollection<MatchSubstitution> MatchSubstitutionRequestedByAccounts { get; set; } = new List<MatchSubstitution>();
 
     public virtual ICollection<Match> Matches { get; set; } = new List<Match>();
 
@@ -100,8 +112,6 @@ public partial class Account
     public virtual ICollection<Team> Teams { get; set; } = new List<Team>();
 
     public virtual ICollection<Tournament> TournamentBracketLockedByAccounts { get; set; } = new List<Tournament>();
-
-    public virtual ICollection<TournamentFollow> TournamentFollows { get; set; } = new List<TournamentFollow>();
 
     public virtual ICollection<Tournament> TournamentOrganizerAccounts { get; set; } = new List<Tournament>();
 

@@ -1,0 +1,207 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thông báo &amp; Banner tổng – ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <link rel="stylesheet" href="/css/admin-ext.css">
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms ax-page">
+        <nav id="admin-nav" class="ax-nav"></nav>
+
+        <div class="ax-head">
+            <div>
+                <h1 class="ax-title">Thông báo &amp; Banner tổng</h1>
+                <p class="ax-sub">Phát thông báo tới toàn bộ người dùng hoặc theo nhóm vai trò; ghim sự kiện / Giveaway lên Banner tổng, quản lý thứ tự và thời hạn ghim.</p>
+            </div>
+        </div>
+
+        <div class="ax-tabs big" id="mainTabs" role="tablist" aria-label="Chức năng">
+            <button type="button" class="ax-tab" role="tab" data-tab="announce" aria-selected="true">Thông báo</button>
+            <button type="button" class="ax-tab" role="tab" data-tab="banner" aria-selected="false">Banner tổng</button>
+        </div>
+
+        <!-- ============ TAB THÔNG BÁO ============ -->
+        <div id="panel-announce">
+            <section class="ax-card ax-relative">
+                <h2 class="ax-card-title">Soạn thông báo</h2>
+                <form id="annForm" novalidate>
+                    <div class="ax-field">
+                        <label class="ax-label" for="aTitle">Tiêu đề <span class="ax-count" id="aTitleN">0/200</span></label>
+                        <input class="ax-input" id="aTitle" maxlength="200" autocomplete="off">
+                    </div>
+                    <div class="ax-field">
+                        <label class="ax-label" for="aBody">Nội dung <span class="ax-count" id="aBodyN">0/1000</span></label>
+                        <textarea class="ax-textarea" id="aBody" maxlength="1000" rows="5"></textarea>
+                    </div>
+
+                    <div class="ax-row">
+                        <div class="ax-field">
+                            <label class="ax-label" for="aMode">Đối tượng</label>
+                            <select class="ax-select" id="aMode">
+                                <option value="ROLES">Theo nhóm vai trò</option>
+                                <option value="EXCEPT">Tất cả (hoặc nhóm) trừ một số email</option>
+                                <option value="ONLY">Chỉ gửi cho email chỉ định</option>
+                            </select>
+                        </div>
+                        <div class="ax-field">
+                            <label class="ax-label" for="aChannel">Kênh gửi</label>
+                            <select class="ax-select" id="aChannel">
+                                <option value="IN_APP">Trong ứng dụng</option>
+                                <option value="EMAIL">Email</option>
+                                <option value="BOTH">Trong ứng dụng + Email</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <fieldset class="ax-field" id="aRolesBox">
+                        <legend class="ax-label">Nhóm người nhận</legend>
+                        <div class="ax-checks" id="aRoles">
+                            <label class="ax-check"><input type="checkbox" value="PLAYER" checked> Người chơi</label>
+                            <label class="ax-check"><input type="checkbox" value="ORGANIZER" checked> Ban tổ chức</label>
+                            <label class="ax-check"><input type="checkbox" value="ADMIN" checked> Quản trị viên</label>
+                        </div>
+                        <div class="ax-help" id="aRolesHelp">Chọn cả ba = toàn bộ người dùng. Chỉ gửi tới người đã bật nhận thông báo qua kênh đã chọn.</div>
+                    </fieldset>
+
+                    <div class="ax-field" id="aEmailsBox" hidden>
+                        <label class="ax-label" for="aEmails"><span id="aEmailsLabel">Email</span> <span class="ax-count" id="aEmailsN">0 email</span></label>
+                        <textarea class="ax-textarea" id="aEmails" rows="3" placeholder="a@gmail.com, b@gmail.com — mỗi email một dòng hoặc cách nhau bằng dấu phẩy" spellcheck="false"></textarea>
+                        <div class="ax-help" id="aEmailsHelp"></div>
+                    </div>
+
+                    <div class="ax-field">
+                        <label class="ax-label" for="aLink">Liên kết (tuỳ chọn)</label>
+                        <input class="ax-input" id="aLink" maxlength="500" placeholder="/tournaments.html hoặc https://…" autocomplete="off">
+                    </div>
+
+                    <div class="ax-audience" id="aAudience" role="status" aria-live="polite">Đang đếm người nhận…</div>
+                    <div class="ax-error" id="aErr" role="alert" hidden></div>
+
+                    <div class="ax-actions" style="justify-content:flex-end;margin-top:14px">
+                        <button type="button" class="ax-btn" id="aSend">Gửi thông báo</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="ax-card ax-relative" id="histCard" style="margin-top:18px">
+                <div class="ax-progress"></div>
+                <h2 class="ax-card-title">Lịch sử đã phát</h2>
+                <div id="histState" class="ax-loading" role="status">Đang tải…</div>
+                <div class="ax-list" id="histList"></div>
+                <div class="ax-pager" id="histPager" hidden>
+                    <span id="histInfo"></span>
+                    <div class="ax-actions">
+                        <button type="button" class="ax-btn ghost sm" id="histPrev">‹ Trước</button>
+                        <button type="button" class="ax-btn ghost sm" id="histNext">Sau ›</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ============ TAB BANNER ============ -->
+        <div id="panel-banner" hidden>
+            <section class="ax-card ax-relative" id="banCard">
+                <div class="ax-progress"></div>
+                <div class="ax-toolbar">
+                    <div class="ax-tabs" id="banTabs" role="tablist" aria-label="Lọc banner">
+                        <button type="button" class="ax-tab" role="tab" data-state="CURRENT" aria-selected="true">Đang áp dụng<span class="n" data-n="current">0</span></button>
+                        <button type="button" class="ax-tab" role="tab" data-state="EXPIRED" aria-selected="false">Hết hạn<span class="n" data-n="expired">0</span></button>
+                    </div>
+                    <div class="grow"></div>
+                    <button type="button" class="ax-btn" id="banAdd">+ Thêm banner</button>
+                </div>
+                <div class="ax-help" id="banHint" style="margin:-6px 0 8px">Thứ tự 1 hiển thị đầu tiên. Dùng ▲ ▼ để đổi vị trí.</div>
+                <div id="banState" class="ax-loading" role="status">Đang tải…</div>
+                <div class="ax-list" id="banList"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Hộp thoại thêm / sửa banner -->
+    <dialog class="ax-dialog wide" id="banModal" aria-labelledby="banModalTitle">
+        <div class="ax-dialog-head">
+            <h2 class="ax-dialog-title" id="banModalTitle">Thêm banner</h2>
+            <button type="button" class="ax-dialog-x" data-close aria-label="Đóng">&times;</button>
+        </div>
+        <div class="ax-dialog-body">
+            <form id="banForm" novalidate>
+                <div class="ax-row">
+                    <div class="ax-field" style="grid-column: span 2">
+                        <label class="ax-label" for="bTitle">Tiêu đề</label>
+                        <input class="ax-input" id="bTitle" maxlength="200" autocomplete="off">
+                    </div>
+                    <div class="ax-field">
+                        <label class="ax-label" for="bType">Loại</label>
+                        <select class="ax-select" id="bType">
+                            <option value="EVENT">Sự kiện</option>
+                            <option value="GIVEAWAY">Giveaway</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="ax-field">
+                    <label class="ax-label" for="bDesc">Mô tả (tuỳ chọn) <span class="ax-count" id="bDescN">0/500</span></label>
+                    <textarea class="ax-textarea" id="bDesc" maxlength="500" rows="3"></textarea>
+                </div>
+
+                <div class="ax-field">
+                    <div class="ax-label">Ảnh banner</div>
+                    <div class="ax-media-preview ax-banner-preview" id="bPreview">Chưa có ảnh</div>
+                    <input type="file" id="bFile" accept="image/png,image/jpeg,image/webp" hidden>
+                    <div class="ax-actions" style="justify-content:flex-start;margin-bottom:8px">
+                        <button type="button" class="ax-btn ghost sm" id="bPick">Tải ảnh lên…</button>
+                    </div>
+                    <input class="ax-input" id="bImage" maxlength="500" placeholder="hoặc dán đường dẫn ảnh (/uploads/… hoặc https://…)" autocomplete="off">
+                    <div class="ax-help">PNG, JPG hoặc WebP, tối đa 5 MB. Khuyến nghị tỉ lệ 16:6.</div>
+                </div>
+
+                <div class="ax-field">
+                    <label class="ax-label" for="bLink">Liên kết khi bấm vào (tuỳ chọn)</label>
+                    <input class="ax-input" id="bLink" maxlength="500" placeholder="/tournaments.html hoặc https://…" autocomplete="off">
+                </div>
+
+                <div class="ax-row">
+                    <div class="ax-field">
+                        <label class="ax-label" for="bStart">Bắt đầu ghim</label>
+                        <input class="ax-input" id="bStart" type="datetime-local">
+                    </div>
+                    <div class="ax-field">
+                        <label class="ax-label" for="bEnd">Hết hạn</label>
+                        <input class="ax-input" id="bEnd" type="datetime-local">
+                    </div>
+                    <div class="ax-field">
+                        <label class="ax-label" for="bPos">Vị trí</label>
+                        <input class="ax-input" id="bPos" type="number" min="1" step="1" placeholder="Cuối">
+                    </div>
+                </div>
+                <div class="ax-actions" style="justify-content:flex-start;margin:-6px 0 12px">
+                    <span class="ax-help" style="margin:0 6px 0 0">Đặt nhanh hạn:</span>
+                    <button type="button" class="ax-btn ghost sm" data-days="7">+7 ngày</button>
+                    <button type="button" class="ax-btn ghost sm" data-days="30">+30 ngày</button>
+                </div>
+
+                <label class="ax-check"><input type="checkbox" id="bActive" checked> Bật hiển thị</label>
+                <div class="ax-error" id="bErr" role="alert" hidden></div>
+            </form>
+        </div>
+        <div class="ax-dialog-foot">
+            <button type="button" class="ax-btn ghost" data-close>Đóng</button>
+            <button type="button" class="ax-btn" id="bSave">Lưu</button>
+        </div>
+    </dialog>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/admin-common.js"></script>
+    <script src="/js/pages/admin-announcements.js"></script>
+</body>
+</html>

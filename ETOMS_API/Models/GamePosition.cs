@@ -20,4 +20,6 @@ public partial class GamePosition
     public DateTime CreatedAt { get; set; }
 
     public virtual GameRuleset GameRuleset { get; set; } = null!;
+
+    public virtual ICollection<RegistrationLineup> RegistrationLineups { get; set; } = new List<RegistrationLineup>();
 }

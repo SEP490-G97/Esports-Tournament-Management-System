@@ -1,3 +1,4 @@
+using ETOMS_API.Hubs;
 using ETOMS_API.Middleware;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
@@ -7,8 +8,10 @@ using ETOMS_API.Services;
 using ETOMS_API.Services.Impl;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MySql.Data.MySqlClient;
 using System.Text;
@@ -29,8 +32,16 @@ if (string.IsNullOrWhiteSpace(connectionString))
 // ---- Options ----
 builder.Services.Configure<JwtOptions>(cfg.GetSection(JwtOptions.Section));
 var jwt = cfg.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.Configure<AuthLinkOptions>(builder.Configuration.GetSection(AuthLinkOptions.SectionName));
+builder.Services.Configure<SupportOptions>(builder.Configuration.GetSection(SupportOptions.SectionName));
 
 
+
+// Email: Enabled=false thì chỉ ghi link ra log, test gửi mail trong env dev
+var emailEnabled = builder.Configuration.GetValue<bool>("Email:Enabled");
+if (emailEnabled) builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
+else builder.Services.AddScoped<IEmailSender, LogEmailSender>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
@@ -48,16 +59,36 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = "sub",
             RoleClaimType = "role",
         };
+        o.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx => {
+                var token = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 
+/* Rate limiting: giới hạn số lần gửi request (mail, login) trong 1 phút để chống spam, brute-force. 
+ * Dùng IP làm key, nếu có proxy thì cần cấu hình X-Forwarded-For.
+ *  Tạm thời chưa cần proxy, tất cả cấu hình trên Amazon EC2 đều chạy internal   
+ */
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    //login
     o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+    //Mail
+    o.AddPolicy("mail", ctx => RateLimitPartition.GetFixedWindowLimiter(
+    ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+    _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
 });
+
+
 
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
@@ -116,6 +147,21 @@ builder.Services.AddDbContext<EtomsDbContext>(options => options.UseMySQL(mysqlC
 PendingSchema.Detect(mysqlConnectionString);
 
 builder.Services.AddScoped(typeof(ETOMS_API.Repositories.Interface.IGenericRepository<>), typeof(ETOMS_API.Repositories.Impl.GenericRepository<>));
+builder.Services.AddScoped<IUserNotificationService, UserNotificationService>();
+builder.Services.AddScoped<ISubstitutionService, SubstitutionService>();
+builder.Services.AddScoped<IAdminGameService, AdminGameService>();
+builder.Services.AddScoped<IAdminStatsService, AdminStatsService>();
+builder.Services.AddScoped<IAdminAnnouncementService, AdminAnnouncementService>();
+builder.Services.AddScoped<IAdminBannerService, AdminBannerService>();
+builder.Services.AddSingleton<IMailQueue, MailQueue>();
+builder.Services.AddHostedService<MailQueueWorker>();
+builder.Services.AddHostedService<NoShowWorker>();
+builder.Services.AddScoped<IImageStorage, ImageStorage>();
+builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
+builder.Services.AddScoped<IOneTimeTokenService, OneTimeTokenService>();
+builder.Services.AddScoped<IAccountSecurityService, AccountSecurityService>();
+builder.Services.AddScoped(typeof(ETOMS_API.Repositories.Interface.IGenericRepository<>), typeof(ETOMS_API.Repositories.Impl.GenericRepository<>));
+builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
 builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IProfileService, ETOMS_API.Services.Impl.ProfileService>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ETOMS_API.Services.Impl.OrganizationService>();
@@ -128,6 +174,14 @@ builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IBracketService, BracketService>();
 builder.Services.AddScoped<IResultService, ResultService>();
 builder.Services.AddHostedService<WaitlistExpirationWorker>();
+builder.Services.AddScoped<IMatchDetailService, MatchDetailService>();
+builder.Services.AddScoped<ICheckInService, CheckInService>();
+builder.Services.AddScoped<IManualCheckInService, ManualCheckInService>();
+builder.Services.AddScoped<INoShowService, NoShowService>();
+builder.Services.AddScoped<IMatchResultListener, IMatchResultListener>();
+builder.Services.AddScoped<IDoubleEliminationService, DoubleEliminationService>();
+
+
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -159,6 +213,12 @@ builder.Services.AddScoped<IBracketViewService, BracketViewService>();
 builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
 builder.Services.AddScoped<ITournamentCancelService, TournamentCancelService>();
 
+builder.Services.AddSingleton<INotificationHub, NotificationHub>();
+
+//SignalR Chat
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IMatchChatService, MatchChatService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -184,6 +244,7 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseHttpsRedirection();
+app.UseMiddleware<ETOMS_API.Utils.RequestAbortedMiddleware>();
 app.UseRouting();
 app.UseSession();
 app.UseCors();
@@ -193,6 +254,7 @@ app.UseMiddleware<BanCheckMiddleware>();
 app.UseAuthorization();
 
 // API controllers (attribute routing [Route("api/...")]) — không còn route quy ước MVC.
+app.MapHub<MatchChatHub>(MatchChatHub.Route);
 app.MapControllers();
 
 // app.MapHub<...>("/hubs/...");  // đăng ký SignalR Hub cụ thể khi tạo Hub

@@ -1,3 +1,6 @@
+﻿using System;
+using System.Collections.Generic;
+
 namespace ETOMS_API.Models;
 
 public partial class Organization
@@ -37,8 +40,6 @@ public partial class Organization
     public DateTime CreatedAt { get; set; }
 
     public virtual Account CreatedByAccount { get; set; } = null!;
-
-    public virtual ICollection<OrganizationDocument> OrganizationDocuments { get; set; } = new List<OrganizationDocument>();
 
     public virtual ICollection<OrganizationMember> OrganizationMembers { get; set; } = new List<OrganizationMember>();
 

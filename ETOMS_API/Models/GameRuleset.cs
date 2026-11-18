@@ -30,4 +30,10 @@ public partial class GameRuleset
     public DateTime CreatedAt { get; set; }
 
     public virtual Game Game { get; set; } = null!;
+
+    public virtual ICollection<GameMap> GameMaps { get; set; } = new List<GameMap>();
+
+    public virtual ICollection<GamePosition> GamePositions { get; set; } = new List<GamePosition>();
+
+    public virtual ICollection<TournamentRuleset> TournamentRulesets { get; set; } = new List<TournamentRuleset>();
 }
