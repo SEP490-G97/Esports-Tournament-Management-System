@@ -6,6 +6,7 @@ namespace ETOMS_API.Services.Interface;
 public interface IOrganizationService
 {
     Task<Result<OrganizationCreatedResponse>> CreateAsync(CreateOrganizationRequest request, int creatorAccountId, CancellationToken cancellationToken);
+    Task<Result> UpdatePendingAsync(int organizationId, CreateOrganizationRequest request, int accountId, CancellationToken cancellationToken);
     Task<Result<OrganizationDocumentResponse>> UploadDocumentAsync(int organizationId, string documentType, IFormFile file, int uploaderAccountId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<OrganizationReviewResponse>>> GetReviewQueueAsync(CancellationToken cancellationToken);
     Task<Result<OrganizationReviewResponse>> ReviewAsync(int organizationId, ReviewOrganizationRequest request, int reviewerAccountId, CancellationToken cancellationToken);

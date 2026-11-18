@@ -133,13 +133,17 @@ public sealed class OrganizationService : IOrganizationService
                 StatusCodes.Status403Forbidden);
         }
 
+        var contactPhone = PhoneNumber.Normalize(request.ContactPhone);
+        if (!PhoneNumber.IsValid(contactPhone))
+            return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.ContactPhone), PhoneNumber.Message);
+
         var organization = new Organization
         {
             Name = request.Name.Trim(),
             OrganizationType = type,
             ParentOrganization = NormalizeOptional(request.ParentOrganization),
             ContactEmail = NormalizeOptional(request.ContactEmail),
-            ContactPhone = NormalizeOptional(request.ContactPhone),
+            ContactPhone = contactPhone,
             WebsiteUrl = NormalizeOptional(request.WebsiteUrl),
             LogoUrl = NormalizeOptional(request.LogoUrl),
             Description = NormalizeOptional(request.Description),
@@ -484,9 +488,11 @@ public sealed class OrganizationService : IOrganizationService
             return Result.Failure<OrganizationMemberResponse>("Không tìm thấy đơn vị tổ chức.", StatusCodes.Status404NotFound);
         }
 
-        if (organization.Status != "ACTIVE")
+        // Đơn vị CHỜ DUYỆT cũng mời được: cần đủ 3 Ban tổ chức chấp nhận mới được duyệt, người cùng lập từ chối / nhập
+        // nhầm email thì chủ nhiệm mời người khác (trước đây bị kẹt dưới 3 người, không bao giờ duyệt được).
+        if (organization.Status is not ("ACTIVE" or "PENDING"))
         {
-            return Result.Failure<OrganizationMemberResponse>("Chỉ đơn vị đang hoạt động mới được mời thành viên.");
+            return Result.Failure<OrganizationMemberResponse>("Chỉ đơn vị đang hoạt động hoặc đang chờ duyệt mới được mời thành viên.");
         }
 
         var role = request.Role.Trim().ToUpperInvariant();
@@ -529,7 +535,8 @@ public sealed class OrganizationService : IOrganizationService
             OrganizationId = organizationId,
             AccountId = account.AccountId,
             Role = role,
-            Status = "INVITED"
+            Status = "INVITED",
+            InvitedAt = DateTime.UtcNow
         };
         _unitOfWork.Repository<OrganizationMember>().Add(member);
         // Báo người được mời: bấm vào là tới đúng đơn vị để Chấp nhận (trước đây không có thông báo nên không ai biết có lời mời).
@@ -618,6 +625,32 @@ public sealed class OrganizationService : IOrganizationService
         if (member is null)
         {
             return Result.Failure<OrganizationMemberResponse>("Không tìm thấy thành viên của đơn vị.", StatusCodes.Status404NotFound);
+        }
+
+        if (member.Role == normalizedRole)
+        {
+            return Result.Failure<OrganizationMemberResponse>("Thành viên đã có vai trò này.");
+        }
+
+        // Góp ý nhóm 18/11 mục 30: Trọng tài đang được phân ở trận CHƯA kết thúc của giải thuộc đơn vị thì không đổi vai trò
+        // (trận đó sẽ mất trọng tài hợp lệ giữa chừng). Gỡ khỏi các trận ở trang Trọng tài của giải trước; giải xong thì đổi được.
+        if (member.Role == "REFEREE")
+        {
+            var busy = await _unitOfWork.Repository<Match>().Query().AsNoTracking()
+                .Where(m => m.RefereeAccountId == member.AccountId
+                    && m.Tournament.OrganizationId == organizationId
+                    && m.Status != "COMPLETED" && m.Status != "CANCELLED"
+                    && m.Tournament.Status != "COMPLETED" && m.Tournament.Status != "CANCELLED")
+                .GroupBy(m => m.Tournament.Name)
+                .Select(g => new { Name = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
+            if (busy.Count > 0)
+            {
+                var where = string.Join(", ", busy.Select(b => $"{b.Count} trận của \"{b.Name}\""));
+                return Result.Failure<OrganizationMemberResponse>(
+                    $"Thành viên đang làm trọng tài {where} chưa kết thúc. Gỡ trọng tài khỏi các trận đó (trang Trọng tài của giải) rồi mới đổi vai trò.",
+                    StatusCodes.Status409Conflict);
+            }
         }
 
         member.Role = normalizedRole;
@@ -815,6 +848,33 @@ public sealed class OrganizationService : IOrganizationService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success("Đã đình chỉ đơn vị tổ chức.");
+    }
+
+    // Góp ý nhóm 18/11 mục 26: ở bước 2 (giấy tờ) quay lại sửa thông tin bước 1. Chỉ chủ nhiệm, chỉ khi hồ sơ còn CHỜ DUYỆT
+    // (đã duyệt thì thông tin công khai đổi qua quy trình khác). Danh sách người cùng lập không sửa ở đây — mời thêm ở trang đơn vị.
+    public async Task<Result> UpdatePendingAsync(int organizationId, CreateOrganizationRequest request, int accountId, CancellationToken cancellationToken)
+    {
+        var organization = await FindOrganizationAsync(organizationId, cancellationToken);
+        if (organization is null) return Result.Failure("Không tìm thấy đơn vị tổ chức.", StatusCodes.Status404NotFound);
+        if (!await IsActiveChairAsync(organizationId, accountId))
+            return Result.Failure("Chỉ chủ nhiệm đơn vị được sửa hồ sơ.", StatusCodes.Status403Forbidden);
+        if (organization.Status != "PENDING")
+            return Result.Failure("Hồ sơ đã được xét duyệt nên không sửa ở bước đăng ký nữa.", StatusCodes.Status409Conflict);
+        var name = (request.Name ?? "").Trim();
+        if (name.Length == 0) return Result.FieldFailure(nameof(request.Name), "Nhập tên hiển thị của đơn vị.");
+        var phone = PhoneNumber.Normalize(request.ContactPhone);
+        if (!PhoneNumber.IsValid(phone)) return Result.FieldFailure(nameof(request.ContactPhone), PhoneNumber.Message);
+
+        organization.Name = name;
+        organization.ParentOrganization = NormalizeOptional(request.ParentOrganization);
+        organization.ContactEmail = NormalizeOptional(request.ContactEmail);
+        organization.ContactPhone = phone;
+        organization.WebsiteUrl = NormalizeOptional(request.WebsiteUrl);
+        organization.LogoUrl = NormalizeOptional(request.LogoUrl);
+        organization.Description = NormalizeOptional(request.Description);
+        _unitOfWork.Repository<Organization>().Update(organization);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success("Đã cập nhật thông tin đơn vị.");
     }
 
     private async Task<Organization?> FindOrganizationAsync(int organizationId, CancellationToken cancellationToken)

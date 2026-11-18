@@ -63,7 +63,15 @@
             });
         });
         tbody.querySelectorAll('.member-role').forEach(function (select) {
+            // Nhớ vai trò hiện tại để quay lại nếu người dùng hủy xác nhận.
+            select.dataset.current = select.value;
             select.addEventListener('change', async function () {
+                var member = members.find(function (m) { return String(m.organizationMemberId) === String(select.dataset.memberId); });
+                var newLabel = select.options[select.selectedIndex].text;
+                var ok = await window.etomsConfirm('Đổi vai trò của ' + (member ? member.fullName : 'thành viên') + ' thành "' + newLabel + '"?' +
+                    (select.dataset.current === 'REFEREE' ? ' Nếu người này đang làm trọng tài ở trận chưa kết thúc thì không đổi được.' : ''),
+                    { title: 'Đổi vai trò thành viên', okText: 'Đổi vai trò' });
+                if (!ok) { select.value = select.dataset.current; return; }
                 try {
                     var response = await Api.patch('/api/organizations/' + organizationId + '/members/' + select.dataset.memberId, { Role: select.value });
                     Ui.showAlert(flash, 'success', response.message || 'Đã cập nhật vai trò.');

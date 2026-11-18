@@ -309,7 +309,7 @@
         var errors = {};
         var name = (body.FullName || '').trim();
         if (name.length < 2 || name.length > 100) errors.FullName = 'Tên hiển thị phải từ 2 đến 100 ký tự.';
-        if (body.Phone && !/^0\d{9,10}$/.test(body.Phone)) errors.Phone = 'Số điện thoại không hợp lệ (phải bắt đầu bằng 0, 10-11 chữ số).';
+        if (body.Phone && !/^0\d{9}$/.test(body.Phone)) errors.Phone = 'Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng 0.';
         if (body.DateOfBirth) {
             var dob = new Date(body.DateOfBirth + 'T00:00:00'), now = new Date();
             var age = now.getFullYear() - dob.getFullYear() - ((now.getMonth() < dob.getMonth() || (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate())) ? 1 : 0);

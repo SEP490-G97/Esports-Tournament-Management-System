@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=eye-20261118" />
+    <link rel="stylesheet" href="/css/site.css?v=sticky-20261118" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -69,7 +69,8 @@
                     </div>
                     <div class="field">
                         <label for="contact-phone">Số điện thoại liên hệ</label>
-                        <input id="contact-phone" name="ContactPhone" type="tel" class="input" maxlength="20" autocomplete="tel" />
+                        <input id="contact-phone" name="ContactPhone" type="tel" class="input" maxlength="10" inputmode="numeric" autocomplete="tel" placeholder="Ví dụ: 0912345678" />
+                        <span class="field-error" data-field-error="ContactPhone"></span>
                     </div>
                 </div>
                 <div class="field">
@@ -99,7 +100,8 @@
             <div class="registration-panel-head">
                 <span class="profile-overline">Bước 2 / 2</span>
                 <h2>Bổ sung giấy tờ minh chứng</h2>
-                <p class="muted-copy mb-0">Hồ sơ đang chờ xét duyệt. Cần tải đủ giấy tờ theo loại đơn vị trước khi quản trị viên có thể duyệt. Tệp được lưu riêng tư.</p>
+                <p class="muted-copy mb-0">Hồ sơ đang chờ xét duyệt. Cần tải đủ giấy tờ và đủ 3 Ban tổ chức chấp nhận lời mời trước khi quản trị viên duyệt. Tệp được lưu riêng tư.</p>
+                <button type="button" class="btn btn-ghost btn-sm mt-2" id="back-to-info">← Quay lại sửa thông tin đơn vị</button>
             </div>
             <div class="feature-list mb-3" id="required-documents" aria-live="polite"></div>
             <form id="document-form" class="registration-form" novalidate>
@@ -131,7 +133,7 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=once-20261118"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=adm3-20261118"></script>
-    <script src="/js/pages/organization-register.js?v=org3-20261118" defer></script>
+    <script src="/js/layout.js?v=tel-20261118"></script>
+    <script src="/js/pages/organization-register.js?v=org4-20261118" defer></script>
 </body>
 </html>

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=eye-20261118" />
+    <link rel="stylesheet" href="/css/site.css?v=sticky-20261118" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -23,6 +23,7 @@
             </div>
             <a class="btn btn-ghost" href="/registration/mine.html">Đơn của đội tôi</a>
         </div>
+        <div id="waitlist-note" class="waitlist-note mb-3" role="status" hidden></div>
         <div id="registration-flash" aria-live="polite"></div>
         <section id="registration-panel" class="card-etoms registration-panel">
             <form id="registration-form" class="registration-form" novalidate>
@@ -81,7 +82,7 @@
                             <span class="field-hint">JPG, PNG hoặc PDF; tối đa 10 MB.</span>
                         </section>
                         <div class="tournament-registration-actions">
-                            <button class="btn btn-primary" type="submit">Gửi đơn đăng ký</button>
+                            <button class="btn btn-primary" type="submit" id="submit-registration">Gửi đơn đăng ký</button>
                             <button class="btn btn-ghost" type="submit" name="saveAsDraft" value="true">Lưu nháp</button>
                             <a class="registration-cancel-link" href="/registration/mine.html">Đơn của đội tôi</a>
                         </div>
@@ -93,7 +94,7 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=once-20261118"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=adm3-20261118"></script>
-    <script src="/js/pages/tournament-registration-register.js?v=fee-20261117" defer></script>
+    <script src="/js/layout.js?v=tel-20261118"></script>
+    <script src="/js/pages/tournament-registration-register.js?v=wait-20261118" defer></script>
 </body>
 </html>
