@@ -6,4 +6,7 @@ public class GameOptionDto
 {
     public int GameId { get; set; }
     public string Title { get; set; } = string.Empty;
+    // Quân số tối đa của một đội (chính thức + dự bị) — trang tạo đội giới hạn số người mời.
+    public int MaxStarters { get; set; }
+    public int MaxSubstitutes { get; set; }
 }

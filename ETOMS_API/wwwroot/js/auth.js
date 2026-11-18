@@ -1,32 +1,47 @@
 ﻿(function () {
     const nativeFetch = window.fetch.bind(window);
-    const API_BASE = '';                     
-    const LOGIN_URL = '/auth/login.html';   
+    const API_BASE = '';
+    const LOGIN_URL = '/auth/login.html';
+    const TOKEN_KEY = 'etoms_access_token';
 
+    // Access token giữ trong localStorage (dùng chung mọi tab): site nhiều trang, mỗi lần chuyển
+    // trang/mở tab mới là tải JS mới. Refresh token dùng 1 lần (rotation), nên càng ít lần gọi
+    // /auth/refresh càng tốt — token còn hạn (15 phút) thì mọi trang, mọi tab dùng thẳng.
     let accessToken = null;
+    try { accessToken = localStorage.getItem(TOKEN_KEY) || null; } catch { }
     let refreshing = null;                  // gộp nhiều lần refresh đồng thời thành 1
 
-    function setAccessToken(t) { accessToken = t; }
+    function setAccessToken(t) {
+        accessToken = t;
+        try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch { }
+    }
     function getAccessToken() { return accessToken; }
 
     function setUser(u) {
-        try { sessionStorage.setItem('user', JSON.stringify(u)); } catch { }
+        try { if (u) localStorage.setItem('user', JSON.stringify(u)); else localStorage.removeItem('user'); } catch { }
     }
     function getUser() {
-        try { return JSON.parse(sessionStorage.getItem('user')); } catch { return null; }
+        try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
     }
 
     async function refresh() {
         // Refresh token dùng 1 lần (rotation), nên nhiều request cùng lúc phải dùng chung 1 lần refresh
         if (!refreshing) {
+            const before = accessToken;
             refreshing = (async () => {
                 const res = await fetch(API_BASE + '/auth/refresh', {
                     method: 'POST', credentials: 'include'
                 });
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw Object.assign(new Error(data.message || 'Phiên đăng nhập hết hạn'),
-                    { status: res.status, data });
-                accessToken = data.accessToken;
+                if (!res.ok) {
+                    // Tab khác có thể vừa refresh xong (cookie đã xoay vòng) — dùng token nó để lại.
+                    let shared = null;
+                    try { shared = localStorage.getItem(TOKEN_KEY); } catch { }
+                    if (shared && shared !== before) { accessToken = shared; return accessToken; }
+                    throw Object.assign(new Error(data.message || 'Phiên đăng nhập hết hạn'),
+                        { status: res.status, data });
+                }
+                setAccessToken(data.accessToken);
                 return accessToken;
             })().finally(() => { refreshing = null; });
         }
@@ -34,7 +49,7 @@
     }
 
     function redirectToLogin(banData) {
-        accessToken = null;
+        setAccessToken(null);
         if (banData) {
             try { sessionStorage.setItem('ban_info', JSON.stringify(banData)); } catch { }
         }
@@ -84,22 +99,31 @@
     }
 
     // Kiểm tra nhẹ cho widget trên header: không chuyển hướng. Trả về user hoặc null.
+    // Token đang nhớ (sessionStorage) có thể đã hết hạn từ lần trước — nếu /api/me báo 401 thì
+    // refresh rồi thử lại đúng 1 lần, giống apiFetch, thay vì vội kết luận "chưa đăng nhập".
     async function tryGetMe() {
-        try { if (!accessToken) await refresh(); } catch (e) { return null; }
-        const res = await nativeFetch(API_BASE + '/api/me', {
+        const callMe = () => nativeFetch(API_BASE + '/api/me', {
             credentials: 'include',
-            headers: { Authorization: 'Bearer ' + accessToken },
+            headers: accessToken ? { Authorization: 'Bearer ' + accessToken } : {},
         });
-        if (!res.ok) return null;
-        const me = await res.json();
-        setUser(me);
-        return me;
+        try {
+            if (!accessToken) await refresh();
+            let res = await callMe();
+            if (res.status === 401) {
+                await refresh();
+                res = await callMe();
+            }
+            if (!res.ok) return null;
+            const me = await res.json();
+            setUser(me);
+            return me;
+        } catch (e) { return null; }
     }
 
     async function logout(to) {
         try { await nativeFetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }); } catch { }
-        accessToken = null;
-        try { sessionStorage.removeItem('user'); } catch { }
+        setAccessToken(null);
+        setUser(null);
         location.href = to || LOGIN_URL;
     }
 

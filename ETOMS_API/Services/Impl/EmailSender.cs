@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 using MimeKit;
 using MailKit.Net.Smtp;
 
-
 namespace ETOMS_API.Services.Impl
 {
     public class MailKitEmailSender : IEmailSender

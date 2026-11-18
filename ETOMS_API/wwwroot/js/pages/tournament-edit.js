@@ -1,0 +1,270 @@
+(function () {
+    var TEXT = ['Description', 'BannerUrl', 'OrganizingUnit', 'Region', 'ContactInfo', 'Venue', 'Name', 'BankAccountInfo', 'PrizeStructure', 'BestOfPerRound', 'Format'];
+    var NUMBER = ['GameId', 'StarterCount', 'MaxSubstitutes', 'MaxTeams'];
+    var OPTIONAL_NUMBER = ['GroupCount', 'AdvancePerGroup'];
+    var CHECK = ['IsOnline', 'RequirePaymentProof', 'RequireInGameName', 'HasThirdPlaceMatch'];
+    var DATES = ['RegOpenAt', 'RegCloseAt', 'StartAt', 'EndAt'];
+
+    var tournamentId = null;
+    var board = null;
+
+    function flash() { return document.getElementById('flash'); }
+    function el(id) { return document.getElementById(id); }
+    function camel(name) { return name.charAt(0).toLowerCase() + name.slice(1); }
+
+    function showEmpty(title, message) {
+        el('edit-root').innerHTML = '<div class="card-etoms"><div class="empty"><h3>' + Ui.escapeHtml(title) + '</h3>' +
+            '<p>' + Ui.escapeHtml(message) + '</p></div></div>';
+        el('edit-form').hidden = true;
+    }
+
+    // Server trả giờ UTC không kèm Z; ô datetime-local dùng giờ máy người dùng.
+    function toLocalInput(value) {
+        if (!value) return '';
+        var d = new Date(/Z$/.test(value) ? value : value + 'Z');
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function toUtc(value) { return value ? new Date(value).toISOString() : null; }
+    function openPicker(input) { try { input.showPicker(); } catch (e) { /* trình duyệt cũ dùng biểu tượng lịch */ } }
+
+    function fill(b) {
+        var v = b.values;
+        el('GameId').innerHTML = b.games.map(function (g) {
+            return '<option value="' + g.gameId + '">' + Ui.escapeHtml(g.title) + '</option>';
+        }).join('');
+        TEXT.forEach(function (f) { el(f).value = v[camel(f)] || ''; });
+        NUMBER.concat(OPTIONAL_NUMBER).forEach(function (f) { el(f).value = v[camel(f)] === null || v[camel(f)] === undefined ? '' : v[camel(f)]; });
+        el('EntryFee').value = v.entryFee;
+        CHECK.forEach(function (f) { el(f).checked = !!v[camel(f)]; });
+        DATES.forEach(function (f) { el(f).value = toLocalInput(v[camel(f)]); });
+        el('approved-hint').textContent = b.approvedCount ? 'Đã duyệt ' + b.approvedCount + ' đội; số đội tối đa không được nhỏ hơn số này.' : '';
+        fillBank(v.bankAccountInfo);
+        buildBoPicker();
+    }
+
+    // Tài khoản nhận lệ phí: 3 ô (ngân hàng chọn từ danh sách, số TK, chủ TK) ghép vào #BankAccountInfo.
+    // Dữ liệu cũ nhập tay không đúng mẫu thì hiện nguyên văn và giữ nguyên cho tới khi người dùng nhập lại.
+    var bankTouched = false;
+    function fillBank(stored) {
+        bankTouched = false;
+        var parsed = BankAccount.parse(stored);
+        el('bank-number').value = parsed ? parsed.number : '';
+        el('bank-holder').value = parsed ? parsed.holder : '';
+        BankAccount.fillSelect(el('bank-name'), parsed && parsed.bank);
+        var legacy = el('bank-legacy');
+        legacy.hidden = !(stored && !parsed);
+        legacy.textContent = legacy.hidden ? '' : 'Đang lưu: “' + stored + '”. Chọn ngân hàng và nhập lại số tài khoản, chủ tài khoản để cập nhật.';
+        syncFeeRequired();
+    }
+    function syncFeeRequired() {
+        document.querySelector('[data-fee-req]').hidden = !(Number(el('EntryFee').value) > 0);
+    }
+    function wireBank() {
+        BankAccount.wireInputs(el('bank-number'), el('bank-holder'));
+        ['bank-name', 'bank-number', 'bank-holder'].forEach(function (id) {
+            ['input', 'change'].forEach(function (ev) {
+                el(id).addEventListener(ev, function () {
+                    bankTouched = true;
+                    el('BankAccountInfo').value = BankAccount.compose(el('bank-name').value, el('bank-number').value, el('bank-holder').value);
+                });
+            });
+        });
+        el('EntryFee').addEventListener('input', syncFeeRequired);
+    }
+    // Lỗi tài khoản nhận phí (chỉ khi người dùng có sửa 3 ô) — server kiểm lại đúng luật này.
+    function bankError() {
+        if (!bankTouched) return null;
+        el('bank-holder').value = BankAccount.normalizeHolder(el('bank-holder').value);
+        el('BankAccountInfo').value = BankAccount.compose(el('bank-name').value, el('bank-number').value, el('bank-holder').value);
+        var bad = BankAccount.validate(parseFloat(el('EntryFee').value || '0'), el('bank-name').value, el('bank-number').value, el('bank-holder').value);
+        return bad && bad.message;
+    }
+
+    // "Số ván mỗi trận": ô chọn BO cho từng vòng (thay cho việc gõ mã R1:1,R2:3,F:5). Chỉ khi người dùng đổi một ô
+    // thì mới ghép lại chuỗi vào #BestOfPerRound — không tự ghi đè cấu hình đang có.
+    async function buildBoPicker() {
+        var box = el('bo-picker');
+        try {
+            var board = await Api.get('/api/TournamentSetup/' + tournamentId + '/step3-bo-config');
+            var rounds = (board && board.rounds) || [];
+            if (!rounds.length) { box.innerHTML = '<div class="hint">' + Ui.escapeHtml(board.note || 'Thể thức này không có vòng loại trực tiếp.') + '</div>'; return; }
+            box.innerHTML = '<div class="bo-grid">' + rounds.map(function (r) {
+                var id = 'bo-r' + Number(r.roundNo);
+                return '<div class="field m-0"><label for="' + id + '" class="hint mb-1">' + Ui.escapeHtml(r.label) + '</label><select id="' + id + '" class="select" data-round="' + Number(r.roundNo) + '">' +
+                    [1, 3, 5, 7].map(function (bo) { return '<option value="' + bo + '"' + (bo === r.bestOf ? ' selected' : '') + '>BO' + bo + '</option>'; }).join('') + '</select></div>';
+            }).join('') + '</div>';
+            var last = rounds.length;
+            box.querySelectorAll('select[data-round]').forEach(function (s) {
+                s.addEventListener('change', function () {
+                    el('BestOfPerRound').value = Array.from(box.querySelectorAll('select[data-round]')).map(function (x) {
+                        var n = parseInt(x.dataset.round, 10);
+                        return (n === last ? 'F' : 'R' + n) + ':' + x.value;
+                    }).join(',');
+                });
+            });
+        } catch (e) {
+            box.innerHTML = '<div class="hint">Không tải được các vòng — giữ nguyên cấu hình số ván hiện tại.</div>';
+        }
+    }
+
+    function applyLocks(b) {
+        ['INFO', 'SETUP', 'TIMELINE', 'FORMAT'].forEach(function (group) {
+            var reason = b.lockReasons[group];
+            var banner = document.querySelector('[data-lock="' + group + '"]');
+            banner.hidden = !reason;
+            banner.textContent = reason || '';
+            document.querySelector('fieldset[data-group="' + group + '"]').disabled = !!reason;
+        });
+        // Mốc đã qua của giải đã xuất bản giữ nguyên.
+        DATES.forEach(function (f) {
+            var past = b.pastMilestones.indexOf(f) >= 0;
+            document.querySelector('[data-past="' + f + '"]').hidden = !past;
+            if (!b.lockReasons.TIMELINE) el(f).disabled = past;
+        });
+        var anyEditable = ['INFO', 'SETUP', 'TIMELINE', 'FORMAT'].some(function (g) { return !b.lockReasons[g]; });
+        el('save-btn').hidden = !anyEditable;
+    }
+
+    function syncVisibility() {
+        var format = el('Format').value;
+        el('venue-field').hidden = el('IsOnline').checked;
+        el('groups-field').hidden = !(format === 'ROUND_ROBIN' || format === 'HYBRID');
+        el('advance-field').hidden = format !== 'HYBRID';
+        el('third-field').hidden = !(format === 'SINGLE_ELIMINATION' || format === 'HYBRID');
+        if (el('third-field').hidden) el('HasThirdPlaceMatch').checked = false;
+    }
+
+    // Ảnh bìa (mục 22): tải tệp hoặc dán link bất kỳ, lưu ngay. Cập nhật cả ô ẩn + giá trị gốc để nút
+    // "Lưu thay đổi" sau đó không coi là đổi và không ghi đè lại ảnh cũ.
+    var bannerPicker = null;
+    function mountBanner(b) {
+        if (bannerPicker) { bannerPicker.show(b.values.bannerUrl); return; }
+        bannerPicker = BannerPicker.mount(el('bannerRoot'), {
+            tournamentId: function () { return tournamentId; },
+            current: b.values.bannerUrl,
+            onSaved: function (url) { el('BannerUrl').value = url; if (board) board.values.bannerUrl = url; }
+        });
+    }
+
+    function render(b) {
+        board = b;
+        el('page-title').textContent = 'Sửa thông tin · ' + b.values.name;
+        el('page-sub').innerHTML = 'Trạng thái: <span class="badge ' + Ui.escapeHtml(b.statusClass) + '">' + Ui.escapeHtml(b.statusLabel) + '</span>' +
+            (b.isBracketLocked ? ' · Nhánh đấu đã khóa' : '') + '. Thể lệ &amp; bộ luật ở <a href="#rules">cuối trang</a>.';
+        el('edit-root').innerHTML = '';
+        el('edit-form').hidden = false;
+        fill(b);
+        applyLocks(b);
+        syncVisibility();
+        mountBanner(b);
+        mountRules();
+    }
+
+    // Thể lệ & bộ luật (js/rules-editor.js) — gộp từ 2 trang "Soạn thể lệ" và "Bộ luật" cũ.
+    var rulesEditor = null;
+    async function mountRules() {
+        if (rulesEditor) return;
+        var section = el('rules');
+        section.hidden = false;
+        el('rules-history').href = '/tournament/rulebook-history.html?id=' + tournamentId;
+        try {
+            rulesEditor = await RulesEditor.mount(el('rulesRoot'), tournamentId);
+        } catch (e) {
+            el('rulesRoot').innerHTML = '<div class="hint">Không tải được thể lệ.</div>';
+            return;
+        }
+        el('save-rules').addEventListener('click', async function () {
+            var btn = this, flash = el('rules-flash');
+            Ui.clearAlert(flash);
+            btn.disabled = true;
+            try {
+                var r = await rulesEditor.save();
+                Ui.showAlert(flash, 'success', r.changed ? r.messages.join(' ') : 'Không có thay đổi để lưu.');
+            } catch (err) {
+                Ui.showAlert(flash, 'danger', err.message || 'Không lưu được thể lệ.');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        if (location.hash === '#rules') section.scrollIntoView({ block: 'start' });
+    }
+
+    function body() {
+        var data = {};
+        TEXT.forEach(function (f) { data[camel(f)] = el(f).value; });
+        NUMBER.forEach(function (f) { data[camel(f)] = parseInt(el(f).value || '0', 10); });
+        OPTIONAL_NUMBER.forEach(function (f) { data[camel(f)] = el(f).value === '' ? null : parseInt(el(f).value, 10); });
+        data.entryFee = parseFloat(el('EntryFee').value || '0');
+        CHECK.forEach(function (f) { data[camel(f)] = el(f).checked; });
+        // Ô bị khóa vẫn gửi giá trị cũ để server biết không có gì đổi.
+        DATES.forEach(function (f) { data[camel(f)] = el(f).value ? toUtc(el(f).value) : (f === 'EndAt' ? null : board.values[camel(f)]); });
+        if (el('GroupCount').closest('.field').hidden) data.groupCount = null;
+        if (el('AdvancePerGroup').closest('.field').hidden) data.advancePerGroup = null;
+        return data;
+    }
+
+    function wire() {
+        var form = el('edit-form');
+        ['Format', 'IsOnline'].forEach(function (id) { el(id).addEventListener('change', syncVisibility); });
+        wireBank();
+        DATES.forEach(function (f) {
+            var input = el(f);
+            input.addEventListener('click', function () { openPicker(input); });
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Tab') return;
+                if (e.key === 'Delete' || e.key === 'Backspace') { if (f === 'EndAt') input.value = ''; e.preventDefault(); return; }
+                e.preventDefault();
+                if (e.key === 'Enter' || e.key === ' ') openPicker(input);
+            });
+        });
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            Ui.clearAlert(flash());
+            Ui.clearFieldErrors(form);
+            var badBank = bankError();
+            if (badBank) {
+                Ui.applyFieldErrors(form, { BankAccountInfo: badBank });
+                Ui.showAlert(flash(), 'danger', badBank);
+                el('bank-name').closest('fieldset').scrollIntoView({ block: 'center' });
+                return;
+            }
+            var btn = el('save-btn');
+            btn.disabled = true;
+            try {
+                var res = await Api.put('/api/tournaments/' + tournamentId + '/settings', body());
+                render(res.data);
+                Ui.showAlert(flash(), 'success', res.message);
+            } catch (err) {
+                Ui.applyFieldErrors(form, err.fieldErrors);
+                var keys = Object.keys(err.fieldErrors || {});
+                Ui.showAlert(flash(), 'danger', keys.length === 1 ? err.fieldErrors[keys[0]] : keys.length ? 'Vui lòng kiểm tra lại thông tin.' : err.message);
+                var first = keys.length && form.querySelector('[data-field-error="' + keys[0] + '"]');
+                if (first) first.closest('.edit-section').scrollIntoView({ block: 'start' });
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth();
+        if (!me) return;
+
+        tournamentId = Ui.qsInt('id');
+        if (tournamentId === null) {
+            showEmpty('Không xác định được giải đấu', 'Đường dẫn thiếu mã giải.');
+            return;
+        }
+        el('back-link').href = '/tournament/manage.html?id=' + tournamentId;
+        try {
+            var res = await Api.get('/api/tournaments/' + tournamentId + '/settings');
+            render(res.data);
+            wire();
+        } catch (err) {
+            if (err.status === 404) showEmpty('Không tìm thấy giải đấu', 'Giải không tồn tại.');
+            else if (err.status === 403) showEmpty('Bạn không thể sửa giải này', 'Chỉ Ban tổ chức của giải được sửa thông tin giải.');
+            else showEmpty('Không tải được thông tin giải', err.message);
+        }
+    });
+})();

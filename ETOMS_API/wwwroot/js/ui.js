@@ -56,13 +56,49 @@ var Ui = (function () {
         return isNaN(n) ? null : n;
     }
 
-    async function requireAuth(roles) {
-        var me = await Auth.requireAuth(roles);
-        if (!me) return null;
+    // Người dùng hiện tại (đăng nhập thật, JWT) hoặc null nếu là khách. Không chuyển trang.
+    // Kết quả có: isAuthenticated, userId, accountId, displayName, fullName, role.
+    // Gọi nhiều lần trong 1 trang (nav + trang) chỉ hỏi máy chủ 1 lần.
+    var mePromise = null;
+    function currentUser() {
+        if (!mePromise) {
+            mePromise = (async function () {
+                if (!(window.Auth && typeof Auth.tryGetMe === 'function')) return null;
+                var me = await Auth.tryGetMe();
+                if (!me) return null;
+                me.isAuthenticated = true;
+                me.userId = me.accountId = me.id;
+                me.displayName = me.fullName = me.name;
+                return me;
+            })();
+        }
+        return mePromise.then(function (me) { return me ? Object.assign({}, me) : null; });
+    }
 
-        me.isAuthenticated = true;
-        me.accountId = me.id;
-        me.fullName = me.name;
+    var ROLE_LABELS = { PLAYER: 'tuyển thủ', ORGANIZER: 'Ban tổ chức', ADMIN: 'Quản trị viên' };
+
+    // Sai vai trò: báo ngay tại trang (trước đây âm thầm chuyển về trang chủ, người dùng tưởng lỗi).
+    function showRoleNotice(roles, me) {
+        var main = document.querySelector('main');
+        if (!main) return;
+        var allowed = roles.map(function (r) { return ROLE_LABELS[r] || r; }).join(' hoặc ');
+        main.innerHTML = '<div class="card-etoms" style="margin-top:24px"><div class="empty">' +
+            '<h3>Trang này dành cho tài khoản ' + escapeHtml(allowed) + '</h3>' +
+            '<p>Bạn đang đăng nhập với vai trò ' + escapeHtml(ROLE_LABELS[me.role] || me.role) +
+            ' nên không dùng được chức năng này.</p>' +
+            '<a class="btn btn-primary mt-3" href="/">Về trang chủ</a></div></div>';
+    }
+
+    // Bắt buộc đăng nhập: khách thì chuyển sang trang đăng nhập kèm returnUrl và trả về null.
+    // roles (tùy chọn): chỉ cho phép các vai trò này; sai vai trò thì hiện thông báo tại trang, trả về null.
+    async function requireAuth(roles) {
+        var me = await currentUser();
+        if (!me) {
+            var returnUrl = encodeURIComponent(location.pathname + location.search);
+            location.href = '/auth/login.html?returnUrl=' + returnUrl;
+            return null;
+        }
+        if (roles && roles.length && roles.indexOf(me.role) < 0) { showRoleNotice(roles, me); return null; }
         return me;
     }
 
@@ -84,7 +120,7 @@ var Ui = (function () {
 
     return {
         escapeHtml: escapeHtml, safeUrl: safeUrl, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
-        applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth,
+        applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth, currentUser: currentUser,
         setFlash: setFlash, consumeFlash: consumeFlash
     };
 })();

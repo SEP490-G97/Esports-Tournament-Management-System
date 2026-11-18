@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sửa thông tin giải · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Giải đấu · Sửa thông tin</div>
+            <h1 id="page-title">Sửa thông tin giải</h1>
+            <p id="page-sub">Phần sửa được phụ thuộc trạng thái giải. Thể lệ sửa ở trang Thể lệ giải.</p>
+        </div>
+
+        <div id="flash"></div>
+
+        <div id="edit-root">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
+        </div>
+
+        <form id="edit-form" novalidate hidden>
+            <div class="card-etoms edit-section" data-section="INFO"><div class="body">
+                <div class="section-title mt-0">Thông tin chung</div>
+                <div class="pending-banner" data-lock="INFO" hidden></div>
+                <fieldset data-group="INFO">
+                    <div class="field">
+                        <label for="Description">Mô tả</label>
+                        <textarea id="Description" class="input" maxlength="20000"></textarea>
+                        <span class="field-error" data-field-error="Description"></span>
+                    </div>
+                    <div class="field">
+                        <label>Ảnh bìa giải</label>
+                        <!-- Ảnh lưu ngay khi chọn (js/banner-picker.js); ô ẩn giữ đường dẫn để nút Lưu không ghi đè ảnh cũ. -->
+                        <input id="BannerUrl" type="hidden" />
+                        <div id="bannerRoot"></div>
+                        <span class="field-error" data-field-error="BannerUrl"></span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6 field">
+                            <label for="OrganizingUnit">Đơn vị tổ chức</label>
+                            <input id="OrganizingUnit" class="input" maxlength="200" readonly aria-readonly="true" title="Gắn với tài khoản tạo giải, không sửa được" />
+                            <span class="field-hint">Gắn với tài khoản / đơn vị đã tạo giải — không sửa được.</span>
+                            <span class="field-error" data-field-error="OrganizingUnit"></span>
+                        </div>
+                        <div class="col-12 col-md-6 field">
+                            <label for="Region">Khu vực</label>
+                            <input id="Region" class="input" maxlength="100" />
+                            <span class="field-error" data-field-error="Region"></span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="ContactInfo">Thông tin liên hệ</label>
+                        <input id="ContactInfo" class="input" maxlength="300" />
+                        <span class="field-error" data-field-error="ContactInfo"></span>
+                    </div>
+                    <div class="check-row"><input type="checkbox" id="IsOnline" /><label for="IsOnline">Thi đấu trực tuyến</label></div>
+                    <span class="field-error" data-field-error="IsOnline"></span>
+                    <div class="field" id="venue-field">
+                        <label for="Venue">Địa điểm thi đấu <span class="req">*</span></label>
+                        <input id="Venue" class="input" maxlength="300" />
+                        <span class="field-error" data-field-error="Venue"></span>
+                    </div>
+                </fieldset>
+            </div></div>
+
+            <div class="card-etoms edit-section" data-section="SETUP"><div class="body">
+                <div class="section-title mt-0">Điều kiện đăng ký</div>
+                <p class="hint" style="margin:4px 0 12px">Đội đăng ký dựa trên các điều kiện này nên chỉ sửa được khi giải còn nháp.</p>
+                <div class="pending-banner" data-lock="SETUP" hidden></div>
+                <fieldset data-group="SETUP">
+                    <div class="field">
+                        <label for="Name">Tên giải <span class="req">*</span></label>
+                        <input id="Name" class="input" maxlength="200" />
+                        <span class="field-error" data-field-error="Name"></span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6 field">
+                            <label for="GameId">Tựa game <span class="req">*</span></label>
+                            <select id="GameId" class="select"></select>
+                            <span class="field-error" data-field-error="GameId"></span>
+                        </div>
+                        <div class="col-6 col-md-3 field">
+                            <label for="StarterCount">Người chính thức <span class="req">*</span></label>
+                            <input id="StarterCount" type="number" min="1" max="100" class="input" />
+                            <span class="field-error" data-field-error="StarterCount"></span>
+                        </div>
+                        <div class="col-6 col-md-3 field">
+                            <label for="MaxSubstitutes">Dự bị tối đa <span class="req">*</span></label>
+                            <input id="MaxSubstitutes" type="number" min="0" max="100" class="input" />
+                            <span class="field-error" data-field-error="MaxSubstitutes"></span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="EntryFee">Lệ phí (đồng)</label>
+                        <input id="EntryFee" type="number" min="0" max="100000000" step="1000" class="input" />
+                        <span class="field-error" data-field-error="EntryFee"></span>
+                    </div>
+                    <!-- Ba ô dưới ghép thành BankAccountInfo (js/bank-account.js) — chỉ ghép khi người dùng sửa một ô. -->
+                    <input id="BankAccountInfo" type="hidden" />
+                    <fieldset class="bank-fields">
+                        <legend>Tài khoản nhận lệ phí <span class="req" data-fee-req hidden>*</span></legend>
+                        <div id="bank-legacy" class="hint mb-2" hidden></div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6 field mb-0">
+                                <label for="bank-name">Ngân hàng</label>
+                                <select id="bank-name" class="select"><option value="">Đang tải…</option></select>
+                            </div>
+                            <div class="col-12 col-md-6 field mb-0">
+                                <label for="bank-number">Số tài khoản</label>
+                                <input id="bank-number" class="input" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="6–20 chữ số" />
+                            </div>
+                            <div class="col-12 field mb-0">
+                                <label for="bank-holder">Chủ tài khoản</label>
+                                <input id="bank-holder" class="input" autocomplete="off" maxlength="100" placeholder="NGUYEN VAN A" />
+                                <span class="field-hint">In hoa, không dấu như trên app ngân hàng (gõ có dấu sẽ tự chuyển).</span>
+                            </div>
+                        </div>
+                        <span class="field-error" data-field-error="BankAccountInfo"></span>
+                    </fieldset>
+                    <div class="field">
+                        <label for="PrizeStructure">Cơ cấu giải thưởng</label>
+                        <textarea id="PrizeStructure" class="input" maxlength="20000"></textarea>
+                        <span class="field-error" data-field-error="PrizeStructure"></span>
+                    </div>
+                    <div class="check-row"><input type="checkbox" id="RequirePaymentProof" /><label for="RequirePaymentProof">Yêu cầu nộp biên lai lệ phí</label></div>
+                    <div class="check-row"><input type="checkbox" id="RequireInGameName" /><label for="RequireInGameName">Yêu cầu khai tên trong game</label></div>
+                </fieldset>
+            </div></div>
+
+            <div class="card-etoms edit-section" data-section="TIMELINE"><div class="body">
+                <div class="section-title mt-0">Thời gian và quy mô</div>
+                <div class="pending-banner" data-lock="TIMELINE" hidden></div>
+                <fieldset data-group="TIMELINE">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6 field">
+                            <label for="RegOpenAt">Mở đăng ký <span class="req">*</span> <span class="past-tag" data-past="RegOpenAt" hidden>(đã qua)</span></label>
+                            <input id="RegOpenAt" type="datetime-local" class="input" />
+                            <span class="field-error" data-field-error="RegOpenAt"></span>
+                        </div>
+                        <div class="col-12 col-md-6 field">
+                            <label for="RegCloseAt">Đóng đăng ký <span class="req">*</span> <span class="past-tag" data-past="RegCloseAt" hidden>(đã qua)</span></label>
+                            <input id="RegCloseAt" type="datetime-local" class="input" />
+                            <span class="field-error" data-field-error="RegCloseAt"></span>
+                        </div>
+                        <div class="col-12 col-md-6 field">
+                            <label for="StartAt">Khai mạc <span class="req">*</span> <span class="past-tag" data-past="StartAt" hidden>(đã qua)</span></label>
+                            <input id="StartAt" type="datetime-local" class="input" />
+                            <span class="field-error" data-field-error="StartAt"></span>
+                        </div>
+                        <div class="col-12 col-md-6 field">
+                            <label for="EndAt">Kết thúc <span class="past-tag" data-past="EndAt" hidden>(đã qua)</span></label>
+                            <input id="EndAt" type="datetime-local" class="input" />
+                            <span class="field-error" data-field-error="EndAt"></span>
+                        </div>
+                    </div>
+                    <div class="field" style="max-width:240px">
+                        <label for="MaxTeams">Số đội tối đa <span class="req">*</span></label>
+                        <input id="MaxTeams" type="number" min="2" max="1024" class="input" />
+                        <div class="hint" id="approved-hint"></div>
+                        <span class="field-error" data-field-error="MaxTeams"></span>
+                    </div>
+                </fieldset>
+            </div></div>
+
+            <div class="card-etoms edit-section" data-section="FORMAT"><div class="body">
+                <div class="section-title mt-0">Thể thức</div>
+                <div class="pending-banner" data-lock="FORMAT" hidden></div>
+                <fieldset data-group="FORMAT">
+                    <div class="field">
+                        <label for="Format">Thể thức thi đấu <span class="req">*</span></label>
+                        <select id="Format" class="select">
+                            <option value="SINGLE_ELIMINATION">Loại trực tiếp</option>
+                            <option value="DOUBLE_ELIMINATION">Loại kép (nhánh thắng + nhánh thua)</option>
+                            <option value="ROUND_ROBIN">Vòng tròn</option>
+                            <option value="HYBRID">Vòng bảng rồi loại trực tiếp</option>
+                        </select>
+                        <span class="field-error" data-field-error="Format"></span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6 col-md-3 field" id="groups-field">
+                            <label for="GroupCount">Số bảng <span class="req">*</span></label>
+                            <input id="GroupCount" type="number" min="1" class="input" />
+                            <span class="field-error" data-field-error="GroupCount"></span>
+                        </div>
+                        <div class="col-6 col-md-3 field" id="advance-field">
+                            <label for="AdvancePerGroup">Đi tiếp mỗi bảng <span class="req">*</span></label>
+                            <input id="AdvancePerGroup" type="number" min="1" class="input" />
+                            <span class="field-error" data-field-error="AdvancePerGroup"></span>
+                        </div>
+                    </div>
+                    <div class="check-row" id="third-field"><input type="checkbox" id="HasThirdPlaceMatch" /><label for="HasThirdPlaceMatch">Có trận tranh hạng Ba</label></div>
+                    <span class="field-error" data-field-error="HasThirdPlaceMatch"></span>
+                    <div class="field">
+                        <label>Số ván mỗi trận theo vòng</label>
+                        <!-- Ô chọn BO cho từng vòng (tournament-edit.js dựng), ghép lại thành chuỗi lưu như cũ -->
+                        <input id="BestOfPerRound" type="hidden" />
+                        <div id="bo-picker" class="bo-picker"><div class="hint">Đang tải các vòng…</div></div>
+                        <div class="hint">Mỗi trận đấu 1, 3, 5 hoặc 7 ván (BO1/BO3/BO5/BO7). Các vòng tính theo thể thức và số đội đã lưu.</div>
+                        <span class="field-error" data-field-error="BestOfPerRound"></span>
+                    </div>
+                </fieldset>
+            </div></div>
+
+            <div class="btn-row mt-3">
+                <button type="submit" class="btn btn-primary" id="save-btn">Lưu thay đổi</button>
+                <a class="btn btn-ghost" id="back-link" href="#">Quản lý giải</a>
+            </div>
+        </form>
+
+        <!-- Thể lệ & bộ luật gộp vào đây (trước là 2 trang riêng "Soạn thể lệ", "Bộ luật") -->
+        <section id="rules" class="card-etoms mt-4" aria-labelledby="rules-title" hidden>
+            <div class="body">
+                <h2 id="rules-title" class="section-title mt-0">Thể lệ &amp; bộ luật</h2>
+                <div id="rules-flash" aria-live="polite"></div>
+                <div id="rulesRoot"><div class="hint">Đang tải…</div></div>
+                <div class="btn-row">
+                    <button type="button" class="btn btn-primary" id="save-rules">Lưu thể lệ &amp; bộ luật</button>
+                    <a class="btn btn-ghost" id="rules-history" href="#">Xem lịch sử phiên bản</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/rules-editor.js?v=rules-20261116" defer></script>
+    <script src="/js/bank-account.js?v=bank-20261116" defer></script>
+    <script src="/js/banner-picker.js?v=banner-20261117" defer></script>
+    <script src="/js/pages/tournament-edit.js?v=banner-20261117" defer></script>
+</body>
+</html>

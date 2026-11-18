@@ -9,7 +9,7 @@ public partial class VwLeaderboard
 
     public int TeamId { get; set; }
 
-    public int? Season { get; set; }
+    public short? Season { get; set; }
 
     public long TournamentPlayed { get; set; }
 

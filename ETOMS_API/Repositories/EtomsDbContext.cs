@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using ETOMS_API.Models;
@@ -1181,7 +1181,9 @@ public partial class EtomsDbContext : DbContext
                 .HasDefaultValueSql("'UNPAID'");
             entity.Property(e => e.PromotionLinkId).HasColumnName("PromotionLinkID");
             entity.Property(e => e.ReviewNote).HasMaxLength(500);
-            entity.Property(e => e.ReviewedAt).HasColumnType("datetime");
+            entity.Property(e => e.ReviewedAt).HasPrecision(0);
+            entity.Property(e => e.WaitlistExpiresAt).HasPrecision(0);
+            entity.Property(e => e.PromotionLinkId).HasColumnName("PromotionLinkID");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'DRAFT'");
@@ -1190,11 +1192,6 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.TeamId).HasColumnName("TeamID");
             entity.Property(e => e.TournamentId).HasColumnName("TournamentID");
             entity.Property(e => e.WaitlistExpiresAt).HasColumnType("datetime");
-
-            entity.HasOne(d => d.PromotionLink).WithMany(p => p.Registrations)
-                .HasForeignKey(d => d.PromotionLinkId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("FK_Registration_PromotionLink");
 
             entity.HasOne(d => d.SubmittedByAccount).WithMany(p => p.Registrations)
                 .HasForeignKey(d => d.SubmittedByAccountId)
@@ -1222,13 +1219,10 @@ public partial class EtomsDbContext : DbContext
 
             entity.HasIndex(e => e.PlayerCredentialId, "FK_RegistrationLineup_Cred");
 
-            entity.HasIndex(e => e.GamePositionId, "FK_RegistrationLineup_Position");
-
             entity.HasIndex(e => new { e.RegistrationId, e.AccountId }, "UQ_RegistrationLineup_User").IsUnique();
 
             entity.Property(e => e.RegistrationLineupId).HasColumnName("RegistrationLineupID");
             entity.Property(e => e.AccountId).HasColumnName("AccountID");
-            entity.Property(e => e.GamePositionId).HasColumnName("GamePositionID");
             entity.Property(e => e.InGameNameSnapshot).HasMaxLength(150);
             entity.Property(e => e.PlayerCredentialId).HasColumnName("PlayerCredentialID");
             entity.Property(e => e.RegistrationId).HasColumnName("RegistrationID");
@@ -1239,9 +1233,6 @@ public partial class EtomsDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RegistrationLineup_Acc");
 
-            entity.HasOne(d => d.GamePosition).WithMany(p => p.RegistrationLineups)
-                .HasForeignKey(d => d.GamePositionId)
-                .HasConstraintName("FK_RegistrationLineup_Position");
 
             entity.HasOne(d => d.PlayerCredential).WithMany(p => p.RegistrationLineups)
                 .HasForeignKey(d => d.PlayerCredentialId)
@@ -1277,6 +1268,7 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.InviteCode).HasMaxLength(20);
             entity.Property(e => e.InviteExpiresAt).HasColumnType("datetime");
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
@@ -1387,18 +1379,12 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.RegCloseAt).HasColumnType("datetime");
             entity.Property(e => e.RegOpenAt).HasColumnType("datetime");
             entity.Property(e => e.Region).HasMaxLength(100);
+            entity.Property(e => e.RequireInGameName).HasDefaultValue(true);
+            entity.Property(e => e.RequirePaymentProof).HasDefaultValue(true);
             entity.Property(e => e.RequireIdentityDocument)
-                .IsRequired()
-                .HasDefaultValueSql("'1'");
-            entity.Property(e => e.RequireInGameName)
-                .IsRequired()
-                .HasDefaultValueSql("'1'");
-            entity.Property(e => e.RequirePaymentProof)
-                .IsRequired()
-                .HasDefaultValueSql("'1'");
-            entity.Property(e => e.RulebookContent).HasColumnType("mediumtext");
-            entity.Property(e => e.RulebookVersion).HasDefaultValueSql("'1'");
-            entity.Property(e => e.StartAt).HasColumnType("datetime");
+                .HasDefaultValue(true);
+            entity.Property(e => e.RulebookVersion).HasDefaultValue(1);
+            entity.Property(e => e.StartAt).HasPrecision(0);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'DRAFT'");
@@ -1516,6 +1502,20 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.Season).HasColumnType("year");
             entity.Property(e => e.TeamId).HasColumnName("TeamID");
             entity.Property(e => e.TitleCount).HasPrecision(23);
+        });
+
+        modelBuilder.Entity<VwOrganizationReputation>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_OrganizationReputation");
+
+            entity.Property(e => e.AvgResolveHours).HasPrecision(9, 1);
+            entity.Property(e => e.CompletedCount).HasPrecision(23);
+            entity.Property(e => e.CompletedPercent).HasPrecision(5, 1);
+            entity.Property(e => e.DisputedPercent).HasPrecision(5, 1);
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.OrganizationId).HasColumnName("OrganizationID");
         });
 
         modelBuilder.Entity<VwOrganizationReputation>(entity =>

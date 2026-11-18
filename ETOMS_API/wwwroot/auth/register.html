@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
@@ -9,8 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
     <link rel="stylesheet" href="/css/auth-card.css" />
+    <link rel="stylesheet" href="/css/loginpage.css?v=ui-2026-11" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -33,6 +34,14 @@
                         <input class="reg-input" type="text" id="reg-gamertag" name="gamertag" placeholder="VD: ViperX#7799" autocomplete="username" maxlength="100" required>
                         <span class="reg-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="11" r="2" /><path d="M6 17c.5-2 2-3 3-3s2.5 1 3 3" /><line x1="15" y1="10" x2="18" y2="10" /><line x1="15" y1="14" x2="18" y2="14" /></svg></span>
                     </div>
+                </div>
+
+                <div class="reg-field">
+                    <label class="reg-label" for="reg-dob">Ngày sinh</label>
+                    <div class="reg-box">
+                        <input class="reg-input" type="date" id="reg-dob" name="dateOfBirth" required>
+                    </div>
+                    <span class="reg-hint">Bạn phải đủ 18 tuổi trở lên mới được tạo tài khoản.</span>
                 </div>
 
                 <div class="reg-field">
@@ -79,11 +88,11 @@
     <div id="confirm-modal-root"></div>
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/ui.js"></script>
-    <script src="/js/layout.js"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
     <script src="/js/auth-forms.js"></script>
-    <script src="/js/pages/register.js"></script>
+    <script src="/js/pages/register.js?v=login-20261115"></script>
 </body>
 </html>
