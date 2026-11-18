@@ -219,14 +219,18 @@ public class MatchScheduleService : IMatchScheduleService
                 if (other.Node.StageNo > item.Node.StageNo && when <= at)
                     return $"Trận của giai đoạn {item.Node.StageNo} phải trước mọi trận giai đoạn {other.Node.StageNo} ({FullLabel(ctx, other)} lúc {Vn(when)}).";
             }
-            if (when != at) continue;
+            // Note Hùng (phần 2, mục 15): các trận KHÁC đội, khác trọng tài được đá song song. Trận có chung đội hoặc chung
+            // trọng tài thì khung giờ không được chồng nhau — mỗi trận chiếm 60 phút mỗi ván (BO3 = 180 phút), giống hạn báo cáo.
+            var mineEnd = at + ReportDeadline.PerGame * Math.Max(1, item.Match.BestOf);
+            var otherEnd = when + ReportDeadline.PerGame * Math.Max(1, other.Match.BestOf);
+            if (!(at < otherEnd && when < mineEnd)) continue;
 
             var shared = new[] { item.Match.TeamAid, item.Match.TeamBid }
                 .FirstOrDefault(id => id.HasValue && (other.Match.TeamAid == id || other.Match.TeamBid == id));
             if (shared is int team)
-                return $"Đội {TeamName(ctx, team)} đã có trận khác lúc {Vn(at)} ({FullLabel(ctx, other)}).";
+                return $"Đội {TeamName(ctx, team)} đã có {FullLabel(ctx, other)} lúc {Vn(when)} (dự kiến tới {Vn(otherEnd)}). Hai trận của cùng một đội không được chồng giờ.";
             if (item.Match.RefereeAccountId is int referee && other.Match.RefereeAccountId == referee)
-                return $"Trọng tài của trận đã được gán vào {FullLabel(ctx, other)} cùng giờ.";
+                return $"Trọng tài của trận đã được gán vào {FullLabel(ctx, other)} lúc {Vn(when)} (dự kiến tới {Vn(otherEnd)}).";
         }
         return null;
     }

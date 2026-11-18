@@ -51,14 +51,19 @@ public class BracketViewService : IBracketViewService
         if (nodes.Count == 0 && !isOrganizer)
         {
             dto.CanViewBracket = false;
-            dto.Notice = DateTime.UtcNow < t.RegCloseAt
-                ? $"Giải đang nhận đăng ký đến {t.RegCloseAt.AddHours(7):HH:mm dd/MM/yyyy}. Nhánh đấu được sinh sau khi đóng đăng ký — dưới đây là các đội đã được duyệt."
-                : "Ban tổ chức chưa sinh nhánh đấu. Dưới đây là các đội đã được duyệt tham gia.";
-            dto.Participants = await _uow.Repository<Registration>().Query()
+            dto.ParticipantTeams = await _uow.Repository<Registration>().Query()
                 .Where(r => r.TournamentId == tournamentId && r.Status == "APPROVED")
-                .Select(r => r.Team.Name)
-                .OrderBy(n => n)
+                .OrderBy(r => r.Team.Name)
+                .Select(r => new ParticipantTeamDto { TeamId = r.TeamId, Name = r.Team.Name, Tag = r.Team.Tag, LogoUrl = r.Team.LogoUrl })
                 .ToListAsync();
+            dto.Participants = dto.ParticipantTeams.Select(p => p.Name).ToList();
+            dto.MaxTeams = t.MaxTeams;
+            var count = dto.ParticipantTeams.Count;
+            dto.Notice = DateTime.UtcNow < t.RegCloseAt
+                ? $"Giải đang nhận đăng ký đến {t.RegCloseAt.AddHours(7):HH:mm dd/MM/yyyy} ({count}/{t.MaxTeams} đội đã được duyệt). Nhánh đấu được sinh sau khi đóng đăng ký."
+                : count < TournamentLifecycle.MinTeams(t.Format)
+                    ? $"Đã đóng đăng ký nhưng mới có {count} đội được duyệt — chưa đủ để sinh nhánh. Ban tổ chức sẽ gia hạn đăng ký hoặc hủy giải."
+                    : $"Đã đóng đăng ký với {count}/{t.MaxTeams} đội. Ban tổ chức đang chuẩn bị nhánh đấu; sơ đồ sẽ hiện ở đây ngay khi được sinh (khai mạc {t.StartAt.AddHours(7):HH:mm dd/MM/yyyy}).";
             dto.Version = Hash("participants|" + string.Join("|", dto.Participants));
             return dto;
         }

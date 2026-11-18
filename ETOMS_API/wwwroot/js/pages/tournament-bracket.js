@@ -380,9 +380,19 @@
         var updated = '<div class="hint" id="updated-at" style="margin-bottom:10px">Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN') + '</div>';
 
         if (!b.canViewBracket) {
+            // Chưa sinh nhánh: thẻ các đội đã được duyệt (logo, thẻ đội), bấm vào xem hồ sơ đội.
+            var teams = b.participantTeams && b.participantTeams.length ? b.participantTeams
+                : (b.participants || []).map(function (n) { return { name: n, tag: '', teamId: 0, logoUrl: null }; });
             document.getElementById('bracket-root').innerHTML = '<div class="card-etoms"><div class="body">' + notice +
-                (b.participants.length
-                    ? '<ol id="participants" style="margin:0;padding-left:22px">' + b.participants.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol>'
+                (teams.length
+                    ? '<div class="section-title" style="margin:6px 0 12px">Đội đã được duyệt (' + teams.length + (b.maxTeams ? '/' + b.maxTeams : '') + ')</div>' +
+                      '<div class="bk-teams" id="participants">' + teams.map(function (p) {
+                          var logo = Ui.safeUrl(p.logoUrl)
+                              ? '<img src="' + esc(Ui.safeUrl(p.logoUrl)) + '" alt="" loading="lazy">'
+                              : '<span class="ph">' + esc((p.tag || p.name || '?').substring(0, 3).toUpperCase()) + '</span>';
+                          var inner = logo + '<span class="nm">' + esc(p.name) + '</span>' + (p.tag ? '<span class="tg">' + esc(p.tag) + '</span>' : '');
+                          return p.teamId ? '<a class="bk-team" href="/team/details.html?id=' + Number(p.teamId) + '">' + inner + '</a>' : '<div class="bk-team">' + inner + '</div>';
+                      }).join('') + '</div>'
                     : '<div class="hint">Chưa có đội nào được duyệt.</div>') + '</div></div>';
             return;
         }

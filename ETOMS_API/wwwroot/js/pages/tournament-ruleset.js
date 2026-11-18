@@ -6,6 +6,10 @@
         HYBRID: 'Vòng bảng rồi loại trực tiếp'
     };
     var tournamentId = null;
+    // Mục 14 (note Hùng): phần này nằm ngay trong trang Sửa thông tin (ruleset-root có data-embedded) — khi đó không đổi
+    // tiêu đề trang, báo lỗi ở ô riêng và không có nút Quản lý giải. Trang /tournament/ruleset.html cũ vẫn dùng được.
+    function embedded() { var r = document.getElementById('ruleset-root'); return !!(r && r.dataset.embedded); }
+    function flashBox() { return document.getElementById(embedded() ? 'ruleset-flash' : 'flash'); }
 
     function showEmpty(title, message) {
         document.getElementById('ruleset-root').innerHTML =
@@ -30,9 +34,11 @@
     }
 
     function render(board) {
-        document.getElementById('page-title').textContent = 'Bộ luật giải ' + board.tournamentName;
-        document.getElementById('page-sub').textContent = board.gameTitle + ' · Giải đang đặt ' + board.starterCount +
-            ' người chính thức, tối đa ' + board.maxSubstitutes + ' dự bị.';
+        var sub = board.gameTitle + ' · Giải đang đặt ' + board.starterCount + ' người chính thức, tối đa ' + board.maxSubstitutes + ' dự bị.';
+        if (!embedded()) {
+            document.getElementById('page-title').textContent = 'Bộ luật giải ' + board.tournamentName;
+            document.getElementById('page-sub').textContent = sub;
+        }
 
         var notice = board.blockedReason
             ? '<div class="pending-banner">' + Ui.escapeHtml(board.blockedReason) + '</div>'
@@ -41,10 +47,11 @@
             ? board.options.map(function (o) { return optionRow(o, board); }).join('')
             : '<div class="hint">Tựa game của giải chưa có bộ luật nào còn dùng. Liên hệ quản trị viên hệ thống.</div>';
 
-        document.getElementById('ruleset-root').innerHTML =
-            '<div class="card-etoms"><div class="body">' + notice + list +
-            '<div class="btn-row"><a class="btn btn-ghost" href="/tournament/manage.html?id=' + tournamentId + '">Quản lý giải</a></div>' +
-            '</div></div>';
+        document.getElementById('ruleset-root').innerHTML = embedded()
+            ? '<p class="hint mb-3">' + Ui.escapeHtml(sub) + '</p>' + notice + list
+            : '<div class="card-etoms"><div class="body">' + notice + list +
+              '<div class="btn-row"><a class="btn btn-ghost" href="/tournament/manage.html?id=' + tournamentId + '">Quản lý giải</a></div>' +
+              '</div></div>';
 
         document.querySelectorAll('[data-pick]').forEach(function (btn) {
             btn.addEventListener('click', function () { pick(parseInt(btn.dataset.pick, 10)); });
@@ -52,7 +59,7 @@
     }
 
     async function pick(rulesetId) {
-        var flash = document.getElementById('flash');
+        var flash = flashBox();
         Ui.clearAlert(flash);
         try {
             var res = await Api.put('/api/tournaments/' + tournamentId + '/ruleset', { gameRulesetId: rulesetId });
@@ -64,6 +71,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
+        if (!document.getElementById('ruleset-root')) return;
         var me = await Ui.requireAuth();
         if (!me) return;
 

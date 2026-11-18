@@ -693,8 +693,15 @@ public class TeamService : ITeamService
         }
         team.CaptainAccountId = newCaptainAccountId;
         _uow.Repository<Team>().Update(team);
+        // Note Hùng (phần 3, mục 4): báo cho đội trưởng mới (kênh IN_APP, người bật email nhận thêm email).
+        await _uow.Repository<Notification>().AddAsync(new Notification
+        {
+            AccountId = newCaptainAccountId, NotificationType = "SYSTEM", Title = "Bạn đã trở thành đội trưởng",
+            Body = $"Bạn được chuyển quyền đội trưởng đội {team.Name}. Từ giờ bạn quản lý thành viên và đăng ký giải cho đội.",
+            LinkUrl = "/team/roster.html?id=" + teamId, Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow
+        });
         await _uow.SaveChangesAsync();
-        return Result.Success("Đã chuyển quyền đội trưởng.");
+        return Result.Success("Đã chuyển quyền đội trưởng. Đội trưởng mới đã nhận thông báo.");
     }
 
     // ===== TEAM-06: Rời đội =====

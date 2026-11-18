@@ -1911,3 +1911,19 @@ a.promo-card:hover { border-color: var(--primary); transform: translateY(-2px); 
 .event-text { color: var(--ink-2); line-height: 1.7; margin: 0 0 12px; white-space: pre-line; }
 .site-footer h4 a.foot-head-link { color: inherit; display: inline; padding: 0; }
 .site-footer h4 a.foot-head-link:hover { color: var(--cyan); }
+
+/* ---- Nhánh đấu chưa sinh: thẻ đội đã duyệt ---- */
+.bk-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 10px; }
+.bk-team { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); color: var(--ink); min-width: 0; }
+a.bk-team:hover { border-color: var(--primary); }
+.bk-team img, .bk-team .ph { width: 34px; height: 34px; border-radius: 8px; flex: none; object-fit: cover; }
+.bk-team .ph { display: grid; place-items: center; background: var(--panel-3); color: var(--cyan); font: 700 .72rem var(--font-display); }
+.bk-team .nm { font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.bk-team .tg { font-size: .72rem; color: var(--muted-2); flex: none; }
+
+/* Thẻ đội (note Hùng mục 8): tên đội trưởng dài không đẩy nhãn xuống dòng — cắt bằng dấu …, nhãn giữ một hàng. */
+.team-card .meta { gap: 10px; }
+.team-card .meta .cap { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-card .meta .chips { flex: none; display: inline-flex; gap: 6px; white-space: nowrap; }
+.team-card .top .name, .team-card .top .tag { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-card .top > div { min-width: 0; }

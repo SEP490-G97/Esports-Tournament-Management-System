@@ -109,8 +109,14 @@
                     StarterAccountId: parseInt(pick.value, 10), SubstituteAccountId: parseInt(targetAccountId, 10)
                 });
             } else if (act === 'transfer') {
-                if (!(await window.etomsConfirm('Chuyển quyền đội trưởng cho ' + name + '?'))) return;
+                // Note Hùng (phần 3, mục 4): nói rõ hậu quả để tránh bấm nhầm; xong thì sang trang đội — người chuyển không còn
+                // là đội trưởng nên không ở lại trang quản lý thành viên (trước đây hiện "Bạn không phải đội trưởng đội này").
+                if (!(await window.etomsConfirm('Chuyển quyền đội trưởng cho ' + name + '? Sau khi chuyển, bạn trở thành thành viên thường và không quản lý đội được nữa; ' +
+                    name + ' sẽ nhận thông báo. Không chuyển được khi đội đang có giải đã khóa nhánh.', { title: 'Chuyển quyền đội trưởng', okText: 'Chuyển quyền' }))) return;
                 res = await Api.post('/api/teams/' + teamId + '/captain', { NewCaptainAccountId: parseInt(targetAccountId, 10) });
+                Ui.setFlash(res.message || 'Đã chuyển quyền đội trưởng.', 'success');
+                location.href = '/team/details.html?id=' + teamId;
+                return;
             } else if (act === 'kick') {
                 if (!(await window.etomsConfirm('Loại ' + name + ' khỏi đội?'))) return;
                 res = await Api.del('/api/teams/' + teamId + '/members/' + targetAccountId);

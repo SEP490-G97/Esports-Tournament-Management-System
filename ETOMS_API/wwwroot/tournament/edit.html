@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=ev-20261118" />
+    <link rel="stylesheet" href="/css/site.css?v=note-20261118" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -18,7 +18,7 @@
         <div class="page-head">
             <div class="eyebrow">Giải đấu · Sửa thông tin</div>
             <h1 id="page-title">Sửa thông tin giải</h1>
-            <p id="page-sub">Phần sửa được phụ thuộc trạng thái giải. Thể lệ sửa ở trang Thể lệ giải.</p>
+            <p id="page-sub">Phần sửa được phụ thuộc trạng thái giải. Thể lệ và bộ luật sửa ở cuối trang này.</p>
         </div>
 
         <div id="flash"></div>
@@ -228,6 +228,15 @@
                 </div>
             </div>
         </section>
+
+        <!-- Bộ luật của game cho giải (GRL-06) — trước là trang riêng "Bộ luật & vị trí" ở menu Cấu hình giải (note Hùng mục 14) -->
+        <section class="card-etoms mt-4" aria-labelledby="ruleset-title">
+            <div class="body">
+                <h2 id="ruleset-title" class="section-title mt-0">Bộ luật của game &amp; vị trí đội hình</h2>
+                <div id="ruleset-flash" aria-live="polite"></div>
+                <div id="ruleset-root" data-embedded="1"><div class="hint">Đang tải…</div></div>
+            </div>
+        </section>
     </main>
 
     <div id="confirm-modal-root"></div>
@@ -236,10 +245,11 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=form-20261118"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=games-20261118"></script>
+    <script src="/js/layout.js?v=note-20261118"></script>
     <script src="/js/rules-editor.js?v=rules-20261116" defer></script>
     <script src="/js/bank-account.js?v=bank-20261116" defer></script>
     <script src="/js/banner-picker.js?v=banner-20261117" defer></script>
     <script src="/js/pages/tournament-edit.js?v=pow2-20261118" defer></script>
+    <script src="/js/pages/tournament-ruleset.js?v=embed-20261118" defer></script>
 </body>
 </html>

@@ -350,7 +350,6 @@
         ]],
         ['Cấu hình giải', [
             ['/tournament/edit.html', 'Sửa thông tin & thể lệ'],
-            ['/tournament/ruleset.html', 'Bộ luật & vị trí'],
             ['/tournament/clone.html', 'Nhân bản'],
             ['/tournament/cancel.html', 'Hủy giải']
         ]]

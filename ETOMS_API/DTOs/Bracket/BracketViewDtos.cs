@@ -14,6 +14,9 @@ public class BracketViewDto
     public bool CanViewBracket { get; set; }
     public string? Notice { get; set; }
     public List<string> Participants { get; set; } = new();
+    // Cùng danh sách nhưng có logo / thẻ đội để trang vẽ thẻ đội (bấm vào xem hồ sơ đội).
+    public List<ParticipantTeamDto> ParticipantTeams { get; set; } = new();
+    public int MaxTeams { get; set; }
     public bool HasGroupStage { get; set; }
     // Giải đang diễn ra thì trang tự làm mới.
     public bool IsLive { get; set; }
@@ -74,4 +77,12 @@ public class BracketGameDto
     public int GameNo { get; set; }
     public int? ScoreA { get; set; }
     public int? ScoreB { get; set; }
+}
+
+public class ParticipantTeamDto
+{
+    public int TeamId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Tag { get; set; } = string.Empty;
+    public string? LogoUrl { get; set; }
 }

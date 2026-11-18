@@ -55,7 +55,7 @@
                 '<div class="col-12 col-md-6 col-lg-4">' +
                 '<a class="team-card d-block h-100" href="/team/details.html?id=' + Number(t.teamId) + '">' +
                 '<div class="top">' + logo + '<div><div class="name">' + Ui.escapeHtml(t.name) + '</div><div class="tag">[' + Ui.escapeHtml(t.tag) + '] · ' + Ui.escapeHtml(t.gameTitle) + '</div></div></div>' +
-                '<div class="meta"><span>' + Ui.escapeHtml(t.captainName) + '</span><span>' +
+                '<div class="meta"><span class="cap" title="Đội trưởng: ' + Ui.escapeHtml(t.captainName) + '">' + Ui.escapeHtml(t.captainName) + '</span><span class="chips">' +
                 '<span class="badge badge-soft">' + Number(t.memberCount) + ' thành viên</span> ' + statusBadge(t.status) +
                 '</span></div></a></div>';
         });
