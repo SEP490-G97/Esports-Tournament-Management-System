@@ -65,6 +65,8 @@ public partial class Match
 
     public virtual ICollection<MatchRequest> MatchRequests { get; set; } = new List<MatchRequest>();
 
+    public virtual ICollection<MatchSubstitution> MatchSubstitutions { get; set; } = new List<MatchSubstitution>();
+
     public virtual ICollection<Penalty> Penalties { get; set; } = new List<Penalty>();
 
     public virtual Account? RefereeAccount { get; set; }

@@ -21,5 +21,7 @@ public partial class PromotionLink
 
     public virtual Account CreatedByAccount { get; set; } = null!;
 
+    public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
+
     public virtual Tournament Tournament { get; set; } = null!;
 }

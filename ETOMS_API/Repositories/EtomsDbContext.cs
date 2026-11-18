@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using ETOMS_API.Models;
 using Microsoft.EntityFrameworkCore;
+using ETOMS_API.Models;
 
 namespace ETOMS_API.Repositories;
 
@@ -52,11 +52,11 @@ public partial class EtomsDbContext : DbContext
 
     public virtual DbSet<MatchRequest> MatchRequests { get; set; }
 
+    public virtual DbSet<MatchSubstitution> MatchSubstitutions { get; set; }
+
     public virtual DbSet<Notification> Notifications { get; set; }
 
     public virtual DbSet<Organization> Organizations { get; set; }
-
-    public virtual DbSet<OrganizationDocument> OrganizationDocuments { get; set; }
 
     public virtual DbSet<OrganizationMember> OrganizationMembers { get; set; }
 
@@ -74,17 +74,11 @@ public partial class EtomsDbContext : DbContext
 
     public virtual DbSet<RegistrationLineup> RegistrationLineups { get; set; }
 
-    public virtual DbSet<SystemAnnouncement> SystemAnnouncements { get; set; }
-
-    public virtual DbSet<SystemBanner> SystemBanners { get; set; }
-
     public virtual DbSet<Team> Teams { get; set; }
 
     public virtual DbSet<TeamMember> TeamMembers { get; set; }
 
     public virtual DbSet<Tournament> Tournaments { get; set; }
-
-    public virtual DbSet<TournamentFollow> TournamentFollows { get; set; }
 
     public virtual DbSet<TournamentRuleset> TournamentRulesets { get; set; }
 
@@ -110,8 +104,6 @@ public partial class EtomsDbContext : DbContext
 
             entity.ToTable("Account");
 
-            entity.HasIndex(e => e.CreatedAt, "IX_Account_CreatedAt");
-
             entity.HasIndex(e => e.Email, "UQ_Account_Email").IsUnique();
 
             entity.HasIndex(e => e.GoogleSubjectId, "UX_Account_Google").IsUnique();
@@ -133,6 +125,8 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.NotifyInApp)
                 .IsRequired()
                 .HasDefaultValueSql("'1'");
+            entity.Property(e => e.OrganizerRequestEmail).HasMaxLength(254);
+            entity.Property(e => e.OrganizerRequestNote).HasMaxLength(1000);
             entity.Property(e => e.OrganizerRequestStatus)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'NONE'");
@@ -444,7 +438,9 @@ public partial class EtomsDbContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.DefaultFormat).HasMaxLength(30);
             entity.Property(e => e.GameId).HasColumnName("GameID");
-            entity.Property(e => e.MaxEvidenceFileSizeMb).HasColumnName("MaxEvidenceFileSizeMB");
+            entity.Property(e => e.MaxEvidenceFileSizeMb)
+                .HasDefaultValueSql("'10'")
+                .HasColumnName("MaxEvidenceFileSizeMB");
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
@@ -579,38 +575,39 @@ public partial class EtomsDbContext : DbContext
 
             entity.ToTable("MatchChatMessage");
 
-            entity.HasIndex(e => e.ReportedByAccountId, "FK_MatchChatMessage_Rep");
+            entity.HasIndex(e => e.TeamId, "FK_MatchChatMessage_Team");
 
-            entity.HasIndex(e => e.SenderAccountId, "FK_MatchChatMessage_Sender");
+            entity.HasIndex(e => new { e.MatchId, e.MatchChatMessageId }, "IX_MatchChatMessage_Match");
 
-            entity.HasIndex(e => new { e.MatchId, e.SentAt }, "IX_MatchChatMessage_Match");
+            entity.HasIndex(e => new { e.SenderAccountId, e.SentAt }, "IX_MatchChatMessage_Sender");
 
             entity.Property(e => e.MatchChatMessageId).HasColumnName("MatchChatMessageID");
-            entity.Property(e => e.Content).HasMaxLength(2000);
+            entity.Property(e => e.Body).HasMaxLength(1000);
             entity.Property(e => e.MatchId).HasColumnName("MatchID");
-            entity.Property(e => e.ReportNote).HasMaxLength(500);
-            entity.Property(e => e.ReportStatus)
-                .HasMaxLength(20)
-                .HasDefaultValueSql("'NONE'");
-            entity.Property(e => e.ReportedByAccountId).HasColumnName("ReportedByAccountID");
             entity.Property(e => e.SenderAccountId).HasColumnName("SenderAccountID");
+            entity.Property(e => e.SenderRole)
+                .HasMaxLength(20)
+                .HasComment("Vai trò tại thời điểm gửi: CAPTAIN / ORGANIZER / REFEREE");
             entity.Property(e => e.SentAt)
-                .HasDefaultValueSql("'utc_timestamp()'")
-                .HasColumnType("datetime");
+                .HasDefaultValueSql("'utc_timestamp(3)'")
+                .HasColumnType("datetime(3)");
+            entity.Property(e => e.TeamId)
+                .HasComment("Đội của đội trưởng (NULL với BTC / trọng tài)")
+                .HasColumnName("TeamID");
 
             entity.HasOne(d => d.Match).WithMany(p => p.MatchChatMessages)
                 .HasForeignKey(d => d.MatchId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MatchChatMessage_Match");
 
-            entity.HasOne(d => d.ReportedByAccount).WithMany(p => p.MatchChatMessageReportedByAccounts)
-                .HasForeignKey(d => d.ReportedByAccountId)
-                .HasConstraintName("FK_MatchChatMessage_Rep");
-
-            entity.HasOne(d => d.SenderAccount).WithMany(p => p.MatchChatMessageSenderAccounts)
+            entity.HasOne(d => d.SenderAccount).WithMany(p => p.MatchChatMessages)
                 .HasForeignKey(d => d.SenderAccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MatchChatMessage_Sender");
+
+            entity.HasOne(d => d.Team).WithMany(p => p.MatchChatMessages)
+                .HasForeignKey(d => d.TeamId)
+                .HasConstraintName("FK_MatchChatMessage_Team");
         });
 
         modelBuilder.Entity<MatchGame>(entity =>
@@ -676,6 +673,7 @@ public partial class EtomsDbContext : DbContext
 
             entity.HasOne(d => d.Match).WithMany(p => p.MatchPickBans)
                 .HasForeignKey(d => d.MatchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MatchPickBan_Match");
 
             entity.HasOne(d => d.RecordedByAccount).WithMany(p => p.MatchPickBans)
@@ -790,6 +788,75 @@ public partial class EtomsDbContext : DbContext
                 .HasConstraintName("FK_MatchRequest_Team");
         });
 
+        modelBuilder.Entity<MatchSubstitution>(entity =>
+        {
+            entity.HasKey(e => e.MatchSubstitutionId).HasName("PRIMARY");
+
+            entity.ToTable("MatchSubstitution");
+
+            entity.HasIndex(e => e.DecidedByAccountId, "FK_MatchSubstitution_DecBy");
+
+            entity.HasIndex(e => e.InAccountId, "FK_MatchSubstitution_In");
+
+            entity.HasIndex(e => e.OutAccountId, "FK_MatchSubstitution_Out");
+
+            entity.HasIndex(e => e.RequestedByAccountId, "FK_MatchSubstitution_ReqBy");
+
+            entity.HasIndex(e => e.TeamId, "FK_MatchSubstitution_Team");
+
+            entity.HasIndex(e => new { e.MatchId, e.TeamId, e.Status }, "IX_MatchSubstitution_Match");
+
+            entity.Property(e => e.MatchSubstitutionId).HasColumnName("MatchSubstitutionID");
+            entity.Property(e => e.DecidedAt).HasColumnType("datetime");
+            entity.Property(e => e.DecidedByAccountId).HasColumnName("DecidedByAccountID");
+            entity.Property(e => e.DecisionNote).HasMaxLength(300);
+            entity.Property(e => e.InAccountId)
+                .HasComment("Dự bị vào sân")
+                .HasColumnName("InAccountID");
+            entity.Property(e => e.MatchId).HasColumnName("MatchID");
+            entity.Property(e => e.OutAccountId)
+                .HasComment("Tuyển thủ chính bị thay ra")
+                .HasColumnName("OutAccountID");
+            entity.Property(e => e.Reason).HasMaxLength(300);
+            entity.Property(e => e.RequestedAt)
+                .HasDefaultValueSql("'utc_timestamp()'")
+                .HasColumnType("datetime");
+            entity.Property(e => e.RequestedByAccountId).HasColumnName("RequestedByAccountID");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'PENDING'");
+            entity.Property(e => e.TeamId).HasColumnName("TeamID");
+
+            entity.HasOne(d => d.DecidedByAccount).WithMany(p => p.MatchSubstitutionDecidedByAccounts)
+                .HasForeignKey(d => d.DecidedByAccountId)
+                .HasConstraintName("FK_MatchSubstitution_DecBy");
+
+            entity.HasOne(d => d.InAccount).WithMany(p => p.MatchSubstitutionInAccounts)
+                .HasForeignKey(d => d.InAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MatchSubstitution_In");
+
+            entity.HasOne(d => d.Match).WithMany(p => p.MatchSubstitutions)
+                .HasForeignKey(d => d.MatchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MatchSubstitution_Match");
+
+            entity.HasOne(d => d.OutAccount).WithMany(p => p.MatchSubstitutionOutAccounts)
+                .HasForeignKey(d => d.OutAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MatchSubstitution_Out");
+
+            entity.HasOne(d => d.RequestedByAccount).WithMany(p => p.MatchSubstitutionRequestedByAccounts)
+                .HasForeignKey(d => d.RequestedByAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MatchSubstitution_ReqBy");
+
+            entity.HasOne(d => d.Team).WithMany(p => p.MatchSubstitutions)
+                .HasForeignKey(d => d.TeamId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MatchSubstitution_Team");
+        });
+
         modelBuilder.Entity<Notification>(entity =>
         {
             entity.HasKey(e => e.NotificationId).HasName("PRIMARY");
@@ -859,29 +926,6 @@ public partial class EtomsDbContext : DbContext
             entity.HasOne(d => d.ReviewedByAccount).WithMany(p => p.OrganizationReviewedByAccounts)
                 .HasForeignKey(d => d.ReviewedByAccountId)
                 .HasConstraintName("FK_Organization_Reviewer");
-        });
-
-        modelBuilder.Entity<OrganizationDocument>(entity =>
-        {
-            entity.HasKey(e => e.OrganizationDocumentId).HasName("PRIMARY");
-
-            entity.ToTable("OrganizationDocument");
-
-            entity.HasIndex(e => e.OrganizationId, "FK_OrganizationDocument_Org");
-
-            entity.Property(e => e.OrganizationDocumentId).HasColumnName("OrganizationDocumentID");
-            entity.Property(e => e.DocumentType).HasMaxLength(100);
-            entity.Property(e => e.FileUrl).HasMaxLength(500);
-            entity.Property(e => e.OrganizationId).HasColumnName("OrganizationID");
-            entity.Property(e => e.OriginalFileName).HasMaxLength(255);
-            entity.Property(e => e.UploadedAt)
-                .HasDefaultValueSql("'utc_timestamp()'")
-                .HasColumnType("datetime");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.OrganizationDocuments)
-                .HasForeignKey(d => d.OrganizationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_OrganizationDocument_Org");
         });
 
         modelBuilder.Entity<OrganizationMember>(entity =>
@@ -1125,6 +1169,8 @@ public partial class EtomsDbContext : DbContext
 
             entity.HasIndex(e => e.TournamentId, "FK_Registration_Tour");
 
+            entity.HasIndex(e => e.PromotionLinkId, "IX_Registration_PromotionLink");
+
             entity.Property(e => e.RegistrationId).HasColumnName("RegistrationID");
             entity.Property(e => e.ConsentAt).HasColumnType("datetime");
             entity.Property(e => e.FinalPlacement)
@@ -1133,6 +1179,7 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.PaymentStatus)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'UNPAID'");
+            entity.Property(e => e.PromotionLinkId).HasColumnName("PromotionLinkID");
             entity.Property(e => e.ReviewNote).HasMaxLength(500);
             entity.Property(e => e.ReviewedAt).HasColumnType("datetime");
             entity.Property(e => e.Status)
@@ -1143,6 +1190,11 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.TeamId).HasColumnName("TeamID");
             entity.Property(e => e.TournamentId).HasColumnName("TournamentID");
             entity.Property(e => e.WaitlistExpiresAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.PromotionLink).WithMany(p => p.Registrations)
+                .HasForeignKey(d => d.PromotionLinkId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_Registration_PromotionLink");
 
             entity.HasOne(d => d.SubmittedByAccount).WithMany(p => p.Registrations)
                 .HasForeignKey(d => d.SubmittedByAccountId)
@@ -1201,75 +1253,6 @@ public partial class EtomsDbContext : DbContext
                 .HasConstraintName("FK_RegistrationLineup_Reg");
         });
 
-        modelBuilder.Entity<SystemAnnouncement>(entity =>
-        {
-            entity.HasKey(e => e.SystemAnnouncementId).HasName("PRIMARY");
-
-            entity.ToTable("SystemAnnouncement");
-
-            entity.HasIndex(e => e.SentByAccountId, "FK_SystemAnnouncement_By");
-
-            entity.HasIndex(e => e.SentAt, "IX_SystemAnnouncement_SentAt");
-
-            entity.Property(e => e.SystemAnnouncementId).HasColumnName("SystemAnnouncementID");
-            entity.Property(e => e.Body).HasMaxLength(1000);
-            entity.Property(e => e.Channel)
-                .HasMaxLength(20)
-                .HasDefaultValueSql("'IN_APP'");
-            entity.Property(e => e.LinkUrl).HasMaxLength(500);
-            entity.Property(e => e.SentAt)
-                .HasDefaultValueSql("'utc_timestamp()'")
-                .HasColumnType("datetime");
-            entity.Property(e => e.SentByAccountId).HasColumnName("SentByAccountID");
-            entity.Property(e => e.TargetRoles)
-                .HasMaxLength(60)
-                .HasDefaultValueSql("'ALL'");
-            entity.Property(e => e.Title).HasMaxLength(200);
-
-            entity.HasOne(d => d.SentByAccount).WithMany(p => p.SystemAnnouncements)
-                .HasForeignKey(d => d.SentByAccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_SystemAnnouncement_By");
-        });
-
-        modelBuilder.Entity<SystemBanner>(entity =>
-        {
-            entity.HasKey(e => e.SystemBannerId).HasName("PRIMARY");
-
-            entity.ToTable("SystemBanner");
-
-            entity.HasIndex(e => e.CreatedByAccountId, "FK_SystemBanner_By");
-
-            entity.HasIndex(e => new { e.IsActive, e.StartAt, e.EndAt }, "IX_SystemBanner_Live");
-
-            entity.Property(e => e.SystemBannerId).HasColumnName("SystemBannerID");
-            entity.Property(e => e.BannerType)
-                .HasMaxLength(20)
-                .HasDefaultValueSql("'EVENT'");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("'utc_timestamp()'")
-                .HasColumnType("datetime");
-            entity.Property(e => e.CreatedByAccountId).HasColumnName("CreatedByAccountID");
-            entity.Property(e => e.Description).HasMaxLength(500);
-            entity.Property(e => e.DisplayOrder).HasDefaultValueSql("'1'");
-            entity.Property(e => e.EndAt).HasColumnType("datetime");
-            entity.Property(e => e.ImageUrl).HasMaxLength(500);
-            entity.Property(e => e.IsActive)
-                .IsRequired()
-                .HasDefaultValueSql("'1'");
-            entity.Property(e => e.LinkUrl).HasMaxLength(500);
-            entity.Property(e => e.StartAt).HasColumnType("datetime");
-            entity.Property(e => e.Title).HasMaxLength(200);
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("'utc_timestamp()'")
-                .HasColumnType("datetime");
-
-            entity.HasOne(d => d.CreatedByAccount).WithMany(p => p.SystemBanners)
-                .HasForeignKey(d => d.CreatedByAccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_SystemBanner_By");
-        });
-
         modelBuilder.Entity<Team>(entity =>
         {
             entity.HasKey(e => e.TeamId).HasName("PRIMARY");
@@ -1289,6 +1272,7 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("'utc_timestamp()'")
                 .HasColumnType("datetime");
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.GameId).HasColumnName("GameID");
             entity.Property(e => e.InviteCode).HasMaxLength(20);
             entity.Property(e => e.InviteExpiresAt).HasColumnType("datetime");
@@ -1369,11 +1353,11 @@ public partial class EtomsDbContext : DbContext
 
             entity.ToTable("Tournament");
 
+            entity.HasIndex(e => e.GameId, "FK_Tournament_Game");
+
             entity.HasIndex(e => e.BracketLockedByAccountId, "FK_Tournament_LockedBy");
 
             entity.HasIndex(e => e.OrganizerAccountId, "FK_Tournament_Organizer");
-
-            entity.HasIndex(e => new { e.GameId, e.Status }, "IX_Tournament_GameStatus");
 
             entity.HasIndex(e => new { e.OrganizationId, e.Status }, "IX_Tournament_Organization");
 
@@ -1439,34 +1423,6 @@ public partial class EtomsDbContext : DbContext
                 .HasForeignKey(d => d.OrganizerAccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Tournament_Organizer");
-        });
-
-        modelBuilder.Entity<TournamentFollow>(entity =>
-        {
-            entity.HasKey(e => e.TournamentFollowId).HasName("PRIMARY");
-
-            entity.ToTable("TournamentFollow");
-
-            entity.HasIndex(e => e.TournamentId, "FK_TournamentFollow_Tour");
-
-            entity.HasIndex(e => new { e.AccountId, e.TournamentId }, "UQ_TournamentFollow").IsUnique();
-
-            entity.Property(e => e.TournamentFollowId).HasColumnName("TournamentFollowID");
-            entity.Property(e => e.AccountId).HasColumnName("AccountID");
-            entity.Property(e => e.FollowedAt)
-                .HasDefaultValueSql("'utc_timestamp()'")
-                .HasColumnType("datetime");
-            entity.Property(e => e.TournamentId).HasColumnName("TournamentID");
-
-            entity.HasOne(d => d.Account).WithMany(p => p.TournamentFollows)
-                .HasForeignKey(d => d.AccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_TournamentFollow_Acc");
-
-            entity.HasOne(d => d.Tournament).WithMany(p => p.TournamentFollows)
-                .HasForeignKey(d => d.TournamentId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_TournamentFollow_Tour");
         });
 
         modelBuilder.Entity<TournamentRuleset>(entity =>
@@ -1592,3 +1548,4 @@ public partial class EtomsDbContext : DbContext
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
+

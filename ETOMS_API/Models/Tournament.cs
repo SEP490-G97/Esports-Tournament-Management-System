@@ -109,8 +109,6 @@ public partial class Tournament
 
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
 
-    public virtual ICollection<TournamentFollow> TournamentFollows { get; set; } = new List<TournamentFollow>();
-
     public virtual TournamentRuleset? TournamentRuleset { get; set; }
 
     public virtual ICollection<TournamentSponsor> TournamentSponsors { get; set; } = new List<TournamentSponsor>();

@@ -51,4 +51,10 @@ public interface IDoubleEliminationService
     /// xử lý Grand Final và Bracket Reset. Gọi lại nhiều lần cho cùng một trận là an toàn (ghi đè khi trận sau chưa bắt đầu).
     /// </summary>
     Task<BracketAdvanceResult> AdvanceAsync(int matchId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Hoàn tác việc đưa đội đi tiếp của một trận đã có kết quả (gỡ đội khỏi các trận đích). Trả DownstreamStarted nếu
+    /// trận đích đã bắt đầu. Không tự mở giao dịch; người gọi tự gộp với việc sửa trận.
+    /// </summary>
+    Task<BracketError> RollbackAsync(int matchId, CancellationToken ct = default);
 }
