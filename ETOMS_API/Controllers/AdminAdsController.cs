@@ -90,9 +90,11 @@ public sealed class AdminAdsController : ControllerBase
         end = DateTime.SpecifyKind(end.ToUniversalTime(), DateTimeKind.Utc);
         if (start >= end) return Err("Thời gian kết thúc phải sau thời gian bắt đầu.");
         if (f.DisplayOrder < 1 || f.DisplayOrder > 99) return Err("Thứ tự hiển thị từ 1 đến 99.");
+        // Góp ý nhóm 18/11: sự kiện là trang viết trong ETOMS (/events/index.html?id=), không dẫn người xem ra trang ngoài.
+        // Liên kết (không bắt buộc) chỉ là nút "Xem thêm" tới một trang khác TRONG ETOMS (vd trang giải).
         var link = (f.LinkUrl ?? "").Trim();
-        if (link.Length > 0 && !(link.StartsWith('/') || Uri.TryCreate(link, UriKind.Absolute, out var u) && (u.Scheme == "https" || u.Scheme == "http")))
-            return Err("Liên kết phải là đường dẫn http(s) hoặc đường dẫn trong ETOMS.");
+        if (link.Length > 0 && !IsInternal(link))
+            return Err("Liên kết phải là đường dẫn trong ETOMS (bắt đầu bằng /), ví dụ /bracket/view.html?id=12.");
 
         SystemBanner? b = null;
         if (id is int bid)
@@ -163,6 +165,25 @@ public sealed class AdminAdsController : ControllerBase
         return Ok(rows);
     }
 
+    // Trang chi tiết sự kiện (công khai): chỉ banner đang bật và đang trong thời gian hiển thị.
+    [AllowAnonymous]
+    [HttpGet("api/home/banners/{id:int}")]
+    public async Task<IActionResult> LiveBanner(int id, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var b = await _db.Set<SystemBanner>().AsNoTracking()
+            .Where(x => x.SystemBannerId == id && x.IsActive && x.StartAt <= now && x.EndAt > now)
+            .Select(x => new { x.SystemBannerId, x.Title, x.Description, x.ImageUrl, x.LinkUrl, x.BannerType, x.StartAt, x.EndAt })
+            .FirstOrDefaultAsync(ct);
+        if (b is null) return Err("Sự kiện không tồn tại, đã kết thúc hoặc chưa bắt đầu.", 404);
+        Response.Headers.CacheControl = "public, max-age=60";
+        // Liên kết cũ trỏ ra ngoài (nhập trước khi có quy tắc này) thì không đưa ra trang.
+        return Ok(new { b.SystemBannerId, b.Title, b.Description, b.ImageUrl, LinkUrl = b.LinkUrl is { } l && IsInternal(l) ? l : null, b.BannerType, b.StartAt, b.EndAt });
+    }
+
+    // Đường dẫn trong ETOMS: bắt đầu bằng một dấu / (không phải // — đó là liên kết sang trang khác).
+    private static bool IsInternal(string link) => link.StartsWith('/') && !link.StartsWith("//") && !link.Contains('\\');
+
     // ---------------------------------------------------------------- Thông báo hệ thống
 
     [HttpGet("api/admin/announcements")]
@@ -189,7 +210,7 @@ public sealed class AdminAdsController : ControllerBase
         if (body.Length < 5 || body.Length > 1000) return Err("Nội dung từ 5 đến 1000 ký tự.");
         if (!Targets.Contains(target)) return Err("Đối tượng nhận không hợp lệ.");
         if (!Channels.Contains(channel)) return Err("Kênh gửi không hợp lệ.");
-        if (link.Length > 0 && !link.StartsWith('/')) return Err("Liên kết phải là đường dẫn trong ETOMS (bắt đầu bằng /).");
+        if (link.Length > 0 && !IsInternal(link)) return Err("Liên kết phải là đường dẫn trong ETOMS (bắt đầu bằng /).");
 
         var q = _db.Accounts.AsNoTracking().Where(a => a.Status == "ACTIVE" && a.Role != "ADMIN");
         if (target != "ALL") q = q.Where(a => a.Role == target);

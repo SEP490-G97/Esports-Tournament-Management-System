@@ -9,7 +9,7 @@
     var ADMIN_HOME = '/admin/index.html';
     function adminPathAllowed(path) {
         path = (path || '').toLowerCase();
-        return ['/admin/', '/organization/', '/auth/', '/errors/'].some(function (p) { return path.indexOf(p) === 0; });
+        return ['/admin/', '/organization/', '/auth/', '/errors/', '/events/'].some(function (p) { return path.indexOf(p) === 0; });
     }
     function cachedRole() {
         // Chỉ tin vai trò đã lưu khi còn token đăng nhập (đăng xuất / hết phiên thì coi như khách).
@@ -29,6 +29,7 @@
             '<a href="/admin/user.html" data-nav="admin/user">Tài khoản</a>' +
             '<a href="/admin/news.html" data-nav="admin/news">Tin tức</a>' +
             '<a href="/admin/ads.html" data-nav="admin/ads">Quảng cáo</a>' +
+            '<a href="/admin/games.html" data-nav="admin/games">Tựa game</a>' +
             '<a href="/admin/game-rules.html" data-nav="admin/game-rules">Luật game</a>' +
             '<a href="/organization/index.html" data-nav="organization">Đơn vị</a>';
         var header = document.querySelector('.etoms-nav');

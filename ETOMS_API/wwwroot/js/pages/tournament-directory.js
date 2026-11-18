@@ -68,10 +68,9 @@
             '</div>' +
             '<div class="hint mt-2">' + Ui.escapeHtml(place) + (t.registrationOpen ? ' · Hạn đăng ký ' + Ui.escapeHtml(fmtDate(t.regCloseAt)) : '') + '</div>' +
             '<div class="feat-bar"><span style="width:' + pct + '%"></span></div>' +
-            '</div></a>' +
-            '<div class="btn-row feat-actions">' +
-            (t.registrationOpen ? '<a class="btn btn-primary btn-sm" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>' : '') +
-            '</div></div>';
+            // Giống thẻ giải ở trang chủ (góp ý nhóm): không có nút "Đăng ký cho đội" dưới thẻ — bấm thẻ vào trang giải, đăng ký ở đó.
+            // Trước đây nút chỉ hiện dưới giải đang mở đăng ký nên các thẻ lệch hàng, lọc theo game trông như chỉ có một nút lạc.
+            '</div></a></div>';
     }
 
     function renderPager(page, totalPages) {

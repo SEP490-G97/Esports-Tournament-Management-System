@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tựa game &amp; luật – ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=ev-20261118">
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <div class="eyebrow">Quản trị hệ thống</div>
+                <h1>Tựa game &amp; luật mặc định</h1>
+                <p>Luật mặc định của mỗi game áp dụng khi tạo đội và tạo giải mới: số người chính thức, số dự bị, thể thức, loại tệp minh chứng. Bộ luật chi tiết (bản đồ, vị trí) ở trang <a href="/admin/game-rules.html">Luật game</a>.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-new">+ Thêm game</button>
+        </div>
+
+        <div id="flash" aria-live="polite"></div>
+
+        <section class="card-etoms mb-3" id="editor" hidden><div class="body">
+            <form id="game-form" novalidate>
+                <h2 class="h5 mb-3" id="editor-title">Thêm game</h2>
+                <div class="row g-3">
+                    <div class="col-12 col-md-8 field mb-0">
+                        <label for="g-title">Tên game <span class="req">*</span></label>
+                        <input id="g-title" class="input" maxlength="150" required placeholder="Ví dụ: League of Legends">
+                    </div>
+                    <div class="col-12 col-md-4 field mb-0">
+                        <label for="g-code">Mã viết tắt <span class="req">*</span></label>
+                        <input id="g-code" class="input" maxlength="10" required placeholder="LOL" style="text-transform:uppercase">
+                    </div>
+                    <div class="col-6 col-md-3 field mb-0">
+                        <label for="g-min">Chính thức tối thiểu <span class="req">*</span></label>
+                        <input id="g-min" type="number" class="input" min="1" max="20" value="5">
+                    </div>
+                    <div class="col-6 col-md-3 field mb-0">
+                        <label for="g-max">Chính thức tối đa <span class="req">*</span></label>
+                        <input id="g-max" type="number" class="input" min="1" max="20" value="5">
+                    </div>
+                    <div class="col-6 col-md-3 field mb-0">
+                        <label for="g-sub">Số dự bị tối đa</label>
+                        <input id="g-sub" type="number" class="input" min="0" max="10" value="2">
+                    </div>
+                    <div class="col-6 col-md-3 field mb-0">
+                        <label for="g-format">Thể thức mặc định</label>
+                        <select id="g-format" class="select">
+                            <option value="SINGLE_ELIMINATION">Loại trực tiếp</option>
+                            <option value="DOUBLE_ELIMINATION">Loại kép</option>
+                            <option value="ROUND_ROBIN">Vòng tròn</option>
+                            <option value="HYBRID">Vòng bảng rồi loại trực tiếp</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-8 field mb-0">
+                        <label for="g-ext">Loại tệp minh chứng kết quả <span class="req">*</span></label>
+                        <input id="g-ext" class="input" maxlength="200" value="png,jpg,jpeg,mp4" placeholder="png,jpg,jpeg,mp4">
+                        <small class="field-hint">Đuôi tệp cách nhau bằng dấu phẩy. Ví dụ LMHT thêm rofl (tệp xem lại trận).</small>
+                    </div>
+                    <div class="col-12 col-md-4 field mb-0">
+                        <label for="g-size">Dung lượng tối đa (MB)</label>
+                        <input id="g-size" type="number" class="input" min="1" max="50" value="10">
+                    </div>
+                    <div class="col-12 col-md-6 field mb-0">
+                        <label for="g-logo">Logo</label>
+                        <input id="g-logo" type="file" class="input" accept="image/png,image/jpeg,image/webp">
+                    </div>
+                    <div class="col-12 col-md-6 field mb-0">
+                        <label for="g-logolink">Hoặc dán liên kết ảnh logo</label>
+                        <input id="g-logolink" type="url" class="input" maxlength="500" placeholder="https://...">
+                        <small class="field-hint">Ảnh được tải về máy chủ ETOMS. Khi sửa, để trống cả hai ô thì giữ logo cũ.</small>
+                    </div>
+                    <div class="col-12 text-md-end">
+                        <button type="button" class="btn btn-ghost" id="g-cancel">Hủy</button>
+                        <button type="submit" class="btn btn-primary">Lưu game</button>
+                    </div>
+                </div>
+            </form>
+        </div></section>
+
+        <section class="card-etoms"><div class="body"><div id="list"><div class="empty"><h3>Đang tải…</h3></div></div></div></section>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=form-20261118"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=games-20261118"></script>
+    <script src="/js/pages/admin-games.js?v=games-20261118" defer></script>
+</body>
+</html>

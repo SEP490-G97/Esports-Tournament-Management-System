@@ -297,14 +297,12 @@
             if (!list || !list.length) return;
             var TYPE = { EVENT: 'Sự kiện', GIVEAWAY: 'Quà tặng' };
             document.getElementById('promo-row').innerHTML = list.map(function (b) {
-                var link = b.linkUrl ? Ui.safeUrl(b.linkUrl) : '';
-                var external = link && new URL(link).origin !== location.origin;
+                // Bấm thẻ mở trang sự kiện viết trong ETOMS (không dẫn ra trang ngoài).
+                var link = '/events/index.html?id=' + Number(b.systemBannerId);
                 var inner = '<div class="img" style="background-image:url(\x27' + Ui.escapeHtml(Ui.safeUrl(b.imageUrl)) + '\x27)" role="img" aria-label="' + Ui.escapeHtml(b.title) + '"></div>' +
                     '<div class="txt"><span class="badge badge-gold">' + Ui.escapeHtml(TYPE[b.bannerType] || b.bannerType) + '</span>' +
                     '<h3>' + Ui.escapeHtml(b.title) + '</h3>' + (b.description ? '<p>' + Ui.escapeHtml(b.description) + '</p>' : '') + '</div>';
-                return link
-                    ? '<a class="promo-card" href="' + Ui.escapeHtml(link) + '"' + (external ? ' target="_blank" rel="noopener"' : '') + '>' + inner + '</a>'
-                    : '<div class="promo-card">' + inner + '</div>';
+                return '<a class="promo-card" href="' + link + '">' + inner + '</a>';
             }).join('');
             band.hidden = false;
         } catch (e) { /* không có banner thì thôi */ }

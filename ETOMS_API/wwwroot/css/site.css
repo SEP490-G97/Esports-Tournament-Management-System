@@ -1902,3 +1902,12 @@ a.promo-card:hover { border-color: var(--primary); transform: translateY(-2px); 
 .lc-podium div { padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
 .lc-podium small { display: block; color: var(--gold); font-weight: 700; font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; }
 @media (max-width: 575px) { .lc-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- Trang sự kiện (/events/index.html) ---- */
+.event-article { overflow: hidden; max-width: 860px; margin: 0 auto; }
+.event-cover { aspect-ratio: 16 / 7; background: var(--panel-2) center / cover no-repeat; border-bottom: 1px solid var(--border); }
+.event-title { font-size: 1.8rem; font-weight: 800; margin: 12px 0 6px; letter-spacing: -.4px; }
+.event-time { color: var(--muted); margin: 0 0 16px; }
+.event-text { color: var(--ink-2); line-height: 1.7; margin: 0 0 12px; white-space: pre-line; }
+.site-footer h4 a.foot-head-link { color: inherit; display: inline; padding: 0; }
+.site-footer h4 a.foot-head-link:hover { color: var(--cyan); }

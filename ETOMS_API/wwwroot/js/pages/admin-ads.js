@@ -46,6 +46,7 @@
                     '<td>' + fmt(b.startAt) + '<br>→ ' + fmt(b.endAt) + '</td>' +
                     '<td><span class="badge ' + s[1] + '">' + s[0] + '</span></td>' +
                     '<td class="text-end text-nowrap">' +
+                    (b.state === 'LIVE' ? '<a class="btn btn-ghost btn-sm" href="/events/index.html?id=' + b.systemBannerId + '" target="_blank" rel="noopener">Xem</a> ' : '') +
                     '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + b.systemBannerId + '">Sửa</button> ' +
                     '<button type="button" class="btn btn-ghost btn-sm" data-toggle="' + b.systemBannerId + '">' + (b.isActive ? 'Tắt' : 'Bật') + '</button> ' +
                     '<button type="button" class="btn btn-ghost btn-sm" data-del="' + b.systemBannerId + '">Xóa</button></td></tr>';

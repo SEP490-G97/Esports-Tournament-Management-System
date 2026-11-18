@@ -47,6 +47,12 @@
             url: '/api/admin/news', pick: count
         },
         {
+            key: 'games', overline: 'Danh mục', title: 'Tựa game & luật mặc định',
+            text: 'Thêm, sửa, ngừng tựa game và luật đội hình mặc định (số người, thể thức, loại tệp minh chứng).',
+            href: '/admin/games.html', action: 'Quản lý tựa game',
+            url: '/api/admin/games', pick: count
+        },
+        {
             key: 'rules', overline: 'Luật thi đấu', title: 'Bộ luật theo tựa game',
             text: 'Quản lý bộ luật, bản đồ và vị trí cho từng game (GRL-01..03).',
             href: '/admin/game-rules.html', action: 'Quản lý bộ luật',
