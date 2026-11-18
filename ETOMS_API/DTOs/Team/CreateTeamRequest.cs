@@ -7,12 +7,12 @@ namespace ETOMS_API.DTOs.Team;
 public class CreateTeamRequest
 {
     [Required(ErrorMessage = "Vui lòng nhập tên đội.")]
-    [StringLength(200, MinimumLength = 2, ErrorMessage = "Tên đội phải từ 2 đến 200 ký tự.")]
+    [StringLength(150, MinimumLength = 2, ErrorMessage = "Tên đội phải từ 2 đến 150 ký tự.")]
     [Display(Name = "Tên đội")]
     public string Name { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Vui lòng nhập thẻ đội (Team Tag).")]
-    [StringLength(20, MinimumLength = 2, ErrorMessage = "Thẻ đội phải từ 2 đến 20 ký tự.")]
+    [StringLength(10, MinimumLength = 2, ErrorMessage = "Thẻ đội phải từ 2 đến 10 ký tự.")]
     [RegularExpression(@"^[A-Za-z0-9]+$", ErrorMessage = "Thẻ đội chỉ gồm chữ cái không dấu và chữ số, không khoảng trắng.")]
     [Display(Name = "Thẻ đội")]
     public string Tag { get; set; } = string.Empty;
@@ -21,6 +21,14 @@ public class CreateTeamRequest
     [Range(1, int.MaxValue, ErrorMessage = "Vui lòng chọn tựa game chủ đạo.")]
     [Display(Name = "Tựa game chủ đạo")]
     public int GameId { get; set; }
+
+    // Giới thiệu / khẩu hiệu đội (TEAM-01 "Slogan"), không bắt buộc.
+    [StringLength(500, ErrorMessage = "Giới thiệu đội tối đa 500 ký tự.")]
+    [Display(Name = "Giới thiệu đội")]
+    public string? Description { get; set; }
+
+    // Tuyển thủ được mời ngay khi tạo đội (không bắt buộc): mỗi người nhận một lời mời chờ chấp nhận.
+    public List<int>? InviteAccountIds { get; set; }
 
     // Đường dẫn logo sau khi upload thành công (Controller gán).
     public string? LogoUrl { get; set; }

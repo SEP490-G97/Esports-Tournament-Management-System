@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -22,8 +22,8 @@
                 <p>Tìm đội theo tên, thẻ đội hoặc tựa game.</p>
             </div>
             <div class="d-flex gap-2">
-                <a class="btn btn-ghost" href="/team/join.html">Gia nhập bằng mã</a>
-                <a class="btn btn-primary" href="/team/create.html">+ Tạo đội mới</a>
+                <a class="btn btn-ghost" href="/team/join.html" data-hide-roles="ORGANIZER ADMIN">Gia nhập bằng mã</a>
+                <a class="btn btn-primary" href="/team/create.html" data-hide-roles="ORGANIZER ADMIN">+ Tạo đội mới</a>
             </div>
         </div>
 
@@ -49,6 +49,7 @@
             </select>
             <button type="submit" class="btn btn-primary filter-go">Tìm</button>
             <a href="/team/index.html" class="btn btn-ghost filter-clear" id="clear-filter" style="display:none">Xóa lọc</a>
+            <span class="field-error filter-error" data-field-error="Q" aria-live="polite"></span>
         </form>
 
         <div id="result-root"></div>
@@ -57,9 +58,10 @@
     <div id="confirm-modal-root"></div>
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/ui.js"></script>
-    <script src="/js/layout.js"></script>
-    <script src="/js/pages/team-index.js" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/team-index.js?v=page-20261115" defer></script>
 </body>
 </html>

@@ -9,7 +9,12 @@ public class TeamDetailDto
     public string Name { get; set; } = string.Empty;
     public string Tag { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
+    public string? Description { get; set; }
     public string GameTitle { get; set; } = string.Empty;
+    // Luật đội hình của tựa game (Game): số chính thức tối thiểu/tối đa và dự bị tối đa.
+    public int GameMinStarters { get; set; }
+    public int GameMaxStarters { get; set; }
+    public int GameMaxSubstitutes { get; set; }
     public string CaptainName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

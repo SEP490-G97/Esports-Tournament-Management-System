@@ -66,18 +66,18 @@
         var editable = board.canEdit && r.matches.some(function (m) { return m.canEdit; });
         var key = r.stageNo + '-' + r.roundNo;
         var bulk = editable && r.matches.length > 1
-            ? '<div class="d-flex flex-wrap align-items-end gap-2" style="margin-bottom:14px">' +
-                '<div class="field" style="margin:0"><label for="first-' + key + '">Giờ trận đầu</label>' +
+            ? '<div class="d-flex flex-wrap align-items-end gap-2 mb-3">' +
+                '<div class="field m-0"><label for="first-' + key + '">Giờ trận đầu</label>' +
                 timeInput('id="first-' + key + '" data-first="' + key + '"', '', min) + '</div>' +
-                '<div class="field" style="margin:0"><label for="gap-' + key + '">Cách nhau (phút)</label>' +
+                '<div class="field m-0"><label for="gap-' + key + '">Cách nhau (phút)</label>' +
                 '<input id="gap-' + key + '" type="number" class="input" style="max-width:120px" min="0" max="1440" value="60" /></div>' +
                 '<button type="button" class="btn btn-ghost" data-round="' + key + '" data-stage="' + r.stageNo + '" data-round-no="' + r.roundNo + '">Xếp cả vòng</button>' +
               '</div>'
             : '';
         var scheduled = r.matches.filter(function (m) { return m.scheduledAt; }).length;
-        return '<div class="card-etoms" style="margin-top:16px"><div class="body">' +
-            '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2" style="margin-bottom:12px">' +
-            '<div class="section-title" style="margin:0">' + Ui.escapeHtml(r.label) + '</div>' +
+        return '<div class="card-etoms mt-3"><div class="body">' +
+            '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">' +
+            '<div class="section-title m-0">' + Ui.escapeHtml(r.label) + '</div>' +
             '<span class="rl">' + scheduled + '/' + r.matches.length + ' trận đã có giờ</span></div>' +
             bulk + r.matches.map(function (m) { return matchRow(m, min); }).join('') +
             '</div></div>';

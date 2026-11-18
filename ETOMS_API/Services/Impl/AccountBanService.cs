@@ -2,10 +2,11 @@
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ETOMS_API.Services.Impl
 {
-    public class AccountBanService(EtomsDbContext db) : IAccountBanService
+    public class AccountBanService(EtomsDbContext db, IMemoryCache cache) : IAccountBanService
     {
         public async Task<bool> BanAsync(int accountId, string reason, CancellationToken ct = default)
         {
@@ -23,6 +24,7 @@ namespace ETOMS_API.Services.Impl
                 .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsedAt, DateTime.UtcNow), ct);
 
             await tx.CommitAsync(ct);
+            cache.Remove(AccountStatusCache.Key(accountId)); // chặn ngay request kế tiếp
             return true;
         }
 

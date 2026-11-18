@@ -3,7 +3,7 @@
 
     function pad2(n) { return String(n).padStart(2, '0'); }
     function fmtDateTime(iso) {
-        var d = new Date(iso);
+        var d = new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z'); // máy chủ trả giờ UTC không kèm Z
         return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
     }
 
@@ -17,11 +17,16 @@
         if (!ev.isVisible) {
             body = '<div class="card-etoms"><div class="empty"><h3>Minh chứng chưa công khai</h3><p>' + Ui.escapeHtml(ev.hiddenReason) + '</p></div></div>';
         } else {
-            var cardsHtml = '<div class="row g-3">';
+            // UC-39 A1: trận đóng vì hết hạn báo cáo (UC-29) — nói rõ để không ai hiểu nhầm là đã có kết quả.
+            var cardsHtml = ev.closedOnTimeout
+                ? '<div class="pending-banner">Hết hạn báo cáo khi chưa đủ hai bản — trận đã chuyển sang tranh chấp để Trọng tài hoặc Ban tổ chức phân xử.' +
+                  (ev.reports.length ? '' : ' Không đội nào nộp báo cáo trước hạn.') + '</div>'
+                : '';
+            cardsHtml += '<div class="row g-3">';
             ev.reports.forEach(function (r) {
                 var filesHtml;
                 if (!r.files.length) {
-                    filesHtml = '<p style="color:var(--muted)">Không có file minh chứng.</p>';
+                    filesHtml = '<p class="text-muted-etoms">Không có file minh chứng.</p>';
                 } else {
                     filesHtml = '<div style="display:grid;gap:10px">';
                     r.files.forEach(function (f) {
@@ -35,7 +40,7 @@
                     filesHtml += '</div>';
                 }
                 cardsHtml += '<div class="col-12 col-md-6"><div class="card-etoms h-100"><div class="body">' +
-                    '<div class="section-title" style="margin-top:0">' + Ui.escapeHtml(r.teamName) + '</div>' +
+                    '<div class="section-title mt-0">' + Ui.escapeHtml(r.teamName) + '</div>' +
                     '<div class="section-sub">Nộp lúc ' + fmtDateTime(r.submittedAt) + ' · Tỉ số báo cáo: ' + r.scoreA + ' - ' + r.scoreB + '</div>' +
                     filesHtml + '</div></div></div>';
             });
@@ -44,8 +49,8 @@
             var flagBlock = '';
             if (ev.canFlag) {
                 flagBlock =
-                    '<div class="card-etoms form-narrow" style="margin-top:28px"><div class="body">' +
-                    '<div class="section-title" style="margin-top:0">Cắm cờ nghi vấn</div>' +
+                    '<div class="card-etoms form-narrow mt-4"><div class="body">' +
+                    '<div class="section-title mt-0">Cắm cờ nghi vấn</div>' +
                     '<div class="section-sub">Nếu bạn cho rằng kết quả này sai (kể cả khi hai đội đã đồng thuận), hãy tố cáo kèm lý do cụ thể.</div>' +
                     '<form id="flag-form">' +
                     '<div class="field"><label>Loại nghi vấn <span class="req">*</span></label>' +
@@ -54,7 +59,7 @@
                     '<option value="INELIGIBLE_PLAYER">Cầu thủ không đủ điều kiện</option><option value="OTHER">Khác</option></select></div>' +
                     '<div class="field"><label>Lý do cụ thể <span class="req">*</span></label>' +
                     '<textarea name="Note" class="input" rows="3" minlength="10" maxlength="1000" required placeholder="Nêu rõ căn cứ, không được bỏ trống"></textarea></div>' +
-                    '<div class="btn-row"><button type="submit" class="btn btn-ghost" style="color:var(--danger-ink)">Cắm cờ nghi vấn</button></div>' +
+                    '<div class="btn-row"><button type="submit" class="btn btn-ghost text-danger-etoms">Cắm cờ nghi vấn</button></div>' +
                     '</form></div></div>';
             }
 
@@ -62,9 +67,9 @@
         }
 
         root.innerHTML =
-            '<div class="eyebrow">Kết quả &amp; Khiếu nại · RES-04</div>' +
-            '<div class="page-head"><h1>Minh chứng trận đấu</h1><p><strong style="color:var(--ink)">' + Ui.escapeHtml(ev.teamAName) + '</strong> vs <strong style="color:var(--ink)">' + Ui.escapeHtml(ev.teamBName) + '</strong></p></div>' +
-            '<div class="btn-row" style="margin-bottom:22px">' + actions + '</div>' + body;
+            '<div class="eyebrow">Kết quả &amp; Khiếu nại · Minh chứng</div>' +
+            '<div class="page-head"><h1>Minh chứng trận đấu</h1><p><strong class="text-ink">' + Ui.escapeHtml(ev.teamAName) + '</strong> vs <strong class="text-ink">' + Ui.escapeHtml(ev.teamBName) + '</strong></p></div>' +
+            '<div class="btn-row mb-4">' + actions + '</div>' + body;
 
         var flagForm = document.getElementById('flag-form');
         if (flagForm) {
@@ -92,8 +97,7 @@
         var root = document.getElementById('evidence-root');
         if (!matchId) { root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Thiếu mã trận</h3></div></div>'; return; }
 
-        var me = { isAuthenticated: false };
-        try { me = await Api.get('/api/dev-auth/me'); } catch (e) {}
+        var me = (await Ui.currentUser()) || { isAuthenticated: false };
 
         var canGoSubmit = false;
         if (me.isAuthenticated) {

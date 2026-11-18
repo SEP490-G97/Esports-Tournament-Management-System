@@ -40,6 +40,7 @@ public sealed class TournamentRegistrationsController : ApiControllerBase
         [FromForm] string lineupJson,
         [FromForm] bool saveAsDraft,
         [FromForm] bool acceptRulebook,
+        [FromForm] string? promotionLinkCode,
         [FromForm] decimal? declaredAmount,
         [FromForm] IFormFile? paymentProof,
         CancellationToken cancellationToken)
@@ -68,7 +69,8 @@ public sealed class TournamentRegistrationsController : ApiControllerBase
                 TeamId = teamId,
                 Lineup = lineup,
                 SaveAsDraft = saveAsDraft,
-                AcceptRulebook = acceptRulebook
+                AcceptRulebook = acceptRulebook,
+                PromotionLinkCode = promotionLinkCode
             },
             paymentProof,
             declaredAmount,
@@ -232,7 +234,7 @@ public sealed class TournamentRegistrationsController : ApiControllerBase
             registrationId, playerAccountId, credentialId, accountId, cancellationToken);
         if (!result.IsSuccess) return FromResult(result);
         var file = result.Data!;
-        return File(_fileStorage.OpenRead(file.RelativePath), "application/octet-stream", file.FileName);
+        return PrivateFile(_fileStorage, file.RelativePath, file.FileName);
     }
 
     [HttpGet("registrations/{registrationId:int}/payments/{paymentRecordId:int}/file")]
@@ -246,7 +248,7 @@ public sealed class TournamentRegistrationsController : ApiControllerBase
             registrationId, paymentRecordId, accountId, cancellationToken);
         if (!result.IsSuccess) return FromResult(result);
         var file = result.Data!;
-        return File(_fileStorage.OpenRead(file.RelativePath), "application/octet-stream", file.FileName);
+        return PrivateFile(_fileStorage, file.RelativePath, file.FileName);
     }
 
     private bool TryGetUserId(out int accountId)

@@ -9,22 +9,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
     <main class="container-etoms">
         <div class="tournament-registration-head">
             <div class="page-head">
-                <a class="back-link" href="/">← Danh sách giải đấu</a>
+                <a class="back-link" href="/tournament/index.html">← Danh sách giải đấu</a>
                 <div class="eyebrow mt-3">Đăng ký tham gia</div>
                 <h1 id="tournament-name">Đăng ký giải đấu</h1>
                 <p id="tournament-summary">Chọn đội hình, kiểm tra điều kiện và xác nhận thể lệ giải.</p>
             </div>
             <a class="btn btn-ghost" href="/registration/mine.html">Đơn của đội tôi</a>
-        </div>
-        <div class="dev-banner" role="note">
-            <strong>Lưu ý:</strong> chỉ đội trưởng đã xác minh email được nộp đơn. Giấy tờ định danh chỉ hiển thị trong màn hình xét duyệt của ban tổ chức giải.
         </div>
         <div id="registration-flash" aria-live="polite"></div>
         <section id="registration-panel" class="card-etoms registration-panel">
@@ -77,8 +74,8 @@
                             <h2>Biên lai lệ phí</h2>
                             <p class="field-hint" id="payment-proof-hint"></p>
                             <div class="payment-recipient"><strong>Thông tin nhận lệ phí</strong><span id="payment-bank-info"></span></div>
-                            <label for="payment-amount">Số tiền khai báo</label>
-                            <input id="payment-amount" class="input" type="number" min="0" step="0.01" />
+                            <label for="payment-amount">Lệ phí cần chuyển</label>
+                            <input id="payment-amount" class="input" type="text" readonly aria-describedby="payment-amount-hint" /><span id="payment-amount-hint" class="field-hint">Do Ban tổ chức đặt khi tạo giải; chuyển đúng số này rồi tải biên lai.</span>
                             <label for="payment-proof" class="mt-3">Ảnh/PDF biên lai <span id="payment-proof-required" class="req" hidden>*</span></label>
                             <input id="payment-proof" class="input" type="file" accept=".jpg,.jpeg,.png,.pdf" />
                             <span class="field-hint">JPG, PNG hoặc PDF; tối đa 10 MB.</span>
@@ -93,9 +90,10 @@
             </form>
         </section>
     </main>
-    <script src="/js/api.js"></script>
-    <script src="/js/ui.js"></script>
-    <script src="/js/layout.js"></script>
-    <script src="/js/pages/tournament-registration-register.js" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/tournament-registration-register.js?v=fee-20261117" defer></script>
 </body>
 </html>

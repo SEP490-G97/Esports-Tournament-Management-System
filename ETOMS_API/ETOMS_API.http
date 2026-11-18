@@ -4,3 +4,68 @@ GET {{ETOMS_API_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+@tournamentId = 1
+@teamId = 1
+@affiliateCode = ABC123
+@gameId = 1
+@season = 2026
+
+### Public tournament landing data
+GET {{ETOMS_API_HostAddress}}/api/marketing/tournaments/{{tournamentId}}
+Accept: application/json
+
+### Missing public tournament
+GET {{ETOMS_API_HostAddress}}/api/marketing/tournaments/999999
+Accept: application/json
+
+### Public share page with Open Graph metadata
+GET {{ETOMS_API_HostAddress}}/share/tournaments/{{tournamentId}}?ref={{affiliateCode}}
+
+### Record an affiliate visit
+POST {{ETOMS_API_HostAddress}}/api/marketing/affiliate-links/{{affiliateCode}}/visit
+
+### QR code for the tournament
+GET {{ETOMS_API_HostAddress}}/api/marketing/tournaments/{{tournamentId}}/qr.svg?code={{affiliateCode}}
+
+### Square promotional material
+GET {{ETOMS_API_HostAddress}}/api/marketing/tournaments/{{tournamentId}}/materials/square.svg?code={{affiliateCode}}
+
+### Leaderboard, optionally filtered by game and season
+GET {{ETOMS_API_HostAddress}}/api/rankings?gameId={{gameId}}&season={{season}}
+Accept: application/json
+
+### Available leaderboard seasons
+GET {{ETOMS_API_HostAddress}}/api/rankings/seasons?gameId={{gameId}}
+Accept: application/json
+
+### Public team ranking profile
+GET {{ETOMS_API_HostAddress}}/api/rankings/teams/{{teamId}}
+Accept: application/json
+
+### Missing public team profile
+GET {{ETOMS_API_HostAddress}}/api/rankings/teams/999999
+Accept: application/json
+
+### Organizer tournaments (requires a demo login session)
+GET {{ETOMS_API_HostAddress}}/api/marketing/mine/tournaments
+Accept: application/json
+
+### Organizer affiliate links (requires a demo login session)
+GET {{ETOMS_API_HostAddress}}/api/marketing/tournaments/{{tournamentId}}/affiliate-links
+Accept: application/json
+
+### Create an organizer affiliate link (requires a demo login session)
+POST {{ETOMS_API_HostAddress}}/api/marketing/tournaments/{{tournamentId}}/affiliate-links
+Content-Type: application/json
+
+{
+  "label": "Kênh cộng đồng"
+}
+
+### Organizer tournament report (requires a demo login session)
+GET {{ETOMS_API_HostAddress}}/api/reports/tournaments/{{tournamentId}}
+Accept: application/json
+
+### Organizer report workbook (requires a demo login session)
+GET {{ETOMS_API_HostAddress}}/api/reports/tournaments/{{tournamentId}}/excel

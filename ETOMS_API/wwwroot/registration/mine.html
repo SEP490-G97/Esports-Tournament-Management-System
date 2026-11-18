@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -20,9 +20,8 @@
                 <h1>Đơn đăng ký của đội tôi</h1>
                 <p>Theo dõi tiến độ xét duyệt, đội hình, xác nhận suất chờ và trạng thái lệ phí tại một nơi.</p>
             </div>
-            <a class="btn btn-primary" href="/">Tìm giải để đăng ký</a>
+            <a class="btn btn-primary" href="/tournament/index.html?state=REGISTRATION" data-hide-roles="ORGANIZER ADMIN">Tìm giải để đăng ký</a>
         </div>
-        <div class="dev-banner" role="note">Biên lai và giấy tờ là dữ liệu riêng tư. Không gửi thông tin thanh toán thật vào môi trường thử nghiệm.</div>
         <div id="registration-flash" aria-live="polite"></div>
         <section class="registration-mine-toolbar" aria-label="Tìm và lọc đơn đăng ký">
             <div id="registration-summary" class="registration-summary" aria-live="polite"></div>
@@ -47,9 +46,10 @@
             <div class="card-etoms"><div class="empty"><h3>Đang tải đơn đăng ký...</h3></div></div>
         </div>
     </main>
-    <script src="/js/api.js"></script>
-    <script src="/js/ui.js"></script>
-    <script src="/js/layout.js"></script>
-    <script src="/js/pages/tournament-registration-mine.js" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/tournament-registration-mine.js?v=fee-20261117" defer></script>
 </body>
 </html>

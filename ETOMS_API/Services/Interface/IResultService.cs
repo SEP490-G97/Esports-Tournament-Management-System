@@ -16,6 +16,10 @@ public interface IResultService
     // (SubmitReportAsync tự gọi), và lộ ra đây để có thể gọi lại thủ công (nối với RES-03 của Hải sau này).
     Task ReconcileAsync(int matchId);
 
+    // RES-03 (UC-29) — job nền đóng cửa sổ báo cáo quá hạn
+    Task<IReadOnlyList<int>> GetOverdueReportMatchIdsAsync(DateTime nowUtc, CancellationToken ct = default);
+    Task<bool> CloseReportWindowAsync(int matchId, DateTime nowUtc, CancellationToken ct = default);
+
     // RES-04 + RES-09 (UC-39)
     Task<MatchEvidenceDto?> GetEvidenceAsync(int matchId, int? viewerAccountId);
     Task<MatchAuditTrailDto?> GetAuditTrailAsync(int matchId);
@@ -37,4 +41,9 @@ public interface IResultService
     Task<Result> DecideAppealAsync(int disputeId, int adjudicatorAccountId, AppealDecisionRequest request);
 
     Task<bool> IsMatchCaptainAsync(int matchId, int accountId);
+    Task<int?> GetCaptainTeamIdAsync(int matchId, int accountId);
+
+    // Đẩy đội thắng lên vị trí vòng trên — dùng chung cho RES-02/07 và MAT-09/11/12 (walkover,
+    // disqualify, forfeit cũng là một cách trận kết thúc có người thắng).
+    Task AdvanceWinnerAsync(int matchId, int winnerTeamId);
 }

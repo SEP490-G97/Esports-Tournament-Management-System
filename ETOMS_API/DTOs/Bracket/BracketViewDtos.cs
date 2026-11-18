@@ -8,6 +8,8 @@ public class BracketViewDto
     public string FormatLabel { get; set; } = string.Empty;
     public string TournamentStatus { get; set; } = string.Empty;
     public bool IsLocked { get; set; }
+    // Người xem là Ban tổ chức của giải: hiện nút khóa/mở khóa và chế độ đổi chỗ đội.
+    public bool IsOrganizer { get; set; }
     // false: nhánh chưa khóa và người xem không phải Ban tổ chức (UC-20 E1), chỉ xem danh sách đội.
     public bool CanViewBracket { get; set; }
     public string? Notice { get; set; }
@@ -24,6 +26,8 @@ public class BracketStageViewDto
 {
     public int StageNo { get; set; }
     public string Label { get; set; } = string.Empty;
+    // Sơ đồ knockout dự kiến khi giải còn ở vòng bảng (chưa có node/trận thật, chỉ để xem).
+    public bool IsProjected { get; set; }
     public List<BracketRoundViewDto> Rounds { get; set; } = new();
     public List<BracketNodeViewDto> Nodes { get; set; } = new();
 }

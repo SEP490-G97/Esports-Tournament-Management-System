@@ -5,12 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ETOMS_API.Controllers;
 
 // API JSON cho module BRK (BRK-01,02,03,04,06) — song song với BracketController (MVC).
-// GetTree công khai (Guest xem được, giống BRK-10 bản MVC). Generate/Lock chỉ organizer.
-//
-// KHÔNG đưa PickWinner (BracketController.PickWinner, MVC) lên API: đó chỉ là cầu nối tạm
-// để demo BRK trong lúc module kết quả chưa code — theo LI-01, tỉ số CHỈ được vào hệ thống
-// qua MatchReport (hai báo cáo mù độc lập) hoặc phán quyết VAR trong Dispute. Cầu nối này sẽ
-// bị xóa khi có module đó, nên không công bố thành endpoint chính thức.
+// GetTree công khai, Generate/Lock chỉ organizer. Không đưa PickWinner (MVC) lên API —
+// cầu nối tạm theo LI-01, xóa khi có module kết quả thật.
 [Route("api/tournaments/{tournamentId:int}/bracket")]
 public class BracketsApiController : ApiControllerBase
 {
@@ -55,6 +51,23 @@ public class BracketsApiController : ApiControllerBase
     {
         if (!_currentUser.IsAuthenticated) return Unauthorized();
         return FromResult(await _bracketService.LockBracketAsync(tournamentId, _currentUser.UserId!.Value));
+    }
+
+    // POST /api/tournaments/{tournamentId}/bracket/unlock — mở khóa khi chưa có trận nào bắt đầu.
+    [HttpPost("unlock")]
+    public async Task<IActionResult> Unlock(int tournamentId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _bracketService.UnlockBracketAsync(tournamentId, _currentUser.UserId!.Value));
+    }
+
+    // POST /api/tournaments/{tournamentId}/bracket/swap — đổi chỗ 2 đội (kéo thả trên sơ đồ).
+    [HttpPost("swap")]
+    public async Task<IActionResult> Swap(int tournamentId, [FromBody] SwapTeamsRequest model)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        return FromResult(await _bracketService.SwapTeamsAsync(tournamentId, model.TeamAId, model.TeamBId, _currentUser.UserId!.Value));
     }
 
     // GET /api/tournaments/{tournamentId}/bracket/tiebreaker — BRK-07, công khai (hiện cho mọi người xem).

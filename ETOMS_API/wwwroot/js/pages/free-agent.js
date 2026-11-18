@@ -1,146 +1,245 @@
 ﻿(function () {
-    // 1. Tải danh sách Đội tuyển & Game từ DB để đổ vào Dropdown
-    async function loadSelectOptions() {
-        try {
-            // Nạp Đội tuyển
-            var teamsRes = await Api.get('/api/Team/my-teams').catch(() => ({ data: [] }));
-            var teams = teamsRes.data || teamsRes || [];
-            var teamSelect = document.getElementById('lfpTeamId');
-            if (teamSelect) {
-                if (teams.length > 0) {
-                    teamSelect.innerHTML = teams.map(t => `<option value="${t.teamId}">${Ui.escapeHtml(t.name)} [${Ui.escapeHtml(t.tag)}]</option>`).join('');
-                } else {
-                    teamSelect.innerHTML = '<option value="1">Đội mặc định (ID: 1)</option>';
-                }
-            }
+    var flash = function () { return document.getElementById('flash'); };
+    var me = null;
 
-            // Nạp Tựa game
-            var gamesRes = await Api.get('/api/Game').catch(() => ({ data: [] }));
-            var games = gamesRes.data || gamesRes || [];
-            var gameSelect = document.getElementById('lftGameId');
-            if (gameSelect) {
-                if (games.length > 0) {
-                    gameSelect.innerHTML = games.map(g => `<option value="${g.gameId}">${Ui.escapeHtml(g.title)}</option>`).join('');
-                } else {
-                    gameSelect.innerHTML = '<option value="1">Game mặc định (ID: 1)</option>';
-                }
+    function showError(message) {
+        Ui.showAlert(flash(), 'danger', message);
+        flash().scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    // Không có lựa chọn hợp lệ thì khóa form và ghi rõ lý do, KHÔNG điền giá trị giả.
+    function lockForm(selectId, message, linkHtml) {
+        var select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">' + Ui.escapeHtml(message) + '</option>';
+        select.disabled = true;
+        var form = select.closest('form');
+        form.querySelectorAll('input, textarea, button[type="submit"]').forEach(function (el) { el.disabled = true; });
+        if (linkHtml) select.insertAdjacentHTML('afterend', '<div class="hint mt-1">' + linkHtml + '</div>');
+    }
+
+    // Đội mình làm đội trưởng (theo tựa game) — để hiện nút "Mời vào đội" trên tin tìm đội cùng game.
+    var captainTeamByGame = {};
+    // Đội mình đã nộp đơn ứng tuyển và đang chờ — tin của đội đó hiện "Đã ứng tuyển" thay cho nút.
+    var appliedTeamIds = {};
+
+    async function loadMyApplications() {
+        if (!me || me.role !== 'PLAYER') return;
+        try {
+            (await Api.get('/api/Recruitment/my-applications') || []).forEach(function (a) { appliedTeamIds[a.teamId] = true; });
+        } catch (e) { /* không tải được thì vẫn hiện nút; máy chủ chặn nộp trùng */ }
+    }
+
+    async function loadSelectOptions() {
+        // LFP: chỉ đội mình làm ĐỘI TRƯỞNG mới được đăng tin tuyển (FA-01).
+        try {
+            var teams = (await Api.get('/api/teams/my-teams')).filter(function (t) { return t.isCaptain; });
+            teams.forEach(function (t) { if (t.gameId) captainTeamByGame[t.gameId] = t; });
+            if (teams.length > 0) {
+                document.getElementById('lfpTeamId').innerHTML = '<option value="">-- Chọn đội --</option>' + teams.map(function (t) {
+                    return '<option value="' + t.teamId + '">' + Ui.escapeHtml(t.name) + ' [' + Ui.escapeHtml(t.tag) + '] · ' + Ui.escapeHtml(t.gameTitle) + '</option>';
+                }).join('');
+            } else {
+                lockForm('lfpTeamId', 'Bạn chưa là đội trưởng đội nào',
+                    'Chỉ đội trưởng được đăng tin tuyển. <a href="/team/create.html">Tạo đội mới</a> · <a href="/team/mine.html">Các đội của tôi</a>');
             }
         } catch (e) {
-            console.warn('Lỗi nạp danh sách dropdown:', e);
+            lockForm('lfpTeamId', 'Không tải được danh sách đội', Ui.escapeHtml(e.message || ''));
+        }
+
+        try {
+            var games = await Api.get('/api/teams/games');
+            if (Array.isArray(games) && games.length > 0) {
+                document.getElementById('lftGameId').innerHTML = '<option value="">-- Chọn tựa game --</option>' + games.map(function (g) {
+                    return '<option value="' + g.gameId + '">' + Ui.escapeHtml(g.title) + '</option>';
+                }).join('');
+            } else {
+                lockForm('lftGameId', 'Chưa có tựa game nào đang mở');
+            }
+        } catch (e) {
+            lockForm('lftGameId', 'Không tải được danh sách game', Ui.escapeHtml(e.message || ''));
         }
     }
 
-    // 2. Tải bảng tin hiển thị Tên Đội & Tên Game thật
-    async function loadBoard() {
-        var container = document.getElementById('boardContainer');
-        var type = document.getElementById('filterType').value;
-        container.innerHTML = '<div class="empty"><h3>Đang tải dữ liệu từ cơ sở dữ liệu...</h3></div>';
+    function formatDate(value) {
+        if (!value) return '';
+        var d = new Date(/Z$/.test(value) ? value : value + 'Z');
+        return isNaN(d.getTime()) ? '' : d.toLocaleDateString('vi-VN');
+    }
 
+    // Bảng tin theo loại (LFP / LFT), mỗi loại một khung riêng.
+    async function loadBoard(type) {
+        var container = document.getElementById(type === 'LFP' ? 'board-lfp' : 'board-lft');
+        container.innerHTML = '<div class="empty"><h3>Đang tải bảng tin...</h3></div>';
         try {
-            var res = await Api.get('/api/Recruitment/board?PostType=' + type + '&PageIndex=1&PageSize=10');
+            var res = await Api.get('/api/Recruitment/board?PostType=' + type + '&PageIndex=1&PageSize=20');
             var items = res.data || [];
-
-            if (items.length === 0) {
-                container.innerHTML = '<div class="empty"><h3>Không có tin đăng nào</h3><p>Hiện chưa có bản ghi phù hợp với bộ lọc.</p></div>';
+            if (!items.length) {
+                container.innerHTML = '<div class="empty"><h3>Chưa có tin đăng nào</h3><p>' +
+                    (type === 'LFP' ? 'Chưa đội nào đang tuyển thành viên.' : 'Chưa tuyển thủ nào đăng tin tìm đội.') + '</p></div>';
                 return;
             }
-
-            var html = '<div style="display: grid; gap: 14px;">';
-            items.forEach(function (item) {
-                var badgeClass = item.postType === 'LFP' ? 'badge-active' : 'badge-gold';
-                var targetInfo = item.teamName
-                    ? `🛡️ Đội tuyển: <b>${Ui.escapeHtml(item.teamName)}</b>`
-                    : `🎮 Tựa game: <b>${Ui.escapeHtml(item.gameTitle || 'Chung')}</b>`;
-
-                html += '<div style="background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">';
-                html += '<div style="flex: 1; min-width: 260px;">';
-                html += '<div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">';
-                html += '<span class="badge ' + badgeClass + '">' + Ui.escapeHtml(item.postType) + '</span>';
-                html += '<span style="font-size: 0.82rem; color: var(--cyan);">' + targetInfo + '</span>';
-                html += '</div>';
-                html += '<h4 style="color: var(--ink); margin: 4px 0; font-size: 1.1rem; font-weight: 700;">' + Ui.escapeHtml(item.title) + '</h4>';
-                html += '<p style="color: var(--muted); font-size: 0.9rem; margin: 6px 0; white-space: pre-line;">' + Ui.escapeHtml(item.content) + '</p>';
-                html += '<small style="color: var(--muted-2); font-size: 0.8rem;">✍️ Tác giả: ' + Ui.escapeHtml(item.authorName) + '</small>';
-                html += '</div>';
-
-                if (item.postType === 'LFP') {
-                    html += '<button onclick="applyPost(' + item.postId + ')" class="btn btn-primary" style="padding: 9px 16px; font-size: 0.85rem;">Ứng tuyển ngay</button>';
-                }
-                html += '</div>';
+            var canApply = me && me.role === 'PLAYER';
+            container.innerHTML = items.map(function (item) {
+                var target = item.teamName
+                    ? 'Đội: <b>' + Ui.escapeHtml(item.teamName) + (item.teamTag ? ' [' + Ui.escapeHtml(item.teamTag) + ']' : '') + '</b> · ' + Ui.escapeHtml(item.gameTitle || '')
+                    : 'Tựa game: <b>' + Ui.escapeHtml(item.gameTitle || 'Chung') + '</b>';
+                return '<article class="fa-post"><div style="flex:1;min-width:240px">' +
+                    '<span class="badge ' + (type === 'LFP' ? 'badge-active' : 'badge-gold') + '">' + type + '</span> ' +
+                    '<span class="hint">' + target + '</span>' +
+                    '<h4>' + Ui.escapeHtml(item.title) + '</h4>' +
+                    '<p>' + Ui.escapeHtml(item.content) + '</p>' +
+                    '<small>Người đăng: ' + Ui.escapeHtml(item.authorName) + (formatDate(item.createdAt) ? ' · ' + formatDate(item.createdAt) : '') + '</small>' +
+                    '</div>' +
+                    actionHtml(type, item, canApply) +
+                    '</article>';
+            }).join('');
+            container.querySelectorAll('[data-apply]').forEach(function (btn) {
+                btn.addEventListener('click', function () { applyPost(Number(btn.dataset.apply), btn); });
             });
-            html += '</div>';
-            container.innerHTML = html;
+            container.querySelectorAll('[data-invite]').forEach(function (btn) {
+                btn.addEventListener('click', function () { invitePlayer(btn); });
+            });
         } catch (err) {
-            container.innerHTML = '<div class="empty"><h3 style="color: var(--danger);">Lỗi tải dữ liệu</h3><p>' + Ui.escapeHtml(err.message) + '</p></div>';
+            container.innerHTML = '<div class="empty"><h3>Không tải được bảng tin</h3><p>' + Ui.escapeHtml(err.message) + '</p></div>';
         }
     }
 
-    // 3. Ứng tuyển
-    window.applyPost = async function (postId) {
-        var msg = prompt('Nhập lời nhắn gửi đến Đội trưởng:');
-        if (msg === null) return;
-
-        try {
-            await Api.post('/api/Recruitment/apply', { postId: postId, message: msg });
-            alert('Nộp đơn ứng tuyển thành công! Hệ thống đang chờ Đội trưởng phê duyệt.');
-        } catch (err) {
-            alert('Lỗi: ' + err.message);
+    function actionHtml(type, item, canApply) {
+        if (!me || Number(item.authorAccountId) === Number(me.userId)) return '';
+        if (type === 'LFP' && canApply) {
+            return appliedTeamIds[item.teamId]
+                ? '<span class="badge badge-soft">Đã ứng tuyển · chờ duyệt</span>'
+                : '<button type="button" class="btn btn-primary" data-apply="' + Number(item.postId) + '">Ứng tuyển</button>';
         }
-    };
+        // Tin tìm đội (LFT): đội trưởng của đội cùng tựa game mời thẳng tuyển thủ (FA — mời tuyển thủ tự do).
+        var team = type === 'LFT' && captainTeamByGame[item.gameId];
+        if (team) {
+            return '<button type="button" class="btn btn-primary" data-invite="' + Number(item.authorAccountId) + '" data-team="' + Number(team.teamId) +
+                '" data-team-name="' + Ui.escapeHtml(team.name) + '" data-player="' + Ui.escapeHtml(item.authorName) + '">Mời vào đội</button>';
+        }
+        return '';
+    }
 
-    // Khởi chạy khi DOM đã sẵn sàng
+    async function invitePlayer(button) {
+        var ok = await window.etomsConfirm('Mời ' + button.dataset.player + ' vào đội ' + button.dataset.teamName + '? Người được mời sẽ nhận thông báo và tự chấp nhận hoặc từ chối.',
+            { title: 'Mời vào đội', okText: 'Gửi lời mời' });
+        if (!ok) return;
+        button.disabled = true;
+        try {
+            var res = await Api.post('/api/Recruitment/invite', { teamId: Number(button.dataset.team), playerAccountId: Number(button.dataset.invite) });
+            Ui.showAlert(flash(), 'success', res.message || 'Đã gửi lời mời.');
+            button.outerHTML = '<span class="badge badge-soft">Đã mời · chờ trả lời</span>';
+        } catch (err) {
+            showError(err.message || 'Không gửi được lời mời.');
+            button.disabled = false;
+        }
+    }
+
+    // FA-04: ứng tuyển theo tin LFP — lời nhắn không bắt buộc, tối đa 500 ký tự (khớp máy chủ).
+    async function applyPost(postId, button) {
+        var message = await window.etomsPrompt('Lời nhắn gửi đội trưởng (không bắt buộc):', {
+            title: 'Ứng tuyển vào đội', required: false, maxLength: 500, okText: 'Gửi đơn',
+            placeholder: 'Giới thiệu ngắn về bạn, vị trí, thời gian có thể luyện tập...'
+        });
+        if (message === null) return;
+        button.disabled = true;
+        try {
+            await Api.post('/api/Recruitment/apply', { postId: postId, message: message });
+            Ui.showAlert(flash(), 'success', 'Đã nộp đơn ứng tuyển. Đơn đang chờ đội trưởng duyệt.');
+            button.outerHTML = '<span class="badge badge-soft">Đã ứng tuyển · chờ duyệt</span>';
+        } catch (err) {
+            showError(err.message || 'Không nộp được đơn ứng tuyển.');
+            button.disabled = false;
+        }
+    }
+
+    // Kiểm tra phía trình duyệt — cùng luật với DataAnnotations của CreateLFPPostDto / CreateLFTPostDto.
+    function validatePost(form, fields) {
+        var errors = {};
+        fields.forEach(function (f) {
+            var el = document.getElementById(f.id);
+            var value = (el.value || '').trim();
+            if (f.select) { if (!value) errors[f.key] = f.required; return; }
+            if (f.required && !value) errors[f.key] = f.required;
+            else if (f.min && value && value.length < f.min) errors[f.key] = f.label + ' phải từ ' + f.min + ' đến ' + f.max + ' ký tự.';
+            else if (value.length > f.max) errors[f.key] = f.label + ' tối đa ' + f.max + ' ký tự.';
+        });
+        Ui.clearFieldErrors(form);
+        Ui.applyFieldErrors(form, errors);
+        return Object.keys(errors).length === 0;
+    }
+
+    function wirePostForm(formId, url, fields, buildPayload, successText, tab) {
+        var form = document.getElementById(formId);
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            Ui.clearAlert(flash());
+            if (!validatePost(form, fields)) return;
+            var submit = form.querySelector('button[type="submit"]');
+            submit.disabled = true;
+            try {
+                await Api.post(url, buildPayload());
+                form.reset();
+                Ui.showAlert(flash(), 'success', successText);
+                await loadBoard(tab);
+            } catch (err) {
+                Ui.applyFieldErrors(form, err.fieldErrors);
+                showError(err.message || 'Không đăng được tin.');
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    }
+
+    function switchTab(type) {
+        document.querySelectorAll('.fa-tabs [data-tab]').forEach(function (b) {
+            b.setAttribute('aria-selected', b.dataset.tab === type ? 'true' : 'false');
+            b.setAttribute('aria-pressed', b.dataset.tab === type ? 'true' : 'false');
+        });
+        document.getElementById('panel-lfp').hidden = type !== 'LFP';
+        document.getElementById('panel-lft').hidden = type !== 'LFT';
+        try { history.replaceState(null, '', '#' + type.toLowerCase()); } catch (e) { }
+    }
+
     document.addEventListener('DOMContentLoaded', async function () {
-        var user = await Ui.requireAuth();
-        if (!user) return;
+        me = await Ui.requireAuth(['PLAYER']);   // BTC/Admin không có đội nên không dùng Tìm đội
+        if (!me) return;
+        Ui.consumeFlash(flash());
 
-        Ui.consumeFlash(document.getElementById('flash'));
-        await loadSelectOptions();
-        await loadBoard();
+        document.querySelectorAll('.fa-tabs [data-tab]').forEach(function (b) {
+            b.addEventListener('click', function () { switchTab(b.dataset.tab); });
+        });
+        switchTab(location.hash === '#lft' ? 'LFT' : 'LFP');
 
-        // Submit Form LFP
-        var lfpForm = document.getElementById('lfpForm');
-        lfpForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            Ui.clearFieldErrors(lfpForm);
-
-            var payload = {
+        wirePostForm('lfpForm', '/api/Recruitment/lfp', [
+            { id: 'lfpTeamId', key: 'TeamId', select: true, required: 'Vui lòng chọn đội tuyển.' },
+            { id: 'lfpRequiredRole', key: 'RequiredRole', label: 'Vị trí cần tuyển', required: 'Vui lòng nhập vị trí cần tuyển.', min: 2, max: 50 },
+            { id: 'lfpRequiredRank', key: 'RequiredRank', label: 'Rank yêu cầu', required: 'Vui lòng nhập rank yêu cầu.', max: 50 },
+            { id: 'lfpDescription', key: 'Description', label: 'Mô tả', max: 1000 }
+        ], function () {
+            return {
                 teamId: parseInt(document.getElementById('lfpTeamId').value, 10),
-                requiredRole: document.getElementById('lfpRequiredRole').value,
-                requiredRank: document.getElementById('lfpRequiredRank').value,
-                description: document.getElementById('lfpDescription').value
+                requiredRole: document.getElementById('lfpRequiredRole').value.trim(),
+                requiredRank: document.getElementById('lfpRequiredRank').value.trim(),
+                description: document.getElementById('lfpDescription').value.trim()
             };
+        }, 'Đã đăng tin tuyển thành viên.', 'LFP');
 
-            try {
-                await Api.post('/api/Recruitment/lfp', payload);
-                Ui.setFlash('Đăng tin tuyển thành viên (LFP) thành công!', 'success');
-                location.reload();
-            } catch (err) {
-                Ui.applyFieldErrors(lfpForm, err.fieldErrors);
-                alert(err.message || 'Có lỗi xảy ra.');
-            }
-        });
-
-        // Submit Form LFT
-        var lftForm = document.getElementById('lftForm');
-        lftForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            Ui.clearFieldErrors(lftForm);
-
-            var payload = {
+        wirePostForm('lftForm', '/api/Recruitment/lft', [
+            { id: 'lftGameId', key: 'GameId', select: true, required: 'Vui lòng chọn tựa game.' },
+            { id: 'lftPreferredRole', key: 'PreferredRole', label: 'Vị trí sở trường', required: 'Vui lòng nhập vị trí sở trường.', min: 2, max: 50 },
+            { id: 'lftCurrentRank', key: 'CurrentRank', label: 'Rank hiện tại', required: 'Vui lòng nhập rank hiện tại.', max: 50 },
+            { id: 'lftDescription', key: 'Description', label: 'Mô tả', max: 1000 }
+        ], function () {
+            return {
                 gameId: parseInt(document.getElementById('lftGameId').value, 10),
-                preferredRole: document.getElementById('lftPreferredRole').value,
-                currentRank: document.getElementById('lftCurrentRank').value,
-                description: document.getElementById('lftDescription').value
+                preferredRole: document.getElementById('lftPreferredRole').value.trim(),
+                currentRank: document.getElementById('lftCurrentRank').value.trim(),
+                description: document.getElementById('lftDescription').value.trim()
             };
+        }, 'Đã đăng tin tìm đội.', 'LFT');
 
-            try {
-                await Api.post('/api/Recruitment/lft', payload);
-                Ui.setFlash('Đăng tin tìm đội (LFT) thành công!', 'success');
-                location.reload();
-            } catch (err) {
-                Ui.applyFieldErrors(lftForm, err.fieldErrors);
-                alert(err.message || 'Có lỗi xảy ra.');
-            }
-        });
+        if (me.role === 'PLAYER') await Promise.all([loadSelectOptions(), loadMyApplications()]);
+        await Promise.all([loadBoard('LFP'), loadBoard('LFT')]);
     });
 })();

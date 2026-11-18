@@ -22,6 +22,17 @@ public partial class EtomsDbContext
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
+        // MySql.EntityFrameworkCore (provider Oracle chính thức) đọc cột DATE ra DateTime ở tầng
+        // thấp, không tự chuyển được sang DateOnly như Pomelo — thiếu dòng này thì bất kỳ tài khoản
+        // nào có DateOfBirth khác NULL sẽ làm /auth/login và /auth/register crash 500
+        // (InvalidCastException: DateTime -> DateOnly) ngay khi EF đọc lại dòng Account đó.
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.Property(e => e.DateOfBirth).HasConversion(
+                d => d.HasValue ? d.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                d => d.HasValue ? DateOnly.FromDateTime(d.Value) : (DateOnly?)null);
+        });
+
         modelBuilder.Entity<GameRuleset>(entity =>
         {
             entity.ToTable("GameRuleset");

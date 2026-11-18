@@ -9,23 +9,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
     <main class="container-etoms">
         <div class="registration-review-head">
             <div class="page-head">
-                <a class="back-link" href="/registration/index.html">← Trung tâm đăng ký</a>
+                <div><a class="back-link" href="/registration/organizer.html">← Giải của tôi</a></div>
                 <div class="eyebrow mt-3">Không gian ban tổ chức</div>
                 <h1 id="tournament-name">Xét duyệt đăng ký</h1>
                 <p>Ưu tiên xử lý đơn đang chờ, kiểm tra hồ sơ và theo dõi suất còn lại.</p>
             </div>
-            <a class="btn btn-ghost" href="/">Trang chủ</a>
         </div>
-        <div class="dev-banner" role="note">Chỉ người tạo giải được phép thao tác. Tài liệu định danh chỉ hiển thị trong phạm vi đơn đăng ký của giải đó.</div>
         <div id="registration-flash" aria-live="polite"></div>
-        <section class="card-etoms registration-review-toolbar mb-4" aria-label="Tình trạng và bộ lọc đơn">
+        <section id="review-toolbar" class="card-etoms registration-review-toolbar mb-4" aria-label="Tình trạng và bộ lọc đơn">
             <div id="registration-capacity" class="registration-capacity"></div>
             <div class="registration-field-grid mt-3">
                 <div class="field">
@@ -46,7 +44,7 @@
                 </div>
             </div>
         </section>
-        <section class="registration-review-list">
+        <section id="review-list-section" class="registration-review-list">
             <div class="registration-review-list-heading">
                 <div><span class="profile-overline">Hàng đợi xét duyệt</span><h2>Đơn đăng ký</h2></div>
                 <span class="field-hint">Mở từng hồ sơ để xem chi tiết và thao tác.</span>
@@ -55,22 +53,14 @@
                 <div class="card-etoms"><div class="empty"><h3>Đang tải đơn...</h3></div></div>
             </div>
         </section>
-        <details class="registration-tiebreaker-settings">
-            <summary><span><strong>Cấu hình tie-breaker</strong><small>Thứ tự xử lý khi các đội bằng điểm</small></span></summary>
-            <div class="registration-tiebreaker-body">
-                <p class="field-hint">Ưu tiên tiêu chí đứng trước khi các đội bằng điểm. Không thể thay đổi sau khi khóa nhánh.</p>
-                <ol id="tie-breaker-list" class="feature-list"></ol>
-                <button id="save-tie-breakers" class="btn btn-primary" type="button">Lưu thứ tự</button>
-            </div>
-        </details>
     </main>
-    <script src="/js/api.js"></script>
-    <script src="/js/ui.js"></script>
-    <script src="/js/layout.js"></script>
-    <script src="/js/pages/tournament-registration-review.js" defer></script>
-    <script src="/js/pages/tournament-registration-review-decisions.js" defer></script>
-    <script src="/js/pages/tournament-registration-review-payments.js" defer></script>
-    <script src="/js/pages/tournament-registration-review-waitlist.js" defer></script>
-    <script src="/js/pages/tournament-registration-review-tiebreakers.js" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/tournament-registration-review.js?v=poll-20261117" defer></script>
+    <script src="/js/pages/tournament-registration-review-decisions.js?v=fix9-20261117" defer></script>
+    <script src="/js/pages/tournament-registration-review-payments.js?v=fix9-20261117" defer></script>
+    <script src="/js/pages/tournament-registration-review-waitlist.js?v=fix9-20261117" defer></script>
 </body>
 </html>

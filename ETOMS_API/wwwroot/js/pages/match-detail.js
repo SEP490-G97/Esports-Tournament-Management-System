@@ -1,4 +1,4 @@
-﻿// Trang chi tiết trận đấu (khách xem được; đăng nhập thì có thêm nút thao tác theo role).
+// Trang chi tiết trận đấu (khách xem được; đăng nhập thì có thêm nút thao tác theo role).
 (function () {
     'use strict';
 

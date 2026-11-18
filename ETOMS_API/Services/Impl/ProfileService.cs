@@ -12,13 +12,65 @@ public sealed class ProfileService : IProfileService
     private const string InGameNameType = "IN_GAME_NAME";
     private const string IdentityDocumentType = "IDENTITY_DOCUMENT";
 
+    // Ảnh đại diện là ảnh công khai (hiện trên hồ sơ công khai) nên lưu trong wwwroot, không phải kho riêng tư.
+    private const string AvatarUrlPrefix = "/uploads/avatars/";
+    private const long MaxAvatarBytes = 2 * 1024 * 1024;
+    private const int MinAvatarSide = 64, MaxAvatarSide = 4096;
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly PrivateFileStorage _fileStorage;
+    private readonly string _avatarDirectory;
 
-    public ProfileService(IUnitOfWork unitOfWork, PrivateFileStorage fileStorage)
+    public ProfileService(IUnitOfWork unitOfWork, PrivateFileStorage fileStorage, IWebHostEnvironment environment)
     {
         _unitOfWork = unitOfWork;
         _fileStorage = fileStorage;
+        _avatarDirectory = Path.Combine(environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"), "uploads", "avatars");
+    }
+
+    private static bool IsHttpUrl(string value)
+        => Uri.TryCreate(value, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
+    // PRF-01: ảnh đại diện tải từ máy (JPG/PNG, <= 2 MB, 64..4096 px mỗi chiều).
+    public async Task<Result<ProfileResponse>> UploadAvatarAsync(int accountId, IFormFile? file, CancellationToken cancellationToken)
+    {
+        var account = await FindAccountAsync(accountId, cancellationToken);
+        if (account is null)
+            return Result.Failure<ProfileResponse>("Không tìm thấy tài khoản.", StatusCodes.Status404NotFound);
+        if (file is null || file.Length == 0)
+            return Result<ProfileResponse>.FieldFailure("AvatarFile", "Vui lòng chọn ảnh.");
+        if (file.Length > MaxAvatarBytes)
+            return Result<ProfileResponse>.FieldFailure("AvatarFile", "Ảnh tối đa 2 MB.");
+
+        ImageHeader.Info? info;
+        await using (var check = file.OpenReadStream()) info = ImageHeader.Read(check);
+        if (info is null)
+            return Result<ProfileResponse>.FieldFailure("AvatarFile", "Tệp không phải ảnh JPG hoặc PNG hợp lệ.");
+        if (info.Width < MinAvatarSide || info.Height < MinAvatarSide || info.Width > MaxAvatarSide || info.Height > MaxAvatarSide)
+            return Result<ProfileResponse>.FieldFailure("AvatarFile",
+                $"Kích thước ảnh phải từ {MinAvatarSide}×{MinAvatarSide} đến {MaxAvatarSide}×{MaxAvatarSide} px (ảnh của bạn {info.Width}×{info.Height} px).");
+
+        Directory.CreateDirectory(_avatarDirectory);
+        var fileName = $"{accountId}-{Guid.NewGuid():N}{info.Extension}";
+        await using (var target = new FileStream(Path.Combine(_avatarDirectory, fileName), FileMode.CreateNew, FileAccess.Write))
+            await file.CopyToAsync(target, cancellationToken);
+
+        var previous = account.AvatarUrl;
+        account.AvatarUrl = AvatarUrlPrefix + fileName;
+        _unitOfWork.Repository<Account>().Update(account);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        DeleteUploadedAvatar(previous);
+
+        return Result.Success(ToProfileResponse(account), "Đã cập nhật ảnh đại diện.");
+    }
+
+    // Chỉ xóa ảnh do chính hệ thống lưu (không đụng link ngoài), và chỉ trong thư mục avatars.
+    private void DeleteUploadedAvatar(string? url)
+    {
+        if (url is null || !url.StartsWith(AvatarUrlPrefix, StringComparison.Ordinal)) return;
+        var name = Path.GetFileName(url[AvatarUrlPrefix.Length..]);
+        var path = Path.Combine(_avatarDirectory, name);
+        try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { /* ảnh cũ còn bị giữ — bỏ qua */ }
     }
 
 
@@ -58,19 +110,54 @@ public sealed class ProfileService : IProfileService
             return Result.Failure<ProfileResponse>("Không tìm thấy tài khoản.", StatusCodes.Status404NotFound);
         }
 
-        var fullName = request.FullName.Trim();
-        if (fullName.Length == 0)
+        var fullName = (request.FullName ?? "").Trim();
+        if (fullName.Length is < 2 or > 100)
         {
-            return Result<ProfileResponse>.FieldFailure(nameof(request.FullName), "Họ tên không được để trống.");
+            return Result<ProfileResponse>.FieldFailure(nameof(request.FullName), "Tên hiển thị phải từ 2 đến 100 ký tự.");
         }
 
+        // Ảnh đại diện: ảnh đã tải lên của hệ thống, hoặc liên kết http(s) đầy đủ — trước đây nhận cả "hhh".
+        var avatar = NormalizeOptional(request.AvatarUrl);
+        if (avatar is not null && !avatar.StartsWith(AvatarUrlPrefix, StringComparison.Ordinal) && !IsHttpUrl(avatar))
+        {
+            return Result<ProfileResponse>.FieldFailure(nameof(request.AvatarUrl),
+                "Ảnh đại diện phải là liên kết bắt đầu bằng http:// hoặc https://, hoặc chọn ảnh từ máy.");
+        }
+
+        if (request.DateOfBirth is DateOnly dob)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var age = today.Year - dob.Year - (dob.AddYears(today.Year - dob.Year) > today ? 1 : 0);
+            if (dob > today)
+                return Result<ProfileResponse>.FieldFailure(nameof(request.DateOfBirth), "Ngày sinh không được ở tương lai.");
+            if (dob.Year < 1900)
+                return Result<ProfileResponse>.FieldFailure(nameof(request.DateOfBirth), "Ngày sinh không hợp lệ.");
+            if (age < 18)
+                return Result<ProfileResponse>.FieldFailure(nameof(request.DateOfBirth), "Bạn phải đủ 18 tuổi (cùng quy định với lúc đăng ký).");
+        }
+
+        var social = NormalizeOptional(request.SocialLinks);
+        if (social is not null)
+        {
+            var lines = social.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (lines.Length > 10)
+                return Result<ProfileResponse>.FieldFailure(nameof(request.SocialLinks), "Tối đa 10 liên kết mạng xã hội.");
+            var bad = lines.FirstOrDefault(line => !IsHttpUrl(line));
+            if (bad is not null)
+                return Result<ProfileResponse>.FieldFailure(nameof(request.SocialLinks),
+                    $"Liên kết \"{(bad.Length > 40 ? bad[..40] + "…" : bad)}\" không hợp lệ — mỗi dòng phải bắt đầu bằng http:// hoặc https://.");
+            social = string.Join("\n", lines);
+        }
+
+        var previousAvatar = account.AvatarUrl;
         account.FullName = fullName;
-        account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
+        account.AvatarUrl = avatar;
         account.DateOfBirth = request.DateOfBirth;
         account.Phone = NormalizeOptional(request.Phone);
-        account.SocialLinks = NormalizeOptional(request.SocialLinks);
+        account.SocialLinks = social;
         _unitOfWork.Repository<Account>().Update(account);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        if (previousAvatar != avatar) DeleteUploadedAvatar(previousAvatar);
 
         return Result.Success(ToProfileResponse(account), "Cập nhật hồ sơ thành công.");
     }
@@ -101,10 +188,10 @@ public sealed class ProfileService : IProfileService
             return Result<CredentialResponse>.FieldFailure(nameof(gameId), "Tựa game hiện không hoạt động.");
         }
 
-        var normalizedName = inGameName.Trim();
-        if (normalizedName.Length == 0)
+        var normalizedName = (inGameName ?? "").Trim();
+        if (normalizedName.Length is < 2 or > 150)
         {
-            return Result<CredentialResponse>.FieldFailure(nameof(inGameName), "Tên trong game không được để trống.");
+            return Result<CredentialResponse>.FieldFailure("InGameName", "Tên trong game phải từ 2 đến 150 ký tự.");
         }
 
         var repository = _unitOfWork.Repository<PlayerCredential>();

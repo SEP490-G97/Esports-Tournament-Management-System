@@ -155,6 +155,12 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 "Tài khoản phải hoạt động và xác minh email trước khi đăng ký giải.",
                 StatusCodes.Status403Forbidden);
         }
+        // PermissionMatrix REG-01: chỉ đội trưởng (tài khoản tuyển thủ) nộp đơn — BTC/Admin không thi đấu.
+        if (account.Role != "PLAYER")
+        {
+            return Result.Failure<RegistrationResponse>(
+                "Chỉ đội trưởng (tài khoản tuyển thủ) được đăng ký giải.", StatusCodes.Status403Forbidden);
+        }
 
         var tournament = await Query<Tournament>().Include(item => item.Game)
             .FirstOrDefaultAsync(item => item.TournamentId == tournamentId, cancellationToken);
@@ -187,6 +193,37 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         if (team.GameId != tournament.GameId)
         {
             return Result<RegistrationResponse>.FieldFailure(nameof(request.TeamId), "Đội và giải phải thuộc cùng một tựa game.");
+        }
+        // Đội phải đủ người thi đấu theo luật giải ngay từ đầu — kể cả khi chỉ lưu nháp.
+        var activeMembers = await Query<TeamMember>()
+            .CountAsync(item => item.TeamId == team.TeamId && item.Status == "ACTIVE", cancellationToken);
+        if (activeMembers < tournament.StarterCount)
+        {
+            return Result<RegistrationResponse>.FieldFailure(
+                nameof(request.TeamId),
+                $"Đội cần ít nhất {tournament.StarterCount} thành viên để đăng ký giải này (hiện có {activeMembers}). Hãy mời thêm thành viên trước.");
+        }
+        // Ban tổ chức không thi đấu giải của chính mình.
+        if (await Query<TeamMember>().AnyAsync(item => item.TeamId == team.TeamId && item.Status == "ACTIVE"
+                && item.AccountId == tournament.OrganizerAccountId, cancellationToken))
+        {
+            return Result<RegistrationResponse>.FieldFailure(
+                nameof(request.TeamId), "Đội có thành viên là Ban tổ chức của giải này nên không được đăng ký thi đấu giải đó.");
+        }
+
+        PromotionLink? promotionLink = null;
+        if (!string.IsNullOrWhiteSpace(request.PromotionLinkCode))
+        {
+            promotionLink = await Query<PromotionLink>().FirstOrDefaultAsync(
+                item => item.TournamentId == tournamentId
+                    && item.Code == request.PromotionLinkCode.Trim().ToUpperInvariant(),
+                cancellationToken);
+            if (promotionLink is null)
+            {
+                return Result<RegistrationResponse>.FieldFailure(
+                    nameof(request.PromotionLinkCode),
+                    "Mã cộng tác viên không hợp lệ cho giải đấu này.");
+            }
         }
 
         var existingDraft = await Query<Registration>()
@@ -310,6 +347,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             : null;
         registration.WaitlistExpiresAt = null;
         registration.PaymentStatus = storedPaymentProof is null ? "UNPAID" : "PROOF_SUBMITTED";
+        registration.PromotionLinkId = promotionLink?.PromotionLinkId;
         registration.ReviewNote = null;
         registration.ReviewedAt = null;
         registration.SubmittedAt = now;
@@ -331,7 +369,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             {
                 RecordKind = "PROOF",
                 FileUrl = storedPaymentProof.RelativePath,
-                DeclaredAmount = declaredAmount,
+                DeclaredAmount = tournament.EntryFee,   // lệ phí do Ban tổ chức đặt, đội không tự khai số tiền
                 IsCurrent = true,
                 RecordedByAccountId = accountId,
                 RecordedAt = now
@@ -565,7 +603,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             RegistrationId = registrationId,
             RecordKind = "PROOF",
             FileUrl = stored.RelativePath,
-            DeclaredAmount = declaredAmount,
+            DeclaredAmount = registration.Tournament.EntryFee,   // lệ phí do Ban tổ chức đặt
             IsCurrent = true,
             RecordedByAccountId = accountId,
             RecordedAt = DateTime.UtcNow
@@ -622,6 +660,12 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         if (decision == "REJECT" && reason is null)
         {
             return Result<RegistrationResponse>.FieldFailure(nameof(request.Reason), "Từ chối đơn phải ghi rõ lý do.");
+        }
+        // Duyệt thì kiểm lại đội hình: từ lúc nộp đơn tới lúc duyệt có thể đã có người rời đội / bị khóa tài khoản.
+        if (decision == "APPROVE" && !await IsCurrentLineupEligibleAsync(registration, tournament, cancellationToken))
+        {
+            return Result<RegistrationResponse>.FieldFailure(nameof(request.Decision),
+                $"Đội hình của đơn không còn hợp lệ (cần đúng {tournament.StarterCount} tuyển thủ chính thức đang thuộc đội và tài khoản còn hoạt động). Hãy từ chối kèm lý do để đội trưởng nộp lại.");
         }
 
         var previousStatus = registration.Status;
@@ -796,9 +840,14 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         {
             return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount), "Nhập số tiền hoàn lớn hơn 0.");
         }
-        if (request.Amount > tournament.EntryFee)
+        var alreadyRefunded = await Query<PaymentRecord>()
+            .Where(p => p.RegistrationId == registrationId && p.RecordKind == "REFUND")
+            .SumAsync(p => p.DeclaredAmount ?? 0, cancellationToken);
+        var totalRefundedAfterThis = alreadyRefunded + request.Amount.Value;
+        if (totalRefundedAfterThis > tournament.EntryFee)
         {
-            return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount), "Số tiền hoàn không được vượt quá lệ phí đăng ký.");
+            return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount),
+                $"Đã hoàn {alreadyRefunded:N0}đ trước đó; số tiền hoàn lần này khiến tổng vượt quá lệ phí đăng ký ({tournament.EntryFee:N0}đ).");
         }
         if (request.RefundDate is null || request.RefundDate > DateOnly.FromDateTime(DateTime.UtcNow))
         {
@@ -826,7 +875,9 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             }
         }
 
-        registration.PaymentStatus = "REFUNDED";
+        // Chỉ chuyển sang REFUNDED khi đã hoàn đủ tổng lệ phí (cộng dồn các lần hoàn trước) —
+        // hoàn một phần phải giữ nguyên CONFIRMED để còn ghi nhận tiếp phần còn lại.
+        registration.PaymentStatus = totalRefundedAfterThis >= tournament.EntryFee ? "REFUNDED" : "CONFIRMED";
         registration.PaymentRecords.Add(new PaymentRecord
         {
             RegistrationId = registrationId,
@@ -1275,6 +1326,22 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 && !string.IsNullOrWhiteSpace(item.FileUrl)))
             {
                 return LineupValidation.Failure($"Thành viên {member.AccountId} còn thiếu giấy tờ định danh bắt buộc.");
+            }
+        }
+
+        if (tournament.RequireInGameName)
+        {
+            var ignValues = credentials
+                .Where(item => item.CredentialType == InGameNameType
+                    && accountIds.Contains(item.AccountId)
+                    && !string.IsNullOrWhiteSpace(item.Value))
+                .GroupBy(item => item.Value!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Where(group => group.Count() > 1)
+                .ToList();
+            if (ignValues.Count > 0)
+            {
+                var dup = ignValues[0].Key;
+                return LineupValidation.Failure($"IGN \"{dup}\" bị trùng giữa nhiều thành viên trong đội hình. Mỗi người chơi phải dùng IGN riêng.");
             }
         }
 

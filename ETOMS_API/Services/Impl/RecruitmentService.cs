@@ -8,6 +8,11 @@ namespace ETOMS_API.Services.Impl
 {
     public class RecruitmentService : IRecruitmentService
     {
+        // Giá trị PostType theo CHECK của lược đồ (CK_RecruitmentPost_Type). API/giao diện vẫn dùng
+        // mã ngắn LFP/LFT; trước đây ghi thẳng "LFP"/"LFT" nên DB từ chối mọi tin đăng.
+        private const string PostLookingForPlayer = "LOOKING_FOR_PLAYER";
+        private const string PostLookingForTeam = "LOOKING_FOR_TEAM";
+
         private readonly EtomsDbContext _context;
 
         public RecruitmentService(EtomsDbContext context)
@@ -16,8 +21,17 @@ namespace ETOMS_API.Services.Impl
         }
 
         // FA-01: Đăng tin tuyển thành viên (LFP)
+        // Tìm đội / tuyển người chỉ dành cho tuyển thủ: Ban tổ chức và Admin không có đội (quy tắc 15/11/2026).
+        private async Task EnsurePlayerAsync(int accountId)
+        {
+            var role = await _context.Accounts.Where(a => a.AccountId == accountId).Select(a => a.Role).FirstOrDefaultAsync();
+            if (role != "PLAYER")
+                throw new InvalidOperationException("Chỉ tài khoản tuyển thủ được đăng tin tìm đội, tuyển người hoặc ứng tuyển. Ban tổ chức và quản trị viên không tham gia đội.");
+        }
+
         public async Task<int> CreateLFPPostAsync(int accountId, CreateLFPPostDto dto)
         {
+            await EnsurePlayerAsync(accountId);
             var team = await _context.Teams
                 .Include(t => t.Game)
                 .Include(t => t.TeamMembers)
@@ -37,7 +51,7 @@ namespace ETOMS_API.Services.Impl
 
             var post = new RecruitmentPost
             {
-                PostType = "LFP",
+                PostType = PostLookingForPlayer,
                 TeamId = dto.TeamId,
                 AuthorAccountId = accountId,
                 GameId = team.GameId,
@@ -55,23 +69,24 @@ namespace ETOMS_API.Services.Impl
         // FA-02: Đăng tin tìm đội (LFT)
         public async Task<int> CreateLFTPostAsync(int accountId, CreateLFTPostDto dto)
         {
+            await EnsurePlayerAsync(accountId);
             var hasCredential = await _context.PlayerCredentials
                 .AnyAsync(pc => pc.AccountId == accountId && pc.GameId == dto.GameId);
             if (!hasCredential)
                 throw new InvalidOperationException("Bạn chưa cập nhật thông tin In-game (IGN) cho Game này.");
 
             var oldPosts = await _context.RecruitmentPosts
-                .Where(p => p.AuthorAccountId == accountId && p.PostType == "LFT" && p.GameId == dto.GameId && p.Status == "OPEN")
+                .Where(p => p.AuthorAccountId == accountId && p.PostType == PostLookingForTeam && p.GameId == dto.GameId && p.Status == "OPEN")
                 .ToListAsync();
 
             foreach (var oldPost in oldPosts)
             {
-                oldPost.Status = "EXPIRED";
+                oldPost.Status = "CLOSED";   // CK_RecruitmentPost_Status chỉ cho OPEN/CLOSED; tin mới thay tin cũ
             }
 
             var post = new RecruitmentPost
             {
-                PostType = "LFT",
+                PostType = PostLookingForTeam,
                 AuthorAccountId = accountId,
                 GameId = dto.GameId,
                 Title = $"[LFT] Tìm đội thi đấu - Vị trí {dto.PreferredRole} ({dto.CurrentRank})",
@@ -88,11 +103,16 @@ namespace ETOMS_API.Services.Impl
         // FA-03: Bảng tin Tuyển quân - Join trực tiếp bảng Game & Team lấy Tên thật
         public async Task<object> GetRecruitmentBoardAsync(RecruitmentBoardQueryDto query)
         {
+            // Tham số trên URL do client gửi: chặn trang <= 0 (Skip âm -> lỗi 500) và trang quá lớn.
+            var postType = query.PostType == "LFT" ? PostLookingForTeam : PostLookingForPlayer;
+            query.PageIndex = Math.Max(1, query.PageIndex);
+            query.PageSize = Math.Clamp(query.PageSize, 1, 50);
+
             var postsQuery = _context.RecruitmentPosts
                 .Include(p => p.AuthorAccount)
                 .Include(p => p.Team)
                 .Include(p => p.Game) // Join thêm bảng Game
-                .Where(p => p.Status == "OPEN" && p.PostType == query.PostType)
+                .Where(p => p.Status == "OPEN" && p.PostType == postType)
                 .AsQueryable();
 
             if (query.GameId.HasValue)
@@ -112,10 +132,14 @@ namespace ETOMS_API.Services.Impl
                 .Select(p => new
                 {
                     PostId = p.RecruitmentPostId,
-                    p.PostType,
+                    // TeamId (tin LFP) để biết mình đã ứng tuyển chưa; GameId để đội trưởng mời đúng đội cùng tựa game (tin LFT).
+                    p.TeamId,
+                    p.GameId,
+                    PostType = p.PostType == PostLookingForTeam ? "LFT" : "LFP",
                     p.Title,
                     p.Content,
                     p.HighlightUrl,
+                    p.AuthorAccountId,
                     AuthorName = p.AuthorAccount.FullName,
                     AuthorAvatar = p.AuthorAccount.AvatarUrl,
                     TeamName = p.Team != null ? p.Team.Name : null,
@@ -133,17 +157,23 @@ namespace ETOMS_API.Services.Impl
         // FA-04: Nộp đơn ứng tuyển theo tin LFP
         public async Task<bool> ApplyToLFPAsync(int accountId, ApplyLFPPostDto dto)
         {
+            await EnsurePlayerAsync(accountId);
             var post = await _context.RecruitmentPosts
                 .Include(p => p.Team)
                 .FirstOrDefaultAsync(p => p.RecruitmentPostId == dto.PostId && p.Status == "OPEN");
 
-            if (post == null || !post.TeamId.HasValue)
+            if (post == null || !post.TeamId.HasValue || post.Team is null)
                 throw new KeyNotFoundException("Bài đăng tuyển không tồn tại hoặc đã đóng.");
+
+            var alreadyInThisTeam = await _context.TeamMembers
+                .AnyAsync(tm => tm.AccountId == accountId && tm.Status == "ACTIVE" && tm.TeamId == post.TeamId);
+            if (alreadyInThisTeam)
+                throw new InvalidOperationException("Bạn đã là thành viên của đội này.");
 
             var inAnotherTeam = await _context.TeamMembers
                 .AnyAsync(tm => tm.AccountId == accountId && tm.Status == "ACTIVE" && tm.Team.GameId == post.Team.GameId);
             if (inAnotherTeam)
-                throw new InvalidOperationException("Bạn đã tham gia một đội tuyển khác của Game này.");
+                throw new InvalidOperationException("Bạn đã tham gia một đội tuyển khác của tựa game này (mỗi tựa game chỉ được ở một đội).");
 
             var existingMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.TeamId == post.TeamId && tm.AccountId == accountId && tm.Status == "PENDING");
@@ -153,6 +183,7 @@ namespace ETOMS_API.Services.Impl
             var pendingMember = new TeamMember
             {
                 TeamId = post.TeamId.Value,
+                GameId = post.Team.GameId,   // cột bắt buộc (FK + chỉ mục "mỗi tựa game một đội")
                 AccountId = accountId,
                 Slot = "STARTER",
                 Status = "PENDING",
@@ -248,9 +279,20 @@ namespace ETOMS_API.Services.Impl
             if (team.CaptainAccountId != captainAccountId)
                 throw new UnauthorizedAccessException("Bạn không phải Đội trưởng của đội này.");
 
+            var player = await _context.Accounts.FindAsync(dto.PlayerAccountId);
+            if (player == null || player.Status != "ACTIVE" || player.Role != "PLAYER")
+                throw new KeyNotFoundException("Không tìm thấy tuyển thủ được mời.");
+            if (dto.PlayerAccountId == captainAccountId)
+                throw new InvalidOperationException("Không thể tự mời chính mình.");
+            if (await _context.TeamMembers.AnyAsync(tm => tm.AccountId == dto.PlayerAccountId && tm.Status == "ACTIVE" && tm.GameId == team.GameId))
+                throw new InvalidOperationException("Tuyển thủ này đã ở một đội của tựa game này.");
+            if (await _context.TeamMembers.AnyAsync(tm => tm.AccountId == dto.PlayerAccountId && tm.TeamId == dto.TeamId && tm.Status == "PENDING"))
+                throw new InvalidOperationException("Đã có lời mời/đơn đang chờ giữa đội và tuyển thủ này.");
+
             var inviteMember = new TeamMember
             {
                 TeamId = dto.TeamId,
+                GameId = team.GameId,
                 AccountId = dto.PlayerAccountId,
                 Slot = "STARTER",
                 Status = "PENDING",
@@ -259,6 +301,47 @@ namespace ETOMS_API.Services.Impl
             };
 
             _context.TeamMembers.Add(inviteMember);
+            // Báo tuyển thủ được mời: bấm vào là tới trang Lời mời để chấp nhận / từ chối.
+            _context.Notifications.Add(new Notification
+            {
+                AccountId = dto.PlayerAccountId,
+                NotificationType = "SYSTEM",
+                Title = "Lời mời vào đội",
+                Body = $"Đội {team.Name} mời bạn tham gia. Mở trang Lời mời để chấp nhận hoặc từ chối.",
+                LinkUrl = "/team/invites.html",
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // Đơn ứng tuyển đang chờ của tuyển thủ (hiện ở Hồ sơ; trang Tìm đội dùng để ẩn nút "Ứng tuyển" đã nộp).
+        public async Task<List<MyApplicationDto>> GetMyApplicationsAsync(int accountId)
+        {
+            return await _context.TeamMembers.AsNoTracking()
+                .Where(m => m.AccountId == accountId && m.Status == "PENDING" && m.Direction == "APPLIED")
+                .OrderByDescending(m => m.JoinedAt)
+                .Select(m => new MyApplicationDto
+                {
+                    TeamMemberId = m.TeamMemberId,
+                    TeamId = m.TeamId,
+                    TeamName = m.Team.Name,
+                    TeamTag = m.Team.Tag,
+                    GameTitle = m.Team.Game.Title,
+                    SentAt = m.JoinedAt
+                })
+                .ToListAsync();
+        }
+
+        // Rút đơn ứng tuyển đang chờ (chỉ người nộp). Ghi REJECTED như khi đội từ chối, để giữ lịch sử.
+        public async Task<bool> WithdrawApplicationAsync(int accountId, int teamMemberId)
+        {
+            var m = await _context.TeamMembers.FirstOrDefaultAsync(x => x.TeamMemberId == teamMemberId
+                && x.AccountId == accountId && x.Status == "PENDING" && x.Direction == "APPLIED")
+                ?? throw new KeyNotFoundException("Không tìm thấy đơn ứng tuyển đang chờ.");
+            m.Status = "REJECTED";
             await _context.SaveChangesAsync();
             return true;
         }

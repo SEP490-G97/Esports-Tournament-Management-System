@@ -54,6 +54,15 @@ public class RefereeAssignmentService : IRefereeAssignmentService
         var knockout = rows.Where(m => m.StageType == "KNOCKOUT").ToList();
         var lastStage = knockout.Count == 0 ? 0 : knockout.Max(m => m.StageNo);
         var finalRound = knockout.Where(m => m.StageNo == lastStage).Select(m => m.RoundNo ?? 0).DefaultIfEmpty(0).Max();
+        // BRK-05 Loại kép: nhãn theo nhánh (Nhánh thắng · Bán kết, Nhánh thua · Vòng 2, Chung kết tổng).
+        var de = DoubleElimination.IsDoubleElimination(tournament.Format)
+            ? new DoubleElimination.Layout(knockout.Select(m => new BracketNode
+            {
+                StageNo = m.StageNo, StageType = m.StageType, RoundNo = m.RoundNo, PositionInRound = m.PositionInRound, ParentNodeId = m.ParentNodeId
+            }))
+            : null;
+        string DeLabel(int stage, int? round, int? pos) =>
+            de!.MatchLabel(de.Get(stage, round ?? 0, pos ?? 0) ?? new BracketNode { StageNo = stage, RoundNo = round, PositionInRound = pos });
 
         return new RefereeBoardDto
         {
@@ -65,12 +74,17 @@ public class RefereeAssignmentService : IRefereeAssignmentService
             Rounds = rows.Where(m => m.RoundNo is not null)
                 .Select(m => (m.StageNo, RoundNo: m.RoundNo!.Value))
                 .Distinct()
-                .Select(r => new RefereeRoundDto { StageNo = r.StageNo, RoundNo = r.RoundNo, Label = $"Giai đoạn {r.StageNo} · Vòng {r.RoundNo}" })
+                .Select(r => new RefereeRoundDto
+                {
+                    StageNo = r.StageNo, RoundNo = r.RoundNo,
+                    Label = de is not null ? de.RoundLabel(r.StageNo, r.RoundNo) : $"Giai đoạn {r.StageNo} · Vòng {r.RoundNo}"
+                })
                 .ToList(),
             Matches = rows.Select(m => new RefereeMatchDto
             {
                 MatchId = m.MatchId,
-                RoundLabel = ThirdPlaceMatch.IsNode(m.StageType, m.StageNo, m.RoundNo, m.PositionInRound, m.ParentNodeId, lastStage, finalRound)
+                RoundLabel = de is not null && m.StageType == "KNOCKOUT" ? DeLabel(m.StageNo, m.RoundNo, m.PositionInRound)
+                    : ThirdPlaceMatch.IsNode(m.StageType, m.StageNo, m.RoundNo, m.PositionInRound, m.ParentNodeId, lastStage, finalRound)
                     ? ThirdPlaceMatch.Label
                     : RoundLabel(m.RoundNo, m.GroupLabel),
                 TeamAName = m.TeamA ?? UnknownTeam,
@@ -85,9 +99,23 @@ public class RefereeAssignmentService : IRefereeAssignmentService
         };
     }
 
-    public async Task<IReadOnlyList<RefereeCandidateDto>> SearchCandidatesAsync(string? keyword)
+    // Hướng 1 (17/11): giải đứng tên một đơn vị thì trọng tài chỉ là thành viên đang hoạt động có vai trò Trọng tài
+    // (REFEREE) của chính đơn vị đó — chủ nhiệm phân vai ở trang Quản lý đơn vị. Giải cũ chưa gắn đơn vị: tìm như trước.
+    public async Task<IReadOnlyList<RefereeCandidateDto>> SearchCandidatesAsync(int tournamentId, string? keyword)
     {
         var text = keyword?.Trim();
+        var orgId = await _uow.Repository<Tournament>().Query()
+            .Where(t => t.TournamentId == tournamentId).Select(t => t.OrganizationId).FirstOrDefaultAsync();
+        if (orgId is int org)
+        {
+            return await _uow.Repository<OrganizationMember>().Query()
+                .Where(m => m.OrganizationId == org && m.Role == "REFEREE" && m.Status == "ACTIVE" && m.Account.Status == "ACTIVE"
+                    && (string.IsNullOrEmpty(text) || m.Account.FullName.Contains(text) || m.Account.Email.Contains(text)))
+                .OrderBy(m => m.Account.FullName)
+                .Take(CandidateLimit)
+                .Select(m => new RefereeCandidateDto { AccountId = m.AccountId, FullName = m.Account.FullName, Email = m.Account.Email })
+                .ToListAsync();
+        }
         if (string.IsNullOrEmpty(text) || text.Length < 2) return Array.Empty<RefereeCandidateDto>();
 
         return await _uow.Repository<Account>().Query()
@@ -124,6 +152,8 @@ public class RefereeAssignmentService : IRefereeAssignmentService
         var referee = await _uow.Repository<Account>().GetByIdAsync(refereeAccountId);
         if (referee is null) return Result.Failure("Tài khoản không tồn tại.");
         if (referee.Status != "ACTIVE") return Result.Failure("Tài khoản này không thể làm trọng tài.");
+        var notInOrg = await NotOrgRefereeAsync(tournament, referee.AccountId);
+        if (notInOrg is not null) return Result.Failure(notInOrg);
 
         var conflict = await FindConflictAsync(match, referee.AccountId);
         if (conflict is not null) return Result.Failure(conflict);
@@ -146,6 +176,8 @@ public class RefereeAssignmentService : IRefereeAssignmentService
         var referee = await _uow.Repository<Account>().GetByIdAsync(request.RefereeAccountId);
         if (referee is null) return Result<AssignRoundResultDto>.Failure("Tài khoản không tồn tại.");
         if (referee.Status != "ACTIVE") return Result<AssignRoundResultDto>.Failure("Tài khoản này không thể làm trọng tài.");
+        var notInOrg = await NotOrgRefereeAsync(tournament, referee.AccountId);
+        if (notInOrg is not null) return Result<AssignRoundResultDto>.Failure(notInOrg);
 
         var matches = await _uow.Repository<Match>().Query()
             .Where(m => m.TournamentId == tournamentId
@@ -182,6 +214,15 @@ public class RefereeAssignmentService : IRefereeAssignmentService
             ? $"Đã gán {result.AssignedCount} trận, bỏ qua {result.SkippedMatches.Count} trận."
             : $"Đã gán {result.AssignedCount} trận.";
         return Result<AssignRoundResultDto>.Success(result, message);
+    }
+
+    // Giải đứng tên đơn vị: người được gán phải là Trọng tài đang hoạt động của đơn vị đó.
+    private async Task<string?> NotOrgRefereeAsync(Tournament t, int accountId)
+    {
+        if (t.OrganizationId is not int org) return null;
+        var ok = await _uow.Repository<OrganizationMember>().AnyAsync(m =>
+            m.OrganizationId == org && m.AccountId == accountId && m.Role == "REFEREE" && m.Status == "ACTIVE");
+        return ok ? null : "Chỉ gán được thành viên có vai trò Trọng tài của đơn vị đứng tên giải. Chủ nhiệm đơn vị phân vai ở trang Quản lý đơn vị.";
     }
 
     private static string? BlockedReason(Tournament t)

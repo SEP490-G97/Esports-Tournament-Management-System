@@ -1,7 +1,7 @@
 (function () {
     function pad2(n) { return String(n).padStart(2, '0'); }
     function fmtDateShort(iso) {
-        var d = new Date(iso);
+        var d = new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z'); // máy chủ trả giờ UTC không kèm Z
         return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
     }
     function reasonLabel(r) {
@@ -18,12 +18,12 @@
         list.forEach(function (d) {
             html += '<a href="/result/dispute.html?id=' + d.disputeId + '" class="card-etoms d-block" style="color:inherit">' +
                 '<div class="body d-flex flex-wrap justify-content-between align-items-center gap-3" style="padding:18px 22px">' +
-                '<div><div style="font-weight:800">' + Ui.escapeHtml(d.teamAName) + ' vs ' + Ui.escapeHtml(d.teamBName) + '</div>' +
+                '<div><div class="fw-800">' + Ui.escapeHtml(d.teamAName) + ' vs ' + Ui.escapeHtml(d.teamBName) + '</div>' +
                 '<div style="color:var(--muted);font-size:.86rem;margin-top:2px">' + Ui.escapeHtml(d.tournamentName) + '</div></div>' +
                 '<div class="d-flex flex-wrap gap-2 align-items-center">' +
                 '<span class="badge ' + (d.openReason === 'FLAGGED' ? 'badge-danger' : 'badge-soft') + '">' + reasonLabel(d.openReason) + '</span>' +
                 '<span class="badge ' + (d.status === 'UNDER_REVIEW' ? 'badge-active' : 'badge-gold') + '">' + (d.status === 'UNDER_REVIEW' ? 'Đang xem xét' : 'Mới mở') + '</span>' +
-                '<span style="color:var(--muted-2);font-size:.82rem">' + fmtDateShort(d.openedAt) + '</span>' +
+                '<span class="text-muted-2 text-small">' + fmtDateShort(d.openedAt) + '</span>' +
                 '</div></div></a>';
         });
         html += '</div>';

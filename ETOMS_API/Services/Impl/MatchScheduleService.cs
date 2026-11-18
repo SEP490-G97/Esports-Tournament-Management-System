@@ -37,6 +37,8 @@ public class MatchScheduleService : IMatchScheduleService
         public Dictionary<int, (string Name, bool InApp)> People { get; init; } = new();
         public Dictionary<int, int> FinalRoundByStage { get; init; } = new();
         public int LastKnockoutStage { get; init; }
+        // Loại kép (BRK-05): nhãn, trận dẫn vào và trận phụ thuộc tính theo DoubleElimination (có cả đường rơi của đội thua).
+        public DoubleElimination.Layout? De { get; init; }
         public string? BlockedReason { get; init; }
         public DateTime Now { get; init; }
     }
@@ -69,6 +71,7 @@ public class MatchScheduleService : IMatchScheduleService
             if (previous is null) return Result<MatchScheduleBoardDto>.Success(ToBoard(ctx), "Trận này chưa có giờ.");
             item.Match.ScheduledAt = null;
             item.Match.CheckInOpenAt = null;
+            item.Match.ReportDeadlineAt = null;
             await NotifyAsync(ctx, item, $"Trận {FullLabel(ctx, item)} của giải {ctx.Tournament.Name} tạm chưa có giờ thi đấu.");
             await _uow.SaveChangesAsync();
             return Result<MatchScheduleBoardDto>.Success(ToBoard(ctx), "Đã bỏ giờ của trận.");
@@ -166,6 +169,7 @@ public class MatchScheduleService : IMatchScheduleService
             People = people,
             FinalRoundByStage = knockout.GroupBy(n => n.StageNo).ToDictionary(g => g.Key, g => g.Max(n => n.RoundNo ?? 0)),
             LastKnockoutStage = knockout.Count == 0 ? 0 : knockout.Max(n => n.StageNo),
+            De = DoubleElimination.IsDoubleElimination(t.Format) ? new DoubleElimination.Layout(knockout) : null,
             BlockedReason = blocked,
             Now = DateTime.UtcNow
         };
@@ -206,10 +210,15 @@ public class MatchScheduleService : IMatchScheduleService
         foreach (var other in ctx.Items.Where(o => o != item && o.Match.ScheduledAt is DateTime))
         {
             var when = other.Match.ScheduledAt!.Value;
-            if (other.Node.StageNo < item.Node.StageNo && when >= at)
-                return $"Trận của giai đoạn {item.Node.StageNo} phải sau mọi trận giai đoạn {other.Node.StageNo} ({FullLabel(ctx, other)} lúc {Vn(when)}).";
-            if (other.Node.StageNo > item.Node.StageNo && when <= at)
-                return $"Trận của giai đoạn {item.Node.StageNo} phải trước mọi trận giai đoạn {other.Node.StageNo} ({FullLabel(ctx, other)} lúc {Vn(when)}).";
+            // Loại kép: nhánh thắng và nhánh thua đá xen kẽ nên không áp luật "giai đoạn trước xong mới tới giai đoạn sau";
+            // thứ tự đã kiểm qua trận dẫn vào/phụ thuộc ở trên (gồm cả đường rơi của đội thua).
+            if (ctx.De is null)
+            {
+                if (other.Node.StageNo < item.Node.StageNo && when >= at)
+                    return $"Trận của giai đoạn {item.Node.StageNo} phải sau mọi trận giai đoạn {other.Node.StageNo} ({FullLabel(ctx, other)} lúc {Vn(when)}).";
+                if (other.Node.StageNo > item.Node.StageNo && when <= at)
+                    return $"Trận của giai đoạn {item.Node.StageNo} phải trước mọi trận giai đoạn {other.Node.StageNo} ({FullLabel(ctx, other)} lúc {Vn(when)}).";
+            }
             if (when != at) continue;
 
             var shared = new[] { item.Match.TeamAid, item.Match.TeamBid }
@@ -226,17 +235,26 @@ public class MatchScheduleService : IMatchScheduleService
     {
         item.Match.ScheduledAt = at;
         item.Match.CheckInOpenAt = at - CheckInWindow;
+        // RES-03 (UC-29): hạn báo cáo công bố cùng lịch, dời giờ thì hạn dời theo.
+        item.Match.ReportDeadlineAt = ReportDeadline.For(at, item.Match.BestOf);
     }
 
     // Các trận dẫn vào trận này. Tranh hạng Ba nhận đội thua của hai trận bán kết.
     private static IEnumerable<Item> Feeders(Context ctx, Item item)
     {
-        var childIds = ChildNodes(ctx, item).Select(n => n.BracketNodeId).ToHashSet();
+        var childIds = (ctx.De is not null ? ctx.De.Feeders(item.Node).ToList() : ChildNodes(ctx, item))
+            .Select(n => n.BracketNodeId).ToHashSet();
         return ctx.Items.Where(i => childIds.Contains(i.Node.BracketNodeId));
     }
 
     private static IEnumerable<Item> Dependents(Context ctx, Item item)
     {
+        if (ctx.De is not null)
+        {
+            var nextIds = ctx.De.Dependents(item.Node).Select(n => n.BracketNodeId).ToHashSet();
+            foreach (var next in ctx.Items.Where(i => nextIds.Contains(i.Node.BracketNodeId))) yield return next;
+            yield break;
+        }
         var parent = ctx.Items.FirstOrDefault(i => i.Node.BracketNodeId == item.Node.ParentNodeId);
         if (parent is not null) yield return parent;
         foreach (var third in ctx.Items.Where(i => IsThirdPlace(ctx, i)))
@@ -257,12 +275,14 @@ public class MatchScheduleService : IMatchScheduleService
     }
 
     private static bool IsThirdPlace(Context ctx, Item item)
-        => ctx.FinalRoundByStage.TryGetValue(item.Node.StageNo, out var finalRound)
+        => ctx.De is null
+           && ctx.FinalRoundByStage.TryGetValue(item.Node.StageNo, out var finalRound)
            && ThirdPlaceMatch.IsNode(item.Node.StageType, item.Node.StageNo, item.Node.RoundNo, item.Node.PositionInRound, item.Node.ParentNodeId, ctx.LastKnockoutStage, finalRound);
 
     private static string RoundLabel(Context ctx, BracketNode node)
     {
         if (node.StageType == "GROUP") return $"Vòng bảng · Lượt {node.RoundNo}";
+        if (ctx.De is not null) return ctx.De.RoundLabel(node.StageNo, node.RoundNo ?? 0);
         var final = ctx.FinalRoundByStage.TryGetValue(node.StageNo, out var f) ? f : 0;
         return BracketLabels.KnockoutRound(final, node.RoundNo);
     }
@@ -270,6 +290,11 @@ public class MatchScheduleService : IMatchScheduleService
     private static string MatchLabel(Context ctx, Item item)
     {
         if (item.Node.StageType == "GROUP") return $"Bảng {item.Node.GroupLabel}";
+        if (ctx.De is not null)
+        {
+            var full = ctx.De.MatchLabel(item.Node);
+            return full == RoundLabel(ctx, item.Node) ? full : $"Trận {item.Node.PositionInRound}";
+        }
         if (IsThirdPlace(ctx, item)) return ThirdPlaceMatch.Label;
         if (RoundLabel(ctx, item.Node) == "Chung kết") return "Chung kết";
         return $"Trận {item.Node.PositionInRound}";
@@ -277,6 +302,7 @@ public class MatchScheduleService : IMatchScheduleService
 
     private static string FullLabel(Context ctx, Item item)
     {
+        if (ctx.De is not null && item.Node.StageType == "KNOCKOUT") return ctx.De.MatchLabel(item.Node);
         if (IsThirdPlace(ctx, item)) return ThirdPlaceMatch.Label;
         var round = RoundLabel(ctx, item.Node);
         if (round == "Chung kết") return round;
@@ -288,6 +314,13 @@ public class MatchScheduleService : IMatchScheduleService
     {
         var id = sideA ? item.Match.TeamAid : item.Match.TeamBid;
         if (id is int known) return TeamName(ctx, known);
+
+        if (ctx.De is not null)
+        {
+            if (ctx.De.Feeder(item.Node, sideA) is not { } f) return "Chưa xác định";
+            if (!f.Loser && f.From.IsBye && f.From.SeedTeamId is int byeTeam) return TeamName(ctx, byeTeam);
+            return (f.Loser ? "Thua " : "Thắng ") + ctx.De.MatchLabel(f.From);
+        }
 
         var children = ChildNodes(ctx, item);
         var child = children.ElementAtOrDefault(sideA ? 0 : 1);
@@ -341,7 +374,7 @@ public class MatchScheduleService : IMatchScheduleService
             {
                 StageNo = g.Key.StageNo,
                 RoundNo = g.Key.RoundNo,
-                Label = (ctx.Items.Select(i => i.Node.StageNo).Distinct().Count() > 1 ? $"Giai đoạn {g.Key.StageNo} · " : "") + RoundLabel(ctx, g.First().Node),
+                Label = (ctx.De is null && ctx.Items.Select(i => i.Node.StageNo).Distinct().Count() > 1 ? $"Giai đoạn {g.Key.StageNo} · " : "") + RoundLabel(ctx, g.First().Node),
                 Matches = g.OrderBy(i => i.Node.GroupLabel).ThenBy(i => i.Node.PositionInRound).Select(i =>
                 {
                     var locked = ctx.BlockedReason ?? LockedReason(ctx, i);

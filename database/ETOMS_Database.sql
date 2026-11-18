@@ -191,6 +191,8 @@ CREATE TABLE dbo.Account
     NotifyEmail      BIT               NOT NULL CONSTRAINT DF_Account_NotiMail  DEFAULT 1,
     OrganizerRequestStatus VARCHAR(20) NOT NULL CONSTRAINT DF_Account_OrgReq DEFAULT 'NONE',
     OrganizerRequestedAt   DATETIME2(0) NULL,
+    OrganizerRequestNote   NVARCHAR(1000) NULL,  -- mong muốn / lý do xin làm Ban tổ chức (UC-43)
+    OrganizerRequestEmail  VARCHAR(254)   NULL,  -- email đề xuất cho tài khoản BTC riêng mà Admin cấp
     EmailVerifiedAt  DATETIME2(0)      NULL,
     CreatedAt        DATETIME2(0)      NOT NULL CONSTRAINT DF_Account_At DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Account         PRIMARY KEY (AccountID),
@@ -309,6 +311,7 @@ CREATE TABLE dbo.Team
     Name             NVARCHAR(150)     NOT NULL,
     Tag              NVARCHAR(10)      NOT NULL,
     LogoUrl          NVARCHAR(500)     NULL,
+    Description      NVARCHAR(500)     NULL,  -- giới thiệu / khẩu hiệu đội (TEAM-01 "Slogan"), không bắt buộc
     InviteCode       VARCHAR(20)       NULL,
     InviteExpiresAt  DATETIME2(0)      NULL,
     Status           VARCHAR(20)       NOT NULL CONSTRAINT DF_Team_Status DEFAULT 'ACTIVE',

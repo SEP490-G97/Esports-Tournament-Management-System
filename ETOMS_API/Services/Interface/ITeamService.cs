@@ -8,9 +8,19 @@ public interface ITeamService
     // TEAM-01: tạo đội. Trả về TeamId mới nếu thành công, hoặc lỗi theo field.
     Task<Result<int>> CreateTeamAsync(CreateTeamRequest request, int captainAccountId);
 
+    // TEAM-01: tìm tuyển thủ (họ tên / tên trong game) để mời ngay khi tạo đội.
+    Task<Result<IReadOnlyList<PlayerSearchItemDto>>> SearchPlayersAsync(string? query, int gameId, int requesterAccountId);
+
+    // Lời mời vào đội phía tuyển thủ: xem, chấp nhận hoặc từ chối.
+    Task<IReadOnlyList<MyTeamInvitationDto>> GetMyInvitationsAsync(int accountId);
+    Task<Result> RespondInvitationAsync(int teamMemberId, int accountId, bool accept);
+
     // Danh sách đội — có tìm kiếm/lọc/sắp xếp (q, gameId, status, sort).
     Task<IReadOnlyList<TeamListItemDto>> GetAllTeamsAsync(TeamSearchRequest? filter = null);
+    // Trang Đội tuyển: lọc + phân trang, kiểm tra tham số và báo lỗi tiếng Việt theo từng ô.
+    Task<Result<TeamListPage>> SearchTeamsAsync(TeamSearchRequest filter);
     Task<TeamDetailDto?> GetTeamDetailAsync(int teamId);
+    Task<IReadOnlyList<TeamMatchItemDto>> GetUpcomingMatchesAsync(int teamId);
 
     // TEAM-02: trang quản trị đội (chỉ đội trưởng)
     Task<TeamDashboardDto?> GetDashboardAsync(int teamId);
@@ -29,6 +39,7 @@ public interface ITeamService
     // TEAM-03: quản lý roster
     Task<RosterDto?> GetRosterAsync(int teamId);
     Task<Result> ChangeSlotAsync(int teamId, int targetAccountId, string newSlot, int captainAccountId);
+    Task<Result> SwapSlotsAsync(int teamId, int starterAccountId, int substituteAccountId, int captainAccountId);
     Task<Result> KickMemberAsync(int teamId, int targetAccountId, int captainAccountId);
 
     // Duyệt / từ chối đơn ứng tuyển - lời mời đang chờ (TeamMember.Status = PENDING).
@@ -53,4 +64,8 @@ public interface ITeamService
     // Đội mà tài khoản đang là thành viên ACTIVE (đội trưởng cũng tính) — cho widget "Đội của tôi" trên nav.
     // null nếu chưa ở trong đội nào.
     Task<MyTeamDto?> GetMyTeamAsync(int accountId);
+
+    // TẤT CẢ đội mà tài khoản đang là thành viên ACTIVE (mỗi tựa game tối đa một đội),
+    // đội đang làm đội trưởng xếp trước. Cho trang "Các đội của tôi" và ô chọn đội khi đăng tin LFP.
+    Task<IReadOnlyList<MyTeamItemDto>> GetMyTeamsAsync(int accountId);
 }

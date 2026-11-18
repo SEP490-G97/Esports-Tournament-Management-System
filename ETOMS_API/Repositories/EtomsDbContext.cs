@@ -1183,6 +1183,7 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.ReviewNote).HasMaxLength(500);
             entity.Property(e => e.ReviewedAt).HasPrecision(0);
             entity.Property(e => e.WaitlistExpiresAt).HasPrecision(0);
+            entity.Property(e => e.PromotionLinkId).HasColumnName("PromotionLinkID");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'DRAFT'");
@@ -1267,6 +1268,7 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.InviteCode).HasMaxLength(20);
             entity.Property(e => e.InviteExpiresAt).HasColumnType("datetime");
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)

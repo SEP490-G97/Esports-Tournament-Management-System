@@ -91,16 +91,14 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
-        var me;
-        try {
-            me = await Api.get('/api/dev-auth/me');
-        } catch (error) {
-            showFailure(error, 'Không thể xác định tài khoản hiện tại.');
-            document.getElementById('register-panel').hidden = true;
-            return;
-        }
-        if (!me.isAuthenticated || !Number(me.userId)) {
-            location.href = '/dev-auth/index.html?returnUrl=' + encodeURIComponent(location.pathname + location.search);
+        var me = await Ui.requireAuth();
+        if (!me) return;
+        // Đơn vị tổ chức gồm các tài khoản Ban tổ chức — tuyển thủ/Admin không lập đơn vị (máy chủ cũng chặn).
+        if (me.role !== 'ORGANIZER') {
+            var main = document.querySelector('main');
+            main.innerHTML = '<div class="card-etoms mt-4"><div class="empty"><h3>Chỉ tài khoản Ban tổ chức được lập đơn vị</h3>' +
+                '<p>Muốn tổ chức giải, hãy gửi yêu cầu làm Ban tổ chức ở Hồ sơ cá nhân. Admin sẽ cấp tài khoản Ban tổ chức riêng cho bạn.</p>' +
+                '<a class="btn btn-primary mt-2" href="/profile/index.html#organizer-request">Xin làm Ban tổ chức</a></div></div>';
             return;
         }
         accountId = Number(me.userId);
@@ -132,8 +130,7 @@
                 ContactPhone: data.get('ContactPhone') || null,
                 WebsiteUrl: data.get('WebsiteUrl') || null,
                 LogoUrl: data.get('LogoUrl') || null,
-                Description: data.get('Description') || null,
-                CreatedByAccountId: accountId
+                Description: data.get('Description') || null
             };
             var submitButton = form.querySelector('[type="submit"]');
             submitButton.disabled = true;

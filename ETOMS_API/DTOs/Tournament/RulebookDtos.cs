@@ -12,6 +12,8 @@ public class RulebookDto
     public int CurrentVersion { get; set; }
     public string? Content { get; set; }
     public bool CanEdit { get; set; }
+    // File PDF thể lệ (nếu BTC tải lên), null nếu chỉ có nội dung soạn trên web.
+    public string? PdfUrl { get; set; }
 }
 
 // Một dòng trong lịch sử phiên bản. SavedAt = null khi bản đó được lưu trước khi có nhật ký.

@@ -5,6 +5,10 @@ public class BracketMatchDto
 {
     public int BracketNodeId { get; set; }
     public int? MatchId { get; set; }
+    // Loại kép: 1 = nhánh thắng, 2 = nhánh thua, 3 = chung kết tổng (xem DoubleElimination.cs).
+    public int StageNo { get; set; } = 1;
+    // Nhãn trận theo nhánh khi giải Loại kép; null với các thể thức khác.
+    public string? BracketLabel { get; set; }
     public string StageType { get; set; } = string.Empty; // GROUP | KNOCKOUT
     public string? GroupLabel { get; set; }
     public int RoundNo { get; set; }
@@ -20,7 +24,7 @@ public class BracketMatchDto
 
     public string RoundLabel => StageType == "GROUP"
         ? $"Bảng {GroupLabel} · Vòng {RoundNo}"
-        : $"Vòng {RoundNo}";
+        : BracketLabel ?? $"Vòng {RoundNo}";
 
     public bool IsReadyToPick => !IsBye && TeamAId.HasValue && TeamBId.HasValue && !WinnerTeamId.HasValue;
 }
@@ -34,6 +38,9 @@ public class BracketTreeDto
     public bool IsLocked { get; set; }
     public DateTime? LockedAt { get; set; }
     public int ApprovedTeamCount { get; set; }
+    // UC-20: còn nhận đăng ký thì chưa được sinh nhánh (giao diện khóa nút, máy chủ cũng chặn).
+    public DateTime RegCloseAt { get; set; }
+    public bool RegistrationStillOpen { get; set; }
     public List<BracketMatchDto> Matches { get; set; } = new();
 
     public bool HasBracket => Matches.Count > 0;

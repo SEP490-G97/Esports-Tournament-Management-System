@@ -52,7 +52,7 @@
             var paymentRecords = (item.paymentRecords || []).map(function (record) {
                 return '<div class="item-sub">' + Ui.escapeHtml(record.recordKind === 'REFUND' ? 'Hoàn tiền' : 'Biên lai') +
                     (record.declaredAmount !== null ? ' · ' + Number(record.declaredAmount).toLocaleString('vi-VN') + ' đ' : '') +
-                    (record.downloadUrl ? ' · <a href="' + Ui.escapeHtml(record.downloadUrl) + '">Tải tệp</a>' : '') +
+                    (record.downloadUrl ? ' · <a href="' + Ui.escapeHtml(record.downloadUrl) + '" data-private-file="' + Ui.escapeHtml(record.fileName || 'bien-lai') + '">Xem tệp</a>' : '') +
                     (record.note ? ' · ' + Ui.escapeHtml(record.note) : '') + '</div>';
             }).join('');
             var offer = item.waitlistExpiresAt
@@ -62,7 +62,6 @@
             var proof = item.paymentStatus === 'UNPAID' && item.requirePaymentProof && item.entryFee > 0
                 ? '<form class="payment-proof-form" data-registration-id="' + item.registrationId + '">' +
                     '<label>Biên lai lệ phí <input class="input" name="file" type="file" accept=".jpg,.jpeg,.png,.pdf" required /></label>' +
-                    '<label>Số tiền khai báo <input class="input" name="declaredAmount" type="number" min="0" step="0.01" /></label>' +
                     '<button class="btn btn-ghost" type="submit">Tải biên lai</button></form>'
                 : '';
             var withdraw = canWithdraw(item.status)
@@ -102,7 +101,8 @@
         });
         root.querySelectorAll('[data-withdraw]').forEach(function (button) {
             button.addEventListener('click', async function () {
-                if (!window.confirm('Rút đơn sẽ giải phóng suất và không thể khôi phục. Bạn có muốn tiếp tục?')) return;
+                if (!(await window.etomsConfirm('Rút đơn sẽ giải phóng suất và không thể khôi phục. Bạn có muốn tiếp tục?',
+                    { title: 'Rút đơn đăng ký', okText: 'Rút đơn' }))) return;
                 button.disabled = true;
                 try {
                     var result = await Api.post('/api/registrations/' + button.dataset.withdraw + '/withdraw', {});
@@ -121,7 +121,6 @@
                 if (!file) return;
                 var body = new FormData();
                 body.append('file', file);
-                if (form.elements.declaredAmount.value) body.append('declaredAmount', form.elements.declaredAmount.value);
                 var button = form.querySelector('[type="submit"]');
                 button.disabled = true;
                 try {
@@ -171,7 +170,10 @@
         applyFilters();
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth(['PLAYER']);
+        if (!me) return;
+
         document.getElementById('registration-status-filter').addEventListener('change', applyFilters);
         document.getElementById('registration-search').addEventListener('input', applyFilters);
         load();

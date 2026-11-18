@@ -38,22 +38,14 @@
     }
 
     function render(versions) {
+        // Người xem đọc MỘT bản (bản hiện hành); chỉ khi có nhiều phiên bản mới hiện ô chọn để xem bản cũ.
         var newest = versions[0].version;
-        var older = versions.length > 1 ? versions[1].version : newest;
-
         document.getElementById('history-root').innerHTML =
-            '<div class="rulebook-compare">' +
-            '<div class="card-etoms"><div class="body"><div class="field">' + selectHtml('version-left', versions, older) + '</div>' +
-            '<div id="content-left" class="rulebook-content"></div></div></div>' +
-            '<div class="card-etoms"><div class="body"><div class="field">' + selectHtml('version-right', versions, newest) + '</div>' +
-            '<div id="content-right" class="rulebook-content"></div></div></div>' +
-            '</div>';
-
-        var left = document.getElementById('version-left');
+            '<div class="card-etoms"><div class="body">' +
+            (versions.length > 1 ? '<div class="field rulebook-version-pick">' + selectHtml('version-right', versions, newest) + '</div>' : '') +
+            '<div id="content-right" class="rulebook-content"></div></div></div>';
         var right = document.getElementById('version-right');
-        left.addEventListener('change', function () { loadInto('content-left', left.value); });
-        right.addEventListener('change', function () { loadInto('content-right', right.value); });
-        loadInto('content-left', older);
+        if (right) right.addEventListener('change', function () { loadInto('content-right', right.value); });
         loadInto('content-right', newest);
     }
 
@@ -69,11 +61,17 @@
             document.getElementById('page-title').textContent = 'Thể lệ giải ' + rulebook.tournamentName;
 
             var versions = await Api.get('/api/tournaments/' + tournamentId + '/rulebook/versions');
-            if (!versions.length) {
+            var pdf = Ui.safeUrl(rulebook.pdfUrl);
+            // File PDF thể lệ (nếu Ban tổ chức tải lên) hiện ngay đầu trang.
+            var pdfBar = pdf ? '<div class="card-etoms mb-3"><div class="body d-flex flex-wrap align-items-center justify-content-between gap-2">' +
+                '<span>Thể lệ đầy đủ dạng file PDF</span><a class="btn btn-primary btn-sm" href="' + Ui.escapeHtml(pdf) + '" target="_blank" rel="noopener">Mở file PDF</a></div></div>' : '';
+            if (!versions.length || (!rulebook.content && versions.length <= 1)) {
+                if (pdf) { document.getElementById('history-root').innerHTML = pdfBar; return; }
                 showEmpty('Giải chưa có thể lệ', 'Ban tổ chức chưa đăng thể lệ cho giải này.');
                 return;
             }
             render(versions);
+            if (pdfBar) document.getElementById('history-root').insertAdjacentHTML('afterbegin', pdfBar);
         } catch (err) {
             if (err.status === 404) showEmpty('Không tìm thấy giải đấu', 'Giải không tồn tại hoặc chưa được công khai.');
             else showEmpty('Không tải được thể lệ', err.message);

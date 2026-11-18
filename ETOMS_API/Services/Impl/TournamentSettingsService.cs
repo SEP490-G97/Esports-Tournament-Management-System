@@ -60,7 +60,7 @@ public class TournamentSettingsService : ITournamentSettingsService
         {
             (Info, "Description", Clean(v.Description) != t.Description),
             (Info, "BannerUrl", Clean(v.BannerUrl) != t.BannerUrl),
-            (Info, "OrganizingUnit", Clean(v.OrganizingUnit) != t.OrganizingUnit),
+            // OrganizingUnit gắn với tài khoản tạo giải (bước 1) — không sửa ở đây.
             (Info, "Region", Clean(v.Region) != t.Region),
             (Info, "ContactInfo", Clean(v.ContactInfo) != t.ContactInfo),
             (Info, "IsOnline", v.IsOnline != t.IsOnline),
@@ -105,7 +105,15 @@ public class TournamentSettingsService : ITournamentSettingsService
         if (string.IsNullOrWhiteSpace(v.Name)) return Fail("Name", "Vui lòng nhập tên giải.");
         if (Changed("GameId") && !await _uow.Repository<Game>().AnyAsync(g => g.GameId == v.GameId && g.Status == "ACTIVE"))
             return Fail("GameId", "Tựa game không tồn tại hoặc đã ngừng hoạt động.");
-        if ((Changed("EntryFee") || Changed("BankAccountInfo")) && v.EntryFee > 0 && Clean(v.BankAccountInfo) is null)
+        // Tài khoản nhận phí: chỉ kiểm khi người dùng sửa nó (dữ liệu cũ nhập tay vẫn giữ nguyên nếu không đụng tới).
+        var bankInfo = Clean(v.BankAccountInfo);
+        if (Changed("BankAccountInfo"))
+        {
+            var bankError = BankAccount.Validate(v.EntryFee, bankInfo, out var normalizedBank);
+            if (bankError is not null) return Fail("BankAccountInfo", bankError);
+            bankInfo = normalizedBank;
+        }
+        else if (Changed("EntryFee") && v.EntryFee > 0 && bankInfo is null)
             return Fail("BankAccountInfo", "Giải có lệ phí phải ghi tài khoản nhận lệ phí.");
         if (Changed("StarterCount") || Changed("MaxSubstitutes"))
         {
@@ -136,9 +144,7 @@ public class TournamentSettingsService : ITournamentSettingsService
         var newEnd = Changed("EndAt") ? end : (t.EndAt is DateTime oe ? Utc(oe) : null);
         if (timelineChanged)
         {
-            if (newOpen >= newClose) return Fail("RegCloseAt", "Thời gian đóng đăng ký phải sau thời gian mở đăng ký.");
-            if (newClose >= newStart) return Fail("RegCloseAt", "Thời gian đóng đăng ký phải trước ngày khai mạc.");
-            if (newEnd is DateTime endAt && endAt < newStart) return Fail("EndAt", "Ngày kết thúc không được trước ngày khai mạc.");
+            if (TournamentTimeline.Check(newOpen, newClose, newStart, newEnd) is { } bad) return Fail(bad.Field, bad.Message);
         }
         if (Changed("MaxTeams"))
         {
@@ -162,7 +168,7 @@ public class TournamentSettingsService : ITournamentSettingsService
 
         t.Description = Clean(v.Description);
         t.BannerUrl = banner;
-        t.OrganizingUnit = Clean(v.OrganizingUnit);
+        // t.OrganizingUnit giữ nguyên: đơn vị tổ chức gắn với tài khoản tạo giải, không cho gõ lại.
         t.Region = Clean(v.Region);
         t.ContactInfo = Clean(v.ContactInfo);
         t.IsOnline = v.IsOnline;
@@ -171,7 +177,7 @@ public class TournamentSettingsService : ITournamentSettingsService
         if (Changed("GameId")) await DropRulesetLinkAsync(t.TournamentId);
         t.GameId = v.GameId;
         t.EntryFee = v.EntryFee;
-        t.BankAccountInfo = Clean(v.BankAccountInfo);
+        t.BankAccountInfo = bankInfo;
         t.PrizeStructure = Clean(v.PrizeStructure);
         t.RequirePaymentProof = v.RequirePaymentProof;
         t.RequireInGameName = v.RequireInGameName;

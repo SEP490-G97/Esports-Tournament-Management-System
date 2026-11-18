@@ -47,7 +47,12 @@ public class RulebookService : IRulebookService
             Version = tournament.RulebookVersion,
             CurrentVersion = tournament.RulebookVersion,
             Content = SanitizeForDisplay(tournament.RulebookContent),
-            CanEdit = tournament.OrganizerAccountId == viewerAccountId && IsEditable(tournament)
+            CanEdit = tournament.OrganizerAccountId == viewerAccountId && IsEditable(tournament),
+            // File PDF thể lệ mới nhất (Attachment OwnerType = TOURNAMENT, FileType = DOCUMENT) — công khai như thể lệ.
+            PdfUrl = await _uow.Repository<Attachment>().Query()
+                .Where(a => a.OwnerType == "TOURNAMENT" && a.OwnerId == tournamentId && a.FileType == "DOCUMENT")
+                .OrderByDescending(a => a.UploadedAt).ThenByDescending(a => a.AttachmentId)
+                .Select(a => a.FileUrl).FirstOrDefaultAsync()
         };
 
         if (version is null || version == tournament.RulebookVersion) return dto;
@@ -84,6 +89,44 @@ public class RulebookService : IRulebookService
 
     // ===== TOUR-08: Lưu thể lệ. Giải còn nháp giữ nguyên phiên bản vì chưa đội nào xem được;
     // từ khi xuất bản, mỗi lần đổi nội dung tăng 1 và báo cho các đội đã đăng ký =====
+    // Thể lệ dạng file PDF (bước "Thể lệ" khi tạo giải / Sửa thông tin). Lưu công khai trong wwwroot/uploads/rulebooks
+    // (thể lệ là thông tin công khai), ghi Attachment để biết ai tải lúc nào. Bản mới thay bản cũ khi hiển thị.
+    public const long MaxRulebookPdfBytes = 10 * 1024 * 1024;
+
+    public async Task<Result<string>> UploadRulebookPdfAsync(int tournamentId, IFormFile? file, int organizerAccountId, string webRootPath)
+    {
+        var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
+        if (tournament is null) return Result.Failure<string>("Không tìm thấy giải đấu.", StatusCodes.Status404NotFound);
+        if (tournament.OrganizerAccountId != organizerAccountId)
+            return Result.Failure<string>("Chỉ Ban tổ chức của giải được tải thể lệ.", StatusCodes.Status403Forbidden);
+        if (!IsEditable(tournament)) return Result.Failure<string>("Giải đã kết thúc hoặc đã hủy, không thể sửa thể lệ.");
+        if (file is null || file.Length == 0) return Result<string>.FieldFailure("file", "Hãy chọn file PDF thể lệ.");
+        if (file.Length > MaxRulebookPdfBytes) return Result<string>.FieldFailure("file", "File PDF tối đa 10 MB.");
+        if (!string.Equals(Path.GetExtension(file.FileName), ".pdf", StringComparison.OrdinalIgnoreCase))
+            return Result<string>.FieldFailure("file", "Chỉ nhận file .pdf.");
+        var head = new byte[5];
+        await using (var s = file.OpenReadStream())
+        {
+            var read = await s.ReadAsync(head);
+            if (read < 5 || head[0] != '%' || head[1] != 'P' || head[2] != 'D' || head[3] != 'F' || head[4] != '-')
+                return Result<string>.FieldFailure("file", "File không phải PDF hợp lệ.");
+        }
+
+        var dir = Path.Combine(webRootPath, "uploads", "rulebooks");
+        Directory.CreateDirectory(dir);
+        var name = $"{tournamentId}-{Guid.NewGuid():N}.pdf";
+        await using (var target = new FileStream(Path.Combine(dir, name), FileMode.CreateNew, FileAccess.Write))
+            await file.CopyToAsync(target);
+        var url = "/uploads/rulebooks/" + name;
+        await _uow.Repository<Attachment>().AddAsync(new Attachment
+        {
+            OwnerType = "TOURNAMENT", OwnerId = tournamentId, FileUrl = url, FileType = "DOCUMENT",
+            SizeBytes = file.Length, UploadedByAccountId = organizerAccountId, UploadedAt = DateTime.UtcNow
+        });
+        await _uow.SaveChangesAsync();
+        return Result.Success(url, "Đã tải file PDF thể lệ.");
+    }
+
     public async Task<Result<RulebookSavedDto>> SaveRulebookAsync(int tournamentId, SaveRulebookRequest request, int organizerAccountId)
     {
         var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);

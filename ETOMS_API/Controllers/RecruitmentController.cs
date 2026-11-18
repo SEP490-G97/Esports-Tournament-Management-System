@@ -1,52 +1,60 @@
-﻿using System.Security.Claims;
-using ETOMS_API.DTOs.Recruitment;
+﻿using ETOMS_API.DTOs.Recruitment;
 using ETOMS_API.Services.Interface;
+using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers
 {
+    // STUB TẠM sửa lại kiểm quyền thay module FA (Nguyễn Quang Anh) — GetCurrentAccountId() cũ
+    // đọc sai claim (luôn ra 0 cho mọi người, kể cả JWT thật), nên mọi hành động ở đây trước
+    // giờ chạy như tài khoản 0 không tồn tại. Không phải bài làm cá nhân của Quang Anh.
     [ApiController]
     [Route("api/[controller]")]
     public class RecruitmentController : ControllerBase
     {
         private readonly IRecruitmentService _recruitmentService;
+        private readonly ICurrentUser _currentUser;
 
-        public RecruitmentController(IRecruitmentService recruitmentService)
+        public RecruitmentController(IRecruitmentService recruitmentService, ICurrentUser currentUser)
         {
             _recruitmentService = recruitmentService;
+            _currentUser = currentUser;
         }
 
-        private int GetCurrentAccountId()
+        private bool TryGetAccountId(out int accountId)
         {
-            return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            accountId = _currentUser.UserId ?? 0;
+            return _currentUser.IsAuthenticated;
         }
 
         [HttpPost("lfp")]
         public async Task<IActionResult> CreateLFP([FromBody] CreateLFPPostDto dto)
         {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
             try
             {
-                int postId = await _recruitmentService.CreateLFPPostAsync(GetCurrentAccountId(), dto);
+                int postId = await _recruitmentService.CreateLFPPostAsync(accountId, dto);
                 return CreatedAtAction(nameof(CreateLFP), new { id = postId }, new { Message = "Đăng tin LFP thành công", PostId = postId });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
 
         [HttpPost("lft")]
         public async Task<IActionResult> CreateLFT([FromBody] CreateLFTPostDto dto)
         {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
             try
             {
-                int postId = await _recruitmentService.CreateLFTPostAsync(GetCurrentAccountId(), dto);
+                int postId = await _recruitmentService.CreateLFTPostAsync(accountId, dto);
                 return CreatedAtAction(nameof(CreateLFT), new { id = postId }, new { Message = "Đăng tin LFT thành công", PostId = postId });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
 
@@ -61,42 +69,68 @@ namespace ETOMS_API.Controllers
         [HttpPost("apply")]
         public async Task<IActionResult> Apply([FromBody] ApplyLFPPostDto dto)
         {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
             try
             {
-                await _recruitmentService.ApplyToLFPAsync(GetCurrentAccountId(), dto);
+                await _recruitmentService.ApplyToLFPAsync(accountId, dto);
                 return Ok(new { Message = "Gửi đơn ứng tuyển thành công." });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
 
         [HttpPost("applications/{requestId}/review")]
         public async Task<IActionResult> ReviewApplication(int requestId, [FromBody] ReviewApplicationDto dto)
         {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
             try
             {
-                await _recruitmentService.ReviewApplicationAsync(GetCurrentAccountId(), requestId, dto);
+                await _recruitmentService.ReviewApplicationAsync(accountId, requestId, dto);
                 return Ok(new { Message = "Xử lý đơn ứng tuyển thành công." });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
+            }
+        }
+
+        // Đơn ứng tuyển đang chờ của tôi (Hồ sơ; trang Tìm đội ẩn nút "Ứng tuyển" với đội đã nộp).
+        [HttpGet("my-applications")]
+        public async Task<IActionResult> MyApplications()
+        {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
+            return Ok(await _recruitmentService.GetMyApplicationsAsync(accountId));
+        }
+
+        [HttpPost("applications/{teamMemberId:int}/withdraw")]
+        public async Task<IActionResult> WithdrawApplication(int teamMemberId)
+        {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
+            try
+            {
+                await _recruitmentService.WithdrawApplicationAsync(accountId, teamMemberId);
+                return Ok(new { Message = "Đã rút đơn ứng tuyển." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
 
         [HttpPost("invite")]
         public async Task<IActionResult> InvitePlayer([FromBody] InviteFreeAgentDto dto)
         {
+            if (!TryGetAccountId(out var accountId)) return Unauthorized();
             try
             {
-                await _recruitmentService.InviteFreeAgentAsync(GetCurrentAccountId(), dto);
+                await _recruitmentService.InviteFreeAgentAsync(accountId, dto);
                 return Ok(new { Message = "Đã gửi lời mời tới người chơi." });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { Message = UserErrorMessage.From(ex) });
             }
         }
     }

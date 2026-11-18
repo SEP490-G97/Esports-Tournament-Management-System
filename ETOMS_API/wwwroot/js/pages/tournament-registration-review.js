@@ -20,7 +20,7 @@
         return (item.lineup || []).map(function (member) {
             var documents = (member.identityDocumentCredentialIds || []).map(function (credentialId) {
                 return '<a href="/api/registrations/' + item.registrationId + '/players/' + member.accountId +
-                    '/identity-documents/' + credentialId + '">Mở giấy tờ định danh</a>';
+                    '/identity-documents/' + credentialId + '" data-private-file="giay-to-dinh-danh">Mở giấy tờ định danh</a>';
             }).join(' · ');
             return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(member.fullName) +
                 ' · ' + Ui.escapeHtml(member.slot === 'STARTER' ? 'Chính thức' : 'Dự bị') + '</div>' +
@@ -32,16 +32,18 @@
 
     async function loadDisciplineHistory(items) {
         await Promise.all(items.map(async function (item) {
-            var card = root.querySelector('[data-registration-id="' + item.registrationId + '"]');
+            var card = root.querySelector('article[data-registration-id="' + item.registrationId + '"]');
             if (!card) return;
             try {
                 var response = await Api.get('/api/tournaments/' + tournamentId + '/registrations/' + item.registrationId);
                 var history = response.data.disciplineHistory || [];
                 card.querySelector('.discipline-history').innerHTML = history.length
                     ? history.map(function (penalty) {
+                        var severity = { WARNING: 'Cảnh cáo', MINOR: 'Lỗi nhẹ', MAJOR: 'Lỗi nặng', DISQUALIFICATION: 'Tước quyền thi đấu', CANCELLATION: 'Hủy kết quả' }[penalty.severity] || penalty.severity;
+                        var state = { ACTIVE: 'Còn hiệu lực', EXPIRED: 'Hết hiệu lực', CANCELLED: 'Đã hủy' }[penalty.status] || penalty.status;
                         return '<div class="item-sub">' + Ui.escapeHtml(penalty.tournamentName) + ' · ' +
-                            Ui.escapeHtml(penalty.severity) + ' · ' + Number(penalty.points) + ' điểm · ' +
-                            Ui.escapeHtml(penalty.reason) + ' · ' + Ui.escapeHtml(penalty.status) + '</div>';
+                            Ui.escapeHtml(severity) + ' · ' + Number(penalty.points) + ' điểm · ' +
+                            Ui.escapeHtml(penalty.reason) + ' · ' + Ui.escapeHtml(state) + '</div>';
                     }).join('')
                     : '<div class="item-sub">Không có ghi nhận kỷ luật trước đây.</div>';
             } catch (error) {
@@ -82,11 +84,7 @@
             '<p>Thử đổi bộ lọc hoặc quay lại sau khi có đội gửi đăng ký.</p></div></div>';
 
         loadDisciplineHistory(items);
-        if (window.RegistrationReviewTieBreakers) {
-            window.RegistrationReviewTieBreakers.render(
-                summary.tieBreakerOrder || [],
-                context);
-        }
+        // Tiêu chí phân định (BRK-07) không thuộc việc duyệt đơn — cấu hình ở trang Chia nhánh > "Tiêu chí phân định".
         if (window.RegistrationReviewDecisions) {
             window.RegistrationReviewDecisions.render(root, items, context);
         }
@@ -98,9 +96,19 @@
         }
     }
 
+    function hideManagementUi(message) {
+        ['dev-banner', 'review-toolbar', 'review-list-section'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        flash.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Không có quyền truy cập</h3>' +
+            '<p>' + Ui.escapeHtml(message) + '</p>' +
+            '<a class="btn btn-ghost mt-3" href="/registration/organizer.html">Về Giải của tôi</a></div></div>';
+    }
+
     async function load() {
         if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
-            Ui.showAlert(flash, 'danger', 'Liên kết thiếu mã giải hợp lệ.');
+            hideManagementUi('Liên kết thiếu mã giải hợp lệ.');
             return;
         }
         try {
@@ -110,8 +118,12 @@
             var response = await Api.get('/api/tournaments/' + tournamentId + '/registrations?' + params.toString());
             render(response.data.registrations || [], response.data);
         } catch (error) {
-            root.innerHTML = '';
-            Ui.showAlert(flash, 'danger', error.message || 'Không thể tải danh sách đăng ký.');
+            if (error.status === 404 || error.status === 403) {
+                hideManagementUi(error.message || 'Bạn không có quyền quản lý giải này.');
+            } else {
+                root.innerHTML = '';
+                Ui.showAlert(flash, 'danger', error.message || 'Không thể tải danh sách đăng ký.');
+            }
         }
     }
 
@@ -124,12 +136,25 @@
 
     var searchTimer;
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth();
+        if (!me) return;
+
         document.getElementById('status-filter').addEventListener('change', load);
         document.getElementById('team-search').addEventListener('input', function () {
             window.clearTimeout(searchTimer);
             searchTimer = window.setTimeout(load, 250);
         });
         load();
+
+        // Mục 10 (17/11): đội nộp đơn/giấy tờ mới thì Ban tổ chức thấy mà không cần tải lại trang — hỏi lại máy chủ
+        // mỗi 30 giây khi tab đang mở. Bỏ qua lượt làm mới nếu đang gõ lý do / ghi chú để không mất chữ đang nhập.
+        window.setInterval(function () {
+            if (document.visibilityState !== 'visible') return;
+            var typing = Array.from(root.querySelectorAll('input, textarea')).some(function (el) {
+                return el === document.activeElement || (el.type !== 'file' && el.value);
+            });
+            if (!typing) load();
+        }, 30000);
     });
 })();

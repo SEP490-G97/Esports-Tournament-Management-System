@@ -1,5 +1,12 @@
 (function () {
-    var tournamentId = Number(new URLSearchParams(location.search).get('tournamentId'));
+    var query = new URLSearchParams(location.search);
+    var tournamentId = Number(query.get('tournamentId'));
+    var promotionLinkCode = query.get('ref')
+        || localStorage.getItem('etoms-affiliate-code:' + tournamentId);
+    if (promotionLinkCode) {
+        promotionLinkCode = promotionLinkCode.trim().toUpperCase();
+        localStorage.setItem('etoms-affiliate-code:' + tournamentId, promotionLinkCode);
+    }
     var options;
     var draftRegistrationId = Number(new URLSearchParams(location.search).get('draftRegistrationId')) || null;
     var flash = document.getElementById('registration-flash');
@@ -12,9 +19,30 @@
         return value ? new Date(value).toLocaleString('vi-VN') : '—';
     }
 
+    function isTeamEligible(team) { return team.members.length >= options.starterCount; }
+
+    // Lý do không đăng ký được: hiện ngay dưới ô chọn đội, kèm lối tắt tới trang mời thành viên.
+    function renderTeamWarning() {
+        var box = document.getElementById('team-eligibility');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'team-eligibility';
+            box.setAttribute('role', 'status');
+            document.getElementById('team-select').insertAdjacentElement('afterend', box);
+        }
+        var short = options.teams.filter(function (t) { return !isTeamEligible(t); });
+        if (!short.length) { box.innerHTML = ''; return; }
+        box.innerHTML = '<div class="alert alert-warning mt-2 mb-0" style="font-size:.9rem">' +
+            'Giải yêu cầu đúng <strong>' + options.starterCount + '</strong> tuyển thủ chính thức. ' +
+            short.map(function (t) {
+                return '<strong>' + Ui.escapeHtml(t.teamName) + '</strong> mới có ' + t.members.length + ' thành viên — ' +
+                    '<a href="/team/invites.html?id=' + t.teamId + '">tạo mã mời thêm thành viên</a>';
+            }).join('; ') + '.</div>';
+    }
+
     function renderRoster() {
         var selectedTeamId = Number(document.getElementById('team-select').value);
-        var team = options.teams.find(function (item) { return item.teamId === selectedTeamId; });
+        var team = options.teams.find(function (item) { return item.teamId === selectedTeamId && isTeamEligible(item); });
         var root = document.getElementById('roster-list');
         if (!team) {
             root.innerHTML = '<div class="item-sub">Không có đội chưa đăng ký phù hợp với tựa game này.</div>';
@@ -55,13 +83,19 @@
             (options.requireIdentityDocument ? ' bắt buộc cho toàn bộ lineup.' : ' cần được khai báo nếu giải yêu cầu.');
         document.getElementById('rulebook-version').textContent = options.rulebookVersion;
         document.getElementById('rulebook-content').textContent = options.rulebookContent || 'Giải chưa công bố nội dung thể lệ.';
+        // Đội chưa đủ số người chính thức của giải thì vẫn hiện (để đội trưởng biết lý do) nhưng không chọn được.
+        var eligible = options.teams.filter(isTeamEligible);
         document.getElementById('team-select').innerHTML = options.teams.length
             ? options.teams.map(function (team) {
-                return '<option value="' + team.teamId + '">' + Ui.escapeHtml(team.teamName) + ' [' + Ui.escapeHtml(team.teamTag) + ']</option>';
+                var ok = isTeamEligible(team);
+                return '<option value="' + team.teamId + '"' + (ok ? '' : ' disabled') + '>' + Ui.escapeHtml(team.teamName) + ' [' + Ui.escapeHtml(team.teamTag) + ']' +
+                    (ok ? '' : ' — chưa đủ người (' + team.members.length + '/' + options.starterCount + ')') + '</option>';
             }).join('')
             : '<option value="">Không có đội đủ điều kiện</option>';
+        if (eligible.length) document.getElementById('team-select').value = String(eligible[0].teamId);
+        renderTeamWarning();
         document.querySelectorAll('#registration-form [type="submit"]').forEach(function (button) {
-            button.disabled = options.teams.length === 0;
+            button.disabled = eligible.length === 0;
         });
         var draft;
         if (draftRegistrationId) {
@@ -80,7 +114,7 @@
                 : 'Tải biên lai nếu có. ETOMS chỉ lưu bằng chứng, không thực hiện hoặc xác minh giao dịch.';
             var bankInfo = document.getElementById('payment-bank-info');
             bankInfo.textContent = options.bankAccountInfo || 'Ban tổ chức chưa cung cấp thông tin tài khoản nhận lệ phí.';
-            document.getElementById('payment-amount').value = options.entryFee;
+            document.getElementById('payment-amount').value = Number(options.entryFee).toLocaleString('vi-VN') + ' đ';
             document.getElementById('payment-proof').required = options.requirePaymentProof;
             document.getElementById('payment-proof-required').hidden = !options.requirePaymentProof;
         }
@@ -95,6 +129,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
+        var me = await Ui.requireAuth(['PLAYER']);
+        if (!me) return;
+
         try {
             await loadOptions();
         } catch (error) {
@@ -146,8 +183,7 @@
             body.append('lineupJson', JSON.stringify(lineup));
             body.append('saveAsDraft', isDraft ? 'true' : 'false');
             body.append('acceptRulebook', 'true');
-            var amount = document.getElementById('payment-amount').value;
-            if (amount) body.append('declaredAmount', amount);
+            if (promotionLinkCode) body.append('promotionLinkCode', promotionLinkCode);
             if (file && !isDraft) body.append('paymentProof', file);
 
             var button = event.currentTarget.querySelector('[type="submit"]');

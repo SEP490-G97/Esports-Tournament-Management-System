@@ -38,9 +38,9 @@
                 '<td><span class="badge ' + badge[0] + '">' + badge[1] + '</span></td></tr>';
         }).join('');
         return '<div class="refund-wrap"><table class="refund" id="refund-table"><thead><tr>' +
-            '<th>Đội</th><th>Đội trưởng</th><th>Đơn</th><th>Lệ phí</th><th style="text-align:right">Số tiền</th><th>Việc cần làm</th>' +
+            '<th>Đội</th><th>Đội trưởng</th><th>Đơn</th><th>Lệ phí</th><th class="text-end">Số tiền</th><th>Việc cần làm</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
-            '<div class="hint" style="margin-top:10px">ETOMS không chuyển tiền. Ban tổ chức hoàn ngoài hệ thống rồi ghi nhận ở trang đối soát lệ phí; ' +
+            '<div class="hint mt-2">ETOMS không chuyển tiền. Ban tổ chức hoàn ngoài hệ thống rồi ghi nhận ở trang đối soát lệ phí; ' +
             'đội đã gửi biên lai nhưng chưa đối soát cần được xác nhận trước khi ghi nhận hoàn.</div>' +
             '<div class="btn-row">' +
             '<button type="button" class="btn btn-ghost" id="export-refund">Xuất danh sách (CSV)</button>' +
@@ -52,7 +52,7 @@
             ? '<li>' + b.toRefundCount + ' đội đã nộp lệ phí cần được hoàn' + (b.toVerifyCount ? ', ' + b.toVerifyCount + ' đội đã gửi biên lai chưa đối soát' : '') + '. Danh sách ở bên dưới.</li>'
             : '';
         return '<div class="card-etoms danger-card"><div class="body">' +
-            '<div class="section-title" style="margin-top:0">Hủy giải</div>' +
+            '<div class="section-title mt-0">Hủy giải</div>' +
             '<ul class="consequences" style="margin:10px 0 16px;padding-left:20px">' +
             '<li>Giải chuyển sang trạng thái <strong>Đã hủy</strong> và không hoàn tác được.</li>' +
             '<li>' + b.captainCount + ' đội trưởng có đơn đăng ký nhận thông báo kèm lý do.</li>' + refundLine +
@@ -75,9 +75,9 @@
         var top;
         if (b.isCancelled) {
             top = '<div class="card-etoms"><div class="body" id="cancelled-info">' +
-                '<div class="section-title" style="margin-top:0">Giải đã bị hủy</div>' +
+                '<div class="section-title mt-0">Giải đã bị hủy</div>' +
                 '<p style="margin:8px 0 0"><strong>Lý do:</strong> ' + esc(b.cancelReason) + '</p>' +
-                (b.cancelledAt ? '<div class="hint" style="margin-top:6px">Hủy lúc ' + esc(formatTime(b.cancelledAt)) + (b.cancelledByName ? ' bởi ' + esc(b.cancelledByName) : '') + '.</div>' : '') +
+                (b.cancelledAt ? '<div class="hint mt-2">Hủy lúc ' + esc(formatTime(b.cancelledAt)) + (b.cancelledByName ? ' bởi ' + esc(b.cancelledByName) : '') + '.</div>' : '') +
                 '</div></div>';
         } else if (!b.canCancel) {
             top = '<div class="card-etoms"><div class="body"><div class="pending-banner" id="blocked-reason">' + esc(b.blockedReason) + '</div>' +
@@ -88,8 +88,8 @@
 
         var refund = refundHtml(b);
         document.getElementById('cancel-root').innerHTML = top +
-            (refund ? '<div class="card-etoms" style="margin-top:16px"><div class="body">' +
-                '<div class="section-title" style="margin-top:0">Đội cần hoàn lệ phí</div>' + refund + '</div></div>' : '');
+            (refund ? '<div class="card-etoms mt-3"><div class="body">' +
+                '<div class="section-title mt-0">Đội cần hoàn lệ phí</div>' + refund + '</div></div>' : '');
         wire();
     }
 

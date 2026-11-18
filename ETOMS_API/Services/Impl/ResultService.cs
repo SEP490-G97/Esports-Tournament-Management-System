@@ -9,9 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
-// Khóa trong-tiến-trình theo MatchID — chống race condition khi 2 đội trưởng nộp báo cáo gần như
-// cùng lúc (RES-02/UC-28). Ứng dụng chạy 1 tiến trình (không scale ngang) nên khóa trong bộ nhớ
-// là đủ; nếu sau này triển khai nhiều instance thì phải đổi sang khóa ở tầng DB (sp_getapplock).
+// Khóa trong-tiến-trình theo MatchID — chống race khi 2 đội trưởng nộp báo cáo cùng lúc (RES-02).
+// Chỉ chạy 1 instance nên khóa bộ nhớ là đủ; nhiều instance thì phải đổi sang khóa tầng DB.
 internal static class MatchReconcileLock
 {
     private static readonly ConcurrentDictionary<int, SemaphoreSlim> Locks = new();
@@ -54,6 +53,12 @@ public class ResultService : IResultService
             canSubmit = false;
             reason = "Đội của bạn đã nộp báo cáo cho trận này.";
         }
+        else if (ReportDeadline.HasPassed(match.ReportDeadlineAt, DateTime.UtcNow))
+        {
+            // UC-27 E3 / UC-29: cửa sổ báo cáo đã đóng.
+            canSubmit = false;
+            reason = ReportDeadline.ClosedMessage;
+        }
         else if (opponentTeamId is null)
         {
             canSubmit = false;
@@ -69,6 +74,7 @@ public class ResultService : IResultService
             MyTeamName = (myTeamId == match.TeamAid ? match.TeamA?.Name : match.TeamB?.Name) ?? "",
             OpponentTeamName = (opponentTeamId == match.TeamAid ? match.TeamA?.Name : match.TeamB?.Name) ?? "— chưa xác định —",
             MatchStatus = match.Status,
+            ReportDeadlineAt = match.ReportDeadlineAt,
             AlreadyReported = alreadyReported,
             CanSubmit = canSubmit,
             CannotSubmitReason = reason
@@ -89,6 +95,10 @@ public class ResultService : IResultService
         // E1 (MSG-RES-001) — BR-RES-01: đúng một báo cáo cho một đội trong một trận, không sửa/rút lại.
         if (await _uow.Repository<MatchReport>().AnyAsync(r => r.MatchId == matchId && r.TeamId == myTeamId.Value))
             return Result.Failure("Đội của bạn đã nộp báo cáo cho trận này.");
+
+        // E3 (MSG-MAT-002): hết hạn trong lúc đội trưởng đang điền form → từ chối, UC-29 tiếp quản.
+        if (ReportDeadline.HasPassed(match.ReportDeadlineAt, DateTime.UtcNow))
+            return Result.Failure(ReportDeadline.ClosedMessage);
 
         // E2 (MSG-RES-003)
         if (evidenceFiles.Count == 0)
@@ -207,12 +217,119 @@ public class ResultService : IResultService
         }
     }
 
+    // ===== RES-03 (UC-29) — đóng cửa sổ báo cáo khi quá hạn =====
+    // Trận đang đá (READY/LIVE, chưa có báo cáo) hoặc đã có đúng một báo cáo (WAITING_REPORT).
+    // PENDING không thuộc job này: chưa đủ hai đội check-in là việc của UC-23 (xử thua do vắng mặt).
+    private static readonly string[] ReportableStatuses = { "READY", "LIVE", "WAITING_REPORT" };
+
+    public async Task<IReadOnlyList<int>> GetOverdueReportMatchIdsAsync(DateTime nowUtc, CancellationToken ct = default)
+    {
+        // Chỉ trận CÓ hạn: trận xếp giờ trước khi có RES-03 không có hạn nên không bị tự đóng.
+        return await _uow.Repository<Match>().Query()
+            .Where(m => m.ReportDeadlineAt != null && m.ReportDeadlineAt <= nowUtc && ReportableStatuses.Contains(m.Status))
+            .OrderBy(m => m.ReportDeadlineAt)
+            .Select(m => m.MatchId)
+            .Take(100)
+            .ToListAsync(ct);
+    }
+
+    // Trả về true khi đã đóng cửa sổ và mở tranh chấp. Gọi trong MatchReconcileLock để không chen với
+    // lần đối chiếu của RES-02 khi đội thứ hai nộp đúng lúc hết hạn.
+    public async Task<bool> CloseReportWindowAsync(int matchId, DateTime nowUtc, CancellationToken ct = default)
+    {
+        var sem = MatchReconcileLock.Get(matchId);
+        await sem.WaitAsync(ct);
+        try
+        {
+            var match = await _uow.Repository<Match>().Query()
+                .Include(m => m.Tournament).Include(m => m.TeamA).Include(m => m.TeamB)
+                .FirstOrDefaultAsync(m => m.MatchId == matchId, ct);
+            // E1: giữa lúc hết hạn và lúc job chạy, trận đã được phân xử/đổi trạng thái → để nguyên.
+            if (match is null || !ReportableStatuses.Contains(match.Status)
+                || !ReportDeadline.HasPassed(match.ReportDeadlineAt, nowUtc))
+                return false;
+
+            var reports = await _uow.Repository<MatchReport>().Query()
+                .Where(r => r.MatchId == matchId).ToListAsync(ct);
+            if (reports.Count >= 2) return false; // đủ hai bản thì RES-02 đối chiếu, không phải quá hạn
+
+            // BR-RES-07: mỗi trận chỉ một tranh chấp đang mở.
+            if (await _uow.Repository<Dispute>().AnyAsync(d => d.MatchId == matchId && d.Status != "RESOLVED" && d.Status != "CLOSED"))
+                return false;
+
+            match.Status = "DISPUTED";
+            _uow.Repository<Match>().Update(match);
+            // A1: không đội nào nộp thì tranh chấp mở mà không kèm báo cáo nào.
+            var dispute = new Dispute { MatchId = matchId, OpenReason = "REPORT_TIMEOUT", Status = "OPEN", AppealStatus = "NONE", OpenedAt = nowUtc };
+            await _uow.Repository<Dispute>().AddAsync(dispute);
+            await _uow.SaveChangesAsync(); // cần DisputeId cho đường dẫn trong thông báo
+
+            await NotifyReportTimeoutAsync(match, reports, dispute.DisputeId, nowUtc);
+            await _uow.SaveChangesAsync();
+            return true;
+        }
+        finally { sem.Release(); }
+    }
+
+    private async Task NotifyReportTimeoutAsync(Match match, List<MatchReport> reports, int disputeId, DateTime nowUtc)
+    {
+        string teamA = match.TeamA?.Name ?? "Đội A", teamB = match.TeamB?.Name ?? "Đội B";
+        string label = $"{teamA} vs {teamB} ({match.Tournament.Name})";
+        string deadline = match.ReportDeadlineAt!.Value.AddHours(7).ToString("HH:mm dd/MM/yyyy");
+
+        // Bước 4: nói rõ trận dừng vì THIẾU báo cáo, và đội nào thiếu.
+        string missing = reports.Count == 0
+            ? "cả hai đội đều chưa nộp báo cáo kết quả"
+            : $"đội {(reports[0].TeamId == match.TeamAid ? teamB : teamA)} chưa nộp báo cáo kết quả " +
+              $"(đội {(reports[0].TeamId == match.TeamAid ? teamA : teamB)} đã nộp)";
+        string adjudicatorRole = match.RefereeAccountId.HasValue ? "Trọng tài" : "Ban tổ chức";
+
+        var sent = new HashSet<int>();
+        async Task Send(int? accountId, string title, string body, string link)
+        {
+            if (accountId is not int id || !sent.Add(id)) return;
+            await _uow.Repository<Notification>().AddAsync(new Notification
+            {
+                AccountId = id,
+                NotificationType = "DISPUTE",
+                Title = title,
+                Body = body.Length > 1000 ? body[..1000] : body,
+                LinkUrl = link,
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = nowUtc
+            });
+        }
+
+        // Bước 3: báo người phân xử — Trọng tài được gán, không có thì Ban tổ chức.
+        int adjudicator = match.RefereeAccountId ?? match.Tournament.OrganizerAccountId;
+        await Send(adjudicator, "Tranh chấp mới: quá hạn báo cáo",
+            $"Trận {label} đã hết hạn báo cáo lúc {deadline} nhưng {missing}. Trận đã chuyển sang tranh chấp, cần bạn phân xử.",
+            "/result/dispute.html?id=" + disputeId);
+        // Hậu điều kiện: Ban tổ chức luôn được báo, kể cả khi trận đã có trọng tài.
+        await Send(match.Tournament.OrganizerAccountId, "Trận quá hạn báo cáo",
+            $"Trận {label} đã hết hạn báo cáo lúc {deadline} nhưng {missing}. Trận đã chuyển cho {adjudicatorRole} phân xử.",
+            "/result/evidence.html?matchId=" + match.MatchId);
+
+        var captainBody = $"Trận {label} đã dừng vì thiếu báo cáo: hết hạn lúc {deadline} nhưng {missing}. " +
+                          $"Báo cáo thiếu không tự quyết định kết quả — {adjudicatorRole} sẽ phân xử.";
+        await Send(match.TeamA?.CaptainAccountId, "Trận đã dừng vì thiếu báo cáo", captainBody, "/result/evidence.html?matchId=" + match.MatchId);
+        await Send(match.TeamB?.CaptainAccountId, "Trận đã dừng vì thiếu báo cáo", captainBody, "/result/evidence.html?matchId=" + match.MatchId);
+    }
+
     // Đẩy đội thắng lên vị trí ở vòng trên — cùng logic với BracketService (trước đây là cầu nối
     // tạm PickWinner, giờ RES-02/RES-07 gọi trực tiếp vì đã có luồng kết quả thật).
     private async Task AdvanceWinnerAsync(Match match, int winnerTeamId)
     {
         var node = await _uow.Repository<BracketNode>().GetByIdAsync(match.BracketNodeId);
-        if (node?.ParentNodeId is null) return;
+        if (node is null) return;
+        if (node.StageType == "KNOCKOUT" && DoubleElimination.IsDoubleElimination(await _uow.Repository<Tournament>().Query()
+                .Where(t => t.TournamentId == match.TournamentId).Select(t => t.Format).FirstOrDefaultAsync()))
+        {
+            await AdvanceDoubleEliminationAsync(match, node, winnerTeamId);
+            return;
+        }
+        if (node.ParentNodeId is null) return;
 
         var parentMatch = await _uow.Repository<Match>().Query()
             .FirstOrDefaultAsync(m => m.BracketNodeId == node.ParentNodeId.Value);
@@ -221,6 +338,30 @@ public class ResultService : IResultService
         bool isLeftChild = (node.PositionInRound ?? 1) % 2 == 1;
         if (isLeftChild) parentMatch.TeamAid = winnerTeamId; else parentMatch.TeamBid = winnerTeamId;
         _uow.Repository<Match>().Update(parentMatch);
+        await _uow.SaveChangesAsync();
+    }
+
+    // BRK-05 Loại kép: đội thắng đi tiếp theo ParentNodeId; đội thua ở nhánh thắng rơi xuống nhánh thua
+    // (thua ở nhánh thua hoặc chung kết tổng là bị loại). Ô đích tính xác định (DoubleElimination.Layout), nên
+    // phán quyết lại (VAR, khiếu nại) chỉ ghi đè đúng hai ô đó.
+    private async Task AdvanceDoubleEliminationAsync(Match match, BracketNode node, int winnerTeamId)
+    {
+        var nodes = await _uow.Repository<BracketNode>().Query()
+            .Where(n => n.TournamentId == match.TournamentId && n.StageType == "KNOCKOUT").ToListAsync();
+        var layout = new DoubleElimination.Layout(nodes);
+        int? loserTeamId = match.TeamAid == winnerTeamId ? match.TeamBid : match.TeamAid;
+
+        async Task Place(DoubleElimination.Slot? slot, int teamId)
+        {
+            if (slot is null) return;
+            var target = await _uow.Repository<Match>().Query().FirstOrDefaultAsync(m => m.BracketNodeId == slot.Node.BracketNodeId);
+            if (target is null) return;
+            if (slot.SideA) target.TeamAid = teamId; else target.TeamBid = teamId;
+            _uow.Repository<Match>().Update(target);
+        }
+
+        await Place(layout.WinnerTo(node), winnerTeamId);
+        if (loserTeamId is int loser) await Place(layout.LoserTo(node), loser);
         await _uow.SaveChangesAsync();
     }
 
@@ -257,6 +398,8 @@ public class ResultService : IResultService
         }
 
         dto.IsVisible = true;
+        dto.ClosedOnTimeout = await _uow.Repository<Dispute>()
+            .AnyAsync(d => d.MatchId == matchId && d.OpenReason == "REPORT_TIMEOUT");
         foreach (var r in reports)
         {
             var files = await _uow.Repository<Attachment>().Query()
@@ -621,13 +764,11 @@ public class ResultService : IResultService
             if (request.NewScoreA is null || request.NewScoreB is null)
                 return Result.FieldFailure(nameof(request.NewScoreA), "Chấp nhận khiếu nại thì phải nhập tỉ số mới.");
 
-            dispute.AppealStatus = "ACCEPTED";
-            dispute.AppealOutcomeNote = request.OutcomeNote;
-            dispute.Status = "CLOSED";
-            _uow.Repository<Dispute>().Update(dispute);
-            await _uow.SaveChangesAsync();
-
-            // Quay lại UC-32 với tỉ số mới.
+            // Gọi ForceUpdateAsync TRƯỚC khi đổi dispute.Status: hàm đó chỉ chấp nhận tranh chấp
+            // đang ở UNDER_REVIEW (chính trạng thái hiện tại), và tự set Status=RESOLVED khi xong.
+            // Nếu đổi sang CLOSED trước rồi mới gọi, ForceUpdateAsync luôn thất bại — tỉ số mới
+            // không bao giờ được áp dụng dù khiếu nại đã lưu là ACCEPTED (không gọi lại được nữa
+            // vì AppealStatus khi đó không còn PENDING).
             var forceUpdate = await ForceUpdateAsync(disputeId, adjudicatorAccountId, new ForceUpdateRequest
             {
                 ScoreA = request.NewScoreA.Value,
@@ -635,6 +776,12 @@ public class ResultService : IResultService
                 Reason = $"[Khiếu nại được chấp nhận] {request.OutcomeNote}"
             });
             if (!forceUpdate.IsSuccess) return forceUpdate;
+
+            dispute.AppealStatus = "ACCEPTED";
+            dispute.AppealOutcomeNote = request.OutcomeNote;
+            dispute.Status = "CLOSED";
+            _uow.Repository<Dispute>().Update(dispute);
+            await _uow.SaveChangesAsync();
         }
         else
         {
@@ -667,6 +814,18 @@ public class ResultService : IResultService
         var match = await _uow.Repository<Match>().GetByIdAsync(matchId);
         if (match is null) return false;
         return await ResolveCaptainTeamIdAsync(match, accountId) is not null;
+    }
+
+    public async Task<int?> GetCaptainTeamIdAsync(int matchId, int accountId)
+    {
+        var match = await _uow.Repository<Match>().GetByIdAsync(matchId);
+        return match is null ? null : await ResolveCaptainTeamIdAsync(match, accountId);
+    }
+
+    public async Task AdvanceWinnerAsync(int matchId, int winnerTeamId)
+    {
+        var match = await _uow.Repository<Match>().GetByIdAsync(matchId);
+        if (match is not null) await AdvanceWinnerAsync(match, winnerTeamId);
     }
 
     private async Task<int?> ResolveCaptainTeamIdAsync(Match match, int accountId)

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -21,10 +21,6 @@
                 <p>Cập nhật thông tin thi đấu, tài khoản game và cách nhận thông báo.</p>
             </div>
             <a class="btn btn-ghost" href="/organization/index.html">Khám phá tổ chức</a>
-        </div>
-        <div class="dev-banner" role="note">
-            <strong>Môi trường thử nghiệm:</strong> Profile chưa có xác thực/phân quyền máy chủ hoàn chỉnh.
-            Không tải giấy tờ thật hoặc dùng dữ liệu nhạy cảm.
         </div>
         <div id="profile-flash" aria-live="polite"></div>
 
@@ -43,7 +39,9 @@
                     <a href="#profile-game-section">Tài khoản game</a>
                     <a href="#profile-privacy">Giấy tờ &amp; riêng tư</a>
                     <a href="#profile-public">Hồ sơ thi đấu</a>
+                    <a href="#profile-applications">Đơn ứng tuyển</a>
                     <a href="#profile-history">Lịch sử trận</a>
+                    <a href="#organizer-request" id="orq-nav" hidden>Xin làm Ban tổ chức</a>
                 </nav>
                 <p class="profile-aside-note">Email, ngày sinh và số điện thoại không được đưa vào hồ sơ công khai hiện tại.</p>
             </aside>
@@ -58,19 +56,33 @@
                     <form id="profile-form" novalidate>
                         <div class="field">
                             <label for="profile-full-name">Tên hiển thị <span class="req">*</span></label>
-                            <input id="profile-full-name" name="FullName" class="input" maxlength="150" autocomplete="name" required aria-describedby="profile-full-name-error" />
+                            <input id="profile-full-name" name="FullName" class="input" minlength="2" maxlength="100" autocomplete="name" required aria-describedby="profile-full-name-error" />
                             <span id="profile-full-name-error" class="field-error" data-field-error="FullName"></span>
                         </div>
                         <div class="field">
                             <label for="profile-avatar">Ảnh đại diện</label>
-                            <input id="profile-avatar" name="AvatarUrl" type="url" class="input" maxlength="500" placeholder="https://..." autocomplete="url" aria-describedby="profile-avatar-hint profile-avatar-error" />
-                            <span id="profile-avatar-hint" class="field-hint">Dán liên kết ảnh công khai bắt đầu bằng https://. Hiện chưa hỗ trợ tải ảnh lên.</span>
+                            <div class="profile-avatar-picker">
+                                <div id="profile-avatar-preview" class="profile-avatar profile-avatar-lg" aria-hidden="true">?</div>
+                                <div class="profile-avatar-actions">
+                                    <label class="btn btn-ghost btn-sm mb-0" for="profile-avatar-file">Chọn ảnh từ máy</label>
+                                    <input id="profile-avatar-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" hidden aria-describedby="profile-avatar-hint profile-avatar-file-error" />
+                                    <button type="button" class="btn btn-ghost btn-sm" id="profile-avatar-recrop" hidden>Căn chỉnh lại</button>
+                                    <button type="button" class="btn btn-ghost btn-sm" id="profile-avatar-clear">Bỏ ảnh</button>
+                                </div>
+                            </div>
+                            <span id="profile-avatar-file-error" class="field-error" data-field-error="AvatarFile"></span>
+                            <div class="avatar-link-row mt-2">
+                                <input id="profile-avatar" type="text" class="input" maxlength="2000000" placeholder="Hoặc dán liên kết ảnh (vd từ Google: chuột phải → Sao chép địa chỉ hình ảnh)" autocomplete="off" aria-describedby="profile-avatar-hint profile-avatar-error" />
+                                <button type="button" class="btn btn-ghost btn-sm" id="profile-avatar-use-link">Dùng ảnh này</button>
+                            </div>
+                            <span id="profile-avatar-hint" class="field-hint">Ảnh từ máy (JPG, PNG, WEBP, GIF; tối đa 10 MB) hoặc liên kết ảnh bất kỳ đuôi — kể cả liên kết copy từ Google Hình ảnh. Sau khi chọn, bạn kéo/phóng to để căn khung rồi lưu.</span>
                             <span id="profile-avatar-error" class="field-error" data-field-error="AvatarUrl"></span>
                         </div>
                         <div class="row">
                             <div class="col-md-6 field">
                                 <label for="profile-dob">Ngày sinh</label>
-                                <input id="profile-dob" name="DateOfBirth" type="date" class="input" autocomplete="bday" aria-describedby="profile-private-hint" />
+                                <input id="profile-dob" name="DateOfBirth" type="date" class="input" min="1900-01-01" autocomplete="bday" aria-describedby="profile-private-hint profile-dob-error" />
+                                <span id="profile-dob-error" class="field-error" data-field-error="DateOfBirth"></span>
                             </div>
                             <div class="col-md-6 field">
                                 <label for="profile-phone">Số điện thoại</label>
@@ -106,7 +118,11 @@
                             <span id="in-game-name-error" class="field-error" data-field-error="InGameName"></span>
                             <span id="game-account-hint" class="field-hint">Chọn tựa game để thêm tên mới hoặc cập nhật tên đang liên kết.</span>
                         </div>
-                        <button id="game-submit" class="btn btn-primary" type="submit">Thêm tên game</button>
+                        <!-- Nhãn trống để nút thẳng hàng với ô nhập (form canh theo đỉnh vì cột phải có dòng gợi ý). -->
+                        <div class="field profile-game-action">
+                            <label aria-hidden="true">&nbsp;</label>
+                            <button id="game-submit" class="btn btn-primary" type="submit">Thêm tên game</button>
+                        </div>
                     </form>
                     <h3 class="section-title">Tên game đã liên kết</h3>
                     <div id="profile-games" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
@@ -119,7 +135,7 @@
                     <div class="profile-privacy-grid">
                         <div class="profile-subsection">
                             <h3>Minh chứng định danh</h3>
-                            <p class="muted-copy">Chỉ tải JPG, PNG hoặc PDF tối đa 10 MB khi đang thử nghiệm bằng dữ liệu giả. Tệp được lưu riêng tư; hiện chưa có trạng thái xét duyệt.</p>
+                            <p class="muted-copy">Thẻ sinh viên hoặc CCCD, dùng khi giải yêu cầu giấy tờ định danh. Tệp được lưu riêng tư, chỉ Ban tổ chức giải bạn đăng ký mới xem được.</p>
                             <form id="identity-form" novalidate>
                                 <div class="field">
                                     <label for="identity-file">Chọn tệp minh chứng</label>
@@ -158,20 +174,74 @@
                     <div id="public-profile"><p class="muted-copy">Đang tải hồ sơ công khai...</p></div>
                 </section>
 
+                <!-- Tuyển thủ: các đội mình đã ứng tuyển và đang chờ đội trưởng duyệt. -->
+                <section id="profile-applications" class="feature-card profile-section" aria-labelledby="profile-applications-title">
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Tìm đội</span><h2 id="profile-applications-title">Đơn ứng tuyển đang chờ</h2></div>
+                    </div>
+                    <div id="applications-flash" aria-live="polite"></div>
+                    <div id="my-applications" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
+                </section>
+
                 <section id="profile-history" class="feature-card profile-section" aria-labelledby="profile-history-title">
                     <div class="profile-section-heading">
                         <div><span class="profile-overline">Hoạt động thi đấu</span><h2 id="profile-history-title">Lịch sử trận đấu</h2></div>
                     </div>
                     <div id="match-history" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
                 </section>
+
+                <!-- UC-43: xin làm Ban tổ chức -> Admin cấp tài khoản Ban tổ chức RIÊNG (không có đội) -->
+                <section id="organizer-request" class="feature-card profile-section" aria-labelledby="organizer-request-title" hidden>
+                    <div class="profile-section-heading">
+                        <div><span class="profile-overline">Quyền tổ chức giải</span><h2 id="organizer-request-title">Xin làm Ban tổ chức</h2></div>
+                        <span class="badge badge-soft" id="orq-status">—</span>
+                    </div>
+                    <p class="muted-copy">Ban tổ chức dùng <strong>tài khoản riêng</strong> do quản trị viên cấp và <strong>không có đội thi đấu</strong>, để không ai vừa tổ chức vừa thi đấu giải của mình. Tài khoản tuyển thủ này và các đội của bạn giữ nguyên.</p>
+                    <div id="orq-flash" aria-live="polite"></div>
+                    <div id="orq-view"></div>
+                    <form id="orq-form" novalidate hidden>
+                        <div class="field">
+                            <label for="orq-note">Mong muốn / lý do muốn làm Ban tổ chức <span class="req">*</span></label>
+                            <textarea id="orq-note" name="Note" class="input" rows="4" maxlength="1000" placeholder="Ví dụ: Tôi phụ trách CLB Esports của trường, muốn tổ chức giải LMHT sinh viên mỗi học kỳ…" aria-describedby="orq-note-hint orq-note-error"></textarea>
+                            <span id="orq-note-hint" class="field-hint"><span id="orq-note-count">0</span>/1000 ký tự — tối thiểu 20.</span>
+                            <span id="orq-note-error" class="field-error" data-field-error="Note"></span>
+                        </div>
+                        <div class="field">
+                            <label for="orq-email">Email muốn dùng cho tài khoản Ban tổ chức <span class="text-muted-2" style="font-weight:400">(không bắt buộc)</span></label>
+                            <input id="orq-email" name="ProposedEmail" type="email" class="input" maxlength="254" placeholder="vd: clb.esports.btc@gmail.com" aria-describedby="orq-email-hint orq-email-error" />
+                            <span id="orq-email-hint" class="field-hint">Phải khác email tài khoản hiện tại. Quản trị viên có thể dùng email này khi cấp tài khoản.</span>
+                            <span id="orq-email-error" class="field-error" data-field-error="ProposedEmail"></span>
+                        </div>
+                        <div class="btn-row"><button type="submit" class="btn btn-primary">Gửi đơn</button></div>
+                    </form>
+                </section>
             </div>
         </div>
     </main>
+    <!-- PRF-01: cắt / căn khung ảnh đại diện -->
+    <dialog id="avatar-crop-dialog" class="crop-dialog" aria-labelledby="crop-title">
+        <div class="crop-head"><h2 id="crop-title">Căn chỉnh ảnh đại diện</h2>
+            <button type="button" class="btn btn-ghost btn-sm" data-crop-cancel aria-label="Đóng">✕</button></div>
+        <p class="hint" id="crop-help">Kéo ảnh để căn vào khung tròn, dùng thanh trượt hoặc lăn chuột để phóng to. Phím mũi tên để dịch chuyển, phím + / − để phóng to.</p>
+        <div class="crop-stage" id="crop-stage" tabindex="0" aria-describedby="crop-help">
+            <canvas id="crop-canvas" width="300" height="300"></canvas>
+        </div>
+        <div class="crop-controls">
+            <label for="crop-zoom" class="hint m-0">Thu phóng</label>
+            <input id="crop-zoom" type="range" min="1" max="4" step="0.01" value="1" />
+            <button type="button" class="btn btn-ghost btn-sm" id="crop-reset">Đặt lại</button>
+        </div>
+        <div class="btn-row">
+            <button type="button" class="btn btn-primary" id="crop-save">Lưu ảnh đại diện</button>
+            <button type="button" class="btn btn-ghost" data-crop-cancel>Hủy</button>
+        </div>
+    </dialog>
     <div id="confirm-modal-root"></div>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/api.js?v=profile-org"></script>
-    <script src="/js/ui.js?v=profile-org"></script>
-    <script src="/js/layout.js"></script>
-    <script src="/js/pages/profile.js?v=iteration1-ux-3" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/profile.js?v=app-20261117" defer></script>
 </body>
 </html>

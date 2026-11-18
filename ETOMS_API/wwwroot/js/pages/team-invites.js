@@ -14,7 +14,7 @@
         var currentBlock;
         if (invite && invite.isUsable) {
             currentBlock =
-                '<div class="section-sub" style="margin-bottom:10px">Mã mời hiện tại</div>' +
+                '<div class="section-sub mb-2">Mã mời hiện tại</div>' +
                 '<div class="d-flex flex-wrap align-items-center gap-3 mb-2">' +
                 '<div style="font-family:monospace;font-size:1.6rem;font-weight:800;letter-spacing:3px;color:var(--cyan)">' + Ui.escapeHtml(invite.code) + '</div>' +
                 '<span class="badge badge-active">Đang hiệu lực</span>' +
@@ -22,7 +22,7 @@
                 '</div>' +
                 '<div class="btn-row">' +
                 '<button type="button" class="btn btn-ghost" id="copy-link-btn">Sao chép link mời</button>' +
-                '<button type="button" class="btn btn-ghost" style="color:var(--danger-ink)" id="revoke-btn">Thu hồi mã</button>' +
+                '<button type="button" class="btn btn-ghost text-danger-etoms" id="revoke-btn">Thu hồi mã</button>' +
                 '</div>';
         } else {
             currentBlock = '<div class="section-sub">Đội chưa có mã mời đang hiệu lực. Tạo một mã bên dưới.</div>';
@@ -33,14 +33,14 @@
             '<div class="page-head"><h1>Mã mời thành viên</h1><p>Mỗi đội có một mã mời đang hiệu lực. Tạo mã mới sẽ thay mã cũ. Có thể đặt thời hạn.</p></div>' +
             '<div class="card-etoms form-narrow"><div class="body">' + currentBlock + '</div></div>' +
             '<div class="card-etoms form-narrow" style="margin-top:20px"><div class="body">' +
-            '<div class="section-sub" style="margin-bottom:12px">' + (invite && invite.isUsable ? 'Tạo mã mới (thay mã hiện tại)' : 'Tạo mã mời') + '</div>' +
+            '<div class="section-sub mb-2">' + (invite && invite.isUsable ? 'Tạo mã mới (thay mã hiện tại)' : 'Tạo mã mời') + '</div>' +
             '<form id="generate-form">' +
             '<div class="field"><label for="ExpiresHours">Thời hạn (giờ)</label>' +
             '<input id="ExpiresHours" name="ExpiresHours" class="input" type="number" min="1" max="8760" placeholder="Để trống = vô thời hạn" />' +
             '<span class="field-error" data-field-error="ExpiresHours"></span></div>' +
             '<div class="btn-row"><button type="submit" class="btn btn-primary">Tạo mã mời</button></div>' +
             '</form></div></div>' +
-            '<div class="btn-row" style="margin-top:26px"><a class="btn btn-ghost" href="/team/dashboard.html?id=' + teamId + '">← Về trang quản trị</a></div>';
+            '<div class="btn-row mt-4"><a class="btn btn-ghost" href="/team/dashboard.html?id=' + teamId + '">← Về trang quản trị</a></div>';
 
         var copyBtn = document.getElementById('copy-link-btn');
         if (copyBtn) {

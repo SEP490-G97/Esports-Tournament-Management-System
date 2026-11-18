@@ -5,9 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;
 
-// API JSON cho module TEAM (TEAM-01..08) — song song với TeamController (MVC, trả HTML).
-// Dùng chung ITeamService + DTO với MVC nên luôn đồng bộ logic nghiệp vụ.
-// Đăng nhập vẫn qua session (ICurrentUser đọc từ /DevAuth — stub tạm thay AUTH thật).
+// API JSON cho module TEAM — song song với TeamController (MVC, trả HTML), dùng chung
+// ITeamService + DTO. Người dùng hiện tại lấy từ JWT qua ICurrentUser.
 [Route("api/teams")]
 public class TeamsApiController : ApiControllerBase
 {
@@ -22,10 +21,10 @@ public class TeamsApiController : ApiControllerBase
         _env = env;
     }
 
-    // GET /api/teams?q=&gameId=&status=&sort=
+    // GET /api/teams?q=&gameId=&status=&sort=&page=&pageSize= — trả { items, total, page, pageSize, totalPages }.
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] TeamSearchRequest filter)
-        => Ok(await _teamService.GetAllTeamsAsync(filter));
+        => FromResult(await _teamService.SearchTeamsAsync(filter));
 
     // GET /api/teams/games — danh sách tựa game đang mở (cho dropdown).
     [HttpGet("games")]
@@ -40,6 +39,46 @@ public class TeamsApiController : ApiControllerBase
         return Ok(await _teamService.GetMyTeamAsync(_currentUser.UserId!.Value));
     }
 
+    // GET /api/teams/my-teams — TẤT CẢ đội của tài khoản đang đăng nhập (mỗi tựa game tối đa một đội).
+    // Cho trang "Các đội của tôi" (/team/mine.html) và ô chọn đội khi đăng tin tuyển thành viên.
+    [HttpGet("my-teams")]
+    public async Task<IActionResult> GetMyTeams()
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return Ok(await _teamService.GetMyTeamsAsync(_currentUser.UserId!.Value));
+    }
+
+    // GET /api/teams/player-search?q=&gameId= — TEAM-01: tìm tuyển thủ để mời khi tạo đội (cần đăng nhập).
+    [HttpGet("player-search")]
+    public async Task<IActionResult> SearchPlayers([FromQuery] string? q, [FromQuery] int gameId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.SearchPlayersAsync(q, gameId, _currentUser.UserId!.Value));
+    }
+
+    // GET /api/teams/invitations — lời mời vào đội đang chờ tài khoản này trả lời.
+    [HttpGet("invitations")]
+    public async Task<IActionResult> GetMyInvitations()
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return Ok(await _teamService.GetMyInvitationsAsync(_currentUser.UserId!.Value));
+    }
+
+    // POST /api/teams/invitations/{teamMemberId}/accept | /decline — chỉ chính người được mời.
+    [HttpPost("invitations/{teamMemberId:int}/accept")]
+    public async Task<IActionResult> AcceptInvitation(int teamMemberId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.RespondInvitationAsync(teamMemberId, _currentUser.UserId!.Value, true));
+    }
+
+    [HttpPost("invitations/{teamMemberId:int}/decline")]
+    public async Task<IActionResult> DeclineInvitation(int teamMemberId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.RespondInvitationAsync(teamMemberId, _currentUser.UserId!.Value, false));
+    }
+
     // GET /api/teams/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetDetail(int id)
@@ -47,6 +86,11 @@ public class TeamsApiController : ApiControllerBase
         var team = await _teamService.GetTeamDetailAsync(id);
         return team is null ? NotFound() : Ok(team);
     }
+
+    // GET /api/teams/{id}/upcoming-matches — trận chưa kết thúc của đội (công khai: chỉ đối thủ, giờ, trạng thái).
+    [HttpGet("{id:int}/upcoming-matches")]
+    public async Task<IActionResult> GetUpcomingMatches(int id)
+        => Ok(new { message = string.Empty, data = await _teamService.GetUpcomingMatchesAsync(id) });
 
     // GET /api/teams/{id}/roster — TEAM-03, chỉ đội trưởng.
     [HttpGet("{id:int}/roster")]
@@ -93,7 +137,11 @@ public class TeamsApiController : ApiControllerBase
         model.LogoUrl = upload.Url;
 
         var result = await _teamService.CreateTeamAsync(model, _currentUser.UserId!.Value);
-        if (!result.IsSuccess) return FromResult(result);
+        if (!result.IsSuccess)
+        {
+            ImageUploader.Delete(model.LogoUrl, _env);   // tạo đội thất bại thì không giữ logo mồ côi
+            return FromResult(result);
+        }
         return CreatedAtAction(nameof(GetDetail), new { id = result.Data }, new { message = result.Message, data = result.Data });
     }
 
@@ -123,6 +171,14 @@ public class TeamsApiController : ApiControllerBase
     {
         if (!_currentUser.IsAuthenticated) return Unauthorized();
         return FromResult(await _teamService.RevokeInviteAsync(id, _currentUser.UserId!.Value));
+    }
+
+    // POST /api/teams/{id}/members/swap-slot — đổi chỗ một chính thức với một dự bị (khi đã đủ suất cả hai loại).
+    [HttpPost("{id:int}/members/swap-slot")]
+    public async Task<IActionResult> SwapSlots(int id, [FromBody] SwapSlotRequest body)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _teamService.SwapSlotsAsync(id, body.StarterAccountId, body.SubstituteAccountId, _currentUser.UserId!.Value));
     }
 
     // POST /api/teams/{id}/members/{targetAccountId}/slot — đổi chính thức/dự bị.
@@ -184,6 +240,7 @@ public class TeamsApiController : ApiControllerBase
 
 // Body nhỏ cho 2 action không có DTO sẵn ở tầng Application (vì MVC truyền thẳng qua route/form).
 public class ChangeSlotRequest { public string NewSlot { get; set; } = string.Empty; }
+public class SwapSlotRequest { public int StarterAccountId { get; set; } public int SubstituteAccountId { get; set; } }
 public class TransferCaptainRequest { public int NewCaptainAccountId { get; set; } }
 
 

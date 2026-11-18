@@ -4,6 +4,7 @@ using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl;
 
@@ -31,6 +32,15 @@ public class TournamentPublishService : ITournamentPublishService
         var isPublished = tournament.Status == "PUBLISHED";
         var hasRegistration = isPublished && await HasRegistrationAsync(tournamentId);
 
+        // Mục 19 (17/11): số liệu cho thanh giai đoạn (Nháp -> Đăng ký -> Chia nhánh -> Thi đấu -> Kết thúc). Một lượt gom.
+        var regs = await _uow.Repository<Registration>().Query()
+            .Where(r => r.TournamentId == tournamentId)
+            .GroupBy(r => r.Status).Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
+        var matches = await _uow.Repository<Match>().Query()
+            .Where(m => m.TournamentId == tournamentId && m.Status != "CANCELLED")
+            .Select(m => new { Done = m.Status == "VERIFIED" || m.Status == "WALKOVER", Disputed = m.Status == "DISPUTED" })
+            .ToListAsync();
+
         return new PublishStatusDto
         {
             TournamentId = tournament.TournamentId,
@@ -41,7 +51,20 @@ public class TournamentPublishService : ITournamentPublishService
             CanPublish = tournament.Status == "DRAFT" && checks.All(c => c.IsOk),
             CanUnpublish = isPublished && !hasRegistration,
             UnpublishBlockedReason = hasRegistration ? UnpublishBlockedMessage : null,
-            Checks = checks
+            Checks = checks,
+            Format = tournament.Format,
+            RegOpenAt = tournament.RegOpenAt,
+            RegCloseAt = tournament.RegCloseAt,
+            StartAt = tournament.StartAt,
+            EndAt = tournament.EndAt,
+            MaxTeams = tournament.MaxTeams,
+            ApprovedCount = regs.Where(r => r.Key == "APPROVED").Sum(r => r.Count),
+            PendingCount = regs.Where(r => r.Key == "PENDING").Sum(r => r.Count),
+            BracketGenerated = matches.Count > 0,
+            BracketLocked = tournament.BracketLockedAt is not null,
+            MatchTotal = matches.Count,
+            MatchDone = matches.Count(m => m.Done),
+            OpenDisputes = matches.Count(m => m.Disputed)
         };
     }
 

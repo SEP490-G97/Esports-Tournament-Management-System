@@ -33,7 +33,7 @@ public class RefereeAssignmentApiController : ApiControllerBase
     {
         var denied = await CheckOrganizerAsync(tournamentId);
         if (denied is not null) return denied;
-        return Ok(await _refereeService.SearchCandidatesAsync(q));
+        return Ok(await _refereeService.SearchCandidatesAsync(tournamentId, q));
     }
 
     // PUT /api/tournaments/{id}/matches/{matchId}/referee — refereeAccountId = null để bỏ trọng tài.

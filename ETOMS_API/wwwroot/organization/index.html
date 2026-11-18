@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -17,17 +17,28 @@
         <section class="org-page-hero">
             <div>
                 <div class="eyebrow">Cộng đồng tổ chức giải đấu</div>
-                <h1>Tổ chức esports</h1>
-                <p>Khám phá các tổ chức và câu lạc bộ đang hoạt động, hoặc tạo hồ sơ tổ chức của bạn trên ETOMS.</p>
+                <h1>Đơn vị tổ chức giải</h1>
+                <p>Đơn vị tổ chức là nhóm các tài khoản Ban tổ chức (CLB, công ty sự kiện...) cùng vận hành giải. Giải đấu có thể đứng tên đơn vị.</p>
             </div>
-            <a class="btn btn-primary" href="/organization/register.html">Đăng ký đơn vị</a>
+            <!-- Chỉ tài khoản Ban tổ chức thấy nút lập đơn vị (máy chủ cũng chặn). -->
+            <a id="org-register-btn" class="btn btn-primary" href="/organization/register.html" hidden>Đăng ký đơn vị</a>
         </section>
-        <div class="dev-banner" role="note">
-            <strong>Môi trường thử nghiệm:</strong> hồ sơ tổ chức và quyền Organizer là hai việc riêng.
-            Tạo hồ sơ tổ chức không tự cấp quyền tạo/vận hành giải; các thao tác quản trị chưa có phân quyền máy chủ.
-            Không dùng dữ liệu thật hoặc môi trường công khai.
+        <div id="org-player-note" class="pending-banner mb-3" hidden>
+            Muốn tổ chức giải? Hãy gửi yêu cầu <a href="/profile/index.html#organizer-request">làm Ban tổ chức ở Hồ sơ cá nhân</a>.
+            Sau khi Admin cấp tài khoản Ban tổ chức, bạn lập đơn vị hoặc được đơn vị mời vào bằng email.
         </div>
         <div id="organization-flash" aria-live="polite"></div>
+
+        <!-- Ban tổ chức: đơn vị mình là thành viên + lời mời đang chờ chấp nhận. -->
+        <section id="my-orgs" class="mb-4" hidden aria-labelledby="my-orgs-title">
+            <div class="org-toolbar">
+                <div>
+                    <span class="profile-overline">Của tôi</span>
+                    <h2 id="my-orgs-title" class="mb-1">Đơn vị của tôi</h2>
+                </div>
+            </div>
+            <div id="my-orgs-list" class="feature-list" aria-live="polite"></div>
+        </section>
 
         <section aria-labelledby="organizations-title">
             <div class="org-toolbar org-list-toolbar">
@@ -56,7 +67,7 @@
         <section id="review-section" class="review-section" hidden aria-labelledby="review-title">
             <div class="review-section-heading">
                 <div>
-                    <span class="profile-overline">Công cụ thử nghiệm</span>
+                    <span class="profile-overline">Admin · Xét duyệt</span>
                     <h2 id="review-title" class="mb-1">Hồ sơ tổ chức chờ xét duyệt</h2>
                     <p class="muted-copy mb-0">Đây là xét duyệt hồ sơ đơn vị, không phải quy trình cấp quyền Organizer.</p>
                 </div>
@@ -66,9 +77,10 @@
     </main>
     <div id="confirm-modal-root"></div>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/api.js?v=profile-org"></script>
-    <script src="/js/ui.js?v=profile-org"></script>
-    <script src="/js/layout.js"></script>
-    <script src="/js/pages/organizations.js?v=iteration1-ux-3" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/organizations.js?v=org1-20261116" defer></script>
 </body>
 </html>

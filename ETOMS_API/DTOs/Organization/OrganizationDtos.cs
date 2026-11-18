@@ -27,9 +27,6 @@ public sealed class CreateOrganizationRequest
 
     [StringLength(1000)]
     public string? Description { get; set; }
-
-    [Range(1, int.MaxValue)]
-    public int CreatedByAccountId { get; set; }
 }
 
 public sealed class ReviewOrganizationRequest
@@ -39,19 +36,33 @@ public sealed class ReviewOrganizationRequest
 
     [StringLength(1000)]
     public string? Reason { get; set; }
-
-    [Range(1, int.MaxValue)]
-    public int ReviewerAccountId { get; set; }
 }
 
 public sealed class InviteOrganizationMemberRequest
 {
-    [Range(1, int.MaxValue)]
+    // Mời theo Email (giao diện dùng) hoặc AccountId (giữ cho client cũ). Người được mời phải là tài khoản Ban tổ chức.
+    [Range(0, int.MaxValue)]
     public int AccountId { get; set; }
+
+    [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
+    [StringLength(255)]
+    public string? Email { get; set; }
 
     [Required]
     public string Role { get; set; } = string.Empty;
 }
+
+// "Đơn vị của tôi" trong menu tài khoản Ban tổ chức: đơn vị mình là thành viên + lời mời đang chờ.
+public sealed record MyOrganizationResponse(
+    int OrganizationId,
+    string Name,
+    string Status,
+    string StatusLabel,
+    int OrganizationMemberId,
+    string Role,
+    string RoleLabel,
+    string MemberStatus,
+    string MemberStatusLabel);
 
 public sealed class UpdateOrganizationMemberRoleRequest
 {

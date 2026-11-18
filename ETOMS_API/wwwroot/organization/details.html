@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=iteration1-2-registration-ui" />
+    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -19,10 +19,6 @@
             <div class="eyebrow mt-3">Cộng đồng tổ chức giải đấu</div>
             <h1>Hồ sơ đơn vị</h1>
             <p>Thông tin công khai, hoạt động và thành viên của đơn vị.</p>
-        </div>
-        <div class="dev-banner" role="note">
-            <strong>Môi trường thử nghiệm:</strong> các thao tác quản trị đang dựa trên tài khoản demo,
-            chưa được bảo vệ bằng phân quyền máy chủ.
         </div>
         <div id="organization-detail-flash" aria-live="polite"></div>
         <div id="organization-detail">
@@ -35,7 +31,6 @@
                     <span class="profile-overline">Không gian quản trị</span>
                     <h2 id="organization-management-title">Quản lý đơn vị</h2>
                 </div>
-                <span class="badge badge-gold">Bản thử nghiệm</span>
             </div>
             <nav class="org-management-nav" aria-label="Điều hướng quản lý đơn vị">
                 <a href="#member-management">Thành viên &amp; lời mời</a>
@@ -44,23 +39,30 @@
             </nav>
             <section id="member-management" class="feature-card management-members">
                 <div class="profile-section-heading">
-                    <div><h2>Thành viên</h2><p class="muted-copy mb-0">Mời người dùng bằng mã tài khoản; tính năng tìm người dùng chưa được hỗ trợ.</p></div>
+                    <div><h2>Thành viên</h2><p class="muted-copy mb-0">Thành viên là các tài khoản Ban tổ chức. Người được mời nhận thông báo và tự bấm chấp nhận.</p></div>
                 </div>
                 <form id="invite-form" class="inline-form mt-3" novalidate>
                     <div class="field">
-                        <label for="invite-account">Mã tài khoản người được mời</label>
-                        <input id="invite-account" name="AccountId" class="input" type="number" min="1" step="1" required placeholder="Ví dụ: 1024" aria-describedby="invite-account-hint" />
-                        <span id="invite-account-hint" class="field-hint">Dùng mã số tài khoản trong dữ liệu thử nghiệm.</span>
+                        <label for="invite-email">Email tài khoản Ban tổ chức</label>
+                        <input id="invite-email" name="Email" class="input" type="email" maxlength="255" required placeholder="vd: btc.ten@demo.etoms" autocomplete="off" />
+                        <span class="field-error" data-field-error="Email"></span>
                     </div>
                     <div class="field">
                         <label for="invite-role">Vai trò</label>
                         <select id="invite-role" name="Role" class="select">
                             <option value="TOURNAMENT_OPERATOR">Điều hành giải</option>
+                            <option value="REFEREE">Trọng tài</option>
                             <option value="MARKETING">Truyền thông</option>
                         </select>
                     </div>
                     <button class="btn btn-primary" type="submit">Gửi lời mời</button>
                 </form>
+                <ul class="org-role-guide">
+                    <li><b>Chủ nhiệm</b> — quản lý thành viên, đổi vai trò, tạo và điều hành giải của đơn vị.</li>
+                    <li><b>Điều hành giải</b> — tạo giải đứng tên đơn vị và vận hành giải mình tạo.</li>
+                    <li><b>Trọng tài</b> — được gán vào trận các giải của đơn vị, phân xử tranh chấp trận được giao.</li>
+                    <li><b>Truyền thông</b> — thành viên phụ trách truyền thông của đơn vị.</li>
+                </ul>
                 <div class="table-wrap mt-4">
                     <table class="data-table">
                         <caption class="visually-hidden">Danh sách thành viên và vai trò trong tổ chức</caption>
@@ -97,9 +99,10 @@
     </main>
     <div id="confirm-modal-root"></div>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/api.js?v=profile-org"></script>
-    <script src="/js/ui.js?v=profile-org"></script>
-    <script src="/js/layout.js"></script>
-    <script src="/js/pages/organization-details.js?v=iteration1-ux-3" defer></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/pages/organization-details.js?v=ref-20261117" defer></script>
 </body>
 </html>

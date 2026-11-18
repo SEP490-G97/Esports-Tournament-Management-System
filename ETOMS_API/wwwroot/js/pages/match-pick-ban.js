@@ -24,7 +24,7 @@
         var games = b.games.length
             ? '<div class="section-title" style="margin:0 0 10px;font-size:1rem">Bản đồ thi đấu</div>' +
               b.games.map(function (g) {
-                  return '<div class="member-card" style="margin-bottom:8px"><div class="grow">' +
+                  return '<div class="member-card mb-2"><div class="grow">' +
                       '<div class="nm">Ván ' + g.gameNo + ': ' + Ui.escapeHtml(g.mapName) + '</div>' +
                       '<div class="rl">' + Ui.escapeHtml(g.pickedBy) + '</div></div></div>';
               }).join('')
@@ -38,7 +38,7 @@
                     Ui.escapeHtml(s.mapName) + '</li>';
             }).join('') + '</ol>';
         var recorded = b.recordedAt
-            ? '<div class="hint" style="margin-top:12px">Nhập bởi ' + Ui.escapeHtml(b.recordedByName || 'không rõ') + ' lúc ' + Ui.escapeHtml(formatTime(b.recordedAt)) + '</div>'
+            ? '<div class="hint mt-3">Nhập bởi ' + Ui.escapeHtml(b.recordedByName || 'không rõ') + ' lúc ' + Ui.escapeHtml(formatTime(b.recordedAt)) + '</div>'
             : '';
         return games + steps + recorded;
     }
@@ -68,9 +68,9 @@
     function editorHtml(b) {
         var rows = draft.length
             ? draft.map(function (s, i) { return editorRow(s, i, b); }).join('')
-            : '<div class="hint" style="margin-bottom:10px">Chưa có lượt nào. Bấm "Thêm lượt" để bắt đầu.</div>';
-        return '<div class="card-etoms" style="margin-top:18px"><div class="body">' +
-            '<div class="section-title" style="margin-top:0">Nhập kết quả cấm chọn</div>' +
+            : '<div class="hint mb-2">Chưa có lượt nào. Bấm "Thêm lượt" để bắt đầu.</div>';
+        return '<div class="card-etoms mt-3"><div class="body">' +
+            '<div class="section-title mt-0">Nhập kết quả cấm chọn</div>' +
             '<p class="hint" style="margin:6px 0 14px">Nhập theo đúng thứ tự hai đội đã cấm chọn. Bản đồ được chọn là bản đồ của từng ván theo thứ tự; "Bản đồ còn lại" chỉ đặt ở lượt cuối.</p>' +
             '<div id="editor-rows">' + rows + '</div>' +
             '<div class="btn-row">' +
@@ -88,7 +88,7 @@
         var notice = b.blockedReason ? '<div class="pending-banner">' + Ui.escapeHtml(b.blockedReason) + '</div>' : '';
         document.getElementById('pickban-root').innerHTML =
             '<div class="card-etoms"><div class="body">' +
-            '<div style="margin-bottom:14px">Trạng thái trận: <span class="badge ' + Ui.escapeHtml(b.statusClass) + '">' + Ui.escapeHtml(b.statusLabel) + '</span></div>' +
+            '<div class="mb-3">Trạng thái trận: <span class="badge ' + Ui.escapeHtml(b.statusClass) + '">' + Ui.escapeHtml(b.statusLabel) + '</span></div>' +
             notice + resultHtml(b) + '</div></div>' +
             (b.canEdit ? editorHtml(b) : '');
 
