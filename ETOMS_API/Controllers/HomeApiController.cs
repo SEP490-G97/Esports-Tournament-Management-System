@@ -83,7 +83,8 @@ public class HomeApiController : ApiControllerBase
             .Select(t => new
             {
                 t.TournamentId, t.Name, Game = t.Game.Title, t.Status, t.MaxTeams, t.BannerUrl, t.PrizeStructure,
-                t.RegOpenAt, t.RegCloseAt, t.BracketLockedAt, t.StartAt,
+                t.RegOpenAt, t.RegCloseAt, t.BracketLockedAt, t.StartAt, t.Format,
+                Approved = t.Registrations.Count(r => r.Status == "APPROVED"),
                 Teams = t.Registrations.Count(r => r.Status != "DRAFT" && r.Status != "REJECTED" && r.Status != "WITHDRAWN")
             })
             .Take(12).ToListAsync();   // trang chủ hiện 4 giải/lượt, bấm ‹ › để trượt
@@ -94,7 +95,8 @@ public class HomeApiController : ApiControllerBase
             Name = t.Name, Game = t.Game,
             Prize = string.IsNullOrWhiteSpace(t.PrizeStructure) ? "Chưa công bố" : t.PrizeStructure,
             Teams = t.Teams, MaxTeams = t.MaxTeams,
-            Status = StatusLabel(t.Status), StatusClass = StatusClass(t.Status),
+            Status = Short(t.Status, t.BracketLockedAt, t.RegCloseAt, t.Approved, t.Format) ? TournamentLifecycle.ShortOfTeamsLabel : StatusLabel(t.Status),
+            StatusClass = Short(t.Status, t.BracketLockedAt, t.RegCloseAt, t.Approved, t.Format) ? "badge-danger" : StatusClass(t.Status),
             RegistrationOpen = t.Status == "PUBLISHED"
                 && t.BracketLockedAt is null
                 && t.RegOpenAt <= now && now < t.RegCloseAt,
@@ -115,6 +117,8 @@ public class HomeApiController : ApiControllerBase
                 return new EventTickerDto { Label = "ĐĂNG KÝ", Text = $"Mở đăng ký {t.Name} — hạn chót {VnDate(t.RegCloseAt)}", Url = "/registration/register.html?tournamentId=" + t.TournamentId, Kind = "REGISTER" };
             if (now < t.RegOpenAt)
                 return new EventTickerDto { Label = "SẮP MỞ ĐĂNG KÝ", Text = $"{t.Name} — mở đăng ký từ {VnDate(t.RegOpenAt)}", Url = overview, Kind = "UPCOMING" };
+            if (Short(t.Status, t.BracketLockedAt, t.RegCloseAt, t.Approved, t.Format))
+                return new EventTickerDto { Label = "CHƯA ĐỦ ĐỘI", Text = $"{t.Name} — đã đóng đăng ký, chưa đủ đội thi đấu", Url = overview, Kind = "UPCOMING" };
             return new EventTickerDto { Label = "SẮP KHỞI TRANH", Text = $"{t.Name} — đã đóng đăng ký, khai mạc {VnDate(t.StartAt)}", Url = overview, Kind = "UPCOMING" };
         }).ToList();
 
@@ -207,6 +211,10 @@ public class HomeApiController : ApiControllerBase
             Sponsors = sponsors, LiveNow = liveNow
         };
     }
+
+    // Mục 28: đã đóng đăng ký mà số đội được duyệt dưới mức tối thiểu để sinh nhánh.
+    private static bool Short(string status, DateTime? lockedAt, DateTime regCloseAt, int approved, string format)
+        => TournamentLifecycle.IsShortOfTeams(status, lockedAt != null, regCloseAt, DateTime.UtcNow, approved, format);
 
     private static string StatusLabel(string s) => s switch
     {

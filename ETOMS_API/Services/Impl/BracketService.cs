@@ -530,6 +530,8 @@ public class BracketService : IBracketService
 
         tournament.BracketLockedAt = null;
         tournament.BracketLockedByAccountId = null;
+        // Mục 28: giải "Đang diễn ra" khi nhánh khóa — mở khóa (chưa trận nào đá) thì về lại "Sắp diễn ra".
+        if (tournament.Status == "ONGOING") tournament.Status = "PUBLISHED";
         _uow.Repository<Tournament>().Update(tournament);
 
         var nodes = await _uow.Repository<BracketNode>().Query().Where(n => n.TournamentId == tournamentId).ToListAsync();

@@ -40,6 +40,10 @@ public class TournamentDashboardService : ITournamentDashboardService
         };
 
         await FillRegistrationsAsync(dto, tournamentId);
+        // Mục 28: cùng nhãn với thẻ Tiến trình giải (Đang mở đăng ký / Chưa đủ đội / Sắp diễn ra / Đang diễn ra...).
+        (dto.StatusLabel, dto.StatusClass) = TournamentLifecycle.PublicLabel(tournament.Status, tournament.BracketLockedAt is not null,
+            DateTime.SpecifyKind(tournament.RegOpenAt, DateTimeKind.Utc), DateTime.SpecifyKind(tournament.RegCloseAt, DateTimeKind.Utc),
+            DateTime.UtcNow, dto.ApprovedCount, tournament.Format);
         await FillMatchesAsync(dto, tournamentId);
         await FillDisputesAsync(dto, tournamentId);
         await FillPaymentsAsync(dto, tournamentId);

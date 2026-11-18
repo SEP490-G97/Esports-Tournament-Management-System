@@ -1642,6 +1642,7 @@ a.ticker-item:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2p
 .ohub-phase.ph-open { color: #3ddc97; border-color: rgba(61,220,151,.4); background: rgba(61,220,151,.1); }
 .ohub-phase.ph-live { color: #ff6b6b; border-color: rgba(255,107,107,.4); background: rgba(255,107,107,.1); }
 .ohub-phase.ph-wait, .ohub-phase.ph-upcoming { color: var(--cyan); border-color: rgba(47,212,230,.35); background: rgba(47,212,230,.08); }
+.ohub-phase.ph-short { color: var(--danger); border-color: rgba(255,77,94,.4); background: rgba(255,77,94,.08); }
 .ohub-phase.ph-draft { color: var(--warn); border-color: rgba(246,167,35,.4); background: rgba(246,167,35,.08); }
 .ohub-pending { font-size: .74rem; font-weight: 800; color: #1a1300; background: var(--warn); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .ohub-name { font-family: var(--font-display); font-size: 1.05rem; margin: 2px 0 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1881,3 +1882,23 @@ a.promo-card:hover { border-color: var(--primary); transform: translateY(-2px); 
 .promo-card .txt { padding: 14px 16px 16px; }
 .promo-card .txt h3 { font-size: 1rem; font-weight: 800; margin: 8px 0 4px; }
 .promo-card .txt p { color: var(--muted); font-size: .86rem; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---- Tiến trình giải (bảng điều hành BTC, mục 28) ---- */
+.lc-steps { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 0; margin: 14px 0 10px; }
+.lc-steps li { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); color: var(--muted); font-size: .84rem; min-width: 0; }
+.lc-steps li b { color: var(--ink-2); font-size: .86rem; }
+.lc-steps li small { color: var(--muted-2); font-size: .76rem; }
+.lc-steps .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 .74rem var(--font-display); background: var(--panel-3); color: var(--muted); margin-bottom: 4px; }
+.lc-steps li.done { border-color: rgba(61,220,151,.35); }
+.lc-steps li.done .dot { background: rgba(61,220,151,.18); color: #3ddc97; }
+.lc-steps li.now { border-color: var(--primary); }
+.lc-steps li.now .dot { background: var(--primary); color: var(--on-accent); }
+.lc-hint { margin: 0 0 6px; color: var(--ink-2); }
+.lc-extend, .lc-tie { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+.lc-tie ol { margin: 0; padding-left: 20px; }
+.lc-tie li { margin-bottom: 6px; }
+.lc-tie li span { display: inline-block; min-width: 180px; font-weight: 600; }
+.lc-podium { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+.lc-podium div { padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
+.lc-podium small { display: block; color: var(--gold); font-weight: 700; font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; }
+@media (max-width: 575px) { .lc-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

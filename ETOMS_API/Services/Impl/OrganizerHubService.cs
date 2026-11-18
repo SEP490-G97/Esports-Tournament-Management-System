@@ -1,3 +1,4 @@
+using ETOMS_API.Utils;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using Microsoft.EntityFrameworkCore;
@@ -60,13 +61,16 @@ public sealed class OrganizerHubService
                 "CANCELLED" => "CANCELLED",
                 "COMPLETED" => "COMPLETED",
                 "ONGOING" => "ONGOING",
-                _ => now < t.RegOpenAt ? "REG_UPCOMING" : now < t.RegCloseAt ? "REG_OPEN" : "WAITING_START"
+                _ => now < t.RegOpenAt ? "REG_UPCOMING" : now < t.RegCloseAt ? "REG_OPEN"
+                    : TournamentLifecycle.IsShortOfTeams(t.Status, t.BracketLockedAt != null, t.RegCloseAt, now, t.Approved, t.Format) ? "SHORT_OF_TEAMS"
+                    : "WAITING_START"
             };
             string? next = phase switch
             {
                 "DRAFT" => "Hoàn tất thiết lập rồi công bố giải",
                 "REG_UPCOMING" => null,
                 "REG_OPEN" => t.Pending > 0 ? $"{t.Pending} đơn chờ duyệt" : null,
+                "SHORT_OF_TEAMS" => $"Mới có {t.Approved} đội được duyệt — gia hạn đăng ký hoặc hủy giải",
                 "WAITING_START" when t.Pending > 0 => $"{t.Pending} đơn chờ duyệt",
                 "WAITING_START" when !t.HasBracket => "Đã đóng đăng ký — sinh nhánh đấu",
                 "WAITING_START" when t.BracketLockedAt is null => "Kiểm tra rồi khóa nhánh đấu",
@@ -86,6 +90,7 @@ public sealed class OrganizerHubService
                 PhaseLabel = phase switch
                 {
                     "DRAFT" => "Bản nháp", "REG_UPCOMING" => "Sắp mở đăng ký", "REG_OPEN" => "Đang nhận đăng ký",
+                    "SHORT_OF_TEAMS" => TournamentLifecycle.ShortOfTeamsLabel,
                     "WAITING_START" => "Chờ khai mạc", "ONGOING" => "Đang diễn ra", "COMPLETED" => "Đã kết thúc", _ => "Đã hủy"
                 },
                 RegOpenAt = t.RegOpenAt, RegCloseAt = t.RegCloseAt, StartAt = t.StartAt, EndAt = t.EndAt, CreatedAt = t.CreatedAt,

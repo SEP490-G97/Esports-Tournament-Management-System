@@ -239,6 +239,8 @@ builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
 builder.Services.AddScoped<IBracketViewService, BracketViewService>();
 builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
 builder.Services.AddScoped<ITournamentCancelService, TournamentCancelService>();
+builder.Services.AddScoped<ITournamentLifecycleService, TournamentLifecycleService>();   // mục 28: bắt đầu / kết thúc giải, chưa đủ đội
+builder.Services.AddHostedService<TournamentLifecycleWorker>();
 builder.Services.AddScoped<ITournamentDirectoryService, TournamentDirectoryService>();
 builder.Services.AddScoped<ILiveService, LiveService>();
 

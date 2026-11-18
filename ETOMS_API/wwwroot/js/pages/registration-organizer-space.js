@@ -17,7 +17,7 @@
         { key: 'COMPLETED', label: 'Đã kết thúc' },
         { key: 'CANCELLED', label: 'Đã hủy' }
     ];
-    var PHASE_CLASS = { DRAFT: 'ph-draft', REG_UPCOMING: 'ph-upcoming', REG_OPEN: 'ph-open', WAITING_START: 'ph-wait', ONGOING: 'ph-live', COMPLETED: 'ph-done', CANCELLED: 'ph-cancel' };
+    var PHASE_CLASS = { DRAFT: 'ph-draft', REG_UPCOMING: 'ph-upcoming', REG_OPEN: 'ph-open', WAITING_START: 'ph-wait', SHORT_OF_TEAMS: 'ph-short', ONGOING: 'ph-live', COMPLETED: 'ph-done', CANCELLED: 'ph-cancel' };
 
     function esc(s) { return Ui.escapeHtml(s == null ? '' : String(s)); }
     function utc(iso) { return iso ? new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z') : null; }
@@ -40,7 +40,8 @@
         render();
     }
 
-    function matchesPhase(t, phase) { return !phase || (phase === 'ACTION' ? !!t.nextAction : t.phase === phase); }
+    // "Chưa đủ đội" là một dạng chờ khai mạc (đã đóng đăng ký) — nằm chung bộ lọc Chờ khai mạc.
+    function matchesPhase(t, phase) { return !phase || (phase === 'ACTION' ? !!t.nextAction : t.phase === phase || (phase === 'WAITING_START' && t.phase === 'SHORT_OF_TEAMS')); }
     function norm(s) { return (s || '').toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd'); }
 
     function filtered(s) {
@@ -48,7 +49,7 @@
         var list = all.filter(function (t) {
             return matchesPhase(t, s.phase) && (!s.game || t.gameTitle === s.game) && (!term || norm(t.name).indexOf(term) >= 0);
         });
-        var order = { REG_OPEN: 0, WAITING_START: 1, ONGOING: 2, DRAFT: 3, REG_UPCOMING: 4, COMPLETED: 5, CANCELLED: 6 };
+        var order = { REG_OPEN: 0, SHORT_OF_TEAMS: 1, WAITING_START: 1, ONGOING: 2, DRAFT: 3, REG_UPCOMING: 4, COMPLETED: 5, CANCELLED: 6 };
         list.sort(function (a, b) {
             if (s.sort === 'name') return a.name.localeCompare(b.name, 'vi');
             if (s.sort === 'created') return utc(b.createdAt) - utc(a.createdAt);

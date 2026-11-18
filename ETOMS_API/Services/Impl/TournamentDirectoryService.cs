@@ -114,10 +114,11 @@ public sealed class TournamentDirectoryService : ITournamentDirectoryService
         var items = rows.Select(t =>
         {
             var open = t.Status == "PUBLISHED" && t.BracketLockedAt == null && t.RegOpenAt <= now && now < t.RegCloseAt;
+            var (label, cls) = TournamentLifecycle.PublicLabel(t.Status, t.BracketLockedAt != null, t.RegOpenAt, t.RegCloseAt, now, t.Teams, t.Format);
             return new TournamentCardDto(
                 t.TournamentId, t.Name, t.GameId, t.Game, t.Status,
-                open ? "Đang mở đăng ký" : t.Status == "PUBLISHED" ? "Sắp diễn ra" : StatusText.Tournament(t.Status),
-                open ? "badge-active" : StatusText.TournamentClass(t.Status),
+                label,
+                cls,
                 open, t.StartAt, t.EndAt, t.RegCloseAt, t.Region, t.IsOnline, t.EntryFee,
                 string.IsNullOrWhiteSpace(t.PrizeStructure) ? null : t.PrizeStructure,
                 t.OrganizingUnit, FormatLabel(t.Format), t.Teams, t.MaxTeams,
@@ -174,10 +175,11 @@ public sealed class TournamentDirectoryService : ITournamentDirectoryService
 
         var now = DateTime.UtcNow;
         var open = t.Status == "PUBLISHED" && t.BracketLockedAt == null && t.RegOpenAt <= now && now < t.RegCloseAt;
+        var (label, cls) = TournamentLifecycle.PublicLabel(t.Status, t.BracketLockedAt != null, t.RegOpenAt, t.RegCloseAt, now, t.Approved, t.Format);
         return Result<TournamentOverviewDto>.Success(new TournamentOverviewDto(
             t.TournamentId, t.Name, t.Game, t.Status,
-            open ? "Đang mở đăng ký" : t.Status == "PUBLISHED" ? "Sắp diễn ra" : StatusText.Tournament(t.Status),
-            open ? "badge-active" : StatusText.TournamentClass(t.Status),
+            label,
+            cls,
             open, viewerAccountId == t.OrganizerAccountId,
             t.Description, t.OrganizingUnit, t.ContactInfo, t.IsOnline, t.Region, t.Venue, FormatLabel(t.Format),
             t.GroupCount, t.AdvancePerGroup, t.HasThirdPlaceMatch, t.MaxTeams, t.StarterCount, t.MaxSubstitutes,
