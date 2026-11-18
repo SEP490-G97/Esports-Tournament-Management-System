@@ -1629,6 +1629,11 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 .Select(item => new { item.AccountId, item.PlayerCredentialId })
                 .ToListAsync(cancellationToken)
             : [];
+        // Tên vị trí đã xếp (bảng GamePosition) — đọc riêng theo mã, không phụ thuộc Include ở từng nơi gọi.
+        var positionIds = registration.RegistrationLineups.Where(item => item.GamePositionId.HasValue).Select(item => item.GamePositionId!.Value).Distinct().ToArray();
+        var positionNames = positionIds.Length == 0 ? new Dictionary<int, string>()
+            : await Query<GamePosition>().AsNoTracking().Where(p => positionIds.Contains(p.GamePositionId))
+                .ToDictionaryAsync(p => p.GamePositionId, p => p.Name, cancellationToken);
         var lineups = registration.RegistrationLineups
             .OrderBy(item => item.Slot == "STARTER" ? 0 : 1)
             .ThenBy(item => item.Account.FullName)
@@ -1639,7 +1644,8 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 item.InGameNameSnapshot,
                 identityDocuments.Where(document => document.AccountId == item.AccountId)
                     .Select(document => document.PlayerCredentialId)
-                    .ToArray()))
+                    .ToArray(),
+                item.GamePositionId.HasValue && positionNames.TryGetValue(item.GamePositionId.Value, out var pos) ? pos : null))
             .ToArray();
         var aheadCount = registration.Status == "WAITLISTED" && registration.WaitlistPosition.HasValue
             ? Math.Max(0, registration.WaitlistPosition.Value - 1)

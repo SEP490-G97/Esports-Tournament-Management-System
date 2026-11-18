@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
+    <link rel="stylesheet" href="/css/site.css?v=fb3-20261118" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -164,7 +164,7 @@
                     </div>
                     <div class="field" style="max-width:240px">
                         <label for="MaxTeams">Số đội tối đa <span class="req">*</span></label>
-                        <input id="MaxTeams" type="number" min="2" max="1024" class="input" />
+                        <select id="MaxTeams" class="select"><option value="4">4 đội</option><option value="8">8 đội</option><option value="16">16 đội</option><option value="32">32 đội</option><option value="64">64 đội</option><option value="128">128 đội</option></select>
                         <div class="hint" id="approved-hint"></div>
                         <span class="field-error" data-field-error="MaxTeams"></span>
                     </div>
@@ -188,7 +188,7 @@
                     <div class="row g-3">
                         <div class="col-6 col-md-3 field" id="groups-field">
                             <label for="GroupCount">Số bảng <span class="req">*</span></label>
-                            <input id="GroupCount" type="number" min="1" class="input" />
+                            <select id="GroupCount" class="select"><option value="1">1 bảng</option><option value="2">2 bảng</option><option value="4">4 bảng</option><option value="8">8 bảng</option><option value="16">16 bảng</option></select>
                             <span class="field-error" data-field-error="GroupCount"></span>
                         </div>
                         <div class="col-6 col-md-3 field" id="advance-field">
@@ -234,12 +234,12 @@
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
-    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/api.js?v=once-20261118"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/layout.js?v=grl-20261118"></script>
     <script src="/js/rules-editor.js?v=rules-20261116" defer></script>
     <script src="/js/bank-account.js?v=bank-20261116" defer></script>
     <script src="/js/banner-picker.js?v=banner-20261117" defer></script>
-    <script src="/js/pages/tournament-edit.js?v=banner-20261117" defer></script>
+    <script src="/js/pages/tournament-edit.js?v=pow2-20261118" defer></script>
 </body>
 </html>

@@ -29,13 +29,40 @@ var Api = (function () {
         return entry.promise;
     }
 
+    // Chống bấm nhiều lần (áp cho MỌI trang, vì mọi thao tác ghi đều đi qua đây):
+    //  1) Nút vừa bấm (hoặc nút gửi của form đang nhập) bị khóa tới khi server trả lời.
+    //  2) Cùng một yêu cầu ghi JSON (cùng phương thức + URL + nội dung) đang chạy dở thì lần bấm sau dùng chung
+    //     kết quả, không gửi thêm lần nữa. Gửi tệp (FormData) chỉ dùng cách 1.
+    var writing = {};   // khóa yêu cầu ghi -> promise
+    function lockTrigger() {
+        var el = document.activeElement;
+        if (!el || el === document.body || !el.closest) return null;
+        var btn = el.closest('button, input[type=submit], input[type=button]');
+        if (!btn && el.form) btn = el.form.querySelector('button[type=submit], input[type=submit], button:not([type])');
+        if (!btn || btn.disabled) return null;
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        return function () { btn.disabled = false; btn.removeAttribute('aria-busy'); };
+    }
+    function sendWrite(method, url, body, isForm) {
+        var key = isForm ? null : method + ' ' + url + ' ' + (body === undefined || body === null ? '' : JSON.stringify(body));
+        if (key && writing[key]) return writing[key];
+        var unlock = lockTrigger();
+        var p = send(method, url, body, isForm).finally(function () {
+            if (key && writing[key] === p) delete writing[key];
+            if (unlock) unlock();
+        });
+        if (key) writing[key] = p;
+        return p;
+    }
+
     async function request(method, url, body, isForm) {
         var r;
         if (method === 'GET') {
             r = await sharedGet(url);
         } else {
             shared = {};
-            r = await send(method, url, body, isForm);
+            r = await sendWrite(method, url, body, isForm);
         }
         var json = null;
         if (r.text) {

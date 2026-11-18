@@ -110,8 +110,9 @@ namespace ETOMS_API.Services.Impl
             int? groupCount = null, advancePerGroup = null;
             if (format == "HYBRID")
             {
-                if (dto.GroupCount is not (>= 2 and <= 16))
-                    throw new ArgumentException("Số bảng đấu phải từ 2 đến 16.");
+                // Góp ý nhóm 18/11: số bảng là lũy thừa của 2 (2, 4, 8, 16) để cây knockout sau vòng bảng cân.
+                if (dto.GroupCount is not (2 or 4 or 8 or 16))
+                    throw new ArgumentException("Số bảng đấu phải là lũy thừa của 2: 2, 4, 8 hoặc 16.");
                 if (dto.AdvancingPerGroup is not (>= 1 and <= 8))
                     throw new ArgumentException("Số đội đi tiếp mỗi bảng phải từ 1 đến 8.");
                 groupCount = dto.GroupCount;
@@ -159,8 +160,12 @@ namespace ETOMS_API.Services.Impl
             var start = DateTime.SpecifyKind(dto.TournamentStartDate.ToUniversalTime(), DateTimeKind.Utc);
             var end = DateTime.SpecifyKind(dto.TournamentEndDate.ToUniversalTime(), DateTimeKind.Utc);
 
-            if (close <= DateTime.UtcNow)
-                throw new ArgumentException("Thời gian đóng đăng ký phải ở tương lai.");
+            // Góp ý nhóm 18/11: cả 4 mốc phải từ hiện tại trở đi (cho lệch 5 phút vì người dùng chọn giờ rồi mới bấm lưu).
+            var earliest = DateTime.UtcNow.AddMinutes(-5);
+            if (open < earliest)
+                throw new ArgumentException("Thời gian mở đăng ký phải từ hiện tại trở đi, không chọn ngày đã qua.");
+            if (close <= DateTime.UtcNow || start <= DateTime.UtcNow || end <= DateTime.UtcNow)
+                throw new ArgumentException("Thời gian đóng đăng ký, khai mạc và kết thúc phải ở tương lai.");
             if (ETOMS_API.Utils.TournamentTimeline.Check(open, close, start, end) is { } bad)
                 throw new ArgumentException(bad.Message);
 

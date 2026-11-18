@@ -108,7 +108,8 @@ public sealed record RegistrationLineupResponse(
     string FullName,
     string Slot,
     string? InGameName,
-    IReadOnlyList<int> IdentityDocumentCredentialIds);
+    IReadOnlyList<int> IdentityDocumentCredentialIds,
+    string? PositionName = null);   // GRL: vị trí đội trưởng đã xếp (giải có bộ luật theo tựa game)
 
 public sealed record PaymentRecordResponse(
     int PaymentRecordId,

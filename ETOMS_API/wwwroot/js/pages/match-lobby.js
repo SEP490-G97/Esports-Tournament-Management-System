@@ -46,7 +46,7 @@ window.MatchLobby = (function () {
 
     function updateCount() {
         var input = document.getElementById('lobby-input');
-        var max = data ? data.maxLength : 2000;
+        var max = data ? data.maxLength : 1000;
         var n = input.value.trim().length;
         var c = document.getElementById('lobby-count');
         c.textContent = n + '/' + max;
@@ -83,7 +83,7 @@ window.MatchLobby = (function () {
         if (sending) return;
         var form = e.target, input = document.getElementById('lobby-input');
         Ui.clearFieldErrors(form);
-        var text = input.value.trim(), max = data ? data.maxLength : 2000;
+        var text = input.value.trim(), max = data ? data.maxLength : 1000;
         if (!text) { Ui.applyFieldErrors(form, { Content: 'Vui lòng nhập nội dung tin nhắn.' }); return; }
         if (text.length > max) { Ui.applyFieldErrors(form, { Content: 'Tin nhắn tối đa ' + max + ' ký tự.' }); return; }
         sending = true;

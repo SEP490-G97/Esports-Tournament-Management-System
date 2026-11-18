@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=final-20261117" />
+    <link rel="stylesheet" href="/css/site.css?v=fb3-20261118" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -88,8 +88,8 @@
                         <h4>Cấu hình giai đoạn 1 (vòng bảng)</h4>
                         <div class="form-grid form-grid-sm">
                             <div class="field mb-0">
-                                <label>Số lượng bảng đấu (N bảng)</label>
-                                <input type="number" id="tGroupCount" class="input" value="4" min="2" max="16" step="1">
+                                <label for="tGroupCount">Số lượng bảng đấu (lũy thừa của 2)</label>
+                                <select id="tGroupCount" class="select"><option value="2">2 bảng</option><option value="4" selected>4 bảng</option><option value="8">8 bảng</option><option value="16">16 bảng</option></select>
                             </div>
                             <div class="field mb-0">
                                 <label>Số đội lấy đi tiếp mỗi bảng</label>
@@ -145,7 +145,7 @@
                     </div>
                     <div class="field">
                         <label>Số đội tối đa (lũy thừa của 2: 4, 8, 16, 32, 64, 128) <span class="req">*</span></label>
-                        <input type="number" id="tMaxTeams" class="input" value="16" min="4" max="128" step="1" required>
+                        <select id="tMaxTeams" class="select" required><option value="4">4 đội</option><option value="8">8 đội</option><option value="16" selected>16 đội</option><option value="32">32 đội</option><option value="64">64 đội</option><option value="128">128 đội</option></select>
                     </div>
                     <div class="btn-row">
                         <button type="button" class="btn btn-ghost" data-back="1">← Quay lại</button>
@@ -258,12 +258,12 @@
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
-    <script src="/js/api.js?v=crop-20261115"></script>
+    <script src="/js/api.js?v=once-20261118"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=menu-20261116"></script>
+    <script src="/js/layout.js?v=grl-20261118"></script>
     <script src="/js/rules-editor.js?v=rules-20261116"></script>
     <script src="/js/bank-account.js?v=bank-20261116"></script>
     <script src="/js/banner-picker.js?v=banner-20261117"></script>
-    <script src="/js/pages/tournament-setup.js?v=banner-20261117"></script>
+    <script src="/js/pages/tournament-setup.js?v=pow2-20261118"></script>
 </body>
 </html>

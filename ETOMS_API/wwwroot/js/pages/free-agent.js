@@ -80,15 +80,16 @@
             }
             var canApply = me && me.role === 'PLAYER';
             container.innerHTML = items.map(function (item) {
+                // Tên đội -> hồ sơ đội; tên người đăng -> hồ sơ công khai của tuyển thủ (ai cũng xem được).
                 var target = item.teamName
-                    ? 'Đội: <b>' + Ui.escapeHtml(item.teamName) + (item.teamTag ? ' [' + Ui.escapeHtml(item.teamTag) + ']' : '') + '</b> · ' + Ui.escapeHtml(item.gameTitle || '')
+                    ? 'Đội: <a href="/team/details.html?id=' + Number(item.teamId) + '"><b>' + Ui.escapeHtml(item.teamName) + (item.teamTag ? ' [' + Ui.escapeHtml(item.teamTag) + ']' : '') + '</b></a> · ' + Ui.escapeHtml(item.gameTitle || '')
                     : 'Tựa game: <b>' + Ui.escapeHtml(item.gameTitle || 'Chung') + '</b>';
                 return '<article class="fa-post"><div style="flex:1;min-width:240px">' +
                     '<span class="badge ' + (type === 'LFP' ? 'badge-active' : 'badge-gold') + '">' + type + '</span> ' +
                     '<span class="hint">' + target + '</span>' +
                     '<h4>' + Ui.escapeHtml(item.title) + '</h4>' +
                     '<p>' + Ui.escapeHtml(item.content) + '</p>' +
-                    '<small>Người đăng: ' + Ui.escapeHtml(item.authorName) + (formatDate(item.createdAt) ? ' · ' + formatDate(item.createdAt) : '') + '</small>' +
+                    '<small>Người đăng: <a href="/profile/public.html?id=' + Number(item.authorAccountId) + '">' + Ui.escapeHtml(item.authorName) + '</a>' + (formatDate(item.createdAt) ? ' · ' + formatDate(item.createdAt) : '') + '</small>' +
                     '</div>' +
                     actionHtml(type, item, canApply) +
                     '</article>';
@@ -105,6 +106,13 @@
     }
 
     function actionHtml(type, item, canApply) {
+        // Tin tìm đội: luôn có nút xem hồ sơ tuyển thủ (rank, game, lịch sử thi đấu) trước khi quyết định mời.
+        var profile = type === 'LFT'
+            ? '<a class="btn btn-ghost" href="/profile/public.html?id=' + Number(item.authorAccountId) + '">Xem hồ sơ</a>' : '';
+        return '<div class="fa-actions">' + profile + actionButton(type, item, canApply) + '</div>';
+    }
+
+    function actionButton(type, item, canApply) {
         if (!me || Number(item.authorAccountId) === Number(me.userId)) return '';
         if (type === 'LFP' && canApply) {
             return appliedTeamIds[item.teamId]
@@ -116,6 +124,10 @@
         if (team) {
             return '<button type="button" class="btn btn-primary" data-invite="' + Number(item.authorAccountId) + '" data-team="' + Number(team.teamId) +
                 '" data-team-name="' + Ui.escapeHtml(team.name) + '" data-player="' + Ui.escapeHtml(item.authorName) + '">Mời vào đội</button>';
+        }
+        // Không mời được: nói rõ lý do thay vì để trống (mỗi đội thuộc một tựa game).
+        if (type === 'LFT') {
+            return '<span class="hint fa-why">Chỉ đội trưởng một đội ' + Ui.escapeHtml(item.gameTitle || 'cùng tựa game') + ' mới mời được tuyển thủ này.</span>';
         }
         return '';
     }

@@ -1,5 +1,6 @@
 // Trang Tin tức: tin ETOMS (Admin đăng) + tin esports từ RSS các báo (NewsController / NewsFeedService).
-// Tin báo chỉ có tiêu đề, mô tả ngắn, ảnh do RSS cung cấp; bấm vào mở bài gốc trên trang báo.
+// Bấm tin nào cũng đọc NGAY TRÊN ETOMS (?id= tin ETOMS, ?ext= tin báo). Tin báo chỉ có tiêu đề, ảnh, đoạn mô tả do
+// báo cung cấp qua RSS + nút đọc toàn bài trên trang báo (toàn văn thuộc bản quyền báo gốc, không chép về).
 (function () {
     var state = { source: 'all', q: '', page: 1, pageSize: 12, items: [], total: 0 };
     var esc = function (s) { return Ui.escapeHtml(s == null ? '' : String(s)); };
@@ -12,11 +13,11 @@
     }
 
     function card(n) {
-        var url = n.isInternal ? n.url : Ui.safeUrl(n.url);
+        var url = n.readerUrl;
         if (!url) return '';
         var img = Ui.safeUrl(n.imageUrl);
         var external = !n.isInternal;
-        return '<a class="news-card" href="' + esc(url) + '"' + (external ? ' target="_blank" rel="noopener noreferrer nofollow"' : '') + '>' +
+        return '<a class="news-card" href="' + esc(url) + '">' +
             '<div class="news-card-img"' + (img ? ' style="background-image:url(\'' + esc(img).replace(/'/g, '%27') + '\')"' : '') + '>' +
             (img ? '' : '<span>' + esc(n.sourceName) + '</span>') + '</div>' +
             '<div class="news-card-body">' +
@@ -24,7 +25,7 @@
             (n.isPinned ? '<span class="badge badge-gold">Ghim</span>' : '') + '<span>' + esc(fmtDate(n.publishedAt)) + '</span></div>' +
             '<h3>' + esc(n.title) + '</h3>' +
             (n.summary ? '<p>' + esc(n.summary) + '</p>' : '') +
-            '<span class="news-card-more">' + (external ? 'Đọc tại ' + esc(n.sourceName) + ' ↗' : 'Đọc tin') + '</span>' +
+            '<span class="news-card-more">' + 'Đọc tin →' + '</span>' +
             '</div></a>';
     }
 
@@ -81,9 +82,46 @@
         }
     }
 
+    // ?ext= : đọc một tin báo ngay trên ETOMS.
+    async function openExternal(id) {
+        var box = el('news-article');
+        box.innerHTML = '<div class="empty"><h3>Đang tải tin…</h3></div>';
+        box.hidden = false;
+        try {
+            var a = await Api.get('/api/news/external/' + encodeURIComponent(id));
+            var src = Ui.safeUrl(a.url);
+            var img = Ui.safeUrl(a.imageUrl);
+            var paras = (a.description || '').split(/(?<=[.!?…])\s+(?=[A-ZĐÂĂÊÔƠƯÁÀẢÃẠ0-9"“])/).reduce(function (acc, s) {
+                // gộp câu thành đoạn ~3 câu cho dễ đọc
+                if (!acc.length || acc[acc.length - 1].split(/[.!?…]\s/).length >= 3) acc.push(s); else acc[acc.length - 1] += ' ' + s;
+                return acc;
+            }, []);
+            var related = (a.related || []).map(function (r) {
+                return '<li><a href="' + esc(r.readerUrl) + '">' + esc(r.title) + '</a> <span class="field-hint">· ' + esc(r.sourceName) + '</span></li>';
+            }).join('');
+            box.innerHTML = '<div class="body news-reader">' +
+                '<div class="news-card-meta mb-2"><span class="badge badge-soft">' + esc(a.sourceName) + '</span><span>' + esc(fmtDate(a.publishedAt)) + '</span></div>' +
+                '<h2 class="mb-3">' + esc(a.title) + '</h2>' +
+                (img ? '<img class="news-reader-img" src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') +
+                '<div class="rulebook-content">' + (paras.length ? paras.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') : '<p>Báo chưa cung cấp đoạn mô tả cho tin này.</p>') + '</div>' +
+                '<p class="field-hint">Phần trên là đoạn giới thiệu do ' + esc(a.sourceName) + ' cung cấp. Toàn văn bài viết thuộc bản quyền của báo ' + esc(a.sourceName) + '.</p>' +
+                '<div class="btn-row mt-2">' +
+                (src ? '<a class="btn btn-primary" href="' + esc(src) + '" target="_blank" rel="noopener noreferrer nofollow">Đọc toàn bài tại ' + esc(a.sourceName) + ' ↗</a>' : '') +
+                '<a class="btn btn-ghost" href="/news/index.html">← Tất cả tin</a></div>' +
+                (related ? '<div class="mt-4"><div class="section-title">Tin khác</div><ul class="news-related">' + related + '</ul></div>' : '') +
+                '</div>';
+            document.title = a.title + ' · ETOMS';
+            box.scrollIntoView({ block: 'start' });
+        } catch (err) {
+            box.innerHTML = '<div class="empty"><h3>Không mở được tin</h3><p>' + esc(err.message || '') + '</p><a class="btn btn-ghost" href="/news/index.html">← Tất cả tin</a></div>';
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var id = Ui.qsInt('id');
         if (id) openArticle(id);
+        var ext = new URLSearchParams(location.search).get('ext');
+        if (ext && /^[a-z]+-[0-9a-f]{16}$/.test(ext)) openExternal(ext);
         var timer;
         el('news-search').addEventListener('input', function () {
             clearTimeout(timer);

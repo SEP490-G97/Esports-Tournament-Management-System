@@ -44,13 +44,8 @@
             key: 'orgs', overline: 'Đơn vị', title: 'Đơn vị tổ chức',
             text: 'Danh sách công khai các đơn vị tổ chức giải và điểm uy tín.',
             href: '/organization/index.html', action: 'Xem danh sách'
-        },
-        {
-            key: 'teams', overline: 'Cộng đồng', title: 'Đội tuyển',
-            text: 'Toàn bộ đội đang hoạt động trên hệ thống.',
-            href: '/team/index.html', action: 'Xem đội tuyển',
-            url: '/api/teams', pick: count
         }
+        // Bỏ ô "Đội tuyển": Admin chỉ dùng khu quản trị, trang đội tuyển là trang của người chơi.
     ];
 
     function tile(t) {

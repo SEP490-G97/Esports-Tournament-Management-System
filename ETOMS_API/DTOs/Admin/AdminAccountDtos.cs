@@ -38,7 +38,20 @@
         int PageSize,
         AccountStatusCounts Counts);
 
-    public sealed record BanAccountRequest(string? Reason);
+    // Handovers: bàn giao chủ nhiệm các đơn vị người bị khóa đang giữ (Admin chọn người nhận).
+    // ConfirmWithoutHandover: Admin đã được cảnh báo và vẫn khóa mà không bàn giao (đơn vị tạm không có chủ nhiệm).
+    public sealed record BanAccountRequest(string? Reason, IReadOnlyList<ChairHandover>? Handovers = null, bool ConfirmWithoutHandover = false);
+
+    public sealed record ChairHandover(int OrganizationId, int NewChairAccountId);
+
+    /// <summary>Ảnh hưởng nếu khóa tài khoản: các đơn vị đang làm chủ nhiệm + người có thể nhận bàn giao.</summary>
+    public sealed record BanImpactResponse(IReadOnlyList<BanImpactOrganization> ChairedOrganizations, int OpenTournamentCount);
+
+    public sealed record BanImpactOrganization(int OrganizationId, string Name, int OpenTournamentCount, IReadOnlyList<BanImpactCandidate> Candidates);
+
+    public sealed record BanImpactCandidate(int AccountId, string FullName, string Email, string OrgRoleLabel);
+
+    public sealed record HandoverReminderRequest(string? Reason);
 
     public sealed record UnbanAccountRequest(string? Note);
 }

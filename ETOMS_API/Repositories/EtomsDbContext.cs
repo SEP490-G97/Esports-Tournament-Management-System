@@ -537,37 +537,36 @@ public partial class EtomsDbContext : DbContext
 
         modelBuilder.Entity<MatchChatMessage>(entity =>
         {
+            // Khớp DB chung (dựng lại 17/11 cho MAT-07): Body 1000 ký tự, SenderRole, TeamID; không còn cột báo cáo.
             entity.ToTable("MatchChatMessage");
 
-            entity.HasIndex(e => new { e.MatchId, e.SentAt }, "IX_MatchChatMessage_Match");
+            entity.HasIndex(e => e.TeamId, "FK_MatchChatMessage_Team");
+            entity.HasIndex(e => new { e.MatchId, e.MatchChatMessageId }, "IX_MatchChatMessage_Match");
+            entity.HasIndex(e => new { e.SenderAccountId, e.SentAt }, "IX_MatchChatMessage_Sender");
 
             entity.Property(e => e.MatchChatMessageId).HasColumnName("MatchChatMessageID");
-            entity.Property(e => e.Content).HasMaxLength(2000);
+            entity.Property(e => e.Body).HasMaxLength(1000);
             entity.Property(e => e.MatchId).HasColumnName("MatchID");
-            entity.Property(e => e.ReportNote).HasMaxLength(500);
-            entity.Property(e => e.ReportStatus)
-                .HasMaxLength(20)
-                .IsUnicode(false)
-                .HasDefaultValue("NONE");
-            entity.Property(e => e.ReportedByAccountId).HasColumnName("ReportedByAccountID");
             entity.Property(e => e.SenderAccountId).HasColumnName("SenderAccountID");
+            entity.Property(e => e.SenderRole).HasMaxLength(20);
+            entity.Property(e => e.TeamId).HasColumnName("TeamID");
             entity.Property(e => e.SentAt)
-                .HasPrecision(0)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasColumnType("datetime(3)")
+                .HasDefaultValueSql("(utc_timestamp(3))");
 
             entity.HasOne(d => d.Match).WithMany(p => p.MatchChatMessages)
                 .HasForeignKey(d => d.MatchId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MatchChatMessage_Match");
 
-            entity.HasOne(d => d.ReportedByAccount).WithMany(p => p.MatchChatMessageReportedByAccounts)
-                .HasForeignKey(d => d.ReportedByAccountId)
-                .HasConstraintName("FK_MatchChatMessage_Rep");
-
             entity.HasOne(d => d.SenderAccount).WithMany(p => p.MatchChatMessageSenderAccounts)
                 .HasForeignKey(d => d.SenderAccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MatchChatMessage_Sender");
+
+            entity.HasOne(d => d.Team).WithMany(p => p.MatchChatMessages)
+                .HasForeignKey(d => d.TeamId)
+                .HasConstraintName("FK_MatchChatMessage_Team");
         });
 
         modelBuilder.Entity<MatchGame>(entity =>

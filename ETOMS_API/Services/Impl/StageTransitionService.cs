@@ -57,6 +57,8 @@ public class StageTransitionService : IStageTransitionService
     // ===== BRK-08: Chuyển giai đoạn Bảng sang Knockout =====
     public async Task<Result<StageTransitionBoardDto>> AdvanceAsync(int tournamentId, AdvanceStageRequest request)
     {
+        using var opLock = TournamentOpLock.TryEnter(tournamentId); // chặn bấm "Chuyển sang vòng loại trực tiếp" nhiều lần
+        if (opLock is null) return Result<StageTransitionBoardDto>.Failure(TournamentOpLock.BusyMessage, StatusCodes.Status409Conflict);
         var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
         if (tournament is null) return Result<StageTransitionBoardDto>.Failure("Không tìm thấy giải đấu.");
 

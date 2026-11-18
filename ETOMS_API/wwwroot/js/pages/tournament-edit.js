@@ -35,6 +35,13 @@
         }).join('');
         TEXT.forEach(function (f) { el(f).value = v[camel(f)] || ''; });
         NUMBER.concat(OPTIONAL_NUMBER).forEach(function (f) { el(f).value = v[camel(f)] === null || v[camel(f)] === undefined ? '' : v[camel(f)]; });
+        // Số đội / số bảng là ô chọn lũy thừa của 2; giải cũ có giá trị khác thì vẫn hiện đúng giá trị đó để BTC chọn lại.
+        ['MaxTeams', 'GroupCount'].forEach(function (f) {
+            var val = v[camel(f)], s = el(f);
+            if (val === null || val === undefined) return;
+            if (!Array.from(s.options).some(function (o) { return o.value === String(val); })) s.add(new Option(val + ' (giá trị cũ, hãy chọn lại)', val));
+            s.value = String(val);
+        });
         el('EntryFee').value = v.entryFee;
         CHECK.forEach(function (f) { el(f).checked = !!v[camel(f)]; });
         DATES.forEach(function (f) { el(f).value = toLocalInput(v[camel(f)]); });
@@ -131,6 +138,9 @@
         el('venue-field').hidden = el('IsOnline').checked;
         el('groups-field').hidden = !(format === 'ROUND_ROBIN' || format === 'HYBRID');
         el('advance-field').hidden = format !== 'HYBRID';
+        // Vòng bảng rồi loại trực tiếp: 2, 4, 8, 16 bảng (lũy thừa của 2); vòng tròn được 1 bảng.
+        var one = el('GroupCount').querySelector('option[value="1"]');
+        if (one) { one.hidden = one.disabled = format === 'HYBRID'; if (format === 'HYBRID' && el('GroupCount').value === '1') el('GroupCount').value = '2'; }
         el('third-field').hidden = !(format === 'SINGLE_ELIMINATION' || format === 'HYBRID');
         if (el('third-field').hidden) el('HasThirdPlaceMatch').checked = false;
     }

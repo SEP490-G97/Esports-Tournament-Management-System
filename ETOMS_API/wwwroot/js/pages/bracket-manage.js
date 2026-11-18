@@ -206,13 +206,8 @@
                 if (method === 'MANUAL') {
                     manualOrder = Array.from(document.querySelectorAll('#manualList .manual-row')).map(function (r) { return parseInt(r.dataset.team, 10); });
                 }
-                try {
-                    var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket/generate', { SeedingMethod: method, ManualOrder: manualOrder });
-                    Ui.showAlert(document.getElementById('flash'), 'success', res.message);
-                    await load();
-                } catch (err) {
-                    Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
-                }
+                await runOnce(genForm.querySelector('button[type=submit]'), 'Đang sinh nhánh…',
+                    function () { return Api.post('/api/tournaments/' + tournamentId + '/bracket/generate', { SeedingMethod: method, ManualOrder: manualOrder }); });
             });
         }
 
@@ -221,13 +216,7 @@
             lockBtn.addEventListener('click', async function () {
                 var ok = await window.etomsConfirm('Khóa nhánh đấu? Sau khi khóa, khách xem được nhánh, roster các đội bị khóa và cổng đăng ký đóng. Vẫn mở khóa lại được nếu chưa có trận nào bắt đầu.');
                 if (!ok) return;
-                try {
-                    var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket/lock');
-                    Ui.showAlert(document.getElementById('flash'), 'success', res.message);
-                    await load();
-                } catch (err) {
-                    Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
-                }
+                await runOnce(lockBtn, 'Đang khóa…', function () { return Api.post('/api/tournaments/' + tournamentId + '/bracket/lock'); });
             });
         }
 
@@ -236,14 +225,26 @@
             unlockBtn.addEventListener('click', async function () {
                 var ok = await window.etomsConfirm('Mở khóa nhánh đấu? Khách sẽ không xem được nhánh cho tới khi khóa lại.');
                 if (!ok) return;
-                try {
-                    var res = await Api.post('/api/tournaments/' + tournamentId + '/bracket/unlock');
-                    Ui.showAlert(document.getElementById('flash'), 'success', res.message);
-                    await load();
-                } catch (err) {
-                    Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
-                }
+                await runOnce(unlockBtn, 'Đang mở khóa…', function () { return Api.post('/api/tournaments/' + tournamentId + '/bracket/unlock'); });
             });
+        }
+    }
+
+    // Khóa nút suốt lúc gửi + tải lại cây (bấm liên tục không gửi thêm yêu cầu). Thành công thì load() vẽ lại
+    // cả khu vực nên nút mới tự mở; lỗi thì mở lại nút cũ để thử lại.
+    async function runOnce(btn, busyText, call) {
+        if (!btn || btn.dataset.busy === '1') return;
+        var oldText = btn.textContent;
+        btn.dataset.busy = '1'; btn.disabled = true; btn.textContent = busyText;
+        var flash = document.getElementById('flash');
+        try {
+            var res = await call();
+            Ui.showAlert(flash, 'success', res.message);
+            await load();
+        } catch (err) {
+            Ui.showAlert(flash, 'danger', err.message);
+        } finally {
+            if (btn.isConnected) { btn.dataset.busy = ''; btn.disabled = false; btn.textContent = oldText; }
         }
     }
 

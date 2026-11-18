@@ -47,7 +47,8 @@
         root.innerHTML = items.map(function (item) {
             var lineup = (item.lineup || []).map(function (member) {
                 return '<div class="item-sub">' + Ui.escapeHtml(member.slot === 'STARTER' ? 'Chính thức' : 'Dự bị') +
-                    ' · ' + Ui.escapeHtml(member.fullName) + (member.inGameName ? ' · IGN: ' + Ui.escapeHtml(member.inGameName) : '') + '</div>';
+                    ' · ' + Ui.escapeHtml(member.fullName) + (member.inGameName ? ' · IGN: ' + Ui.escapeHtml(member.inGameName) : '') +
+                    (member.positionName ? ' · Vị trí: ' + Ui.escapeHtml(member.positionName) : '') + '</div>';
             }).join('');
             var paymentRecords = (item.paymentRecords || []).map(function (record) {
                 return '<div class="item-sub">' + Ui.escapeHtml(record.recordKind === 'REFUND' ? 'Hoàn tiền' : 'Biên lai') +
@@ -67,6 +68,10 @@
             var withdraw = canWithdraw(item.status)
                 ? '<button type="button" class="btn btn-ghost" data-withdraw="' + item.registrationId + '">Rút đơn</button>'
                 : '';
+            // GRL: giải có bộ luật theo tựa game thì đội trưởng xếp vị trí cho từng người chính thức (trang tự báo nếu giải chưa chọn bộ luật / đã khóa).
+            var positions = ['PENDING', 'APPROVED', 'WAITLISTED'].indexOf(item.status) >= 0
+                ? '<a class="btn btn-ghost" href="/registration/lineup-positions.html?id=' + Number(item.registrationId) + '">Xếp vị trí đội hình</a>'
+                : '';
             var editDraft = item.status === 'DRAFT'
                 ? '<a class="btn btn-primary" href="/registration/register.html?tournamentId=' +
                     item.tournamentId + '&draftRegistrationId=' + item.registrationId + '">Tiếp tục chỉnh sửa nháp</a>'
@@ -83,7 +88,7 @@
                 '<div class="mt-3"><strong>Lệ phí: ' +
                 (item.entryFee > 0 ? Number(item.entryFee).toLocaleString('vi-VN') + ' đ · ' + Ui.escapeHtml(paymentLabel(item.paymentStatus)) : 'Miễn phí') +
                 '</strong>' + paymentRecords + '</div>' +
-                offer + proof + '<div class="btn-row mt-3">' + editDraft + withdraw + '</div></article>';
+                offer + proof + '<div class="btn-row mt-3">' + editDraft + positions + withdraw + '</div></article>';
         }).join('');
 
         root.querySelectorAll('[data-accept-offer]').forEach(function (button) {

@@ -60,8 +60,6 @@ public partial class Account
 
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();
 
-    public virtual ICollection<MatchChatMessage> MatchChatMessageReportedByAccounts { get; set; } = new List<MatchChatMessage>();
-
     public virtual ICollection<MatchChatMessage> MatchChatMessageSenderAccounts { get; set; } = new List<MatchChatMessage>();
 
     public virtual ICollection<MatchGame> MatchGames { get; set; } = new List<MatchGame>();

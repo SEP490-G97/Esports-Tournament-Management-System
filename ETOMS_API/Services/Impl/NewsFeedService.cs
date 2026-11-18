@@ -34,8 +34,13 @@ public sealed class NewsFeedService
         "valorant", "fc online", "tốc chiến", "cktg", "free fire", "dota", "counter-strike", "cs2", "mobile legends"
     };
 
+    // Url = bài gốc; ReaderUrl = trang đọc tin NGAY TRÊN ETOMS (tin báo: tiêu đề + ảnh + tóm tắt RSS + nút đọc toàn bài).
+    // Description = đoạn mô tả dài hơn do báo cung cấp qua RSS (không chép toàn văn bài — bản quyền thuộc báo gốc).
     public sealed record NewsItem(string Id, string Source, string SourceName, string Title, string? Summary,
-        string Url, string? ImageUrl, DateTime? PublishedAt, bool IsInternal, bool IsPinned);
+        string Url, string? ImageUrl, DateTime? PublishedAt, bool IsInternal, bool IsPinned, string? Description = null)
+    {
+        public string ReaderUrl => IsInternal ? Url : "/news/index.html?ext=" + Uri.EscapeDataString(Id);
+    }
 
     public sealed record SourceStatus(string Key, string Name, bool Ok, int Count);
 
@@ -153,10 +158,21 @@ public sealed class NewsFeedService
             DateTime? published = DateTimeOffset.TryParse(item.Element("pubDate")?.Value, CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces, out var dto) ? dto.UtcDateTime : null;
 
-            list.Add(new NewsItem(source.Key + "-" + list.Count, source.Key, source.Name, title, summary,
-                link!, IsHttpUrl(image) ? image : null, published, false, false));
+            // Mã tin cố định theo đường dẫn bài (không theo thứ tự) để link đọc tin không đổi khi báo có tin mới.
+            list.Add(new NewsItem(source.Key + "-" + StableId(link!), source.Key, source.Name, title, summary,
+                link!, IsHttpUrl(image) ? image : null, published, false, false, Shorten(Clean(StripHtml(descriptionHtml)), 1200)));
         }
         return list;
+    }
+
+    private static string StableId(string link)
+        => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(link)))[..16].ToLowerInvariant();
+
+    // Một tin báo theo mã (lấy từ danh sách đã nhớ 30 phút). Null nếu tin đã trôi khỏi RSS.
+    public async Task<NewsItem?> GetExternalAsync(string id, CancellationToken ct)
+    {
+        var (items, _) = await GetAllAsync(ct);
+        return items.FirstOrDefault(i => !i.IsInternal && i.Id == id);
     }
 
     private static bool IsHttpUrl(string? url)

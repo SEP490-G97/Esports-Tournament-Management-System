@@ -118,6 +118,28 @@
             '</div></details>';
     }
 
+    // Nhà tài trợ của giải (SPN, cùng nguồn với trang giới thiệu giải) — đặt CUỐI trang, dưới "Thông tin chi tiết",
+    // tải sau phần chính. Giải chưa có nhà tài trợ thì không hiện khu này.
+    var TIER = { DIAMOND: 'Kim cương', GOLD: 'Vàng', SILVER: 'Bạc', BRONZE: 'Đồng', PARTNER: 'Đối tác' };
+    async function loadSponsors(id) {
+        var list;
+        try { list = ((await Api.get('/api/marketing/tournaments/' + id)).data || {}).sponsors || []; } catch (e) { return; }
+        if (!list.length) return;
+        var cards = list.map(function (s) {
+            var site = Ui.safeUrl(s.websiteUrl), logo = Ui.safeUrl(s.logoUrl);
+            var inner = (logo ? '<img class="sponsor-logo" src="' + esc(logo) + '" alt="" loading="lazy">' : '') +
+                '<span class="sponsor-name">' + esc(s.name) + '</span>' +
+                '<span class="badge badge-gold">Hạng ' + esc(TIER[s.tier] || s.tier) + '</span>';
+            return '<div class="col-6 col-md-4 col-lg-3">' + (site
+                ? '<a class="ad-slot sponsor-card h-100" href="' + esc(site) + '" target="_blank" rel="noopener noreferrer sponsored">' + inner + '</a>'
+                : '<div class="ad-slot sponsor-card h-100">' + inner + '</div>') + '</div>';
+        }).join('');
+        var section = document.createElement('section');
+        section.className = 'card-etoms mt-3';
+        section.innerHTML = '<div class="body"><div class="ov-h">Nhà tài trợ</div><div class="row g-3">' + cards + '</div></div>';
+        document.getElementById('overview-root').appendChild(section);
+    }
+
     function fact(label, value) {
         return '<div class="ov-fact"><span class="k">' + esc(label) + '</span><span class="v">' + value + '</span></div>';
     }
@@ -138,6 +160,7 @@
         try {
             var res = await Api.get('/api/tournaments/' + id + '/overview');
             render(res.data);
+            loadSponsors(id);
         } catch (err) {
             // UC-36 E2: giải không tồn tại hoặc còn Nháp -> báo không tìm thấy, gợi ý về danh sách.
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>' +

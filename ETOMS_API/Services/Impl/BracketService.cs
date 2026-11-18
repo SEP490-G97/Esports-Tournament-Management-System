@@ -39,6 +39,8 @@ public class BracketService : IBracketService
     // ===== BRK-01 + BRK-02 + BRK-04 + BRK-06 =====
     public async Task<Result> GenerateBracketAsync(int tournamentId, GenerateBracketRequest request, int organizerAccountId)
     {
+        using var opLock = TournamentOpLock.TryEnter(tournamentId); // chặn bấm nhiều lần / 2 tab chạy song song
+        if (opLock is null) return Result.Failure(TournamentOpLock.BusyMessage, StatusCodes.Status409Conflict);
         var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
         if (tournament is null) return Result.Failure("Không tìm thấy giải đấu.");
         if (tournament.OrganizerAccountId != organizerAccountId) return Result.Failure("Chỉ ban tổ chức của giải được sinh nhánh đấu.");
@@ -487,6 +489,8 @@ public class BracketService : IBracketService
     // ===== BRK-03: Khóa nhánh đấu =====
     public async Task<Result> LockBracketAsync(int tournamentId, int organizerAccountId)
     {
+        using var opLock = TournamentOpLock.TryEnter(tournamentId); // chặn bấm nhiều lần / 2 tab chạy song song
+        if (opLock is null) return Result.Failure(TournamentOpLock.BusyMessage, StatusCodes.Status409Conflict);
         var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
         if (tournament is null) return Result.Failure("Không tìm thấy giải đấu.");
         if (tournament.OrganizerAccountId != organizerAccountId) return Result.Failure("Chỉ ban tổ chức của giải được khóa nhánh đấu.");
@@ -512,6 +516,8 @@ public class BracketService : IBracketService
 
     public async Task<Result> UnlockBracketAsync(int tournamentId, int organizerAccountId)
     {
+        using var opLock = TournamentOpLock.TryEnter(tournamentId); // chặn bấm nhiều lần / 2 tab chạy song song
+        if (opLock is null) return Result.Failure(TournamentOpLock.BusyMessage, StatusCodes.Status409Conflict);
         var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
         if (tournament is null) return Result.Failure("Không tìm thấy giải đấu.");
         if (tournament.OrganizerAccountId != organizerAccountId) return Result.Failure("Chỉ ban tổ chức của giải được mở khóa nhánh đấu.");
@@ -537,6 +543,8 @@ public class BracketService : IBracketService
     // miễn vòng đi tiếp) — nên dùng chung cho cả cây knockout lẫn vòng bảng.
     public async Task<Result> SwapTeamsAsync(int tournamentId, int teamAId, int teamBId, int organizerAccountId)
     {
+        using var opLock = TournamentOpLock.TryEnter(tournamentId); // chặn bấm nhiều lần / 2 tab chạy song song
+        if (opLock is null) return Result.Failure(TournamentOpLock.BusyMessage, StatusCodes.Status409Conflict);
         var tournament = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
         if (tournament is null) return Result.Failure("Không tìm thấy giải đấu.");
         if (tournament.OrganizerAccountId != organizerAccountId) return Result.Failure("Chỉ ban tổ chức của giải được sửa nhánh đấu.");

@@ -136,6 +136,9 @@ public class TournamentRulesetService : ITournamentRulesetService
     private async Task<string?> BlockedReasonAsync(Tournament t)
     {
         if (t.Status is not ("DRAFT" or "PUBLISHED")) return "Giải đã bắt đầu, kết thúc hoặc đã hủy nên không đổi được bộ luật.";
+        // Góp ý nhóm 18/11: giải đã xuất bản thì không ĐỔI bộ luật đã chọn (chỉ còn được chọn lần đầu khi chưa có đơn).
+        if (t.Status == "PUBLISHED" && await _uow.Repository<TournamentRuleset>().AnyAsync(tr => tr.TournamentId == t.TournamentId))
+            return "Giải đã xuất bản nên không đổi được bộ luật đã chọn.";
         var hasRegistration = await _uow.Repository<Registration>().AnyAsync(r => r.TournamentId == t.TournamentId);
         return hasRegistration ? "Giải đã có đơn đăng ký nên không đổi được bộ luật." : null;
     }

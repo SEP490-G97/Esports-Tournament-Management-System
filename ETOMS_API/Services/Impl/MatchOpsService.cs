@@ -270,8 +270,8 @@ public class MatchOpsService : IMatchOpsService
     // Một phòng cho mỗi trận: 2 đội trưởng + trọng tài được gán + Ban tổ chức (E1). Mở khi trận Sẵn sàng (cả hai
     // đội đã điểm danh), chỉ còn đọc khi trận đã có kết quả (E2). Toàn bộ tin nhắn được lưu làm bằng chứng cho
     // người phân xử tranh chấp (UC-31), nên tin nhắn không sửa/xóa được.
-    public const int ChatMaxLength = 2000;      // MatchChatMessage.Content VARCHAR(2000)
-    private const int ChatReportNoteMax = 500;   // MatchChatMessage.ReportNote VARCHAR(500)
+    public const int ChatMaxLength = 1000;      // MatchChatMessage.Body VARCHAR(1000) trên DB chung
+    private const int ChatReportNoteMax = 500;   // lý do báo cáo (gửi trong thông báo, không lưu trên tin nhắn)
     private static readonly string[] LobbyOpenStatuses = { "READY", "LIVE", "WAITING_REPORT", "DISPUTED" };
 
     private sealed record LobbyContext(Match Match, string? Role, int? CaptainA, int? CaptainB);
@@ -319,7 +319,7 @@ public class MatchOpsService : IMatchOpsService
         var rows = await _uow.Repository<MatchChatMessage>().Query().AsNoTracking()
             .Where(c => c.MatchId == matchId)
             .OrderBy(c => c.SentAt).ThenBy(c => c.MatchChatMessageId)
-            .Select(c => new { c.MatchChatMessageId, c.SenderAccountId, SenderName = c.SenderAccount.FullName, c.Content, c.SentAt, c.ReportStatus, c.ReportedByAccountId })
+            .Select(c => new { c.MatchChatMessageId, c.SenderAccountId, SenderName = c.SenderAccount.FullName, c.Body, c.SentAt })
             .ToListAsync();
 
         var closed = LobbyClosedReason(m);
@@ -341,14 +341,14 @@ public class MatchOpsService : IMatchOpsService
                     MatchChatMessageId = c.MatchChatMessageId,
                     SenderAccountId = c.SenderAccountId,
                     SenderName = c.SenderName,
-                    Content = c.Content,
+                    Content = c.Body,
                     SentAt = c.SentAt,
                     SenderRole = senderRole,
                     SenderRoleLabel = RoleLabel(senderRole, m),
                     IsMine = mine,
-                    // Ai báo cáo thì thấy tin mình đã báo; người phân xử thấy mọi tin bị báo cáo.
-                    ReportStatus = moderator || c.ReportedByAccountId == viewerAccountId ? c.ReportStatus : "NONE",
-                    CanReport = !mine && c.ReportStatus == "NONE"
+                    // Bảng tin nhắn trên DB chung không còn cột báo cáo: báo cáo chỉ gửi thông báo cho BTC/trọng tài.
+                    ReportStatus = "NONE",
+                    CanReport = !mine && !moderator
                 };
             }).ToList()
         });
@@ -377,9 +377,10 @@ public class MatchOpsService : IMatchOpsService
         {
             MatchId = matchId,
             SenderAccountId = senderAccountId,
-            Content = content,
-            IsPinned = false,
-            ReportStatus = "NONE",
+            // CK_MatchChatMessage_Role: CAPTAIN / ORGANIZER / REFEREE; TeamID chỉ có với đội trưởng.
+            SenderRole = ctx.Role is "CAPTAIN_A" or "CAPTAIN_B" ? "CAPTAIN" : ctx.Role!,
+            TeamId = ctx.Role == "CAPTAIN_A" ? ctx.Match.TeamAid : ctx.Role == "CAPTAIN_B" ? ctx.Match.TeamBid : null,
+            Body = content,
             SentAt = DateTime.UtcNow
         };
         await _uow.Repository<MatchChatMessage>().AddAsync(msg);
@@ -388,7 +389,7 @@ public class MatchOpsService : IMatchOpsService
         {
             MatchChatMessageId = msg.MatchChatMessageId,
             SenderAccountId = senderAccountId,
-            Content = msg.Content,
+            Content = msg.Body,
             SentAt = msg.SentAt,
             SenderRole = ctx.Role,
             SenderRoleLabel = RoleLabel(ctx.Role, ctx.Match),
@@ -396,7 +397,9 @@ public class MatchOpsService : IMatchOpsService
         }, "Đã gửi tin nhắn.");
     }
 
-    // UC-25 A2: báo cáo tin nhắn xúc phạm — ghi vào tin nhắn và báo cho Ban tổ chức (có thể phạt qua UC-34).
+    // UC-25 A2: báo cáo tin nhắn xúc phạm — gửi thông báo cho Ban tổ chức + trọng tài (có thể phạt qua UC-34).
+    // Bảng MatchChatMessage trên DB chung không có cột báo cáo nên không đánh dấu lên tin nhắn; tin nhắn vẫn
+    // nằm nguyên trong log làm bằng chứng.
     public async Task<Result> ReportChatMessageAsync(int matchId, int messageId, int reporterAccountId, ReportChatMessageRequest request)
     {
         var note = (request.Note ?? string.Empty).Trim();
@@ -407,19 +410,13 @@ public class MatchOpsService : IMatchOpsService
         if (ctx is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
         if (ctx.Role is null) return Result.Failure("Chỉ người trong phòng chờ mới báo cáo được tin nhắn.", StatusCodes.Status403Forbidden);
 
-        var msg = await _uow.Repository<MatchChatMessage>().Query()
+        var msg = await _uow.Repository<MatchChatMessage>().Query().AsNoTracking()
             .FirstOrDefaultAsync(c => c.MatchChatMessageId == messageId && c.MatchId == matchId);
         if (msg is null) return Result.Failure("Không tìm thấy tin nhắn trong phòng chờ này.", StatusCodes.Status404NotFound);
         if (msg.SenderAccountId == reporterAccountId) return Result.Failure("Không thể báo cáo tin nhắn của chính bạn.");
-        if (msg.ReportStatus != "NONE") return Result.Failure("Tin nhắn này đã được báo cáo trước đó.");
-
-        msg.ReportStatus = "REPORTED";
-        msg.ReportedByAccountId = reporterAccountId;
-        msg.ReportNote = note;
-        _uow.Repository<MatchChatMessage>().Update(msg);
 
         var m = ctx.Match;
-        var preview = msg.Content.Length > 120 ? msg.Content[..120] + "…" : msg.Content;
+        var preview = msg.Body.Length > 120 ? msg.Body[..120] + "…" : msg.Body;
         foreach (var to in new[] { m.Tournament.OrganizerAccountId, m.RefereeAccountId ?? 0 }.Where(x => x > 0 && x != reporterAccountId).Distinct())
         {
             await _uow.Repository<Notification>().AddAsync(new Notification

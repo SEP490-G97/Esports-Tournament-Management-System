@@ -621,7 +621,7 @@ public class ResultService : IResultService
             .Include(c => c.SenderAccount)
             .Where(c => c.MatchId == match.MatchId)
             .OrderBy(c => c.SentAt)
-            .Select(c => new ChatLogItemDto { SenderName = c.SenderAccount.FullName, Content = c.Content, SentAt = c.SentAt })
+            .Select(c => new ChatLogItemDto { SenderName = c.SenderAccount.FullName, Content = c.Body, SentAt = c.SentAt })
             .ToListAsync();
 
         return new DisputeDetailDto

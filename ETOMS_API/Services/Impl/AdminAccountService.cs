@@ -108,7 +108,55 @@ namespace ETOMS_API.Services.Impl
 
         // ---------------------------------------------------------------- ADM-02
 
-        public async Task<AdminResult> BanAsync(int actorId, int targetId, string? reason, CancellationToken ct = default)
+        // Giải "còn chạy" của người bị khóa: chưa kết thúc / chưa hủy.
+        private static readonly string[] OpenTournamentStatuses = { "DRAFT", "PUBLISHED", "ONGOING" };
+
+        private static string OrgRoleLabel(string role) => role switch
+        {
+            "TOURNAMENT_OPERATOR" => "Điều hành giải",
+            "MARKETING" => "Truyền thông",
+            "REFEREE" => "Trọng tài",
+            "CHAIR" => "Chủ nhiệm",
+            _ => role
+        };
+
+        // Người nhận bàn giao hợp lệ: thành viên ĐANG HOẠT ĐỘNG của đơn vị, là tài khoản Ban tổ chức chưa bị khóa (Hướng 1).
+        private IQueryable<OrganizationMember> HandoverCandidates(int targetId) => _db.OrganizationMembers.AsNoTracking()
+            .Where(m => m.AccountId != targetId && m.Status == "ACTIVE"
+                && m.Account.Role == AccountRoles.Organizer && m.Account.Status == AccountStatuses.Active);
+
+        public async Task<BanImpactResponse?> GetBanImpactAsync(int targetId, CancellationToken ct = default)
+        {
+            if (!await _db.Accounts.AnyAsync(a => a.AccountId == targetId, ct)) return null;
+
+            var orgs = await _db.OrganizationMembers.AsNoTracking()
+                .Where(m => m.AccountId == targetId && m.Role == "CHAIR" && m.Status == "ACTIVE")
+                .Select(m => new { m.OrganizationId, m.Organization.Name })
+                .ToListAsync(ct);
+            var orgIds = orgs.Select(o => o.OrganizationId).ToList();
+
+            var candidates = orgIds.Count == 0 ? new() : await HandoverCandidates(targetId)
+                .Where(m => orgIds.Contains(m.OrganizationId))
+                .OrderBy(m => m.Account.FullName)
+                .Select(m => new { m.OrganizationId, m.AccountId, m.Account.FullName, m.Account.Email, m.Role })
+                .ToListAsync(ct);
+
+            var open = await _db.Tournaments.AsNoTracking()
+                .Where(t => t.OrganizerAccountId == targetId && OpenTournamentStatuses.Contains(t.Status))
+                .Select(t => t.OrganizationId)
+                .ToListAsync(ct);
+
+            var list = orgs.Select(o => new BanImpactOrganization(
+                o.OrganizationId, o.Name,
+                open.Count(id => id == o.OrganizationId),
+                candidates.Where(c => c.OrganizationId == o.OrganizationId)
+                    .Select(c => new BanImpactCandidate(c.AccountId, c.FullName, c.Email, OrgRoleLabel(c.Role)))
+                    .ToList())).ToList();
+            return new BanImpactResponse(list, open.Count);
+        }
+
+        public async Task<AdminResult> BanAsync(int actorId, int targetId, string? reason, IReadOnlyList<ChairHandover>? handovers = null,
+            bool confirmWithoutHandover = false, CancellationToken ct = default)
         {
             var clean = (reason ?? "").Trim();
             if (clean.Length < MinReasonLength || clean.Length > MaxReasonLength)
@@ -125,6 +173,22 @@ namespace ETOMS_API.Services.Impl
             if (target == null) return new AdminResult(AdminError.NotFound);
             if (target.Role == AccountRoles.Admin) return new AdminResult(AdminError.CannotBanAdmin);
             if (target.Status == AccountStatuses.Banned) return new AdminResult(AdminError.AlreadyBanned);
+
+            // Đang là chủ nhiệm đơn vị: Admin phải chọn người nhận bàn giao cho từng đơn vị, hoặc xác nhận
+            // khóa mà không bàn giao (đã được cảnh báo đơn vị sẽ tạm không có chủ nhiệm).
+            var chairedOrgs = await _db.OrganizationMembers.AsNoTracking()
+                .Where(m => m.AccountId == targetId && m.Role == "CHAIR" && m.Status == "ACTIVE")
+                .Select(m => new { m.OrganizationId, m.Organization.Name })
+                .ToListAsync(ct);
+            var plan = (handovers ?? Array.Empty<ChairHandover>())
+                .GroupBy(h => h.OrganizationId).Select(g => g.First()).ToList();
+            if (plan.Any(h => chairedOrgs.All(o => o.OrganizationId != h.OrganizationId)))
+                return new AdminResult(AdminError.InvalidHandover);
+            if (chairedOrgs.Any(o => plan.All(h => h.OrganizationId != o.OrganizationId)) && !confirmWithoutHandover)
+                return new AdminResult(AdminError.ChairHandoverRequired);
+            foreach (var h in plan)
+                if (!await HandoverCandidates(targetId).AnyAsync(m => m.OrganizationId == h.OrganizationId && m.AccountId == h.NewChairAccountId, ct))
+                    return new AdminResult(AdminError.InvalidHandover);
 
             var now = DateTime.UtcNow;
 
@@ -156,6 +220,48 @@ namespace ETOMS_API.Services.Impl
                     Reason = clean,
                     CreatedAt = now
                 });
+
+                // Bàn giao chủ nhiệm theo đúng quy ước lược đồ: CHAIR cũ -> TOURNAMENT_OPERATOR rồi người mới -> CHAIR
+                // (2 lệnh riêng theo thứ tự, vì chỉ mục UX_OrganizationMember_Chair chỉ cho 1 chủ nhiệm/đơn vị),
+                // ghi AuditLog TRANSFER_CHAIR. Giải chưa kết thúc của đơn vị do người bị khóa quản lý chuyển sang
+                // chủ nhiệm mới để giải không bị bỏ trống người quản lý.
+                foreach (var h in plan)
+                {
+                    await _db.OrganizationMembers
+                        .Where(m => m.OrganizationId == h.OrganizationId && m.AccountId == targetId && m.Role == "CHAIR" && m.Status == "ACTIVE")
+                        .ExecuteUpdateAsync(s => s.SetProperty(m => m.Role, "TOURNAMENT_OPERATOR"), ct);
+                    await _db.OrganizationMembers
+                        .Where(m => m.OrganizationId == h.OrganizationId && m.AccountId == h.NewChairAccountId && m.Status == "ACTIVE")
+                        .ExecuteUpdateAsync(s => s.SetProperty(m => m.Role, "CHAIR"), ct);
+                    var moved = await _db.Tournaments
+                        .Where(t => t.OrganizationId == h.OrganizationId && t.OrganizerAccountId == targetId && OpenTournamentStatuses.Contains(t.Status))
+                        .ExecuteUpdateAsync(s => s.SetProperty(t => t.OrganizerAccountId, h.NewChairAccountId), ct);
+
+                    var orgName = chairedOrgs.First(o => o.OrganizationId == h.OrganizationId).Name;
+                    _db.AuditLogs.Add(new AuditLog
+                    {
+                        ActorAccountId = actorId,
+                        ActionType = "TRANSFER_CHAIR",
+                        ObjectType = "ORGANIZATION",
+                        ObjectId = h.OrganizationId,
+                        BeforeValue = Json(new { chairAccountId = targetId }),
+                        AfterValue = Json(new { chairAccountId = h.NewChairAccountId, tournamentsMoved = moved }),
+                        Reason = "Bàn giao khi khóa tài khoản chủ nhiệm: " + clean,
+                        CreatedAt = now
+                    });
+                    _db.Notifications.Add(new Notification
+                    {
+                        AccountId = h.NewChairAccountId,
+                        NotificationType = "SYSTEM",
+                        Title = "Bạn được bàn giao chủ nhiệm đơn vị",
+                        Body = $"Quản trị viên đã bàn giao chủ nhiệm đơn vị \"{orgName}\" cho bạn vì tài khoản chủ nhiệm cũ bị khóa."
+                            + (moved > 0 ? $" {moved} giải chưa kết thúc của đơn vị đã chuyển sang bạn quản lý." : ""),
+                        LinkUrl = "/organization/details.html?id=" + h.OrganizationId,
+                        Channel = "IN_APP",
+                        IsRead = false,
+                        SentAt = now
+                    });
+                }
                 await _db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
             }
@@ -168,6 +274,55 @@ namespace ETOMS_API.Services.Impl
                 "[ETOMS] Tài khoản của bạn đã bị khóa",
                 BuildBanEmail(target.FullName, clean), ct);
 
+            return new AdminResult(AdminError.None);
+        }
+
+        // Cách 2 khi chủ nhiệm đơn vị vi phạm: CHƯA khóa, gửi thông báo trong hệ thống + email yêu cầu người đó tự
+        // bàn giao chủ nhiệm (trang chi tiết đơn vị) trước; Admin khóa sau.
+        public async Task<AdminResult> RequestChairHandoverAsync(int actorId, int targetId, string? reason, CancellationToken ct = default)
+        {
+            var clean = (reason ?? "").Trim();
+            if (clean.Length < MinReasonLength || clean.Length > MaxReasonLength)
+                return new AdminResult(AdminError.InvalidReason);
+
+            var target = await _db.Accounts.AsNoTracking()
+                .Where(a => a.AccountId == targetId)
+                .Select(a => new { a.Email, a.FullName, a.Role, a.Status })
+                .FirstOrDefaultAsync(ct);
+            if (target == null) return new AdminResult(AdminError.NotFound);
+            if (target.Status == AccountStatuses.Banned) return new AdminResult(AdminError.AlreadyBanned);
+
+            var orgs = await _db.OrganizationMembers.AsNoTracking()
+                .Where(m => m.AccountId == targetId && m.Role == "CHAIR" && m.Status == "ACTIVE")
+                .Select(m => new { m.OrganizationId, m.Organization.Name })
+                .ToListAsync(ct);
+            if (orgs.Count == 0) return new AdminResult(AdminError.NotChair);
+
+            var names = string.Join(", ", orgs.Select(o => "\"" + o.Name + "\""));
+            var now = DateTime.UtcNow;
+            _db.Notifications.Add(new Notification
+            {
+                AccountId = targetId,
+                NotificationType = "SYSTEM",
+                Title = "Yêu cầu bàn giao chủ nhiệm đơn vị",
+                Body = $"Tài khoản của bạn sắp bị khóa. Lý do: {clean}. Vui lòng bàn giao chủ nhiệm đơn vị {names} cho một thành viên khác.",
+                LinkUrl = "/organization/details.html?id=" + orgs[0].OrganizationId,
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = now
+            });
+            await _db.SaveChangesAsync(ct);
+
+            var name = WebUtility.HtmlEncode(target.FullName);
+            var why = WebUtility.HtmlEncode(clean).Replace("\n", "<br/>");
+            await SafeSendAsync(target.Email, "[ETOMS] Yêu cầu bàn giao chủ nhiệm đơn vị tổ chức",
+                $@"<div style=""font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f2430"">
+                    <p>Xin chào <b>{name}</b>,</p>
+                    <p>Tài khoản ETOMS của bạn đang được xem xét <b>khóa</b>. Lý do:<br/>{why}</p>
+                    <p>Bạn đang là chủ nhiệm đơn vị {WebUtility.HtmlEncode(names)}. Vui lòng vào trang chi tiết đơn vị và
+                    <b>bàn giao chủ nhiệm</b> cho một thành viên khác để đơn vị tiếp tục hoạt động.</p>
+                    <p>{SupportBlock()}</p>
+                    <p>Trân trọng,<br/>Đội ngũ ETOMS</p></div>", ct);
             return new AdminResult(AdminError.None);
         }
 

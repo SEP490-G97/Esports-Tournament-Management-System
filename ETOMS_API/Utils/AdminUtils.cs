@@ -11,7 +11,10 @@ namespace ETOMS_API.Utils
         CannotBanSelf,
         CannotBanAdmin,
         AlreadyBanned,
-        NotBanned
+        NotBanned,
+        ChairHandoverRequired,   // đang là chủ nhiệm đơn vị mà Admin chưa chọn cách xử lý
+        InvalidHandover,         // người nhận bàn giao không phải thành viên hợp lệ của đơn vị
+        NotChair                 // gửi nhắc bàn giao cho người không làm chủ nhiệm đơn vị nào
     }
 
     public sealed record AdminResult(AdminError Error)

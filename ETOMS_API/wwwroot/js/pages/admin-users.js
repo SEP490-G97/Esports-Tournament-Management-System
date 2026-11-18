@@ -201,8 +201,80 @@
         $('note').value = '';
         $('reason-count').textContent = '0';
         msg($('modal-msg'), '');
+        $('chair-impact').hidden = true;
+        $('chair-impact').textContent = '';
+        $('modal-remind').hidden = true;
         modal.show();
         setTimeout(() => (isBan ? $('reason') : $('note')).focus(), 250);
+        if (isBan && user.role === 'ORGANIZER') loadImpact(user);
+    }
+
+    // Khóa một Ban tổ chức đang là CHỦ NHIỆM đơn vị: báo trước hậu quả và cho Admin chọn
+    //  (1) bàn giao chủ nhiệm cho một thành viên rồi khóa, hoặc
+    //  (2) chưa khóa — gửi thông báo yêu cầu người đó tự bàn giao (nút "Gửi yêu cầu tự bàn giao").
+    async function loadImpact(user) {
+        const box = $('chair-impact');
+        const r = await call(`${API}/${user.accountId}/ban-impact`);
+        if (!current || current.user !== user) return;           // đã đóng / mở người khác
+        current.impact = r.ok ? r.data : null;
+        const orgs = (r.ok && r.data.chairedOrganizations) || [];
+        if (!orgs.length) return;
+
+        box.textContent = '';
+        const head = el('p');
+        head.append('Tài khoản này đang là ', el('b', null, 'chủ nhiệm ' + orgs.length + ' đơn vị tổ chức'),
+            '. Nếu khóa, chủ nhiệm không đăng nhập được nên đơn vị sẽ không còn ai quản lý thành viên, hồ sơ và giải đấu' +
+            (r.data.openTournamentCount ? ` (đang có ${r.data.openTournamentCount} giải chưa kết thúc do người này quản lý)` : '') + '.');
+        box.appendChild(head);
+        box.appendChild(el('p', null, 'Chọn người nhận bàn giao chủ nhiệm cho từng đơn vị rồi bấm "Xác nhận khóa" — giải chưa kết thúc của đơn vị sẽ chuyển sang chủ nhiệm mới. Hoặc bấm "Gửi yêu cầu tự bàn giao" để báo người này tự bàn giao trước (chưa khóa).'));
+
+        orgs.forEach((o) => {
+            const wrap = el('div', 'au-impact-org');
+            const id = 'handover-' + o.organizationId;
+            const label = el('label', 'au-label', o.name + (o.openTournamentCount ? ` · ${o.openTournamentCount} giải chưa kết thúc` : ''));
+            label.htmlFor = id;
+            const sel = el('select', 'au-input');
+            sel.id = id;
+            sel.dataset.org = o.organizationId;
+            o.candidates.forEach((c) => {
+                const opt = el('option', null, `Bàn giao cho ${c.fullName} (${c.orgRoleLabel}) · ${c.email}`);
+                opt.value = c.accountId;
+                sel.appendChild(opt);
+            });
+            const none = el('option', null, o.candidates.length
+                ? 'Không bàn giao — đơn vị tạm không có chủ nhiệm'
+                : 'Đơn vị chưa có thành viên Ban tổ chức nào khác — khóa mà không bàn giao');
+            none.value = '';
+            sel.appendChild(none);
+            wrap.append(label, sel);
+            box.appendChild(wrap);
+        });
+        box.hidden = false;
+        $('modal-remind').hidden = false;
+    }
+
+    async function sendHandoverReminder() {
+        if (!current || state.busy) return;
+        const reason = $('reason').value.trim();
+        if (reason.length < 5) {
+            msg($('modal-msg'), 'Vui lòng nhập lý do (tối thiểu 5 ký tự) — lý do được gửi kèm yêu cầu bàn giao.', 'error');
+            $('reason').focus();
+            return;
+        }
+        const user = current.user;
+        setBusy(true);
+        const r = await call(`${API}/${user.accountId}/request-handover`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason })
+        });
+        setBusy(false);
+        if (r.ok) {
+            modal.hide();
+            msg($('list-msg'), `Đã gửi yêu cầu tự bàn giao chủ nhiệm cho ${user.email}. Tài khoản chưa bị khóa.`, 'success');
+            return;
+        }
+        msg($('modal-msg'), errText(r), 'error');
     }
 
     async function submitDialog(ev) {
@@ -218,6 +290,14 @@
                 return;
             }
             body.reason = reason;
+            const selects = document.querySelectorAll('#chair-impact select[data-org]');
+            if (selects.length) {
+                body.handovers = [];
+                selects.forEach((s) => {
+                    if (s.value) body.handovers.push({ organizationId: Number(s.dataset.org), newChairAccountId: Number(s.value) });
+                    else body.confirmWithoutHandover = true;   // Admin chọn rõ "không bàn giao" sau khi đã thấy cảnh báo
+                });
+            }
         } else {
             body.note = $('note').value.trim();
         }
@@ -238,12 +318,15 @@
         }
         msg($('modal-msg'), errText(r), 'error');
         if (r.data.code === 'ALREADY_BANNED' || r.data.code === 'NOT_BANNED') load();
+        // Admin bấm khóa trước khi phần cảnh báo chủ nhiệm kịp hiện: hiện lại để Admin chọn cách xử lý.
+        if (r.data.code === 'CHAIR_HANDOVER_REQUIRED' && current) loadImpact(current.user);
     }
 
     function setBusy(b) {
         state.busy = b;
         const btn = $('modal-submit');
         btn.disabled = b;
+        $('modal-remind').disabled = b;
         $('reason').readOnly = b;
         $('note').readOnly = b;
         if (b) btn.dataset.label = btn.textContent, btn.textContent = 'Đang xử lý...';
@@ -275,6 +358,7 @@
             $('reason-count').textContent = $('reason').value.length;
         });
         $('ban-form').addEventListener('submit', submitDialog);
+        $('modal-remind').addEventListener('click', sendHandoverReminder);
 
         $('filter-form').addEventListener('submit', (e) => e.preventDefault());
         $('q').addEventListener('input', debounce(() => {

@@ -2,6 +2,36 @@
 // Mọi trang phải có sẵn <div id="site-header"></div> và <div id="confirm-modal-root"></div>,
 // và nạp theo thứ tự: auth.js, api.js, ui.js, layout.js (theme-init.js nạp riêng trong <head>).
 (function () {
+    // ===== Quản trị viên chỉ dùng khu quản trị =====
+    // Admin không có hồ sơ tuyển thủ / đội / giải: đăng nhập là vào thẳng Bảng quản trị, đầu trang chỉ còn mục
+    // quản trị. Mở trang khác (trang chủ, hồ sơ...) thì đưa về Bảng quản trị. Trang đơn vị tổ chức vẫn mở được
+    // vì Admin duyệt / đình chỉ đơn vị ở đó. Đây chỉ là điều hướng giao diện; quyền thật vẫn chặn ở API.
+    var ADMIN_HOME = '/admin/index.html';
+    function adminPathAllowed(path) {
+        path = (path || '').toLowerCase();
+        return ['/admin/', '/organization/', '/auth/', '/errors/'].some(function (p) { return path.indexOf(p) === 0; });
+    }
+    function cachedRole() {
+        // Chỉ tin vai trò đã lưu khi còn token đăng nhập (đăng xuất / hết phiên thì coi như khách).
+        try { var u = window.Auth && Auth.getAccessToken() && Auth.getUser(); return u && u.role; } catch (e) { return null; }
+    }
+    // Chuyển ngay khi nạp script (dùng vai trò đã lưu lúc đăng nhập) để không thấy trang chủ nháy lên rồi mới chuyển.
+    if (cachedRole() === 'ADMIN' && !adminPathAllowed(location.pathname)) { location.replace(ADMIN_HOME); return; }
+
+    function applyAdminNav() {
+        var nav = document.querySelector('#etomsNavCollapse nav');
+        if (!nav || nav.dataset.admin === '1') return;
+        nav.dataset.admin = '1';
+        nav.innerHTML =
+            '<a href="/admin/index.html" data-nav="admin/index">Bảng quản trị</a>' +
+            '<a href="/admin/user.html" data-nav="admin/user">Tài khoản</a>' +
+            '<a href="/organization/index.html" data-nav="organization">Đơn vị tổ chức</a>' +
+            '<a href="/admin/game-rules.html" data-nav="admin/game-rules">Luật theo tựa game</a>';
+        var brand = document.querySelector('.etoms-nav .brand');
+        if (brand) brand.setAttribute('href', ADMIN_HOME);
+        applyActiveNav();
+    }
+
     function applyActiveNav() {
         var path = location.pathname.toLowerCase();
         document.querySelectorAll('#etomsNavCollapse nav a[data-nav]').forEach(function (a) {
@@ -39,6 +69,11 @@
         var loggedOutHtml = '<a class="btn btn-primary nav-auth-login" href="/auth/login.html">Đăng nhập</a>';
         try {
             var me = await resolveCurrentUser();
+            if (me.isAuthenticated && me.role === 'ADMIN') {
+                // Vai trò lưu trong máy có thể cũ (vd vừa đổi tài khoản) — kiểm lại theo /me.
+                if (!adminPathAllowed(location.pathname)) { location.replace(ADMIN_HOME); return me; }
+                applyAdminNav();
+            }
             if (me.isAuthenticated) {
                 renderUserDropdown(slot, me);
                 await loadMyTeam(me);
@@ -68,7 +103,10 @@
             (me.role ? '    <span class="nav-user-role">' + Ui.escapeHtml(roleLabel(me.role)) + '</span>' : '') +
             // Mục RIÊNG từng vai trò (PermissionMatrix) — đầu trang chỉ giữ mục chung. Mỗi việc một lối vào:
             // "Tạo giải mới" nằm ở trang Giải đấu của tôi; "Đơn của đội" ở Đơn đăng ký của tôi.
-            '    <a class="nav-user-menu-item" href="/profile/index.html">Hồ sơ cá nhân</a>' +
+            (me.role === 'ADMIN'
+                // Admin không có hồ sơ cá nhân: chỉ giữ đổi mật khẩu.
+                ? '    <a class="nav-user-menu-item" href="/auth/change-password.html">Đổi mật khẩu</a>'
+                : '    <a class="nav-user-menu-item" href="/profile/index.html">Hồ sơ cá nhân</a>') +
             (me.role === 'PLAYER'
                 ? '    <a class="nav-user-menu-item nav-user-myteam" id="nav-user-myteam" href="/team/mine.html">Các đội của tôi</a>' +
                   '    <a class="nav-user-menu-item" href="/registration/mine.html">Đơn đăng ký của tôi</a>' +
@@ -78,7 +116,7 @@
                   '    <a class="nav-user-menu-item" href="/result/disputes.html">Tranh chấp</a>' +
                   '    <a class="nav-user-menu-item" href="/organization/index.html?mine=1">Đơn vị tổ chức của tôi</a>' +
                   '    <a class="nav-user-menu-item" href="/marketing/tools.html">Công cụ truyền thông</a>' : '') +
-            (me.role === 'ADMIN' ? '    <a class="nav-user-menu-item" href="/admin/index.html">Bảng quản trị</a>' : '') +
+
             '    <div class="nav-user-menu-sep"></div>' +
             '    <a class="nav-user-menu-item" href="#" id="nav-logout">Đăng xuất</a>' +
             '  </div>' +
@@ -159,6 +197,7 @@
     // Footer dùng chung cho mọi trang chưa có footer riêng (trang chủ giữ footer của nó).
     async function injectFooter() {
         if (document.querySelector('.site-footer')) return;
+        if (cachedRole() === 'ADMIN') return;   // chân trang toàn liên kết trang người chơi — Admin không dùng
         var holder = document.createElement('div');
         holder.id = 'site-footer';
         var main = document.querySelector('main');
@@ -191,6 +230,7 @@
         ]],
         ['Cấu hình giải', [
             ['/tournament/edit.html', 'Sửa thông tin & thể lệ'],
+            ['/tournament/ruleset.html', 'Bộ luật & vị trí'],
             ['/tournament/clone.html', 'Nhân bản'],
             ['/tournament/cancel.html', 'Hủy giải']
         ]]
@@ -267,7 +307,7 @@
         if (!main || NO_BACK.indexOf(location.pathname.toLowerCase()) >= 0 || main.querySelector('.back-link')) return;
         var link = document.createElement('a');
         link.className = 'back-link back-link-auto';
-        link.href = '/';
+        link.href = cachedRole() === 'ADMIN' ? ADMIN_HOME : '/';
         link.textContent = '← Quay lại';
         link.addEventListener('click', function (e) {
             var fromHere = false;
@@ -403,6 +443,7 @@
             injectPartial('/partials/nav.html', 'site-header'),
             injectPartial('/partials/confirm-modal.html', 'confirm-modal-root')
         ]);
+        if (cachedRole() === 'ADMIN') applyAdminNav(); // không để thanh menu công khai nháy lên với Admin
         applyActiveNav();
         injectBackLink();
         wireThemeToggle();

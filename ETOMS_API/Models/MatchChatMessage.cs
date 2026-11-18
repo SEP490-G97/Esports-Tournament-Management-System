@@ -3,29 +3,32 @@ using System.Collections.Generic;
 
 namespace ETOMS_API.Models;
 
+// Khớp bảng MatchChatMessage trên DB chung (Hải dựng lại 17/11 cho MAT-07 phòng chờ) — giống bản ở nhánh main.
 public partial class MatchChatMessage
 {
-    public int MatchChatMessageId { get; set; }
+    public long MatchChatMessageId { get; set; }
 
     public int MatchId { get; set; }
 
     public int SenderAccountId { get; set; }
 
-    public string Content { get; set; } = null!;
+    /// <summary>
+    /// Vai trò tại thời điểm gửi: CAPTAIN / ORGANIZER / REFEREE
+    /// </summary>
+    public string SenderRole { get; set; } = null!;
 
-    public bool IsPinned { get; set; }
+    /// <summary>
+    /// Đội của đội trưởng (NULL với BTC / trọng tài)
+    /// </summary>
+    public int? TeamId { get; set; }
 
-    public string ReportStatus { get; set; } = null!;
-
-    public int? ReportedByAccountId { get; set; }
-
-    public string? ReportNote { get; set; }
+    public string Body { get; set; } = null!;
 
     public DateTime SentAt { get; set; }
 
     public virtual Match Match { get; set; } = null!;
 
-    public virtual Account? ReportedByAccount { get; set; }
-
     public virtual Account SenderAccount { get; set; } = null!;
+
+    public virtual Team? Team { get; set; }
 }

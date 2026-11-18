@@ -23,7 +23,8 @@
                     '/identity-documents/' + credentialId + '" data-private-file="giay-to-dinh-danh">Mở giấy tờ định danh</a>';
             }).join(' · ');
             return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(member.fullName) +
-                ' · ' + Ui.escapeHtml(member.slot === 'STARTER' ? 'Chính thức' : 'Dự bị') + '</div>' +
+                ' · ' + Ui.escapeHtml(member.slot === 'STARTER' ? 'Chính thức' : 'Dự bị') +
+                (member.positionName ? ' · <span class="badge badge-soft">' + Ui.escapeHtml(member.positionName) + '</span>' : '') + '</div>' +
                 '<div class="item-sub">IGN: ' + Ui.escapeHtml(member.inGameName || 'Chưa khai báo') + '</div>' +
                 (documents ? '<div class="item-sub">' + documents + '</div>' : '<div class="item-sub">Không có giấy tờ định danh được lưu.</div>') +
                 '</div></div>';

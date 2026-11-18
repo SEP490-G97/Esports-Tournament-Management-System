@@ -148,6 +148,9 @@ public class TournamentSettingsService : ITournamentSettingsService
         }
         if (Changed("MaxTeams"))
         {
+            // Cùng luật với trình tạo giải: lũy thừa của 2 từ 4 đến 128.
+            if (v.MaxTeams is not (4 or 8 or 16 or 32 or 64 or 128))
+                return Fail("MaxTeams", "Số đội tối đa phải là lũy thừa của 2, từ 4 đến 128 (4, 8, 16, 32, 64, 128).");
             var approved = await _uow.Repository<Registration>().Query().CountAsync(r => r.TournamentId == t.TournamentId && r.Status == "APPROVED");
             if (v.MaxTeams < approved) return Fail("MaxTeams", $"Giải đã duyệt {approved} đội nên số đội tối đa không được nhỏ hơn {approved}.");
         }
@@ -214,6 +217,8 @@ public class TournamentSettingsService : ITournamentSettingsService
         {
             if (v.GroupCount is not int g || g < 1) return ("GroupCount", "Vui lòng nhập số bảng (ít nhất 1).");
             if (g * 2 > v.MaxTeams) return ("GroupCount", $"Với {v.MaxTeams} đội tối đa, mỗi bảng phải có ít nhất 2 đội nên tối đa {v.MaxTeams / 2} bảng.");
+            // Góp ý nhóm 18/11: thể thức vòng bảng rồi loại trực tiếp thì số bảng là lũy thừa của 2 (2, 4, 8, 16).
+            if (format == "HYBRID" && g is not (2 or 4 or 8 or 16)) return ("GroupCount", "Thể thức vòng bảng rồi loại trực tiếp: số bảng phải là 2, 4, 8 hoặc 16 (lũy thừa của 2).");
             groups = g;
         }
         if (format == "HYBRID")
@@ -240,7 +245,9 @@ public class TournamentSettingsService : ITournamentSettingsService
             [Info] = ended,
             [Setup] = ended ?? (t.Status == "DRAFT" ? null : "Giải đã xuất bản nên chỉ sửa được khi gỡ xuất bản về nháp (khi chưa có đội đăng ký)."),
             [Timeline] = ended ?? locked ?? (t.Status == "ONGOING" ? "Giải đã bắt đầu nên không đổi được thời gian và quy mô." : null),
-            [Format] = ended ?? locked
+            // Góp ý nhóm 18/11: giải đã xuất bản thì KHÔNG đổi thể thức (số bảng, số ván, tranh hạng Ba...) —
+            // các đội đăng ký theo thể thức đã công bố, đổi giữa chừng sẽ làm hỏng nhánh đã sinh.
+            [Format] = ended ?? locked ?? (t.Status == "DRAFT" ? null : "Giải đã xuất bản nên không đổi được thể thức. Muốn đổi thì gỡ xuất bản về nháp (khi chưa có đội đăng ký).")
         };
     }
 

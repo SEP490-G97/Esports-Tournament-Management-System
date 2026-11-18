@@ -38,12 +38,15 @@
         } else {
             membersHtml = '<div class="row g-3">';
             team.members.forEach(function (m) {
+                // Cả thẻ là liên kết tới hồ sơ công khai của tuyển thủ (trang /profile/public.html, khách xem được).
                 membersHtml +=
-                    '<div class="col-12 col-md-6"><div class="member-card' + (m.isCaptain ? ' cap' : '') + '">' +
+                    '<div class="col-12 col-md-6"><a class="member-card member-link' + (m.isCaptain ? ' cap' : '') + '" href="/profile/public.html?id=' + Number(m.accountId) +
+                    '" title="Xem hồ sơ tuyển thủ ' + Ui.escapeHtml(m.fullName) + '">' +
                     '<span class="av">' + Ui.escapeHtml(m.fullName && m.fullName.length > 0 ? m.fullName.substring(0, 1) : '?') + '</span>' +
                     '<div class="grow"><div class="nm">' + Ui.escapeHtml(m.fullName) + '</div><div class="rl">' + Ui.escapeHtml(m.roleLabel) + '</div></div>' +
                     (m.isCaptain ? '<span class="badge badge-gold">Đội trưởng</span>' : '') +
-                    '</div></div>';
+                    '<span class="member-go" aria-hidden="true">›</span>' +
+                    '</a></div>';
             });
             membersHtml += '</div>';
         }

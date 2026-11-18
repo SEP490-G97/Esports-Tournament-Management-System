@@ -34,6 +34,8 @@ public partial class Team
 
     public virtual Game Game { get; set; } = null!;
 
+    public virtual ICollection<MatchChatMessage> MatchChatMessages { get; set; } = new List<MatchChatMessage>();
+
     public virtual ICollection<MatchGame> MatchGames { get; set; } = new List<MatchGame>();
 
     public virtual ICollection<MatchReport> MatchReports { get; set; } = new List<MatchReport>();

@@ -44,7 +44,25 @@ public sealed class NewsController : ControllerBase
         });
     }
 
-    // Bài tin nội bộ (Admin đăng) — tin ngoài mở thẳng bài gốc trên trang báo.
+    // Một tin báo (RSS) để đọc ngay trên ETOMS: tiêu đề, ảnh, đoạn mô tả báo cung cấp, nút đọc toàn bài ở báo gốc.
+    [HttpGet("external/{id}")]
+    public async Task<IActionResult> GetExternal(string id, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(id) || id.Length > 64) return BadRequest(new { message = "Mã tin không hợp lệ." });
+        var item = await _news.GetExternalAsync(id, ct);
+        if (item is null) return NotFound(new { message = "Tin này không còn trong danh sách tin mới (báo đã cập nhật). Vui lòng chọn tin khác." });
+        var related = (await _news.GetAllAsync(ct)).Items
+            .Where(i => i.Id != item.Id).Take(4)
+            .Select(i => new { i.Title, i.SourceName, i.ReaderUrl, i.PublishedAt });
+        return Ok(new
+        {
+            item.Id, item.SourceName, item.Title, item.Url, item.ImageUrl, item.PublishedAt,
+            Description = item.Description ?? item.Summary,
+            Related = related
+        });
+    }
+
+    // Bài tin nội bộ (Admin đăng).
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id, CancellationToken ct)
     {

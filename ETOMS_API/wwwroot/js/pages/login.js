@@ -6,7 +6,7 @@
     const ROLE_HOME = {
         PLAYER: '/',
         ORGANIZER: '/',
-        ADMIN: '/',
+        ADMIN: '/admin/index.html',   // Admin chỉ dùng khu quản trị
     };
 
     const form = document.getElementById('login-form');
@@ -35,7 +35,9 @@
     // Chỉ cho phép quay về đường dẫn nội bộ (chống open redirect)
     function targetAfterLogin(user) {
         const back = new URLSearchParams(location.search).get('returnUrl');
-        if (back && back.startsWith('/') && !back.startsWith('//')) return back;
+        // Admin chỉ quay về trang trong khu quản trị / đơn vị tổ chức; trang khác thì vào Bảng quản trị.
+        const adminOk = !back || user.role !== 'ADMIN' || /^\/(admin|organization)\//i.test(back);
+        if (back && back.startsWith('/') && !back.startsWith('//') && adminOk) return back;
         return ROLE_HOME[user.role] || '/';
     }
 

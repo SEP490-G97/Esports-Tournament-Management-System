@@ -69,7 +69,7 @@ public class CreateSubstituteRequest
 
 public class ChatMessageDto
 {
-    public int MatchChatMessageId { get; set; }
+    public long MatchChatMessageId { get; set; }
     public int SenderAccountId { get; set; }
     public string SenderName { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;

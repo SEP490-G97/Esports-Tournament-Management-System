@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (selectedFormat === 'HYBRID') {
             groupCount = readInt('tGroupCount', 2, 16);
             advancing = readInt('tAdvancingPerGroup', 1, 8);
-            if (groupCount === null) return showError('Số bảng đấu phải là số nguyên từ 2 đến 16.');
+            if (groupCount === null || (groupCount & (groupCount - 1)) !== 0) return showError('Số bảng đấu phải là lũy thừa của 2: 2, 4, 8 hoặc 16.');
             if (advancing === null) return showError('Số đội đi tiếp mỗi bảng phải là số nguyên từ 1 đến 8.');
         }
 
@@ -153,6 +153,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // TOUR-02: Bước 2 - Timeline & Quy mô
     var step2Form = document.getElementById('step2Form');
+    // Lịch chọn ngày không cho chọn mốc đã qua (máy chủ vẫn kiểm lại).
+    var nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    ['tRegOpen', 'tRegClose', 'tStart', 'tEnd'].forEach(function (id) { document.getElementById(id).min = nowLocal; });
     step2Form.addEventListener('submit', async function (e) {
         e.preventDefault();
         Ui.clearAlert(flashBox());
@@ -162,7 +165,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (!open || !close || !start || !end) return showError('Vui lòng nhập đủ 4 mốc thời gian.');
         // Cùng luật với máy chủ (Utils/TournamentTimeline.cs).
         var HOUR = 3600 * 1000;
-        if (close <= new Date()) return showError('Thời gian đóng đăng ký phải ở tương lai.');
+        // Cả 4 mốc từ hiện tại trở đi (mở đăng ký cho lệch 5 phút: chọn giờ xong mới bấm lưu).
+        if (open < new Date(Date.now() - 5 * 60 * 1000)) return showError('Thời gian mở đăng ký phải từ hiện tại trở đi, không chọn ngày đã qua.');
+        if (close <= new Date() || start <= new Date() || end <= new Date()) return showError('Thời gian đóng đăng ký, khai mạc và kết thúc phải ở tương lai.');
         if (open >= close) return showError('Thời gian đóng đăng ký phải sau thời gian mở đăng ký.');
         if (close - open < 24 * HOUR) return showError('Thời gian nhận đăng ký phải kéo dài ít nhất 1 ngày (đóng đăng ký sau mở đăng ký từ 24 giờ trở lên).');
         if (close > start) return showError('Ngày khai mạc phải sau thời gian đóng đăng ký.');

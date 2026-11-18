@@ -95,17 +95,8 @@
         if (slides.length > 1) start();
     }
 
-    // Nút dưới thẻ giải: tuyển thủ thấy "Đăng ký cho đội" khi giải đang mở đăng ký; Ban tổ chức của
-    // CHÍNH giải đó thấy "Quản lý đăng ký" (đang mở đăng ký) hoặc "Quản lý giải" (đã đóng/đang diễn ra).
-    // Chỉ nút cho người tham gia (đăng ký cho đội). Ban tổ chức quản lý giải ở "Giải đấu của tôi", không đặt ở trang chủ.
-    function featActions(t) {
-        var buttons = t.registrationOpen
-            ? '<a class="btn btn-primary btn-sm" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + Number(t.tournamentId) + '">Đăng ký cho đội</a>'
-            : '';
-        // Luôn có hàng nút (kể cả rỗng) với chiều cao cố định để mọi thẻ trong hàng cao bằng nhau.
-        return '<div class="btn-row feat-actions">' + buttons + '</div>';
-    }
-
+    // Thẻ giải ở trang chủ KHÔNG có nút "Đăng ký cho đội" (góp ý nhóm 18/11): bấm thẻ để vào trang giải,
+    // đăng ký ở đó (nút đăng ký nằm trên trang giải).
     // Một hàng 4 giải, bấm ‹ › hai bên để trượt (vuốt được trên điện thoại).
     function renderFeatured(list) {
         var root = document.getElementById('featured-list');
@@ -131,7 +122,6 @@
                 '</div>' +
                 '<div class="feat-bar"><span style="width:' + pct + '%"></span></div>' +
                 '</div></a>' +
-                featActions(t) +
                 '</div>';
         });
         html += '</div><button type="button" class="feat-nav next" aria-label="Giải sau">›</button></div>';
@@ -260,7 +250,7 @@
         band.hidden = false;
     }
 
-    // Tin mới nhất (ETOMS + báo, /api/news). Bấm tin báo mở bài gốc ở tab mới; tin ETOMS mở trang Tin tức.
+    // Tin mới nhất (ETOMS + báo, /api/news). Bấm tin nào cũng mở trang đọc tin của ETOMS.
     function renderNews(list) {
         var root = document.getElementById('news-root');
         if (!list || !list.length) {
@@ -268,8 +258,8 @@
             return;
         }
         var esc = Ui.escapeHtml;
-        function href(n) { return n.isInternal ? n.url : Ui.safeUrl(n.url); }
-        function target(n) { return n.isInternal ? '' : ' target="_blank" rel="noopener noreferrer nofollow"'; }
+        function href(n) { return n.readerUrl; }   // đọc ngay trên ETOMS (tin báo có nút đọc toàn bài)
+        function target() { return ''; }
         function cover(n, i) {
             var img = Ui.safeUrl(n.imageUrl) || NEWS_IMAGES[i % NEWS_IMAGES.length];
             return esc(img).replace(/'/g, '%27');
