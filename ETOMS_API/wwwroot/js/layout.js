@@ -36,6 +36,21 @@
         applyActiveNav();
     }
 
+    // Mọi ô số điện thoại (type="tel"): chỉ nhận chữ số, tối đa 10 số, bàn phím số trên điện thoại (góp ý nhóm mục 25).
+    // Máy chủ kiểm lại: đúng 10 số, bắt đầu bằng 0 (Utils/PhoneNumber.cs).
+    function wirePhoneInputs() {
+        document.querySelectorAll('input[type="tel"]').forEach(function (i) {
+            i.maxLength = 10; i.inputMode = 'numeric'; i.pattern = '0[0-9]{9}';
+            if (!i.placeholder) i.placeholder = 'Ví dụ: 0912345678';
+        });
+        document.addEventListener('input', function (e) {
+            var i = e.target;
+            if (!i || i.type !== 'tel') return;
+            var digits = i.value.replace(/\D/g, '').slice(0, 10);
+            if (digits !== i.value) i.value = digits;
+        });
+    }
+
     function applyActiveNav() {
         var path = location.pathname.toLowerCase();
         document.querySelectorAll('#etomsNavCollapse nav a[data-nav]').forEach(function (a) {
@@ -451,6 +466,7 @@
         if (cachedRole() === 'ADMIN') applyAdminNav(); // không để thanh menu công khai nháy lên với Admin
         applyActiveNav();
         injectBackLink();
+        wirePhoneInputs();
         wireThemeToggle();
         wireConfirmModal();
         injectFooter();

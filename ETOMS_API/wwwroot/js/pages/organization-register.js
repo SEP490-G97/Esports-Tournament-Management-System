@@ -20,6 +20,21 @@
         });
     }
 
+    // Chuyển qua lại 2 bước. Sau khi đã tạo hồ sơ: bước 1 thành "sửa thông tin" (ẩn danh sách người cùng lập — lời mời
+    // đã gửi, mời thêm ở trang đơn vị), nút gửi đổi thành "Lưu thay đổi".
+    function showStep(step) {
+        document.getElementById('register-panel').hidden = step !== 1;
+        document.getElementById('document-panel').hidden = step !== 2;
+        setRegistrationStep(step);
+        if (step === 1 && organizationId) {
+            var founders = document.querySelector('.org-founders');
+            if (founders) founders.hidden = true;
+            var submit = document.querySelector('#organization-form [type="submit"]');
+            if (submit) submit.textContent = 'Lưu thay đổi và quay lại bước 2';
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function renderRequiredDocuments() {
         var root = document.getElementById('required-documents');
         root.innerHTML = requiredDocumentTypes.map(function (documentType) {
@@ -104,6 +119,11 @@
         }
         accountId = Number(me.userId);
         wireDocumentUpload();
+        document.getElementById('back-to-info').addEventListener('click', function () { showStep(1); });
+        // Bấm vào bước trên thanh tiến trình (sau khi đã tạo hồ sơ) cũng chuyển được.
+        document.querySelectorAll('[data-registration-step]').forEach(function (item) {
+            item.addEventListener('click', function () { if (organizationId) showStep(Number(item.dataset.registrationStep)); });
+        });
         // "+ Thêm người": thêm ô email Ban tổ chức cùng lập (tối đa 10).
         document.getElementById('add-founder').addEventListener('click', function () {
             var list = document.getElementById('founder-list');
@@ -125,8 +145,11 @@
             // Tối thiểu 3 Ban tổ chức tính cả người lập => ít nhất 2 email khác nhau (máy chủ kiểm lại tài khoản).
             var memberEmails = data.getAll('MemberEmail').map(function (v) { return String(v || '').trim().toLowerCase(); })
                 .filter(function (v, i, a) { return v && a.indexOf(v) === i; });
-            if (memberEmails.length < 2) errors.MemberEmails = 'Nhập email tài khoản Ban tổ chức của ít nhất 2 người cùng lập (đơn vị cần tối thiểu 3 Ban tổ chức).';
-            else if (memberEmails.some(function (v) { return !EMAIL_RE.test(v); })) errors.MemberEmails = 'Kiểm tra lại định dạng email.';
+            // Đã tạo hồ sơ (quay lại sửa): lời mời đã gửi, không kiểm danh sách người cùng lập nữa.
+            if (!organizationId && memberEmails.length < 2) errors.MemberEmails = 'Nhập email tài khoản Ban tổ chức của ít nhất 2 người cùng lập (đơn vị cần tối thiểu 3 Ban tổ chức).';
+            else if (!organizationId && memberEmails.some(function (v) { return !EMAIL_RE.test(v); })) errors.MemberEmails = 'Kiểm tra lại định dạng email.';
+            var phone = String(data.get('ContactPhone') || '').trim();
+            if (phone && !/^0\d{9}$/.test(phone)) errors.ContactPhone = 'Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng 0.';
             ['ContactEmail', 'WebsiteUrl', 'LogoUrl'].forEach(function (name) {
                 var input = form.elements[name];
                 if (input.value && !input.validity.valid) errors[name] = 'Kiểm tra lại định dạng thông tin này.';
@@ -150,6 +173,18 @@
             };
             var submitButton = form.querySelector('[type="submit"]');
             submitButton.disabled = true;
+            if (organizationId) {
+                // Quay lại sửa thông tin hồ sơ đang chờ duyệt rồi về bước 2.
+                try {
+                    var updated = await Api.put('/api/organizations/' + organizationId, body);
+                    showStep(2);
+                    Ui.showAlert(flash, 'success', updated.message || 'Đã cập nhật thông tin đơn vị.');
+                } catch (error) {
+                    Ui.applyFieldErrors(form, error.fieldErrors);
+                    showFailure(error, 'Không thể cập nhật thông tin đơn vị.');
+                } finally { submitButton.disabled = false; }
+                return;
+            }
             try {
                 var response = await Api.post('/api/organizations', body);
                 organizationId = Number(response.data.organizationId);

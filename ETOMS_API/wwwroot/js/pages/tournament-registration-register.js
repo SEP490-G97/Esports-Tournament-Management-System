@@ -48,23 +48,29 @@
             root.innerHTML = '<div class="item-sub">Không có đội chưa đăng ký phù hợp với tựa game này.</div>';
             return;
         }
-        root.innerHTML = team.members.map(function (member) {
+        // Mỗi người một dòng lưới cột cố định (tên | vị trí | tình trạng) để mọi dòng thẳng hàng dù tên dài ngắn
+        // hay có / không có nhãn thiếu (góp ý nhóm mục 27).
+        root.innerHTML = '<div class="lineup-grid" role="list">' +
+            '<div class="lineup-row lineup-head" aria-hidden="true"><span>Thành viên</span><span>Vị trí trong giải</span><span>Tình trạng</span></div>' +
+            team.members.map(function (member) {
             var defaultSlot = member.teamSlot === 'STARTER' ? 'STARTER' : 'SUBSTITUTE';
             var missingIgn = options.requireInGameName && !member.inGameName;
             var missingDocument = options.requireIdentityDocument && !member.hasIdentityDocument;
-            return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(member.fullName) + '</div>' +
-                '<div class="item-sub">' + (member.inGameName ? 'IGN: ' + Ui.escapeHtml(member.inGameName) : 'Chưa khai báo IGN') +
-                (missingDocument ? ' · Thiếu giấy tờ định danh' : '') + '</div></div>' +
+            var badges = (missingIgn ? '<span class="badge badge-gold">Thiếu IGN</span>' : '') +
+                (missingDocument ? '<span class="badge badge-gold">Thiếu giấy tờ</span>' : '');
+            return '<div class="lineup-row" role="listitem">' +
+                '<div class="lineup-who"><span class="lineup-av" aria-hidden="true">' + Ui.escapeHtml((member.fullName || '?').substring(0, 1).toUpperCase()) + '</span>' +
+                '<div><div class="item-title">' + Ui.escapeHtml(member.fullName) + '</div>' +
+                '<div class="item-sub">' + (member.inGameName ? 'IGN: ' + Ui.escapeHtml(member.inGameName) : 'Chưa khai báo IGN') + '</div></div></div>' +
                 '<label class="visually-hidden" for="lineup-' + member.accountId + '">Vị trí của ' + Ui.escapeHtml(member.fullName) + '</label>' +
                 '<select class="select lineup-slot" id="lineup-' + member.accountId + '" data-account-id="' + member.accountId + '">' +
                 '<option value="">Không chọn</option>' +
                 '<option value="STARTER"' + (defaultSlot === 'STARTER' ? ' selected' : '') + '>Chính thức</option>' +
                 '<option value="SUBSTITUTE"' + (defaultSlot === 'SUBSTITUTE' ? ' selected' : '') + '>Dự bị</option>' +
                 '</select>' +
-                (missingIgn ? '<span class="badge badge-gold">Thiếu IGN</span>' : '') +
-                (missingDocument ? '<span class="badge badge-gold">Thiếu giấy tờ</span>' : '') +
+                '<div class="lineup-status">' + (badges || '<span class="badge badge-active">Đủ điều kiện</span>') + '</div>' +
                 '</div>';
-        }).join('');
+        }).join('') + '</div>';
     }
 
     async function loadOptions() {
@@ -77,6 +83,16 @@
         document.getElementById('tournament-summary').textContent =
             options.gameName + ' · Nhận đăng ký đến ' + formatDate(options.regCloseAt) +
             ' · Còn ' + options.availableSlots + '/' + options.maxTeams + ' suất.';
+        // Giải đã đủ suất: đơn vẫn gửi được và vào DANH SÁCH CHỜ (đã có sẵn ở máy chủ) — báo rõ để đội không tưởng là hết chỗ.
+        var full = options.availableSlots <= 0;
+        var note = document.getElementById('waitlist-note');
+        note.hidden = !full;
+        if (full) {
+            note.innerHTML = '<b>Giải đã đủ ' + Number(options.maxTeams) + ' suất.</b> Đơn của đội sẽ vào <b>danh sách chờ</b> theo thứ tự gửi. ' +
+                'Khi có đội rút đơn hoặc bị từ chối, đội đầu danh sách được mời vào và có 24 giờ để xác nhận nhận suất ' +
+                '(xem vị trí chờ ở <a href="/registration/mine.html">Đơn của đội tôi</a>).';
+        }
+        document.getElementById('submit-registration').textContent = full ? 'Gửi đơn vào danh sách chờ' : 'Gửi đơn đăng ký';
         document.getElementById('roster-rules').textContent =
             'Chọn đúng ' + options.starterCount + ' tuyển thủ chính thức và tối đa ' + options.maxSubstitutes +
             ' dự bị. IGN' + (options.requireInGameName ? ' và giấy tờ định danh' : '') +

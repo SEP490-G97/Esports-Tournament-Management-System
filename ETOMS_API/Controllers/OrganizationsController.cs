@@ -44,6 +44,14 @@ public sealed class OrganizationsController : ApiControllerBase
         return FromResult(await _organizationService.CreateAsync(request, _currentUser.UserId!.Value, cancellationToken));
     }
 
+    // Sửa thông tin hồ sơ đơn vị đang chờ duyệt (quay lại bước 1 của trang đăng ký).
+    [HttpPut("{organizationId:int}")]
+    public async Task<IActionResult> UpdatePendingOrganization(int organizationId, [FromBody] CreateOrganizationRequest request, CancellationToken cancellationToken)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _organizationService.UpdatePendingAsync(organizationId, request, _currentUser.UserId!.Value, cancellationToken));
+    }
+
     [HttpPost("{organizationId:int}/documents")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadDocument(

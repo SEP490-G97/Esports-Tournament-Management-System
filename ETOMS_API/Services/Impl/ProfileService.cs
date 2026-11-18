@@ -150,11 +150,14 @@ public sealed class ProfileService : IProfileService
             social = string.Join("\n", lines);
         }
 
+        var phone = PhoneNumber.Normalize(request.Phone);
+        if (!PhoneNumber.IsValid(phone)) return Result<ProfileResponse>.FieldFailure(nameof(request.Phone), PhoneNumber.Message);
+
         var previousAvatar = account.AvatarUrl;
         account.FullName = fullName;
         account.AvatarUrl = avatar;
         account.DateOfBirth = request.DateOfBirth;
-        account.Phone = NormalizeOptional(request.Phone);
+        account.Phone = phone;
         account.SocialLinks = social;
         _unitOfWork.Repository<Account>().Update(account);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
