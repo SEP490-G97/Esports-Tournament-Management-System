@@ -42,6 +42,7 @@ public static class BannerImage
         Directory.CreateDirectory(folder);
         var name = Guid.NewGuid().ToString("N") + ext;
         await File.WriteAllBytesAsync(Path.Combine(folder, name), bytes, ct);
+        await SharedFiles.SaveAsync(Path.Combine(folder, name), null, ct);   // bản chung trong DB cho máy khác
         return ("/uploads/banners/" + name, null);
     }
 }

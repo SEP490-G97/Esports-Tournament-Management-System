@@ -160,5 +160,30 @@ public partial class EtomsDbContext
                 .HasForeignKey(d => d.GamePositionId)
                 .HasConstraintName("FK_RegistrationLineup_Position");
         });
+
+        // MatchRequest.DecisionNote (thêm 18/11): DB chưa có cột thì bỏ qua (xem PendingSchema).
+        modelBuilder.Entity<MatchRequest>(entity =>
+        {
+            if (PendingSchema.MatchRequestDecisionNote) entity.Property(e => e.DecisionNote).HasMaxLength(300);
+            else entity.Ignore(e => e.DecisionNote);
+        });
+
+        // Cột bool NOT NULL có DEFAULT 1 trong DB: EF PHẢI luôn ghi giá trị thật. Nếu EF coi là "giá trị do DB sinh", khi giá trị
+        // là false EF bỏ cột khỏi INSERT và DB tự điền 1 => tạo giải "thi đấu trực tiếp" thành online, bỏ yêu cầu IGN/biên lai/giấy tờ
+        // thành bắt buộc.
+        modelBuilder.Entity<Tournament>(entity =>
+        {
+            entity.Property(e => e.IsOnline).ValueGeneratedNever();
+            entity.Property(e => e.RequireInGameName).ValueGeneratedNever();
+            entity.Property(e => e.RequirePaymentProof).ValueGeneratedNever();
+            entity.Property(e => e.RequireIdentityDocument).ValueGeneratedNever();
+        });
+        modelBuilder.Entity<PaymentRecord>(entity => entity.Property(e => e.IsCurrent).ValueGeneratedNever());
+        modelBuilder.Entity<TournamentSponsor>(entity => entity.Property(e => e.ShowWhenCancelled).ValueGeneratedNever());
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.Property(e => e.NotifyInApp).ValueGeneratedNever();
+            entity.Property(e => e.NotifyEmail).ValueGeneratedNever();
+        });
     }
 }

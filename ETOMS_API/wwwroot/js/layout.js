@@ -23,10 +23,14 @@
         if (!nav || nav.dataset.admin === '1') return;
         nav.dataset.admin = '1';
         nav.innerHTML =
-            '<a href="/admin/index.html" data-nav="admin/index">Bảng quản trị</a>' +
+            // MỘT menu quản trị cho mọi trang admin (thay thanh tab riêng admin-nav của từng trang).
+            '<a href="/admin/index.html" data-nav="admin/index">Tổng quan</a>' +
             '<a href="/admin/user.html" data-nav="admin/user">Tài khoản</a>' +
-            '<a href="/organization/index.html" data-nav="organization">Đơn vị tổ chức</a>' +
-            '<a href="/admin/game-rules.html" data-nav="admin/game-rules">Luật theo tựa game</a>';
+            '<a href="/admin/news.html" data-nav="admin/news">Tin tức</a>' +
+            '<a href="/admin/game-rules.html" data-nav="admin/game-rules">Luật game</a>' +
+            '<a href="/organization/index.html" data-nav="organization">Đơn vị</a>';
+        var header = document.querySelector('.etoms-nav');
+        if (header) header.classList.add('nav-many');
         var brand = document.querySelector('.etoms-nav .brand');
         if (brand) brand.setAttribute('href', ADMIN_HOME);
         applyActiveNav();
@@ -191,7 +195,8 @@
         });
         // Ban tổ chức/Admin có thêm mục menu: nới khung header để menu nằm trên một dòng.
         var header = document.querySelector('.etoms-nav');
-        if (header) header.classList.toggle('nav-many', extra >= 2);
+        var adminNav = document.querySelector('#etomsNavCollapse nav[data-admin="1"]');
+        if (header) header.classList.toggle('nav-many', extra >= 2 || !!adminNav);
     }
 
     // Footer dùng chung cho mọi trang chưa có footer riêng (trang chủ giữ footer của nó).
@@ -422,7 +427,7 @@
     }
 
     // Đổi số này mỗi khi sửa partials/*.html để trình duyệt không dùng bản menu cũ đã nhớ.
-    var PARTIAL_VERSION = 'menu-20261116';
+    var PARTIAL_VERSION = 'adm3-20261118';
     async function injectPartial(url, targetId) {
         var target = document.getElementById(targetId);
         if (!target) return;

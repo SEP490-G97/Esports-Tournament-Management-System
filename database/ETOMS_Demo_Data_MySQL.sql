@@ -1,3 +1,292 @@
+-- ETOMS — DỮ LIỆU DEMO / TEST (gộp 6 script demo đã chạy lên DB chung, đúng thứ tự thời gian).
+-- Chạy SAU ETOMS_Schema_MySQL.sql, trên DB đã có tài khoản demo @demo.etoms (player20, btc.tuan...).
+-- Mỗi phần CHỈ THÊM MỚI và kiểm theo email / tên đội / tên giải nên chạy lại không nhân đôi.
+
+
+-- ################################################################################
+-- ## Phần: demo_logos.sql
+-- ################################################################################
+-- Logo demo cho đội tuyển và nhà tài trợ (ảnh SVG tự vẽ trong wwwroot/images/demo/).
+-- Chỉ ghi vào ô đang trống (LogoUrl IS NULL) nên không đè logo do người dùng tự tải lên. Chạy lại nhiều lần vẫn an toàn.
+SET NAMES utf8mb4;
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-10.svg' WHERE TeamID = 10 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-11.svg' WHERE TeamID = 11 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-12.svg' WHERE TeamID = 12 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-13.svg' WHERE TeamID = 13 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-14.svg' WHERE TeamID = 14 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-15.svg' WHERE TeamID = 15 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-16.svg' WHERE TeamID = 16 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-17.svg' WHERE TeamID = 17 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-18.svg' WHERE TeamID = 18 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-19.svg' WHERE TeamID = 19 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-20.svg' WHERE TeamID = 20 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-21.svg' WHERE TeamID = 21 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-22.svg' WHERE TeamID = 22 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-23.svg' WHERE TeamID = 23 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-24.svg' WHERE TeamID = 24 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-25.svg' WHERE TeamID = 25 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-26.svg' WHERE TeamID = 26 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-27.svg' WHERE TeamID = 27 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-28.svg' WHERE TeamID = 28 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-29.svg' WHERE TeamID = 29 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-3.svg' WHERE TeamID = 3 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-30.svg' WHERE TeamID = 30 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-31.svg' WHERE TeamID = 31 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-32.svg' WHERE TeamID = 32 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-33.svg' WHERE TeamID = 33 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-34.svg' WHERE TeamID = 34 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-4.svg' WHERE TeamID = 4 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-42.svg' WHERE TeamID = 42 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-43.svg' WHERE TeamID = 43 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-44.svg' WHERE TeamID = 44 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-5.svg' WHERE TeamID = 5 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-6.svg' WHERE TeamID = 6 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-7.svg' WHERE TeamID = 7 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-8.svg' WHERE TeamID = 8 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE Team SET LogoUrl = '/images/demo/teams/team-9.svg' WHERE TeamID = 9 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE TournamentSponsor SET LogoUrl = '/images/demo/sponsors/sponsor-1.svg' WHERE TournamentSponsorID = 1 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE TournamentSponsor SET LogoUrl = '/images/demo/sponsors/sponsor-2.svg' WHERE TournamentSponsorID = 2 AND (LogoUrl IS NULL OR LogoUrl = '');
+UPDATE TournamentSponsor SET LogoUrl = '/images/demo/sponsors/sponsor-3.svg' WHERE TournamentSponsorID = 3 AND (LogoUrl IS NULL OR LogoUrl = '');
+
+
+-- ################################################################################
+-- ## Phần: demo_fco_allstar.sql
+-- ################################################################################
+-- Dữ liệu DEMO: 8 tuyển thủ FC Online (gamer tag công khai, KHÔNG có thông tin cá nhân) + một giải loại trực tiếp
+-- để thử tỉ số trực tiếp (UC-45) và livestream (UC-46). Mật khẩu mọi tài khoản = mật khẩu demo của btc.tuan (Demo@1234).
+-- An toàn khi chạy lại: tài khoản/đội/đăng ký đều kiểm tra tồn tại; nhánh đấu + trận chỉ tạo khi giải vừa được tạo mới.
+SET NAMES utf8mb4 COLLATE utf8mb4_0900_as_ci;
+SET @org := 6;
+SET @fco := 7;
+SET @pw := (SELECT PasswordHash FROM Account WHERE AccountID = 6);
+-- Tuyển thủ 1: LeeHariii
+INSERT INTO Account (Email, PasswordHash, FullName, AvatarUrl, Role, Status, EmailVerifiedAt, CreatedAt)
+SELECT 'leehariii@demo.etoms', @pw, 'LeeHariii', '/images/demo/players/leehariii.svg', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'leehariii@demo.etoms');
+SET @a1 := (SELECT AccountID FROM Account WHERE Email = 'leehariii@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt)
+SELECT @a1, @fco, 'IN_GAME_NAME', 'LeeHariii', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a1 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME');
+SET @c1 := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @a1 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, LogoUrl, Status, CreatedAt)
+SELECT @fco, @a1, 'LeeHariii', 'LHR', '/images/demo/teams/fco-lhr.svg', 'ACTIVE', UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Team WHERE GameID = @fco AND (Name = 'LeeHariii' OR Tag = 'LHR'));
+SET @t1 := (SELECT TeamID FROM Team WHERE GameID = @fco AND Tag = 'LHR');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT @t1, @fco, @a1, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE TeamID = @t1 AND AccountID = @a1);
+-- Tuyển thủ 2: SangJunior
+INSERT INTO Account (Email, PasswordHash, FullName, AvatarUrl, Role, Status, EmailVerifiedAt, CreatedAt)
+SELECT 'sangjunior@demo.etoms', @pw, 'SangJunior', '/images/demo/players/sangjunior.svg', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'sangjunior@demo.etoms');
+SET @a2 := (SELECT AccountID FROM Account WHERE Email = 'sangjunior@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt)
+SELECT @a2, @fco, 'IN_GAME_NAME', 'SangJunior', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a2 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME');
+SET @c2 := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @a2 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, LogoUrl, Status, CreatedAt)
+SELECT @fco, @a2, 'SangJunior', 'SGJ', '/images/demo/teams/fco-sgj.svg', 'ACTIVE', UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Team WHERE GameID = @fco AND (Name = 'SangJunior' OR Tag = 'SGJ'));
+SET @t2 := (SELECT TeamID FROM Team WHERE GameID = @fco AND Tag = 'SGJ');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT @t2, @fco, @a2, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE TeamID = @t2 AND AccountID = @a2);
+-- Tuyển thủ 3: Lucero
+INSERT INTO Account (Email, PasswordHash, FullName, AvatarUrl, Role, Status, EmailVerifiedAt, CreatedAt)
+SELECT 'lucero@demo.etoms', @pw, 'Lucero', '/images/demo/players/lucero.svg', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'lucero@demo.etoms');
+SET @a3 := (SELECT AccountID FROM Account WHERE Email = 'lucero@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt)
+SELECT @a3, @fco, 'IN_GAME_NAME', 'Lucero', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a3 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME');
+SET @c3 := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @a3 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, LogoUrl, Status, CreatedAt)
+SELECT @fco, @a3, 'Lucero', 'LCR', '/images/demo/teams/fco-lcr.svg', 'ACTIVE', UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Team WHERE GameID = @fco AND (Name = 'Lucero' OR Tag = 'LCR'));
+SET @t3 := (SELECT TeamID FROM Team WHERE GameID = @fco AND Tag = 'LCR');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT @t3, @fco, @a3, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE TeamID = @t3 AND AccountID = @a3);
+-- Tuyển thủ 4: Hakumen
+INSERT INTO Account (Email, PasswordHash, FullName, AvatarUrl, Role, Status, EmailVerifiedAt, CreatedAt)
+SELECT 'hakumen@demo.etoms', @pw, 'Hakumen', '/images/demo/players/hakumen.svg', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'hakumen@demo.etoms');
+SET @a4 := (SELECT AccountID FROM Account WHERE Email = 'hakumen@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt)
+SELECT @a4, @fco, 'IN_GAME_NAME', 'Hakumen', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a4 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME');
+SET @c4 := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @a4 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, LogoUrl, Status, CreatedAt)
+SELECT @fco, @a4, 'Hakumen', 'HKM', '/images/demo/teams/fco-hkm.svg', 'ACTIVE', UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Team WHERE GameID = @fco AND (Name = 'Hakumen' OR Tag = 'HKM'));
+SET @t4 := (SELECT TeamID FROM Team WHERE GameID = @fco AND Tag = 'HKM');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT @t4, @fco, @a4, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE TeamID = @t4 AND AccountID = @a4);
+-- Tuyển thủ 5: Tabi
+INSERT INTO Account (Email, PasswordHash, FullName, AvatarUrl, Role, Status, EmailVerifiedAt, CreatedAt)
+SELECT 'tabi@demo.etoms', @pw, 'Tabi', '/images/demo/players/tabi.svg', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'tabi@demo.etoms');
+SET @a5 := (SELECT AccountID FROM Account WHERE Email = 'tabi@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt)
+SELECT @a5, @fco, 'IN_GAME_NAME', 'Tabi', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a5 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME');
+SET @c5 := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @a5 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, LogoUrl, Status, CreatedAt)
+SELECT @fco, @a5, 'Tabi', 'TAB', '/images/demo/teams/fco-tab.svg', 'ACTIVE', UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Team WHERE GameID = @fco AND (Name = 'Tabi' OR Tag = 'TAB'));
+SET @t5 := (SELECT TeamID FROM Team WHERE GameID = @fco AND Tag = 'TAB');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT @t5, @fco, @a5, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE TeamID = @t5 AND AccountID = @a5);
+-- Tuyển thủ 6: Maestro
+INSERT INTO Account (Email, PasswordHash, FullName, AvatarUrl, Role, Status, EmailVerifiedAt, CreatedAt)
+SELECT 'maestro@demo.etoms', @pw, 'Maestro', '/images/demo/players/maestro.svg', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'maestro@demo.etoms');
+SET @a6 := (SELECT AccountID FROM Account WHERE Email = 'maestro@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt)
+SELECT @a6, @fco, 'IN_GAME_NAME', 'Maestro', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a6 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME');
+SET @c6 := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @a6 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, LogoUrl, Status, CreatedAt)
+SELECT @fco, @a6, 'Maestro', 'MAE', '/images/demo/teams/fco-mae.svg', 'ACTIVE', UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Team WHERE GameID = @fco AND (Name = 'Maestro' OR Tag = 'MAE'));
+SET @t6 := (SELECT TeamID FROM Team WHERE GameID = @fco AND Tag = 'MAE');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT @t6, @fco, @a6, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE TeamID = @t6 AND AccountID = @a6);
+-- Tuyển thủ 7: Djokovic
+INSERT INTO Account (Email, PasswordHash, FullName, AvatarUrl, Role, Status, EmailVerifiedAt, CreatedAt)
+SELECT 'djokovic@demo.etoms', @pw, 'Djokovic', '/images/demo/players/djokovic.svg', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'djokovic@demo.etoms');
+SET @a7 := (SELECT AccountID FROM Account WHERE Email = 'djokovic@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt)
+SELECT @a7, @fco, 'IN_GAME_NAME', 'Djokovic', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a7 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME');
+SET @c7 := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @a7 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, LogoUrl, Status, CreatedAt)
+SELECT @fco, @a7, 'Djokovic', 'DJK', '/images/demo/teams/fco-djk.svg', 'ACTIVE', UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Team WHERE GameID = @fco AND (Name = 'Djokovic' OR Tag = 'DJK'));
+SET @t7 := (SELECT TeamID FROM Team WHERE GameID = @fco AND Tag = 'DJK');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT @t7, @fco, @a7, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE TeamID = @t7 AND AccountID = @a7);
+-- Tuyển thủ 8: Bino7
+INSERT INTO Account (Email, PasswordHash, FullName, AvatarUrl, Role, Status, EmailVerifiedAt, CreatedAt)
+SELECT 'bino7@demo.etoms', @pw, 'Bino7', '/images/demo/players/bino7.svg', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'bino7@demo.etoms');
+SET @a8 := (SELECT AccountID FROM Account WHERE Email = 'bino7@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt)
+SELECT @a8, @fco, 'IN_GAME_NAME', 'Bino7', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a8 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME');
+SET @c8 := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @a8 AND GameID = @fco AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, LogoUrl, Status, CreatedAt)
+SELECT @fco, @a8, 'Bino7', 'BN7', '/images/demo/teams/fco-bn7.svg', 'ACTIVE', UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Team WHERE GameID = @fco AND (Name = 'Bino7' OR Tag = 'BN7'));
+SET @t8 := (SELECT TeamID FROM Team WHERE GameID = @fco AND Tag = 'BN7');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT @t8, @fco, @a8, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE TeamID = @t8 AND AccountID = @a8);
+-- Giải demo
+SET @tname := 'Giải FC Online All-Star (demo) 14/11/2026';
+SET @new := (SELECT COUNT(*) = 0 FROM Tournament WHERE Name = @tname);
+INSERT INTO Tournament (GameID, OrganizerAccountID, Name, Description, OrganizingUnit, IsOnline, Format, HasThirdPlaceMatch, MaxTeams, StarterCount, MaxSubstitutes, RegOpenAt, RegCloseAt, StartAt, EntryFee, RequireIdentityDocument, RequirePaymentProof, RequireInGameName, BestOfPerRound, RulebookVersion, Status, BracketLockedByAccountID, BracketLockedAt, CreatedAt)
+SELECT @fco, @org, @tname, 'Dữ liệu DEMO để thử tỉ số trực tiếp và livestream: 8 tuyển thủ FC Online đấu 1v1, tứ kết BO3, lịch mô phỏng nhánh 0:1 ngày 14/11. Tỉ số và kết quả trong giải này do người dùng nhập thử, KHÔNG phải số liệu chính thức.', 'CLB Esports Sinh viên Hòa Lạc', 1, 'SINGLE_ELIMINATION', 0, 8, 1, 0, '2026-11-01 00:00:00', '2026-11-10 00:00:00', '2026-11-14 07:00:00', 0, 0, 0, 1, 'R1:3,R2:3,F:5', 1, 'ONGOING', @org, '2026-11-12 00:00:00', UTC_TIMESTAMP() FROM DUAL
+WHERE @new;
+SET @tid := (SELECT TournamentID FROM Tournament WHERE Name = @tname);
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @tid, @t1, @a1, 1, '2026-11-05 00:00:00', 'APPROVED', 'UNPAID', 'NONE', '2026-11-05 00:00:00', '2026-11-11 00:00:00' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Registration WHERE TournamentID = @tid AND TeamID = @t1);
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID)
+SELECT r.RegistrationID, @a1, 'STARTER', 'LeeHariii', @c1 FROM Registration r
+WHERE r.TournamentID = @tid AND r.TeamID = @t1 AND NOT EXISTS (SELECT 1 FROM RegistrationLineup x WHERE x.RegistrationID = r.RegistrationID AND x.AccountID = @a1);
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @tid, @t2, @a2, 1, '2026-11-05 00:00:00', 'APPROVED', 'UNPAID', 'NONE', '2026-11-05 00:00:00', '2026-11-11 00:00:00' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Registration WHERE TournamentID = @tid AND TeamID = @t2);
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID)
+SELECT r.RegistrationID, @a2, 'STARTER', 'SangJunior', @c2 FROM Registration r
+WHERE r.TournamentID = @tid AND r.TeamID = @t2 AND NOT EXISTS (SELECT 1 FROM RegistrationLineup x WHERE x.RegistrationID = r.RegistrationID AND x.AccountID = @a2);
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @tid, @t3, @a3, 1, '2026-11-05 00:00:00', 'APPROVED', 'UNPAID', 'NONE', '2026-11-05 00:00:00', '2026-11-11 00:00:00' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Registration WHERE TournamentID = @tid AND TeamID = @t3);
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID)
+SELECT r.RegistrationID, @a3, 'STARTER', 'Lucero', @c3 FROM Registration r
+WHERE r.TournamentID = @tid AND r.TeamID = @t3 AND NOT EXISTS (SELECT 1 FROM RegistrationLineup x WHERE x.RegistrationID = r.RegistrationID AND x.AccountID = @a3);
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @tid, @t4, @a4, 1, '2026-11-05 00:00:00', 'APPROVED', 'UNPAID', 'NONE', '2026-11-05 00:00:00', '2026-11-11 00:00:00' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Registration WHERE TournamentID = @tid AND TeamID = @t4);
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID)
+SELECT r.RegistrationID, @a4, 'STARTER', 'Hakumen', @c4 FROM Registration r
+WHERE r.TournamentID = @tid AND r.TeamID = @t4 AND NOT EXISTS (SELECT 1 FROM RegistrationLineup x WHERE x.RegistrationID = r.RegistrationID AND x.AccountID = @a4);
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @tid, @t5, @a5, 1, '2026-11-05 00:00:00', 'APPROVED', 'UNPAID', 'NONE', '2026-11-05 00:00:00', '2026-11-11 00:00:00' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Registration WHERE TournamentID = @tid AND TeamID = @t5);
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID)
+SELECT r.RegistrationID, @a5, 'STARTER', 'Tabi', @c5 FROM Registration r
+WHERE r.TournamentID = @tid AND r.TeamID = @t5 AND NOT EXISTS (SELECT 1 FROM RegistrationLineup x WHERE x.RegistrationID = r.RegistrationID AND x.AccountID = @a5);
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @tid, @t6, @a6, 1, '2026-11-05 00:00:00', 'APPROVED', 'UNPAID', 'NONE', '2026-11-05 00:00:00', '2026-11-11 00:00:00' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Registration WHERE TournamentID = @tid AND TeamID = @t6);
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID)
+SELECT r.RegistrationID, @a6, 'STARTER', 'Maestro', @c6 FROM Registration r
+WHERE r.TournamentID = @tid AND r.TeamID = @t6 AND NOT EXISTS (SELECT 1 FROM RegistrationLineup x WHERE x.RegistrationID = r.RegistrationID AND x.AccountID = @a6);
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @tid, @t7, @a7, 1, '2026-11-05 00:00:00', 'APPROVED', 'UNPAID', 'NONE', '2026-11-05 00:00:00', '2026-11-11 00:00:00' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Registration WHERE TournamentID = @tid AND TeamID = @t7);
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID)
+SELECT r.RegistrationID, @a7, 'STARTER', 'Djokovic', @c7 FROM Registration r
+WHERE r.TournamentID = @tid AND r.TeamID = @t7 AND NOT EXISTS (SELECT 1 FROM RegistrationLineup x WHERE x.RegistrationID = r.RegistrationID AND x.AccountID = @a7);
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @tid, @t8, @a8, 1, '2026-11-05 00:00:00', 'APPROVED', 'UNPAID', 'NONE', '2026-11-05 00:00:00', '2026-11-11 00:00:00' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Registration WHERE TournamentID = @tid AND TeamID = @t8);
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID)
+SELECT r.RegistrationID, @a8, 'STARTER', 'Bino7', @c8 FROM Registration r
+WHERE r.TournamentID = @tid AND r.TeamID = @t8 AND NOT EXISTS (SELECT 1 FROM RegistrationLineup x WHERE x.RegistrationID = r.RegistrationID AND x.AccountID = @a8);
+-- Nhánh đấu 8 đội: chung kết -> 2 bán kết -> 4 tứ kết (chỉ tạo khi giải mới tạo)
+INSERT INTO BracketNode (TournamentID, ParentNodeID, StageNo, StageType, RoundNo, PositionInRound, NodeType, IsBye, SeedingMethod, Status, GeneratedAt)
+SELECT @tid, NULL, 1, 'KNOCKOUT', 3, 1, 'MATCH_SLOT', 0, 'MANUAL', 'LOCKED', '2026-11-12 00:00:00' FROM DUAL WHERE @new;
+SET @nF := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO BracketNode (TournamentID, ParentNodeID, StageNo, StageType, RoundNo, PositionInRound, NodeType, IsBye, SeedingMethod, Status, GeneratedAt)
+SELECT @tid, @nF, 1, 'KNOCKOUT', 2, 1, 'MATCH_SLOT', 0, 'MANUAL', 'LOCKED', '2026-11-12 00:00:00' FROM DUAL WHERE @new;
+SET @nS1 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO BracketNode (TournamentID, ParentNodeID, StageNo, StageType, RoundNo, PositionInRound, NodeType, IsBye, SeedingMethod, Status, GeneratedAt)
+SELECT @tid, @nF, 1, 'KNOCKOUT', 2, 2, 'MATCH_SLOT', 0, 'MANUAL', 'LOCKED', '2026-11-12 00:00:00' FROM DUAL WHERE @new;
+SET @nS2 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO BracketNode (TournamentID, ParentNodeID, StageNo, StageType, RoundNo, PositionInRound, NodeType, IsBye, SeedingMethod, Status, GeneratedAt)
+SELECT @tid, @nS1, 1, 'KNOCKOUT', 1, 1, 'MATCH_SLOT', 0, 'MANUAL', 'LOCKED', '2026-11-12 00:00:00' FROM DUAL WHERE @new;
+SET @nQ1 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO `Match` (TournamentID, BracketNodeID, TeamAID, TeamBID, BestOf, ScheduledAt, CheckInOpenAt, TeamACheckedInAt, TeamBCheckedInAt, CheckInMode, Status)
+SELECT @tid, @nQ1, @t1, @t2, 3, '2026-11-14 07:00:00', '2026-11-14 06:30:00', '2026-11-14 06:30:00', '2026-11-14 06:30:00', 'SELF', 'READY' FROM DUAL WHERE @new;
+SET @m1 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO BracketNode (TournamentID, ParentNodeID, StageNo, StageType, RoundNo, PositionInRound, NodeType, IsBye, SeedingMethod, Status, GeneratedAt)
+SELECT @tid, @nS1, 1, 'KNOCKOUT', 1, 2, 'MATCH_SLOT', 0, 'MANUAL', 'LOCKED', '2026-11-12 00:00:00' FROM DUAL WHERE @new;
+SET @nQ2 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO `Match` (TournamentID, BracketNodeID, TeamAID, TeamBID, BestOf, ScheduledAt, CheckInOpenAt, TeamACheckedInAt, TeamBCheckedInAt, CheckInMode, Status)
+SELECT @tid, @nQ2, @t3, @t4, 3, '2026-11-14 07:45:00', '2026-11-14 07:15:00', '2026-11-14 07:15:00', '2026-11-14 07:15:00', 'SELF', 'READY' FROM DUAL WHERE @new;
+SET @m2 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO BracketNode (TournamentID, ParentNodeID, StageNo, StageType, RoundNo, PositionInRound, NodeType, IsBye, SeedingMethod, Status, GeneratedAt)
+SELECT @tid, @nS2, 1, 'KNOCKOUT', 1, 3, 'MATCH_SLOT', 0, 'MANUAL', 'LOCKED', '2026-11-12 00:00:00' FROM DUAL WHERE @new;
+SET @nQ3 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO `Match` (TournamentID, BracketNodeID, TeamAID, TeamBID, BestOf, ScheduledAt, CheckInOpenAt, TeamACheckedInAt, TeamBCheckedInAt, CheckInMode, Status)
+SELECT @tid, @nQ3, @t5, @t6, 3, '2026-11-14 08:30:00', '2026-11-14 08:00:00', '2026-11-14 08:00:00', '2026-11-14 08:00:00', 'SELF', 'READY' FROM DUAL WHERE @new;
+SET @m3 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO BracketNode (TournamentID, ParentNodeID, StageNo, StageType, RoundNo, PositionInRound, NodeType, IsBye, SeedingMethod, Status, GeneratedAt)
+SELECT @tid, @nS2, 1, 'KNOCKOUT', 1, 4, 'MATCH_SLOT', 0, 'MANUAL', 'LOCKED', '2026-11-12 00:00:00' FROM DUAL WHERE @new;
+SET @nQ4 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO `Match` (TournamentID, BracketNodeID, TeamAID, TeamBID, BestOf, ScheduledAt, CheckInOpenAt, TeamACheckedInAt, TeamBCheckedInAt, CheckInMode, Status)
+SELECT @tid, @nQ4, @t7, @t8, 3, '2026-11-14 09:15:00', '2026-11-14 08:45:00', '2026-11-14 08:45:00', '2026-11-14 08:45:00', 'SELF', 'READY' FROM DUAL WHERE @new;
+SET @m4 := IF(@new, LAST_INSERT_ID(), NULL);
+INSERT INTO `Match` (TournamentID, BracketNodeID, BestOf, CheckInMode, Status) SELECT @tid, @nS1, 3, 'SELF', 'PENDING' FROM DUAL WHERE @new;
+INSERT INTO `Match` (TournamentID, BracketNodeID, BestOf, CheckInMode, Status) SELECT @tid, @nS2, 3, 'SELF', 'PENDING' FROM DUAL WHERE @new;
+INSERT INTO `Match` (TournamentID, BracketNodeID, BestOf, CheckInMode, Status) SELECT @tid, @nF, 5, 'SELF', 'PENDING' FROM DUAL WHERE @new;
+-- Bản ghi phát sóng của buổi đấu (link YouTube công khai) gán vào tứ kết 1
+INSERT INTO Livestream (TournamentID, MatchID, Platform, StreamUrl, Title, Status, CreatedByAccountID, CreatedAt)
+SELECT @tid, @m1, 'YOUTUBE', 'https://www.youtube.com/watch?v=OmiamPRwZ1I', 'Bản ghi phát sóng nhánh 0:1 (BO3) ngày 14/11', 'ENDED', @org, UTC_TIMESTAMP() FROM DUAL WHERE @new;
+
+
+-- ################################################################################
+-- ## Phần: demo_full_rosters.sql
+-- ################################################################################
 -- Dữ liệu DEMO (15/11/2026): đội demo đủ đội hình theo luật game — MaxStarters chính thức + 1 dự bị.
 -- Trước đây 27 đội demo chỉ có 1 người (đội trưởng) mà vẫn được duyệt vào giải, do dữ liệu nạp thẳng
 -- vào DB, đi vòng qua kiểm tra đội hình của code (TournamentRegistrationService: đủ StarterCount).
@@ -700,3 +989,253 @@ INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnaps
 -- Đăng ký đã duyệt mà đội hình thiếu người chính thức (dữ liệu cũ thiếu cả đội trưởng): thêm thành viên chính thức
 -- đang hoạt động của đội cho đủ StarterCount của giải, ưu tiên đội trưởng. Áp dụng cho mọi giải (kể cả FC Online).
 INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot, InGameNameSnapshot, PlayerCredentialID) SELECT x.RegistrationID, x.AccountID, 'STARTER', (SELECT c.Value FROM PlayerCredential c WHERE c.AccountID = x.AccountID AND c.GameID = x.GameID AND c.CredentialType = 'IN_GAME_NAME' LIMIT 1), (SELECT c.PlayerCredentialID FROM PlayerCredential c WHERE c.AccountID = x.AccountID AND c.GameID = x.GameID AND c.CredentialType = 'IN_GAME_NAME' LIMIT 1) FROM (SELECT r.RegistrationID, m.AccountID, m.GameID, ROW_NUMBER() OVER (PARTITION BY r.RegistrationID ORDER BY (m.AccountID = tm.CaptainAccountID) DESC, m.TeamMemberID) AS rn, t.StarterCount - (SELECT COUNT(*) FROM RegistrationLineup l WHERE l.RegistrationID = r.RegistrationID AND l.Slot = 'STARTER') AS deficit FROM Registration r JOIN Tournament t ON t.TournamentID = r.TournamentID JOIN Team tm ON tm.TeamID = r.TeamID JOIN TeamMember m ON m.TeamID = r.TeamID AND m.Status = 'ACTIVE' AND m.Slot = 'STARTER' WHERE r.Status = 'APPROVED' AND NOT EXISTS (SELECT 1 FROM RegistrationLineup l2 WHERE l2.RegistrationID = r.RegistrationID AND l2.AccountID = m.AccountID)) x WHERE x.rn <= x.deficit;
+
+
+-- ################################################################################
+-- ## Phần: demo_btc_no_team.sql
+-- ################################################################################
+-- Dữ liệu (15/11/2026, đã được duyệt): quy tắc mới "tài khoản Ban tổ chức không có đội" (UC-43: Admin cấp tài khoản
+-- BTC riêng). Chạy lại không tạo trùng — mọi lệnh có điều kiện trạng thái cũ / NOT EXISTS.
+--  1) Đội 10 '12321' (FC Online, đang có trận): chuyển đội trưởng từ btc.tuan (BTC) sang 1 tuyển thủ demo mới;
+--     btc.tuan rời đội; đội hình đăng ký giải của đội 10 đổi sang tuyển thủ mới — trận đấu giữ nguyên.
+--  2) Đội 42 'test' (btc.nam) và 43 '12321' (btc.ha): đội test rác, chưa đăng ký giải nào -> giải tán.
+--  3) Đội test 44, 61, 62 (thiếu người theo luật game) -> bổ sung tuyển thủ demo cho đủ chính thức + 1 dự bị.
+SET NAMES utf8mb4 COLLATE utf8mb4_0900_as_ci;
+SET @pw := (SELECT PasswordHash FROM Account WHERE Email = 'btc.tuan@demo.etoms');
+SET @btc := (SELECT AccountID FROM Account WHERE Email = 'btc.tuan@demo.etoms');
+-- 1) Đội 10
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 't12312.cap@demo.etoms', @pw, 'Lâm Gia Phát', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 't12312.cap@demo.etoms');
+SET @cap := (SELECT AccountID FROM Account WHERE Email = 't12312.cap@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @cap, 7, 'IN_GAME_NAME', 'T12312.Phat', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @cap AND GameID = 7 AND CredentialType = 'IN_GAME_NAME');
+SET @cred := (SELECT PlayerCredentialID FROM PlayerCredential WHERE AccountID = @cap AND GameID = 7 AND CredentialType = 'IN_GAME_NAME' LIMIT 1);
+UPDATE TeamMember SET Status = 'LEFT', LeftAt = UTC_TIMESTAMP() WHERE TeamID = 10 AND AccountID = @btc AND Status = 'ACTIVE';
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 10, 7, @cap, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @cap AND GameID = 7 AND Status = 'ACTIVE');
+UPDATE Team SET CaptainAccountID = @cap WHERE TeamID = 10 AND CaptainAccountID = @btc;
+UPDATE RegistrationLineup l JOIN Registration r ON r.RegistrationID = l.RegistrationID SET l.AccountID = @cap, l.InGameNameSnapshot = 'T12312.Phat', l.PlayerCredentialID = @cred WHERE r.TeamID = 10 AND l.AccountID = @btc AND NOT EXISTS (SELECT 1 FROM (SELECT RegistrationID, AccountID FROM RegistrationLineup) x WHERE x.RegistrationID = l.RegistrationID AND x.AccountID = @cap);
+-- 2) Đội 42, 43
+UPDATE TeamMember SET Status = 'LEFT', LeftAt = UTC_TIMESTAMP() WHERE TeamID IN (42, 43) AND Status = 'ACTIVE';
+UPDATE TeamMember SET Status = 'REJECTED' WHERE TeamID IN (42, 43) AND Status = 'PENDING';
+UPDATE Team SET Status = 'DISBANDED', InviteCode = NULL, InviteExpiresAt = NULL WHERE TeamID IN (42, 43) AND Status = 'ACTIVE';
+-- 3) Đội test 44, 61, 62
+-- Đội 44 [asd]: +3 chính thức, +1 dự bị
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'asd.p1@demo.etoms', @pw, 'Lý Anh Long', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'asd.p1@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'asd.p1@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 5, 'IN_GAME_NAME', 'asd.Sky1', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 5 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 44, 5, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 5 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'asd.p2@demo.etoms', @pw, 'Hoàng Đức Khải', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'asd.p2@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'asd.p2@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 5, 'IN_GAME_NAME', 'asd.Lux2', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 5 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 44, 5, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 5 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'asd.p3@demo.etoms', @pw, 'Dương Tuấn Khoa', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'asd.p3@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'asd.p3@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 5, 'IN_GAME_NAME', 'asd.Oni3', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 5 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 44, 5, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 5 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'asd.p4@demo.etoms', @pw, 'Phạm Văn Tùng', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'asd.p4@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'asd.p4@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 5, 'IN_GAME_NAME', 'asd.Blaze4', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 5 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 44, 5, @a, 'SUBSTITUTE', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 5 AND Status = 'ACTIVE');
+-- Đội 61 [testt]: +4 chính thức, +1 dự bị
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'testt.p1@demo.etoms', @pw, 'Ngô Thành Bình', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'testt.p1@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'testt.p1@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 2, 'IN_GAME_NAME', 'testt.Blaze1', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 2 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 61, 2, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 2 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'testt.p2@demo.etoms', @pw, 'Lê Bảo Thịnh', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'testt.p2@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'testt.p2@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 2, 'IN_GAME_NAME', 'testt.Hawk2', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 2 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 61, 2, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 2 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'testt.p3@demo.etoms', @pw, 'Hồ Quang Toàn', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'testt.p3@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'testt.p3@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 2, 'IN_GAME_NAME', 'testt.Kai3', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 2 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 61, 2, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 2 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'testt.p4@demo.etoms', @pw, 'Trần Hoàng Hiếu', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'testt.p4@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'testt.p4@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 2, 'IN_GAME_NAME', 'testt.Vex4', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 2 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 61, 2, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 2 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'testt.p5@demo.etoms', @pw, 'Đỗ Minh Vinh', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'testt.p5@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'testt.p5@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 2, 'IN_GAME_NAME', 'testt.Ace5', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 2 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 61, 2, @a, 'SUBSTITUTE', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 2 AND Status = 'ACTIVE');
+-- Đội 62 [test11]: +4 chính thức, +1 dự bị
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'test11.p1@demo.etoms', @pw, 'Nguyễn Gia Đạt', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'test11.p1@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'test11.p1@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 3, 'IN_GAME_NAME', 'test11.Zen1', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 3 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 62, 3, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 3 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'test11.p2@demo.etoms', @pw, 'Bùi Công Phúc', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'test11.p2@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'test11.p2@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 3, 'IN_GAME_NAME', 'test11.Kyo2', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 3 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 62, 3, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 3 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'test11.p3@demo.etoms', @pw, 'Võ Hữu Nam', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'test11.p3@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'test11.p3@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 3, 'IN_GAME_NAME', 'test11.Volt3', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 3 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 62, 3, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 3 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'test11.p4@demo.etoms', @pw, 'Đặng Anh Duy', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'test11.p4@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'test11.p4@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 3, 'IN_GAME_NAME', 'test11.Zed4', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 3 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 62, 3, @a, 'STARTER', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 3 AND Status = 'ACTIVE');
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, EmailVerifiedAt, CreatedAt) SELECT 'test11.p5@demo.etoms', @pw, 'Phan Đức Huy', 'PLAYER', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Account WHERE Email = 'test11.p5@demo.etoms');
+SET @a := (SELECT AccountID FROM Account WHERE Email = 'test11.p5@demo.etoms');
+INSERT INTO PlayerCredential (AccountID, GameID, CredentialType, Value, VerifiedAt, CreatedAt) SELECT @a, 3, 'IN_GAME_NAME', 'test11.Rex5', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PlayerCredential WHERE AccountID = @a AND GameID = 3 AND CredentialType = 'IN_GAME_NAME');
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt) SELECT 62, 3, @a, 'SUBSTITUTE', 'JOIN_BY_CODE', 'ACTIVE', UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TeamMember WHERE AccountID = @a AND GameID = 3 AND Status = 'ACTIVE');
+
+
+-- ################################################################################
+-- ## Phần: demo_test_formats.sql
+-- ################################################################################
+-- 17/11/2026 — Dữ liệu để cả nhóm test đủ 4 thể thức + luồng duyệt đơn (yêu cầu của Hùng/Khánh trong nhóm).
+-- CHỈ THÊM MỚI: 5 giải tên bắt đầu "Giải test ·", đứng tên CLB Esports Sinh viên Hòa Lạc (OrganizationID 2,
+-- chủ nhiệm btc.tuan@demo.etoms, AccountID 6). Không sửa/xóa dữ liệu cũ. Chạy lại không nhân đôi (kiểm theo tên giải).
+--   1) FC Online · Loại trực tiếp — 8 đội đã duyệt, đã đóng đăng ký  -> vào "Chia nhánh" sinh + khóa nhánh
+--   2) FC Online · Loại kép        — 7 đội đã duyệt (lẻ, có miễn đấu vòng 1)
+--   3) LMHT · Vòng tròn             — 6 đội đã duyệt
+--   4) FC Online · Vòng bảng rồi loại trực tiếp — 8 đội, 2 bảng, mỗi bảng 2 đội đi tiếp
+--   5) LMHT · Đang mở đăng ký      — 4 đơn CHỜ DUYỆT để test Duyệt / Từ chối đơn
+-- Giải miễn phí, không bắt buộc IGN / giấy tờ / biên lai để test nhanh. Mốc giờ tính theo lúc chạy (UTC).
+SET NAMES utf8mb4 COLLATE utf8mb4_0900_as_ci;
+SET @org := 2, @btc := 6, @unit := 'CLB Esports Sinh viên Hòa Lạc', @now := UTC_TIMESTAMP();
+
+-- ===== Giải =====
+INSERT INTO Tournament (GameID, OrganizerAccountID, OrganizationID, Name, Description, OrganizingUnit, IsOnline, Format, HasThirdPlaceMatch,
+    GroupCount, AdvancePerGroup, MaxTeams, StarterCount, MaxSubstitutes, RegOpenAt, RegCloseAt, StartAt, EndAt, EntryFee,
+    RequireIdentityDocument, RequirePaymentProof, RequireInGameName, BestOfPerRound, RulebookContent, RulebookVersion, Status, CreatedAt)
+SELECT * FROM (
+    -- Dòng đầu đặt tên cột (bảng tạm không được trùng tên cột).
+    SELECT 7 AS c1, @btc AS c2, @org AS c3, 'Giải test · FC Online Loại trực tiếp' AS c4, 'Giải dùng để test sinh nhánh loại trực tiếp 8 đội.' AS c5,
+        @unit AS c6, 1 AS c7, 'SINGLE_ELIMINATION' AS c8, 1 AS c9,
+        NULL AS c10, NULL AS c11, 8 AS c12, 3 AS c13, 1 AS c14, @now - INTERVAL 3 DAY AS c15, @now - INTERVAL 2 HOUR AS c16,
+        @now + INTERVAL 1 DAY AS c17, @now + INTERVAL 7 DAY AS c18, 0 AS c19,
+        0 AS c20, 0 AS c21, 0 AS c22, 'R1:1,R2:3,F:5' AS c23, '<p>Thể lệ giải test.</p>' AS c24, 1 AS c25, 'PUBLISHED' AS c26, @now AS c27
+    UNION ALL SELECT 7, @btc, @org, 'Giải test · FC Online Loại kép', 'Giải dùng để test thể thức loại kép (7 đội, có miễn đấu).', @unit, 1, 'DOUBLE_ELIMINATION', 0,
+        NULL, NULL, 8, 3, 1, @now - INTERVAL 3 DAY, @now - INTERVAL 2 HOUR, @now + INTERVAL 1 DAY, @now + INTERVAL 7 DAY, 0,
+        0, 0, 0, 'R1:1,R2:3,F:5', '<p>Thể lệ giải test.</p>', 1, 'PUBLISHED', @now
+    UNION ALL SELECT 2, @btc, @org, 'Giải test · LMHT Vòng tròn', 'Giải dùng để test vòng tròn tính điểm 6 đội.', @unit, 1, 'ROUND_ROBIN', 0,
+        1, NULL, 8, 5, 3, @now - INTERVAL 3 DAY, @now - INTERVAL 2 HOUR, @now + INTERVAL 1 DAY, @now + INTERVAL 7 DAY, 0,
+        0, 0, 0, 'R1:1,F:1', '<p>Thể lệ giải test.</p>', 1, 'PUBLISHED', @now
+    UNION ALL SELECT 7, @btc, @org, 'Giải test · FC Online Vòng bảng rồi loại trực tiếp', 'Giải dùng để test vòng bảng (2 bảng) rồi loại trực tiếp.', @unit, 1, 'HYBRID', 1,
+        2, 2, 8, 3, 1, @now - INTERVAL 3 DAY, @now - INTERVAL 2 HOUR, @now + INTERVAL 1 DAY, @now + INTERVAL 7 DAY, 0,
+        0, 0, 0, 'R1:1,F:3', '<p>Thể lệ giải test.</p>', 1, 'PUBLISHED', @now
+    UNION ALL SELECT 2, @btc, @org, 'Giải test · LMHT Đang mở đăng ký', 'Giải dùng để test duyệt / từ chối đơn đăng ký.', @unit, 1, 'SINGLE_ELIMINATION', 0,
+        NULL, NULL, 8, 5, 3, @now - INTERVAL 1 DAY, @now + INTERVAL 3 DAY, @now + INTERVAL 5 DAY, @now + INTERVAL 10 DAY, 0,
+        0, 0, 0, 'R1:1,R2:3,F:5', '<p>Thể lệ giải test.</p>', 1, 'PUBLISHED', @now
+) AS x
+WHERE NOT EXISTS (SELECT 1 FROM Tournament WHERE Name LIKE 'Giải test ·%');
+
+SET @t1 := (SELECT TournamentID FROM Tournament WHERE Name = 'Giải test · FC Online Loại trực tiếp');
+SET @t2 := (SELECT TournamentID FROM Tournament WHERE Name = 'Giải test · FC Online Loại kép');
+SET @t3 := (SELECT TournamentID FROM Tournament WHERE Name = 'Giải test · LMHT Vòng tròn');
+SET @t4 := (SELECT TournamentID FROM Tournament WHERE Name = 'Giải test · FC Online Vòng bảng rồi loại trực tiếp');
+SET @t5 := (SELECT TournamentID FROM Tournament WHERE Name = 'Giải test · LMHT Đang mở đăng ký');
+
+-- ===== Đơn đăng ký (đội đủ người theo luật game, đội trưởng là người nộp) =====
+-- Thứ tự ReviewedAt = thứ tự hạt giống "Theo thứ tự duyệt đơn".
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT p.TournamentID, p.TeamID, t.CaptainAccountID, 1, @now - INTERVAL 2 DAY, p.Status, 'UNPAID', 'NONE',
+       @now - INTERVAL 2 DAY, CASE WHEN p.Status = 'APPROVED' THEN @now - INTERVAL 1 DAY + INTERVAL p.Seq MINUTE END
+FROM (
+              SELECT @t1 AS TournamentID, 31 AS TeamID, 1 AS Seq, 'APPROVED' AS Status
+    UNION ALL SELECT @t1, 32, 2, 'APPROVED' UNION ALL SELECT @t1, 33, 3, 'APPROVED' UNION ALL SELECT @t1, 34, 4, 'APPROVED'
+    UNION ALL SELECT @t1, 53, 5, 'APPROVED' UNION ALL SELECT @t1, 54, 6, 'APPROVED' UNION ALL SELECT @t1, 55, 7, 'APPROVED' UNION ALL SELECT @t1, 56, 8, 'APPROVED'
+    UNION ALL SELECT @t2, 31, 1, 'APPROVED' UNION ALL SELECT @t2, 32, 2, 'APPROVED' UNION ALL SELECT @t2, 33, 3, 'APPROVED' UNION ALL SELECT @t2, 34, 4, 'APPROVED'
+    UNION ALL SELECT @t2, 57, 5, 'APPROVED' UNION ALL SELECT @t2, 58, 6, 'APPROVED' UNION ALL SELECT @t2, 59, 7, 'APPROVED'
+    UNION ALL SELECT @t3, 3, 1, 'APPROVED' UNION ALL SELECT @t3, 4, 2, 'APPROVED' UNION ALL SELECT @t3, 5, 3, 'APPROVED'
+    UNION ALL SELECT @t3, 6, 4, 'APPROVED' UNION ALL SELECT @t3, 11, 5, 'APPROVED' UNION ALL SELECT @t3, 12, 6, 'APPROVED'
+    UNION ALL SELECT @t4, 53, 1, 'APPROVED' UNION ALL SELECT @t4, 54, 2, 'APPROVED' UNION ALL SELECT @t4, 55, 3, 'APPROVED' UNION ALL SELECT @t4, 56, 4, 'APPROVED'
+    UNION ALL SELECT @t4, 57, 5, 'APPROVED' UNION ALL SELECT @t4, 58, 6, 'APPROVED' UNION ALL SELECT @t4, 59, 7, 'APPROVED' UNION ALL SELECT @t4, 60, 8, 'APPROVED'
+    UNION ALL SELECT @t5, 11, 1, 'PENDING' UNION ALL SELECT @t5, 12, 2, 'PENDING' UNION ALL SELECT @t5, 13, 3, 'PENDING' UNION ALL SELECT @t5, 14, 4, 'PENDING'
+) AS p
+JOIN Team t ON t.TeamID = p.TeamID
+WHERE p.TournamentID IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM Registration r WHERE r.TournamentID = p.TournamentID AND r.TeamID = p.TeamID);
+
+-- ===== Đội hình của từng đơn = thành viên đang hoạt động của đội (đúng slot chính thức / dự bị) =====
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot)
+SELECT r.RegistrationID, m.AccountID, m.Slot
+FROM Registration r
+JOIN TeamMember m ON m.TeamID = r.TeamID AND m.Status = 'ACTIVE'
+WHERE r.TournamentID IN (@t1, @t2, @t3, @t4, @t5)
+  AND NOT EXISTS (SELECT 1 FROM RegistrationLineup l WHERE l.RegistrationID = r.RegistrationID AND l.AccountID = m.AccountID);
+
+-- Kiểm tra nhanh sau khi chạy
+SELECT t.TournamentID, t.Name, t.Format, COUNT(r.RegistrationID) AS SoDon, SUM(r.Status = 'APPROVED') AS DaDuyet
+FROM Tournament t LEFT JOIN Registration r ON r.TournamentID = t.TournamentID
+WHERE t.Name LIKE 'Giải test ·%' GROUP BY t.TournamentID, t.Name, t.Format;
+
+
+-- ################################################################################
+-- ## Phần: demo_val8_full_roster.sql
+-- ################################################################################
+-- 18/11/2026 — Giải test tạo từ đầu để test SINH NHÁNH: 8 đội Valorant MỚI, mỗi đội 7 người (5 chính thức + 2 dự bị).
+-- CHỈ THÊM MỚI, chạy lại không nhân đôi (kiểm theo email / tên đội / tên giải). Không sửa dữ liệu cũ.
+--   56 tài khoản tuyển thủ val8.d<đội>p<số>@demo.etoms (mật khẩu giống tài khoản demo player20), người số 1 là đội trưởng.
+--   Giải "Giải test · Valorant 8 đội đủ dự bị": Loại trực tiếp, 8 suất, đã đóng đăng ký, 8 đơn đã duyệt, CHƯA sinh nhánh.
+--   Đứng tên CLB Esports Sinh viên Hòa Lạc, quản lý bằng btc.tuan@demo.etoms.
+SET NAMES utf8mb4 COLLATE utf8mb4_0900_as_ci;
+SET @game := (SELECT GameID FROM Game WHERE Title = 'Valorant'), @now := UTC_TIMESTAMP(),
+    @pwd := (SELECT PasswordHash FROM Account WHERE Email = 'player20@demo.etoms');
+
+-- ===== 56 tuyển thủ =====
+INSERT INTO Account (Email, PasswordHash, FullName, Role, Status, NotifyInApp, NotifyEmail, OrganizerRequestStatus, EmailVerifiedAt, CreatedAt)
+SELECT CONCAT('val8.d', d.n, 'p', p.n, '@demo.etoms'), @pwd,
+       CONCAT(ELT(p.n, 'Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Vũ', 'Đặng'), ' ',
+              ELT(d.n, 'Minh', 'Quốc', 'Gia', 'Thành', 'Đức', 'Hữu', 'Tuấn', 'Bảo'), ' ',
+              ELT(p.n, 'An', 'Bình', 'Cường', 'Duy', 'Khôi', 'Long', 'Phong')),
+       'PLAYER', 'ACTIVE', 1, 0, 'NONE', @now, @now
+FROM (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8) d
+CROSS JOIN (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7) p
+WHERE @pwd IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM Account a WHERE a.Email = CONCAT('val8.d', d.n, 'p', p.n, '@demo.etoms'));
+
+-- ===== 8 đội (đội trưởng = tuyển thủ số 1 của đội) =====
+INSERT INTO Team (GameID, CaptainAccountID, Name, Tag, Description, Status, CreatedAt)
+SELECT @game, a.AccountID, t.Name, t.Tag, 'Đội test sinh nhánh — 5 chính thức + 2 dự bị.', 'ACTIVE', @now
+FROM (SELECT 1 n, 'Phượng Hoàng Lửa' Name, 'PHL' Tag UNION ALL SELECT 2, 'Thần Long Esports', 'TLE' UNION ALL SELECT 3, 'Hắc Kỳ Lân', 'HKL'
+      UNION ALL SELECT 4, 'Bão Tố Gaming', 'BTO' UNION ALL SELECT 5, 'Sấm Sét Esports', 'SSE' UNION ALL SELECT 6, 'Băng Giá Gaming', 'BGG'
+      UNION ALL SELECT 7, 'Thiên Ưng Esports', 'TUE' UNION ALL SELECT 8, 'Hổ Trắng Gaming', 'HTG') t
+JOIN Account a ON a.Email = CONCAT('val8.d', t.n, 'p1@demo.etoms')
+WHERE NOT EXISTS (SELECT 1 FROM Team x WHERE x.GameID = @game AND (x.Name = t.Name OR x.Tag = t.Tag));
+
+-- ===== Thành viên: số 1–5 chính thức, 6–7 dự bị =====
+INSERT INTO TeamMember (TeamID, GameID, AccountID, Slot, Direction, Status, JoinedAt, CreatedAt)
+SELECT tm.TeamID, @game, a.AccountID, IF(p.n <= 5, 'STARTER', 'SUBSTITUTE'), 'JOIN_BY_CODE', 'ACTIVE', @now, @now
+FROM (SELECT 1 n, 'Phượng Hoàng Lửa' Name UNION ALL SELECT 2, 'Thần Long Esports' UNION ALL SELECT 3, 'Hắc Kỳ Lân' UNION ALL SELECT 4, 'Bão Tố Gaming'
+      UNION ALL SELECT 5, 'Sấm Sét Esports' UNION ALL SELECT 6, 'Băng Giá Gaming' UNION ALL SELECT 7, 'Thiên Ưng Esports' UNION ALL SELECT 8, 'Hổ Trắng Gaming') t
+JOIN Team tm ON tm.GameID = @game AND tm.Name = t.Name
+CROSS JOIN (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7) p
+JOIN Account a ON a.Email = CONCAT('val8.d', t.n, 'p', p.n, '@demo.etoms')
+WHERE NOT EXISTS (SELECT 1 FROM TeamMember m WHERE m.AccountID = a.AccountID AND m.GameID = @game AND m.Status = 'ACTIVE');
+
+-- ===== Giải: đã đóng đăng ký, khai mạc ngày mai, chưa sinh nhánh =====
+INSERT INTO Tournament (GameID, OrganizerAccountID, OrganizationID, Name, Description, OrganizingUnit, IsOnline, Format, HasThirdPlaceMatch,
+    MaxTeams, StarterCount, MaxSubstitutes, RegOpenAt, RegCloseAt, StartAt, EndAt, EntryFee,
+    RequireIdentityDocument, RequirePaymentProof, RequireInGameName, BestOfPerRound, RulebookContent, RulebookVersion, Status, CreatedAt)
+SELECT @game, 6, 2, 'Giải test · Valorant 8 đội đủ dự bị', 'Giải test sinh nhánh: 8 đội, mỗi đội 5 chính thức + 2 dự bị.',
+       'CLB Esports Sinh viên Hòa Lạc', 1, 'SINGLE_ELIMINATION', 1,
+       8, 5, 2, @now - INTERVAL 3 DAY, @now - INTERVAL 2 HOUR, @now + INTERVAL 1 DAY, @now + INTERVAL 7 DAY, 0,
+       0, 0, 0, 'R1:1,R2:3,F:5', '<p>Thể lệ giải test.</p>', 1, 'PUBLISHED', @now
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Tournament WHERE Name = 'Giải test · Valorant 8 đội đủ dự bị');
+SET @t := (SELECT TournamentID FROM Tournament WHERE Name = 'Giải test · Valorant 8 đội đủ dự bị');
+
+-- ===== 8 đơn đã duyệt (thứ tự duyệt = thứ tự hạt giống) + đội hình 7 người =====
+INSERT INTO Registration (TournamentID, TeamID, SubmittedByAccountID, RulebookVersionAccepted, ConsentAt, Status, PaymentStatus, FinalPlacement, SubmittedAt, ReviewedAt)
+SELECT @t, tm.TeamID, tm.CaptainAccountID, 1, @now - INTERVAL 2 DAY, 'APPROVED', 'UNPAID', 'NONE', @now - INTERVAL 2 DAY, @now - INTERVAL 1 DAY + INTERVAL t.n MINUTE
+FROM (SELECT 1 n, 'Phượng Hoàng Lửa' Name UNION ALL SELECT 2, 'Thần Long Esports' UNION ALL SELECT 3, 'Hắc Kỳ Lân' UNION ALL SELECT 4, 'Bão Tố Gaming'
+      UNION ALL SELECT 5, 'Sấm Sét Esports' UNION ALL SELECT 6, 'Băng Giá Gaming' UNION ALL SELECT 7, 'Thiên Ưng Esports' UNION ALL SELECT 8, 'Hổ Trắng Gaming') t
+JOIN Team tm ON tm.GameID = @game AND tm.Name = t.Name
+WHERE @t IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Registration r WHERE r.TournamentID = @t AND r.TeamID = tm.TeamID);
+
+INSERT INTO RegistrationLineup (RegistrationID, AccountID, Slot)
+SELECT r.RegistrationID, m.AccountID, m.Slot
+FROM Registration r
+JOIN TeamMember m ON m.TeamID = r.TeamID AND m.Status = 'ACTIVE'
+WHERE r.TournamentID = @t
+  AND NOT EXISTS (SELECT 1 FROM RegistrationLineup l WHERE l.RegistrationID = r.RegistrationID AND l.AccountID = m.AccountID);
+
+-- ===== Kiểm tra =====
+SELECT t.TournamentID, t.Name, t.Status, COUNT(DISTINCT r.RegistrationID) AS DonDaDuyet, COUNT(l.RegistrationLineupID) AS NguoiTrongDoiHinh,
+       SUM(l.Slot = 'STARTER') AS ChinhThuc, SUM(l.Slot = 'SUBSTITUTE') AS DuBi
+FROM Tournament t
+JOIN Registration r ON r.TournamentID = t.TournamentID AND r.Status = 'APPROVED'
+LEFT JOIN RegistrationLineup l ON l.RegistrationID = r.RegistrationID
+WHERE t.TournamentID = @t
+GROUP BY t.TournamentID, t.Name, t.Status;
+

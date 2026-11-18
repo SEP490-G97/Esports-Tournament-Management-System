@@ -91,15 +91,6 @@ public class EventTickerDto
     public string Kind { get; set; } = string.Empty;
 }
 
-// Form đăng ký nhận tin sự kiện — có validation.
-public class SubscribeRequest
-{
-    [Required(ErrorMessage = "Vui lòng nhập email.")]
-    [EmailAddress(ErrorMessage = "Email không đúng định dạng.")]
-    [StringLength(256, ErrorMessage = "Email quá dài.")]
-    [Display(Name = "Email")]
-    public string Email { get; set; } = string.Empty;
-}
 
 // Đội tuyển nổi bật ở trang chủ: chỉ đội đủ người thi đấu theo luật tựa game.
 public class HomeTeamDto

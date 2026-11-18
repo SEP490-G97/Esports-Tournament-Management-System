@@ -307,7 +307,7 @@ namespace ETOMS_API.Services.Impl
                 Title = "Yêu cầu bàn giao chủ nhiệm đơn vị",
                 Body = $"Tài khoản của bạn sắp bị khóa. Lý do: {clean}. Vui lòng bàn giao chủ nhiệm đơn vị {names} cho một thành viên khác.",
                 LinkUrl = "/organization/details.html?id=" + orgs[0].OrganizationId,
-                Channel = "IN_APP",
+                Channel = "BOTH",   // email gửi riêng ngay bên dưới (không để bộ gửi tự động gửi trùng)
                 IsRead = false,
                 SentAt = now
             });

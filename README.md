@@ -43,16 +43,14 @@ cần cho phép kết nối từ máy bạn và cung cấp đúng cổng/TLS mod
 
 Entity trong `ETOMS_API/Models/` và `ETOMS_API/Repositories/EtomsDbContext.cs` phải
 khớp schema MySQL do nhóm cung cấp (tên bảng/cột, kiểu dữ liệu, khóa ngoại và views).
-File local `ETOMS_Database.sql` là cú pháp SQL Server cũ, **không chạy file đó trên
-MySQL**. Dự án dùng database-first, không tự tạo hoặc nâng cấp schema khi khởi động.
-Trước khi chạy các luồng đăng ký Iteration 2 trên môi trường khác, sao lưu database
-và áp dụng `database/mysql/iteration2-registration-upgrade.sql`. Bản nâng cấp thêm
-thời hạn xác nhận waitlist và mở rộng các CHECK constraint cho trạng thái hết hạn,
-biên lai/hoàn tiền và audit. Trong EF Core, `Tournament.RequireStudentCard` ánh xạ
+Thư mục `database/` chỉ còn **2 file** (18/11/2026):
+- `database/ETOMS_Schema_MySQL.sql` — lược đồ xuất từ DB chung `etoms_db`: 37 bảng + 4 view + dữ liệu danh mục
+  (6 tựa game, bộ luật / bản đồ / vị trí). Đây là file DUY NHẤT để dựng database; chạy lại an toàn
+  (`CREATE TABLE IF NOT EXISTS`, `INSERT IGNORE`), đã gồm mọi script nâng cấp cũ (waitlist Iteration 2, vai trò Trọng tài...).
+- `database/ETOMS_Demo_Data_MySQL.sql` — dữ liệu demo / giải test (gộp các script demo cũ), chạy sau file lược đồ.
+Dự án dùng database-first, không tự tạo hoặc nâng cấp schema khi khởi động. Trong EF Core, `Tournament.RequireStudentCard` ánh xạ
 tới cột MySQL `RequireIdentityDocument`.
-Connection của API được đặt rõ charset `utf8mb4`. Nếu dữ liệu seed cũ đã mất dấu, có
-thể áp dụng có điều kiện script `database/mysql/fix-vietnamese-seed-data.sql`; script
-chỉ sửa đúng các giá trị đã bị mất dấu như nội dung trong ảnh.
+Connection của API được đặt rõ charset `utf8mb4`.
 Các unique index có điều kiện của SQL Server không được MySQL hỗ trợ trực tiếp; schema
 MySQL phải có cách cưỡng chế tương đương (ví dụ generated column/index hoặc constraint
 phù hợp). Cần đối chiếu schema MySQL thật trước khi xác nhận mọi API hoạt động.
@@ -142,10 +140,9 @@ ranh giới cần thiết rồi commit transaction.
    **100% tiếng Việt có dấu**. Tên class/property/route/biến trong code: tiếng Anh.
 5. **Database: MySQL, database-first.** Không dùng `dotnet ef migrations add` để tự
    tạo/đổi schema. Schema MySQL do nhóm quản lý; cập nhật entity/context theo schema
-   MySQL đã thống nhất. Không chạy `ETOMS_Database.sql` (script SQL Server cũ) trên
-   MySQL. Bảo toàn các ràng buộc nghiệp vụ bằng các constraint/index MySQL tương đương.
-   Luồng waitlist Iteration 2 cần chạy `database/mysql/iteration2-registration-upgrade.sql`
-   trên schema MySQL trước khi triển khai API phiên bản này.
+   MySQL đã thống nhất (`database/ETOMS_Schema_MySQL.sql`). Bảo toàn các ràng buộc nghiệp vụ
+   bằng các constraint/index MySQL tương đương. Đổi lược đồ: chạy script đã được nhóm duyệt lên DB
+   chung rồi xuất lại file lược đồ — **trước khi bỏ bảng phải tìm trên MỌI nhánh xem còn code nào dùng**.
 6. **Phân công module** (ai đụng module nào hỏi người đó trước khi đổi logic chung):
 
    | Thành viên | Module |

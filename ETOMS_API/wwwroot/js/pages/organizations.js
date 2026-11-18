@@ -6,19 +6,12 @@
         Ui.showAlert(flash, 'danger', (error && error.message) || fallback);
     }
 
-    function organizationTypeLabel(type) {
-        return {
-            UNIVERSITY_CLUB: 'Câu lạc bộ cấp trường',
-            EVENT_COMPANY: 'Công ty tổ chức sự kiện',
-            INDIVIDUAL: 'Cá nhân'
-        }[type] || type;
-    }
 
     function renderOrganizations(items, hasSearch) {
         var root = document.getElementById('organization-list');
         if (!items.length) {
             var title = hasSearch ? 'Không tìm thấy đơn vị phù hợp' : 'Chưa có đơn vị hoạt động';
-            var message = hasSearch ? 'Thử thay đổi từ khóa hoặc loại hình đã chọn.' : 'Đơn vị đã được xét duyệt sẽ hiển thị tại đây.';
+            var message = hasSearch ? 'Thử thay đổi từ khóa tìm kiếm.' : 'Đơn vị đã được xét duyệt sẽ hiển thị tại đây.';
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>' + title + '</h3><p>' + message + '</p></div></div>';
             return;
         }
@@ -31,19 +24,18 @@
             return '<div class="col-12 col-md-6 col-lg-4"><a class="org-card d-block" href="/organization/details.html?id=' + Number(item.organizationId) + '">' +
                 '<div class="org-mark">' + logo + '</div><h3>' + Ui.escapeHtml(item.name) + '</h3>' +
                 '<p>' + Ui.escapeHtml(item.description || 'Chưa có mô tả.') + '</p>' +
-                '<div class="org-meta"><span class="badge badge-soft">' + Ui.escapeHtml(item.organizationTypeLabel) + '</span><span>' + Number(item.reputation.totalTournamentCount) + ' giải</span><span>' + rate + '% hoàn thành</span></div>' +
+                '<div class="org-meta"><span>' + Number(item.reputation.totalTournamentCount) + ' giải</span><span>' + rate + '% hoàn thành</span></div>' +
                 '</a></div>';
         }).join('') + '</div>';
     }
 
     function applyOrganizationFilters() {
         var term = document.getElementById('organization-search').value.trim().toLocaleLowerCase('vi');
-        var type = document.getElementById('organization-type-filter').value;
         var filtered = organizations.filter(function (item) {
             var matchesName = !term || (item.name || '').toLocaleLowerCase('vi').includes(term);
-            return matchesName && (!type || item.organizationType === type);
+            return matchesName;
         });
-        renderOrganizations(filtered, !!term || !!type);
+        renderOrganizations(filtered, !!term);
     }
 
     function renderReviewQueue(items, reviewerId) {
@@ -68,7 +60,7 @@
                 return !uploadedTypes.includes(type);
             });
             return '<article class="feature-card" data-review-id="' + Number(item.organizationId) + '">' +
-                '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h3>' + Ui.escapeHtml(item.name) + '</h3><div class="muted-copy">' + Ui.escapeHtml(organizationTypeLabel(item.organizationType)) + ' · gửi ' + Ui.escapeHtml(new Date(item.createdAt).toLocaleString('vi-VN')) + '</div></div><span class="badge badge-gold">' + Ui.escapeHtml(item.statusLabel) + '</span></div>' +
+                '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h3>' + Ui.escapeHtml(item.name) + '</h3><div class="muted-copy">' + 'Gửi ' + Ui.escapeHtml(new Date(item.createdAt).toLocaleString('vi-VN')) + '</div></div><span class="badge badge-gold">' + Ui.escapeHtml(item.statusLabel) + '</span></div>' +
                 '<div class="feature-list mt-3">' + checklist + '</div><div class="review-documents mt-3">' + docs + '</div>' +
                 '<div class="field mt-3"><label for="review-reason-' + Number(item.organizationId) + '">Lý do từ chối</label><input id="review-reason-' + Number(item.organizationId) + '" class="input review-reason" maxlength="1000" placeholder="Bắt buộc nếu từ chối hồ sơ" /></div>' +
                 '<div class="btn-row"><button type="button" class="btn btn-primary" data-review-decision="APPROVE" data-reviewer="' + reviewerId + '"' + (missingRequiredDocument ? ' disabled title="Cần đủ giấy tờ bắt buộc mới có thể duyệt."' : '') + '>Duyệt</button><button type="button" class="btn btn-ghost" data-review-decision="REJECT" data-reviewer="' + reviewerId + '">Từ chối</button></div><div class="review-flash mt-3"></div>' +
@@ -147,7 +139,6 @@
 
     document.addEventListener('DOMContentLoaded', async function () {
         document.getElementById('organization-search').addEventListener('input', applyOrganizationFilters);
-        document.getElementById('organization-type-filter').addEventListener('change', applyOrganizationFilters);
         try {
             await loadPublicOrganizations();
         } catch (error) {

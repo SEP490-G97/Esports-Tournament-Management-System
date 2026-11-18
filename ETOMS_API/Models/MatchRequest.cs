@@ -27,6 +27,9 @@ public partial class MatchRequest
 
     public DateTime? DecidedAt { get; set; }
 
+    /// <summary>Ghi chú khi duyệt / từ chối (bắt buộc khi từ chối yêu cầu thay người).</summary>
+    public string? DecisionNote { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public virtual Account? DecidedByAccount { get; set; }

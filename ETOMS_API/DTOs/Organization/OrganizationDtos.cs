@@ -7,8 +7,11 @@ public sealed class CreateOrganizationRequest
     [Required, StringLength(150)]
     public string Name { get; set; } = string.Empty;
 
-    [Required]
-    public string OrganizationType { get; set; } = string.Empty;
+    // Góp ý nhóm 18/11: form không còn hỏi loại hình; bỏ trống thì máy chủ tự gán (xem OrganizationService.DefaultType).
+    public string? OrganizationType { get; set; }
+
+    // Email các tài khoản Ban tổ chức cùng lập đơn vị (ngoài người lập). Đơn vị cần tối thiểu 3 Ban tổ chức.
+    public List<string>? MemberEmails { get; set; }
 
     [StringLength(150)]
     public string? ParentOrganization { get; set; }

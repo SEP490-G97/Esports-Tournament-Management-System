@@ -9,6 +9,10 @@ namespace ETOMS_API.Services.Impl;
 
 public sealed class OrganizationService : IOrganizationService
 {
+    // Góp ý nhóm 18/11: tối thiểu 3 Ban tổ chức (tính cả chủ nhiệm) mới lập được đơn vị; form không hỏi loại hình nữa.
+    public const int MinOrganizers = 3;
+    private const string DefaultType = "INDIVIDUAL";   // giấy tờ: hồ sơ năng lực / minh chứng hoạt động — dùng được cho mọi đơn vị
+
     private static readonly HashSet<string> OrganizationTypes = new(StringComparer.Ordinal)
     {
         "UNIVERSITY_CLUB",
@@ -76,12 +80,40 @@ public sealed class OrganizationService : IOrganizationService
         int creatorAccountId,
         CancellationToken cancellationToken)
     {
-        var type = request.OrganizationType.Trim().ToUpperInvariant();
+        // Góp ý nhóm 18/11: không hỏi loại hình nữa. Cột OrganizationType vẫn NOT NULL (CHECK) nên gán loại chung nhất,
+        // giấy tờ yêu cầu là "hồ sơ năng lực / minh chứng hoạt động tổ chức giải" — hợp cho mọi kiểu đơn vị.
+        var type = string.IsNullOrWhiteSpace(request.OrganizationType) ? DefaultType : request.OrganizationType.Trim().ToUpperInvariant();
         if (!OrganizationTypes.Contains(type))
         {
             return Result<OrganizationCreatedResponse>.FieldFailure(
                 nameof(request.OrganizationType),
                 "Loại đơn vị không hợp lệ.");
+        }
+
+        // Đơn vị cần tối thiểu MinOrganizers tài khoản Ban tổ chức (tính cả người lập): người lập nhập email các
+        // Ban tổ chức cùng lập; họ nhận lời mời và phải chấp nhận trước khi Admin duyệt hồ sơ.
+        var emails = (request.MemberEmails ?? new List<string>())
+            .Select(e => (e ?? "").Trim()).Where(e => e.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (emails.Count < MinOrganizers - 1)
+        {
+            return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.MemberEmails),
+                $"Đơn vị cần ít nhất {MinOrganizers} tài khoản Ban tổ chức: nhập email của ít nhất {MinOrganizers - 1} Ban tổ chức cùng lập (ngoài bạn).");
+        }
+        var cofounders = await _unitOfWork.Repository<Account>().Query().AsNoTracking()
+            .Where(a => emails.Contains(a.Email))
+            .Select(a => new { a.AccountId, a.Email, a.Role, a.Status })
+            .ToListAsync(cancellationToken);
+        foreach (var e in emails)
+        {
+            var acc = cofounders.FirstOrDefault(a => string.Equals(a.Email, e, StringComparison.OrdinalIgnoreCase));
+            if (acc is null)
+                return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.MemberEmails), $"Không tìm thấy tài khoản có email {e}.");
+            if (acc.AccountId == creatorAccountId)
+                return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.MemberEmails), "Không nhập email của chính bạn — bạn đã là chủ nhiệm.");
+            if (acc.Role != "ORGANIZER" || acc.Status != "ACTIVE")
+                return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.MemberEmails),
+                    $"{e} không phải tài khoản Ban tổ chức đang hoạt động. Người này cần được Admin cấp tài khoản Ban tổ chức trước.");
         }
 
         var creator = await _unitOfWork.Repository<Account>().Query().AsNoTracking()
@@ -112,17 +144,33 @@ public sealed class OrganizationService : IOrganizationService
             LogoUrl = NormalizeOptional(request.LogoUrl),
             Description = NormalizeOptional(request.Description),
             Status = "PENDING",
-            CreatedByAccountId = creatorAccountId
+            CreatedByAccountId = creatorAccountId,
+            CreatedAt = DateTime.UtcNow
         };
         var chair = new OrganizationMember
         {
             AccountId = creatorAccountId,
             Role = "CHAIR",
             Status = "ACTIVE",
-            JoinedAt = DateTime.UtcNow
+            JoinedAt = DateTime.UtcNow,
+            InvitedAt = DateTime.UtcNow
         };
         organization.OrganizationMembers.Add(chair);
+        foreach (var acc in cofounders.Where(a => a.AccountId != creatorAccountId))
+            organization.OrganizationMembers.Add(new OrganizationMember { AccountId = acc.AccountId, Role = "TOURNAMENT_OPERATOR", Status = "INVITED", InvitedAt = DateTime.UtcNow });
         _unitOfWork.Repository<Organization>().Add(organization);
+        foreach (var acc in cofounders.Where(a => a.AccountId != creatorAccountId))
+            _unitOfWork.Repository<Notification>().Add(new Notification
+            {
+                AccountId = acc.AccountId,
+                NotificationType = "SYSTEM",
+                Title = "Lời mời cùng lập đơn vị tổ chức",
+                Body = $"Bạn được mời cùng lập đơn vị \"{organization.Name}\" (vai trò Điều hành giải). Mở \"Đơn vị của tôi\" để chấp nhận — đơn vị cần đủ {MinOrganizers} Ban tổ chức chấp nhận mới được duyệt.",
+                LinkUrl = "/organization/index.html?mine=1",
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = DateTime.UtcNow
+            });
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(
@@ -264,6 +312,13 @@ public sealed class OrganizationService : IOrganizationService
                 return Result<OrganizationReviewResponse>.FieldFailure(
                     nameof(request.Decision),
                     $"Chưa thể duyệt hồ sơ. Còn thiếu: {string.Join(", ", missingTypes)}.");
+            }
+            var activeOrganizers = await _unitOfWork.Repository<OrganizationMember>().Query()
+                .CountAsync(m => m.OrganizationId == organizationId && m.Status == "ACTIVE", cancellationToken);
+            if (activeOrganizers < MinOrganizers)
+            {
+                return Result<OrganizationReviewResponse>.FieldFailure(nameof(request.Decision),
+                    $"Chưa thể duyệt: đơn vị mới có {activeOrganizers}/{MinOrganizers} Ban tổ chức đã chấp nhận tham gia.");
             }
         }
 

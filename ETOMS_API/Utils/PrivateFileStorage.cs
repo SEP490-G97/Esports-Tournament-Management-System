@@ -29,6 +29,8 @@ public sealed class PrivateFileStorage
         var path = relativePath.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase)
             ? Inside(_demoUploadsDirectory, relativePath["/uploads/".Length..])
             : Inside(_rootDirectory, relativePath);
+        // Máy này chưa có tệp (tải lên ở máy khác): lấy bản trong DB chung về.
+        if (path is not null && !File.Exists(path)) SharedFiles.RestoreAsync(path).GetAwaiter().GetResult();
         return path is not null && File.Exists(path)
             ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)
             : null;
@@ -84,8 +86,9 @@ public sealed class PrivateFileStorage
         var destination = Path.Combine(_rootDirectory, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
 
-        await using var stream = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-        await file.CopyToAsync(stream, cancellationToken);
+        await using (var stream = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            await file.CopyToAsync(stream, cancellationToken);
+        await SharedFiles.SaveAsync(destination, null, cancellationToken);   // bản chung trong DB cho máy khác
 
         return new StoredPrivateFile(
             relativePath.Replace(Path.DirectorySeparatorChar, '/'),

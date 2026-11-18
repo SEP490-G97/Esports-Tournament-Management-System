@@ -406,11 +406,6 @@ body { overflow-x: hidden; }
 .step p { color: var(--muted); font-size: .92rem; margin: 0; }
 
 /* --- Đăng ký --- */
-.subscribe-band { background: linear-gradient(120deg, rgba(59,108,255,.16), rgba(47,212,230,.08)); border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); padding: 60px 0; }
-.subscribe-band h2 { font-size: 1.8rem; font-weight: 800; letter-spacing: -.5px; margin: 6px 0 8px; }
-.subscribe-band p { color: var(--muted); margin: 0; }
-.sub-row { display: flex; gap: 12px; }
-.sub-row .input { flex: 1; }
 
 /* --- Footer --- */
 .site-footer { background: var(--bg-2); border-top: 1px solid var(--border-soft); padding: 54px 0 26px; }
@@ -1578,9 +1573,21 @@ a.ticker-item:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2p
 
 /* UC-43: đơn xin làm Ban tổ chức (trang hồ sơ + trang quản trị) */
 .orq-note { white-space: pre-line; color: var(--ink); background: var(--panel-2, rgba(255,255,255,.03)); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 12px; }
-.orq-actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px 12px; align-items: end; }
-.orq-actions .field:nth-of-type(3) { grid-column: 1 / 3; }
-@media (max-width: 720px) { .orq-actions { grid-template-columns: 1fr; } .orq-actions .field:nth-of-type(3) { grid-column: auto; } }
+/* Đơn xin làm Ban tổ chức (trang Tổng quan quản trị): đầu thẻ + 2 khối Cấp | Từ chối */
+.orq-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.orq-av { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; color: var(--cyan); background: var(--panel-2); border: 1px solid var(--border); flex: none; }
+.orq-who { flex: 1; min-width: 0; }
+.orq-name { font-weight: 700; color: var(--ink); }
+.orq-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .82rem; color: var(--muted); }
+.orq-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+.orq-actions { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; margin-top: 14px; }
+.orq-box { border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; }
+.orq-box .field { margin-bottom: 10px; }
+.orq-box > .btn { margin-top: auto; }
+.orq-approve { border-color: rgba(59,130,246,.45); }
+.orq-box-title { font-weight: 700; color: var(--ink); }
+.orq-box-hint { font-size: .82rem; color: var(--muted); margin: 2px 0 10px; }
+@media (max-width: 720px) { .orq-actions { grid-template-columns: 1fr; } }
 .orq-pass { font-size: 1rem; padding: 2px 8px; border-radius: 6px; background: rgba(0,0,0,.25); user-select: all; }
 
 /* Trang chủ — Đội tuyển nổi bật: thẻ dọc (logo · tên · game · sĩ số theo luật · trận thắng) */
@@ -1790,3 +1797,12 @@ strong, b { font-weight: 600; }
 .news-reader-img { width: 100%; max-height: 420px; object-fit: cover; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
 .news-related { padding-left: 18px; margin: 8px 0 0; }
 .news-related li { margin-bottom: 6px; }
+.legal-page .rulebook-content { max-width: 860px; }
+
+/* Ô mật khẩu đã có nút mắt riêng của trang: ẩn nút hiện mật khẩu có sẵn của Edge/IE để không ra 2 con mắt. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear { display: none; }
+/* Đăng ký đơn vị: danh sách email Ban tổ chức cùng lập */
+.org-founders { border: 0; padding: 0; margin: 0 0 16px; }
+.org-founders legend { font-size: .9rem; font-weight: 600; margin-bottom: 4px; }
+.org-founders #founder-list { display: grid; gap: 8px; margin: 8px 0; }
