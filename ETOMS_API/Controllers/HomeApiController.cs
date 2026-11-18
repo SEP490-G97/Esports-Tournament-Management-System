@@ -7,7 +7,6 @@ using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using SubscribeRequest = ETOMS_API.DTOs.Home.SubscribeRequest;
 
 namespace ETOMS_API.Controllers;
 
@@ -207,14 +206,6 @@ public class HomeApiController : ApiControllerBase
             Stats = stats, Games = games, Featured = featuredList, Events = events, Teams = teams, News = news,
             Sponsors = sponsors, LiveNow = liveNow
         };
-    }
-
-    // POST /api/home/subscribe
-    [HttpPost("subscribe")]
-    public IActionResult Subscribe([FromBody] SubscribeRequest subscribe)
-    {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        return Ok(new { message = $"Đã đăng ký nhận tin cho {subscribe.Email}. Cảm ơn bạn!" });
     }
 
     private static string StatusLabel(string s) => s switch

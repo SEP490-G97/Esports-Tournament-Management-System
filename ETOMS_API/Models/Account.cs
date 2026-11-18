@@ -75,14 +75,6 @@ public partial class Account
 
     public virtual ICollection<MatchRequest> MatchRequestRequestedByAccounts { get; set; } = new List<MatchRequest>();
 
-    public virtual ICollection<MatchSubstitution> MatchSubstitutionDecidedByAccounts { get; set; } = new List<MatchSubstitution>();
-
-    public virtual ICollection<MatchSubstitution> MatchSubstitutionInAccounts { get; set; } = new List<MatchSubstitution>();
-
-    public virtual ICollection<MatchSubstitution> MatchSubstitutionOutAccounts { get; set; } = new List<MatchSubstitution>();
-
-    public virtual ICollection<MatchSubstitution> MatchSubstitutionRequestedByAccounts { get; set; } = new List<MatchSubstitution>();
-
     public virtual ICollection<Match> Matches { get; set; } = new List<Match>();
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();

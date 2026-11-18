@@ -1,4 +1,5 @@
 (function () {
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     var accountId;
     var organizationId;
     var requiredDocumentTypes = [];
@@ -103,6 +104,17 @@
         }
         accountId = Number(me.userId);
         wireDocumentUpload();
+        // "+ Thêm người": thêm ô email Ban tổ chức cùng lập (tối đa 10).
+        document.getElementById('add-founder').addEventListener('click', function () {
+            var list = document.getElementById('founder-list');
+            if (list.querySelectorAll('input').length >= 10) return;
+            var input = document.createElement('input');
+            input.name = 'MemberEmail'; input.type = 'email'; input.maxLength = 256; input.className = 'input';
+            input.placeholder = 'Email Ban tổ chức thứ ' + (list.querySelectorAll('input').length + 2);
+            input.autocomplete = 'off';
+            list.appendChild(input);
+            input.focus();
+        });
         document.getElementById('organization-form').addEventListener('submit', async function (event) {
             event.preventDefault();
             var form = event.currentTarget;
@@ -110,7 +122,11 @@
             var data = new FormData(form);
             var errors = {};
             if (!String(data.get('Name') || '').trim()) errors.Name = 'Nhập tên hiển thị của đơn vị.';
-            if (!data.get('OrganizationType')) errors.OrganizationType = 'Chọn loại hình đơn vị.';
+            // Tối thiểu 3 Ban tổ chức tính cả người lập => ít nhất 2 email khác nhau (máy chủ kiểm lại tài khoản).
+            var memberEmails = data.getAll('MemberEmail').map(function (v) { return String(v || '').trim().toLowerCase(); })
+                .filter(function (v, i, a) { return v && a.indexOf(v) === i; });
+            if (memberEmails.length < 2) errors.MemberEmails = 'Nhập email tài khoản Ban tổ chức của ít nhất 2 người cùng lập (đơn vị cần tối thiểu 3 Ban tổ chức).';
+            else if (memberEmails.some(function (v) { return !EMAIL_RE.test(v); })) errors.MemberEmails = 'Kiểm tra lại định dạng email.';
             ['ContactEmail', 'WebsiteUrl', 'LogoUrl'].forEach(function (name) {
                 var input = form.elements[name];
                 if (input.value && !input.validity.valid) errors[name] = 'Kiểm tra lại định dạng thông tin này.';
@@ -124,7 +140,7 @@
             }
             var body = {
                 Name: data.get('Name'),
-                OrganizationType: data.get('OrganizationType'),
+                MemberEmails: memberEmails,
                 ParentOrganization: data.get('ParentOrganization') || null,
                 ContactEmail: data.get('ContactEmail') || null,
                 ContactPhone: data.get('ContactPhone') || null,

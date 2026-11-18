@@ -132,7 +132,7 @@ public class MatchDetailService : IMatchDetailService
         {
             if (captain && m.ScheduledAt != null && now < m.ScheduledAt.Value) actions.Add(MatchActions.Substitution);
             bool canDecide = isAdmin || (m.RefereeAccountId != null ? isReferee : (me != null && t.OrganizerAccountId == me));
-            if (canDecide && await _db.Set<MatchSubstitution>().AsNoTracking().AnyAsync(x => x.MatchId == matchId && x.Status == "PENDING", ct))
+            if (canDecide && await _db.Set<MatchRequest>().AsNoTracking().AnyAsync(x => x.MatchId == matchId && x.RequestKind == "SUBSTITUTION" && x.Status == "PENDING", ct))
                 actions.Add(MatchActions.ReviewSubstitution);
         }
 

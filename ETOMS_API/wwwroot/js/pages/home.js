@@ -66,7 +66,7 @@
     }
 
     function wireReveal() {
-        var revealTargets = document.querySelectorAll('.home-section, .ad-band .wrap, .subscribe-band .wrap, .feat-card, .team-card, .game-chip, .step');
+        var revealTargets = document.querySelectorAll('.home-section, .ad-band .wrap, .feat-card, .team-card, .game-chip, .step');
         revealTargets.forEach(function (el, i) { el.classList.add('reveal'); el.style.transitionDelay = ((i % 6) * 60) + 'ms'; });
         if ('IntersectionObserver' in window) {
             var io = new IntersectionObserver(function (es) {
@@ -295,30 +295,8 @@
         } catch (e) { renderNews([]); }
     }
 
-    function wireSubscribeForm() {
-        var form = document.getElementById('subscribe-form');
-        var flash = document.getElementById('subscribe-flash');
-        form.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            Ui.clearAlert(flash);
-            Ui.clearFieldErrors(form);
-            var email = form.querySelector('[name="Email"]').value;
-            try {
-                var res = await Api.post('/api/home/subscribe', { Email: email });
-                Ui.showAlert(flash, 'success', res.message);
-                form.reset();
-            } catch (err) {
-                Ui.applyFieldErrors(form, err.fieldErrors);
-                if (!err.fieldErrors || !err.fieldErrors.Email) {
-                    Ui.showAlert(flash, 'danger', err.message || 'Vui lòng kiểm tra lại email.');
-                }
-            }
-        });
-    }
-
     document.addEventListener('DOMContentLoaded', async function () {
         wireHeroCarousel();
-        wireSubscribeForm();
         try {
             var summary = await Api.get('/api/home/summary');
             renderTicker(summary.events);

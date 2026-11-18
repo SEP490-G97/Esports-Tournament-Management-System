@@ -184,7 +184,8 @@ builder.Services.AddScoped<WarmConnectionLease>();
 var keepOpen = new KeepConnectionOpenInterceptor();
 builder.Services.AddDbContext<EtomsDbContext>((sp, options) => options
     .UseMySQL(sp.GetRequiredService<WarmConnectionLease>().Connection) // context KHÔNG sở hữu kết nối: hết request trả lại nhóm
-    .AddInterceptors(keepOpen));
+    .AddInterceptors(keepOpen, sp.GetRequiredService<NotificationEmailInterceptor>()));   // + email cho người bật "Nhận thông báo qua email"
+builder.Services.AddSingleton<NotificationEmailInterceptor>();
 
 // Dò cột RegistrationLineup.GamePositionID (GRL-04) trước khi EF dựng model; xem Repositories/PendingSchema.cs.
 PendingSchema.Detect(mysqlConnectionString);
@@ -199,6 +200,12 @@ builder.Services.AddScoped<IAdminBannerService, AdminBannerService>();
 builder.Services.AddSingleton<IMailQueue, MailQueue>();
 builder.Services.AddHostedService<MailQueueWorker>();
 builder.Services.AddHostedService<NoShowWorker>();
+// 4 dòng dưới bị rơi khi gộp main vào nhánh chung (18/11) — khôi phục: chốt bảng xếp hạng khi giải kết thúc (RNK),
+// mở tranh chấp khi quá hạn báo cáo tỉ số (RES), nhắc điểm danh trước trận.
+builder.Services.AddHostedService<CompletedTournamentRankingWorker>();
+builder.Services.AddHostedService<ReportTimeoutWorker>();
+builder.Services.AddScoped<CheckInReminderService>();
+builder.Services.AddHostedService<CheckInReminderWorker>();
 builder.Services.AddScoped<IImageStorage, ImageStorage>();
 builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
 builder.Services.AddScoped<IOrganizerRequestService, OrganizerRequestService>();   // UC-43 xin làm BTC -> Admin cấp tài khoản BTC riêng
@@ -230,7 +237,6 @@ builder.Services.AddScoped<INoShowService, NoShowService>();
 // Sau kết quả cuối từ luồng điểm danh / No-show: đưa đội đi tiếp theo cây của BracketService (dòng cũ đăng ký
 // interface trỏ vào chính nó nên app không khởi động được).
 builder.Services.AddScoped<IMatchResultListener, BracketResultListener>();
-builder.Services.AddScoped<IDoubleEliminationService, DoubleEliminationService>();
 
 
 
@@ -293,6 +299,30 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
     branch.UseExceptionHandler("/errors/500.html");
     branch.UseStatusCodePagesWithReExecute("/errors/{0}.html");
 });
+
+// Ảnh / tệp tải lên ở máy khác (18/11): lưu một bản trong DB chung (Utils/SharedFiles). Máy này chưa có tệp
+// /uploads/... thì lấy từ DB về đĩa trước khi bộ phục vụ tệp tĩnh đọc. Tệp cũ của máy này được đưa lên DB chạy nền.
+{
+    var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+    SharedFiles.Configure(mysqlConnectionString, webRoot,
+        Path.Combine(app.Environment.ContentRootPath, "App_Data", "private-uploads"),
+        app.Services.GetRequiredService<IHttpContextAccessor>(),
+        app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("SharedFiles"));
+    var uploadsRoot = Path.GetFullPath(Path.Combine(webRoot, "uploads")) + Path.DirectorySeparatorChar;
+    app.Use(async (ctx, next) =>
+    {
+        var path = ctx.Request.Path.Value;
+        if (path is not null && HttpMethods.IsGet(ctx.Request.Method) && path.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+        {
+            var full = Path.GetFullPath(Path.Combine(webRoot, Uri.UnescapeDataString(path).TrimStart('/')));
+            if (full.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase) && !File.Exists(full))
+                await SharedFiles.RestoreAsync(full, ctx.RequestAborted);
+        }
+        await next();
+    });
+    var stopping = app.Lifetime.ApplicationStopping;
+    app.Lifetime.ApplicationStarted.Register(() => _ = Task.Run(() => SharedFiles.BackfillAsync(stopping)));
+}
 
 app.UseDefaultFiles();
 // .glb (model 3D rồng trang chủ) không có trong bảng MIME mặc định → thiếu dòng này là 404.

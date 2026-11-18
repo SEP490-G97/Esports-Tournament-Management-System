@@ -33,8 +33,7 @@ DEMO_GUIDE_LOCAL.md
 
 ETOMS_API.Tests/
 
-# Ảnh đại diện người dùng tải lên (lưu trên máy chủ, không đưa vào git)
-ETOMS_API/wwwroot/uploads/avatars/
-ETOMS_API/wwwroot/uploads/banners/
-ETOMS_API/wwwroot/uploads/rulebooks/
-ETOMS_API/wwwroot/uploads/match-evidence/
+# Tệp người dùng tải lên: KHÔNG đưa vào git — bản chung nằm trong DB (Attachment.Content, Utils/SharedFiles.cs).
+# Chỉ giữ tệp mẫu của dữ liệu demo (uploads/demo).
+ETOMS_API/wwwroot/uploads/*
+!ETOMS_API/wwwroot/uploads/demo/

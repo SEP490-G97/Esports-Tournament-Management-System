@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=fb3-20261118" />
+    <link rel="stylesheet" href="/css/site.css?v=eye-20261118" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -45,16 +45,17 @@
                     <span id="org-name-hint" class="field-hint">Dùng tên mà cộng đồng sẽ nhận biết trên ETOMS.</span>
                     <span id="org-name-error" class="field-error" data-field-error="Name"></span>
                 </div>
-                <div class="field">
-                    <label for="org-type">Loại hình đơn vị <span class="req">*</span></label>
-                    <select id="org-type" name="OrganizationType" class="select" required aria-describedby="org-type-error">
-                        <option value="">Chọn loại hình</option>
-                        <option value="UNIVERSITY_CLUB">Câu lạc bộ cấp trường</option>
-                        <option value="EVENT_COMPANY">Công ty tổ chức sự kiện</option>
-                        <option value="INDIVIDUAL">Cá nhân</option>
-                    </select>
-                    <span id="org-type-error" class="field-error" data-field-error="OrganizationType"></span>
-                </div>
+                <!-- Góp ý nhóm 18/11: bỏ loại hình đơn vị; đơn vị cần ít nhất 3 Ban tổ chức (tính cả bạn). -->
+                <fieldset class="field org-founders">
+                    <legend>Ban tổ chức cùng lập đơn vị <span class="req">*</span></legend>
+                    <span class="field-hint">Đơn vị cần <b>ít nhất 3 tài khoản Ban tổ chức</b> (tính cả bạn). Nhập email tài khoản Ban tổ chức của ít nhất 2 người cùng lập — họ nhận lời mời và phải chấp nhận trước khi Admin duyệt hồ sơ.</span>
+                    <div id="founder-list">
+                        <input name="MemberEmail" class="input" type="email" maxlength="256" placeholder="Email Ban tổ chức thứ 2" autocomplete="off" />
+                        <input name="MemberEmail" class="input" type="email" maxlength="256" placeholder="Email Ban tổ chức thứ 3" autocomplete="off" />
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm" id="add-founder">+ Thêm người</button>
+                    <span class="field-error" data-field-error="MemberEmails"></span>
+                </fieldset>
                 <div class="field">
                     <label for="parent-org">Đơn vị chủ quản <span class="optional-label">Không bắt buộc</span></label>
                     <input id="parent-org" name="ParentOrganization" class="input" maxlength="150" placeholder="Ví dụ: Trường Đại học ..." autocomplete="organization" />
@@ -130,7 +131,7 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=once-20261118"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=grl-20261118"></script>
-    <script src="/js/pages/organization-register.js?v=org1-20261116" defer></script>
+    <script src="/js/layout.js?v=adm3-20261118"></script>
+    <script src="/js/pages/organization-register.js?v=org3-20261118" defer></script>
 </body>
 </html>

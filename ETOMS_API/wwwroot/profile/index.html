@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=fb3-20261118" />
+    <link rel="stylesheet" href="/css/site.css?v=eye-20261118" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -36,6 +36,7 @@
                 </div>
                 <nav class="profile-section-nav" aria-label="Điều hướng hồ sơ">
                     <a href="#profile-basics">Thông tin cá nhân</a>
+                    <a href="#profile-password">Đổi mật khẩu</a>
                     <a href="#profile-game-section">Tài khoản game</a>
                     <a href="#profile-privacy">Giấy tờ &amp; riêng tư</a>
                     <a href="#profile-public">Hồ sơ thi đấu</a>
@@ -98,6 +99,25 @@
                             <span id="profile-social-error" class="field-error" data-field-error="SocialLinks"></span>
                         </div>
                         <div class="profile-form-actions"><button class="btn btn-primary" type="submit">Lưu thông tin</button></div>
+                    </form>
+                </section>
+
+                <section id="profile-password" class="feature-card profile-section" aria-labelledby="profile-password-title">
+                    <span class="profile-overline">Bảo mật</span>
+                    <h2 id="profile-password-title">Đổi mật khẩu</h2>
+                    <p class="muted-copy">Đổi xong, mọi thiết bị đang đăng nhập (kể cả máy này) phải đăng nhập lại bằng mật khẩu mới.</p>
+                    <form id="password-form" class="profile-form" novalidate>
+                        <div class="field"><label for="pw-current">Mật khẩu hiện tại <span class="req">*</span></label>
+                            <input id="pw-current" class="input" type="password" autocomplete="current-password" required /></div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6 field"><label for="pw-new">Mật khẩu mới <span class="req">*</span></label>
+                                <input id="pw-new" class="input" type="password" autocomplete="new-password" minlength="8" required />
+                                <small class="field-hint">Ít nhất 8 ký tự, có chữ hoa, chữ thường và chữ số.</small></div>
+                            <div class="col-12 col-md-6 field"><label for="pw-confirm">Nhập lại mật khẩu mới <span class="req">*</span></label>
+                                <input id="pw-confirm" class="input" type="password" autocomplete="new-password" required /></div>
+                        </div>
+                        <div id="pw-flash" aria-live="polite"></div>
+                        <div class="profile-form-actions"><button class="btn btn-primary" type="submit" id="pw-submit">Đổi mật khẩu</button></div>
                     </form>
                 </section>
 
@@ -241,7 +261,8 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=once-20261118"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=grl-20261118"></script>
+    <script src="/js/layout.js?v=adm3-20261118"></script>
     <script src="/js/pages/profile.js?v=app-20261117" defer></script>
+    <script src="/js/pages/profile-password.js?v=pw-20261118" defer></script>
 </body>
 </html>

@@ -13,6 +13,13 @@ public class SubstitutionService : ISubstitutionService
     public const int MaxReason = 300;
     public const int MinRejectNote = 5;
 
+    // 18/11/2026: nhóm giới hạn 35 bảng — yêu cầu thay người lưu ở bảng có sẵn MatchRequest (RequestKind = SUBSTITUTION,
+    // đã có OutAccountID / InAccountID / Status / người duyệt) thay cho bảng riêng MatchSubstitution. Đội rút yêu cầu =
+    // Status CANCELLED; ghi chú khi duyệt = cột DecisionNote (thêm cột, không thêm bảng).
+    private const string Kind = "SUBSTITUTION";
+    private IQueryable<MatchRequest> Subs() => _db.Set<MatchRequest>().Where(r => r.RequestKind == Kind);
+    private static string? ReasonOf(MatchRequest s) => string.IsNullOrEmpty(s.Reason) ? null : s.Reason;
+
     private readonly EtomsDbContext _db;
     private readonly ILogger<SubstitutionService> _log;
     private readonly INotificationHub? _hub;
@@ -64,7 +71,7 @@ public class SubstitutionService : ISubstitutionService
         || (c.Referee != null ? c.Referee == actor : Convert.ToInt32(c.Tournament.OrganizerAccountId) == actor);
 
     /// <summary>Đội hình hiệu lực = đăng ký (lineup) áp dụng các yêu cầu đã duyệt của trận.</summary>
-    private async Task<(List<int> Starters, List<int> Subs, bool HasRegistration)> LineupAsync(int tournamentId, int teamId, List<MatchSubstitution> teamSubs, CancellationToken ct)
+    private async Task<(List<int> Starters, List<int> Subs, bool HasRegistration)> LineupAsync(int tournamentId, int teamId, List<MatchRequest> teamSubs, CancellationToken ct)
     {
         var reg = await _db.Set<Registration>().AsNoTracking()
             .Where(r => r.TournamentId == tournamentId && r.TeamId == teamId && r.Status == "APPROVED")
@@ -75,7 +82,7 @@ public class SubstitutionService : ISubstitutionService
         var starters = rows.Where(l => l.Slot == "STARTER").Select(l => Convert.ToInt32(l.AccountId)).ToList();
         var subs = rows.Where(l => l.Slot == "SUBSTITUTE").Select(l => Convert.ToInt32(l.AccountId)).ToList();
 
-        foreach (var s in teamSubs.Where(x => x.Status == "APPROVED").OrderBy(x => x.DecidedAt).ThenBy(x => x.MatchSubstitutionId))
+        foreach (var s in teamSubs.Where(x => x.Status == "APPROVED").OrderBy(x => x.DecidedAt).ThenBy(x => x.MatchRequestId))
         {
             int o = Convert.ToInt32(s.OutAccountId), i = Convert.ToInt32(s.InAccountId);
             if (starters.Remove(o) && subs.Remove(i)) { starters.Add(i); subs.Add(o); }
@@ -115,8 +122,8 @@ public class SubstitutionService : ISubstitutionService
         if (!member && !decider && !isReferee && !isOrganizer && actorRole != "ADMIN") return new(SubstitutionError.Forbidden);
         if (c.TeamA == null || c.TeamB == null) return new(SubstitutionError.MatchNotEditable);
 
-        var subs = await _db.Set<MatchSubstitution>().AsNoTracking().Where(s => s.MatchId == matchId)
-            .OrderBy(s => s.MatchSubstitutionId).ToListAsync(ct);
+        var subs = await Subs().AsNoTracking().Where(s => s.MatchId == matchId)
+            .OrderBy(s => s.MatchRequestId).ToListAsync(ct);
         var la = await LineupAsync(c.Tournament.TournamentId, c.TeamA.TeamId, subs.Where(s => s.TeamId == c.TeamA.TeamId).ToList(), ct);
         var lb = await LineupAsync(c.Tournament.TournamentId, c.TeamB.TeamId, subs.Where(s => s.TeamId == c.TeamB.TeamId).ToList(), ct);
 
@@ -133,8 +140,8 @@ public class SubstitutionService : ISubstitutionService
         var now = Now;
         bool open = WindowOpen(c.Match, now);
         var items = subs.Select(s => new SubstitutionItem(
-            s.MatchSubstitutionId, s.TeamId, s.TeamId == c.TeamA.TeamId ? c.TeamA.Name : c.TeamB.Name,
-            players[Convert.ToInt32(s.OutAccountId)], players[Convert.ToInt32(s.InAccountId)], s.Reason, s.Status, s.RequestedAt,
+            s.MatchRequestId, s.TeamId ?? 0, s.TeamId == c.TeamA.TeamId ? c.TeamA.Name : c.TeamB.Name,
+            players[Convert.ToInt32(s.OutAccountId)], players[Convert.ToInt32(s.InAccountId)], ReasonOf(s), s.Status, s.CreatedAt,
             s.DecidedByAccountId == null ? null : deciderNames[Convert.ToInt32(s.DecidedByAccountId)].Name, s.DecidedAt, s.DecisionNote)).ToList();
 
         return new(SubstitutionError.None, new SubstitutionBoard(
@@ -165,7 +172,7 @@ public class SubstitutionService : ISubstitutionService
         if (c.Match.Status != "READY") return new(SubstitutionError.MatchNotEditable);
         if (!WindowOpen(c.Match, Now)) return new(SubstitutionError.WindowClosed);
 
-        var subs = await _db.Set<MatchSubstitution>().Where(s => s.MatchId == matchId && s.TeamId == team.TeamId).ToListAsync(ct);
+        var subs = await Subs().Where(s => s.MatchId == matchId && s.TeamId == team.TeamId).ToListAsync(ct);
         var (starters, bench, hasReg) = await LineupAsync(c.Tournament.TournamentId, team.TeamId, subs, ct);
         if (!hasReg) return new(SubstitutionError.NoRegistration);
         if (!starters.Contains(body.OutAccountId) || !bench.Contains(body.InAccountId)) return new(SubstitutionError.InvalidPlayers);
@@ -179,18 +186,19 @@ public class SubstitutionService : ISubstitutionService
         if (used >= c.Tournament.MaxSubstitutes) return new(SubstitutionError.QuotaExceeded);
 
         var now = Now;
-        var row = new MatchSubstitution
+        var row = new MatchRequest
         {
             MatchId = matchId,
             TeamId = team.TeamId,
             OutAccountId = body.OutAccountId,
             InAccountId = body.InAccountId,
-            Reason = reason.Length == 0 ? null : reason,
+            RequestKind = Kind,
+            Reason = reason,                      // MatchRequest.Reason NOT NULL: không ghi lý do thì để chuỗi rỗng
             Status = "PENDING",
             RequestedByAccountId = actorId,
-            RequestedAt = now
+            CreatedAt = now
         };
-        _db.Set<MatchSubstitution>().Add(row);
+        _db.Set<MatchRequest>().Add(row);
 
         // Báo người có quyền duyệt: trọng tài của trận; không có thì BTC.
         int deciderId = c.Referee ?? Convert.ToInt32(c.Tournament.OrganizerAccountId);
@@ -200,15 +208,15 @@ public class SubstitutionService : ISubstitutionService
             notes.Add(Note(deciderId, "Yêu cầu thay người", $"{team.Name} xin thay {players[body.OutAccountId].Name} bằng {players[body.InAccountId].Name} (trận #{matchId}).", matchId, now));
         await SaveAndPushAsync(notes, now, ct);
 
-        return new(SubstitutionError.None, new SubstitutionItem(row.MatchSubstitutionId, team.TeamId, team.Name,
-            players[body.OutAccountId], players[body.InAccountId], row.Reason, row.Status, now, null, null, null));
+        return new(SubstitutionError.None, new SubstitutionItem(row.MatchRequestId, team.TeamId, team.Name,
+            players[body.OutAccountId], players[body.InAccountId], ReasonOf(row), row.Status, now, null, null, null));
     }
 
     public async Task<SubstitutionResult<SubstitutionItem>> CancelAsync(int matchId, int substitutionId, int actorId, CancellationToken ct = default)
     {
         var c = await LoadAsync(matchId, ct);
         if (c == null) return new(SubstitutionError.NotFound);
-        var s = await _db.Set<MatchSubstitution>().FirstOrDefaultAsync(x => x.MatchSubstitutionId == substitutionId && x.MatchId == matchId, ct);
+        var s = await Subs().FirstOrDefaultAsync(x => x.MatchRequestId == substitutionId && x.MatchId == matchId, ct);
         if (s == null) return new(SubstitutionError.NotFound);
         var team = s.TeamId == c.TeamA?.TeamId ? c.TeamA : s.TeamId == c.TeamB?.TeamId ? c.TeamB : null;
         if (!IsCaptain(team, actorId)) return new(SubstitutionError.NotCaptain);
@@ -231,7 +239,7 @@ public class SubstitutionService : ISubstitutionService
         if (c == null) return new(SubstitutionError.NotFound);
         if (!CanDecide(c, actorId, actorRole)) return new(SubstitutionError.NotDecider);
 
-        var s = await _db.Set<MatchSubstitution>().FirstOrDefaultAsync(x => x.MatchSubstitutionId == substitutionId && x.MatchId == matchId, ct);
+        var s = await Subs().FirstOrDefaultAsync(x => x.MatchRequestId == substitutionId && x.MatchId == matchId, ct);
         if (s == null) return new(SubstitutionError.NotFound);
         if (s.Status != "PENDING") return new(SubstitutionError.NotPending);
         if (c.Match.Status != "READY") return new(SubstitutionError.MatchNotEditable);   // trận đã bắt đầu / kết thúc
@@ -243,8 +251,8 @@ public class SubstitutionService : ISubstitutionService
         if (body.Approve)
         {
             // Kiểm tra lại: đội hình có thể đã đổi từ lúc gửi (vd người bị xóa khỏi đăng ký).
-            var teamSubs = await _db.Set<MatchSubstitution>().Where(x => x.MatchId == matchId && x.TeamId == s.TeamId).ToListAsync(ct);
-            var (starters, bench, hasReg) = await LineupAsync(c.Tournament.TournamentId, s.TeamId, teamSubs, ct);
+            var teamSubs = await Subs().Where(x => x.MatchId == matchId && x.TeamId == s.TeamId).ToListAsync(ct);
+            var (starters, bench, hasReg) = await LineupAsync(c.Tournament.TournamentId, s.TeamId ?? 0, teamSubs, ct);
             if (!hasReg) return new(SubstitutionError.NoRegistration);
             if (!starters.Contains(outId) || !bench.Contains(inId)) return new(SubstitutionError.InvalidPlayers);
         }
@@ -263,7 +271,7 @@ public class SubstitutionService : ISubstitutionService
             TournamentId = c.Tournament.TournamentId,
             ActionType = body.Approve ? "APPROVE" : "REJECT",
             ObjectType = "SUBSTITUTION",
-            ObjectId = s.MatchSubstitutionId,
+            ObjectId = s.MatchRequestId,
             BeforeValue = AdminAudit.ToJson(new { status = "PENDING", matchId, teamId = s.TeamId, outAccountId = outId, inAccountId = inId }),
             AfterValue = AdminAudit.ToJson(new { status = s.Status, decider = c.Decider }),
             Reason = AdminAudit.Truncate(note.Length == 0 ? $"Duyệt yêu cầu {what}" : note, 1000),
@@ -313,12 +321,12 @@ public class SubstitutionService : ISubstitutionService
         catch (Exception ex) { _log.LogWarning(ex, "Đẩy thông báo real-time thay người thất bại (đã lưu DB)"); }
     }
 
-    private async Task<SubstitutionItem> ItemAsync(MatchSubstitution s, string teamName, CancellationToken ct)
+    private async Task<SubstitutionItem> ItemAsync(MatchRequest s, string teamName, CancellationToken ct)
     {
         var ids = new List<int> { Convert.ToInt32(s.OutAccountId), Convert.ToInt32(s.InAccountId) };
         if (s.DecidedByAccountId != null) ids.Add(Convert.ToInt32(s.DecidedByAccountId));
         var p = await PlayersAsync(ids, ct);
-        return new SubstitutionItem(s.MatchSubstitutionId, s.TeamId, teamName, p[Convert.ToInt32(s.OutAccountId)], p[Convert.ToInt32(s.InAccountId)],
-            s.Reason, s.Status, s.RequestedAt, s.DecidedByAccountId == null ? null : p[Convert.ToInt32(s.DecidedByAccountId)].Name, s.DecidedAt, s.DecisionNote);
+        return new SubstitutionItem(s.MatchRequestId, s.TeamId ?? 0, teamName, p[Convert.ToInt32(s.OutAccountId)], p[Convert.ToInt32(s.InAccountId)],
+            ReasonOf(s), s.Status, s.CreatedAt, s.DecidedByAccountId == null ? null : p[Convert.ToInt32(s.DecidedByAccountId)].Name, s.DecidedAt, s.DecisionNote);
     }
 }

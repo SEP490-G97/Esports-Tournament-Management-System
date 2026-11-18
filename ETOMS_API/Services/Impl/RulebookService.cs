@@ -117,6 +117,7 @@ public class RulebookService : IRulebookService
         var name = $"{tournamentId}-{Guid.NewGuid():N}.pdf";
         await using (var target = new FileStream(Path.Combine(dir, name), FileMode.CreateNew, FileAccess.Write))
             await file.CopyToAsync(target);
+        await ETOMS_API.Utils.SharedFiles.SaveAsync(Path.Combine(dir, name));   // bản chung trong DB cho máy khác
         var url = "/uploads/rulebooks/" + name;
         await _uow.Repository<Attachment>().AddAsync(new Attachment
         {

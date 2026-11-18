@@ -42,6 +42,7 @@ namespace ETOMS_API.Services.Impl
             {
                 await input.CopyToAsync(output, ct);
             }
+            await ETOMS_API.Utils.SharedFiles.SaveAsync(full, null, ct);   // bản chung trong DB cho máy khác
 
             return new ImageSaveResult(ImageError.None, UrlPrefix + safeFolder.Replace('\\', '/') + "/" + name);
         }

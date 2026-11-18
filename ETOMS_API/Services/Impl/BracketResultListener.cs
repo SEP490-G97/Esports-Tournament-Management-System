@@ -9,8 +9,8 @@ namespace ETOMS_API.Services.Impl;
 /// Sau khi trận có kết quả cuối từ luồng điểm danh / No-show (MAT, code của Hải): đưa đội đi tiếp trong nhánh bằng
 /// ĐÚNG hàm mà nhập kết quả và xử thắng trắng đang dùng (IResultService.AdvanceWinnerAsync — loại trực tiếp và loại kép
 /// theo cây do BracketService sinh). Gỡ cờ No-show thì hoàn tác các ô đã điền; trận kế tiếp đã đấu thì chặn.
-/// (Thay cho DoubleEliminationResultListener của nhánh main: bộ đó đọc cây theo cấu trúc khác — GroupLabel WB/LB/GF —
-/// nên không tìm thấy nhánh của các giải sinh bằng BracketService và đội thắng không được đưa đi tiếp.)
+/// (Thay bộ Loại kép riêng của nhánh main — DoubleEliminationService/Engine/Planner, đọc cây theo cấu trúc khác
+/// GroupLabel WB/LB/GF nên không khớp cây do BracketService sinh; đã bỏ 18/11 vì không còn nơi nào gọi.)
 /// </summary>
 public sealed class BracketResultListener : IMatchResultListener
 {

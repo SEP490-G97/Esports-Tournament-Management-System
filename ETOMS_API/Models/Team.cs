@@ -43,8 +43,6 @@ public partial class Team
 
     public virtual ICollection<MatchRequest> MatchRequests { get; set; } = new List<MatchRequest>();
 
-    public virtual ICollection<MatchSubstitution> MatchSubstitutions { get; set; } = new List<MatchSubstitution>();
-
     public virtual ICollection<Match> MatchTeamAs { get; set; } = new List<Match>();
 
     public virtual ICollection<Match> MatchTeamBs { get; set; } = new List<Match>();

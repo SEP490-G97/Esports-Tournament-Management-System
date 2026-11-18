@@ -54,6 +54,7 @@ public sealed class ProfileService : IProfileService
         var fileName = $"{accountId}-{Guid.NewGuid():N}{info.Extension}";
         await using (var target = new FileStream(Path.Combine(_avatarDirectory, fileName), FileMode.CreateNew, FileAccess.Write))
             await file.CopyToAsync(target, cancellationToken);
+        await ETOMS_API.Utils.SharedFiles.SaveAsync(Path.Combine(_avatarDirectory, fileName), accountId, cancellationToken);   // bản chung trong DB cho máy khác
 
         var previous = account.AvatarUrl;
         account.AvatarUrl = AvatarUrlPrefix + fileName;

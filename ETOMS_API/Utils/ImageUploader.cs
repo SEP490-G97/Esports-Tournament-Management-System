@@ -29,6 +29,7 @@ public static class ImageUploader
         {
             file.CopyTo(stream);
         }
+        SharedFiles.SaveAsync(fullPath).GetAwaiter().GetResult();   // bản chung trong DB cho máy khác
 
         return (true, $"/uploads/{subFolder}/{fileName}", null);
     }

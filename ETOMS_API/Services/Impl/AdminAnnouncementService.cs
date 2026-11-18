@@ -204,7 +204,8 @@ public class AdminAnnouncementService : IAdminAnnouncementService
             if (rows.Count > 0)
             {
                 _db.Set<Notification>().AddRange(rows);
-                await _db.SaveChangesAsync(ct);
+                // Quản trị viên đã chọn kênh gửi (trong web / email / cả hai) và email do hàng đợi bên dưới gửi — không gửi tự động thêm.
+                using (NotificationEmailInterceptor.Suppress()) await _db.SaveChangesAsync(ct);
                 foreach (var n in rows.Where(n => n.Channel != AdminConstants.ChannelEmail))
                     pushes.Add((n.AccountId, new UserNotificationItem(
                         n.NotificationId, n.NotificationType, n.Title, n.Body, n.LinkUrl, false,

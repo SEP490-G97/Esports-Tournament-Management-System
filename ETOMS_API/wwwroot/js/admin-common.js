@@ -127,18 +127,8 @@
     function renderNav(active) {
         const nav = document.getElementById('admin-nav');
         if (!nav) return;
-        clear(nav);
-        nav.setAttribute('aria-label', 'Khu vực quản trị');
-        [
-            ['users', '/admin/users.html', 'Tài khoản'],
-            ['games', '/admin/games.html', 'Danh mục Game'],
-            ['dashboard', '/admin/dashboard.html', 'Thống kê'],
-            ['announcements', '/admin/announcements.html', 'Thông báo & Banner']
-        ].forEach(function (x) {
-            const a = el('a', { href: x[1], text: x[2] });
-            if (x[0] === active) { a.className = 'active'; a.setAttribute('aria-current', 'page'); }
-            nav.appendChild(a);
-        });
+        // 18/11: menu quản trị nằm ở đầu trang (layout.js, đủ mọi mục) — ẩn thanh tab riêng để không có hai menu.
+        nav.hidden = true;
     }
 
     /** Khóa/mở nút khi đang gọi API. */

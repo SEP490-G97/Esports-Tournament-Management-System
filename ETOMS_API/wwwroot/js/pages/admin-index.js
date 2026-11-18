@@ -25,14 +25,34 @@
         {
             key: 'accounts', overline: 'Tài khoản', title: 'Quản lý tài khoản',
             text: 'Tìm kiếm, lọc theo vai trò / trạng thái, khóa và mở khóa tài khoản (ADM-01/02).',
-            href: '/admin/user.html', action: 'Quản lý tài khoản',
+            href: '/admin/users.html', action: 'Quản lý tài khoản',
             url: '/api/admin/accounts?page=1&pageSize=1', pick: function (d) { return d && typeof d.total === 'number' ? d.total : null; }
         },
         {
-            // GRL chưa có trong 46 UC chính thức (xem CLAUDE.md mục 9) — ô này đưa lại TẠM THỜI
-            // theo yêu cầu, chờ nhóm cập nhật UC/catalogue chính thức. Bảng tạo ở
-            // database/mysql/grl-ruleset-map-position.sql.
-            key: 'rules', overline: 'Luật thi đấu (tạm, chưa có trong UC)', title: 'Bộ luật theo tựa game',
+            key: 'stats', overline: 'Biểu đồ', title: 'Thống kê hệ thống',
+            text: 'Biểu đồ người dùng, giải đấu, đội và trận theo thời gian.',
+            href: '/admin/dashboard.html', action: 'Xem thống kê'
+        },
+        {
+            key: 'news', overline: 'Tin tức', title: 'Tin tức ETOMS',
+            text: 'Viết, ghim, ẩn tin của ETOMS hiện ở trang chủ và trang Tin tức.',
+            href: '/admin/news.html', action: 'Quản lý tin tức',
+            url: '/api/admin/news', pick: count
+        },
+        {
+            key: 'ads', overline: 'Quảng cáo', title: 'Thông báo & banner quảng cáo',
+            text: 'Banner sự kiện / quảng cáo ở đầu trang chủ và thông báo gửi tới người dùng.',
+            href: '/admin/announcements.html', action: 'Quản lý banner',
+            url: '/api/admin/banners?state=CURRENT', pick: count
+        },
+        {
+            key: 'games', overline: 'Danh mục', title: 'Tựa game',
+            text: 'Thêm, sửa, ngừng tựa game và luật đội hình mặc định.',
+            href: '/admin/games.html', action: 'Quản lý tựa game',
+            url: '/api/admin/games', pick: count
+        },
+        {
+            key: 'rules', overline: 'Luật thi đấu', title: 'Bộ luật theo tựa game',
             text: 'Quản lý bộ luật, bản đồ và vị trí cho từng game (GRL-01..03).',
             href: '/admin/game-rules.html', action: 'Quản lý bộ luật',
             url: '/api/game-rules', pick: function (d) {
@@ -76,25 +96,34 @@
     // ===== UC-43: đơn xin làm Ban tổ chức =====
     function fmtTime(iso) { return iso ? new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z').toLocaleString('vi-VN') : ''; }
 
+    // Một đơn = đầu thẻ (người xin + lời nhắn) và HAI khối tách bạch: "Cấp tài khoản BTC" | "Từ chối".
     function requestCard(r) {
         var id = Number(r.accountId);
+        var name = r.fullName || r.email || '?';
         return '<div class="card-etoms orq-card" data-req="' + id + '"><div class="body">' +
-            '<div class="d-flex flex-wrap justify-content-between gap-2"><div><div class="fw-bold">' + Ui.escapeHtml(r.fullName) + '</div>' +
-            '<div class="hint">' + Ui.escapeHtml(r.email) + ' · gửi ' + Ui.escapeHtml(fmtTime(r.requestedAt)) +
-            ' · đang ở ' + Number(r.activeTeams) + ' đội (giữ nguyên ở tài khoản tuyển thủ)</div></div></div>' +
-            '<div class="orq-note mt-2">' + Ui.escapeHtml(r.note || '(không ghi mong muốn)') + '</div>' +
-            '<div class="orq-actions mt-3">' +
-            '<div class="field m-0"><label for="orq-email-' + id + '">Email đăng nhập tài khoản BTC *</label>' +
-            '<input id="orq-email-' + id + '" class="input" type="email" maxlength="254" value="' + Ui.escapeHtml(r.proposedEmail || '') + '" placeholder="email riêng cho tài khoản Ban tổ chức" />' +
+            '<div class="orq-head"><span class="orq-av" aria-hidden="true">' + Ui.escapeHtml(name.substring(0, 1).toUpperCase()) + '</span>' +
+            '<div class="orq-who"><div class="orq-name">' + Ui.escapeHtml(name) + '</div>' +
+            '<div class="orq-meta"><span>' + Ui.escapeHtml(r.email) + '</span><span>Gửi ' + Ui.escapeHtml(fmtTime(r.requestedAt)) + '</span>' +
+            '<span>Đang ở ' + Number(r.activeTeams) + ' đội</span></div></div>' +
+            '<span class="badge badge-gold">Chờ duyệt</span></div>' +
+            '<div class="orq-label">Mong muốn của người xin</div>' +
+            '<div class="orq-note">' + Ui.escapeHtml(r.note || 'Không ghi mong muốn.') + '</div>' +
+            '<div class="orq-actions">' +
+            '<div class="orq-box orq-approve"><div class="orq-box-title">Cấp tài khoản Ban tổ chức</div>' +
+            '<p class="orq-box-hint">Tạo tài khoản BTC riêng (không có đội). Tài khoản tuyển thủ hiện tại giữ nguyên.</p>' +
+            '<div class="field"><label for="orq-email-' + id + '">Email đăng nhập BTC <span class="req">*</span></label>' +
+            '<input id="orq-email-' + id + '" class="input" type="email" maxlength="254" value="' + Ui.escapeHtml(r.proposedEmail || '') + '" placeholder="Email riêng, khác email tuyển thủ" />' +
             '<span class="field-error" data-err="OrganizerEmail"></span></div>' +
-            '<div class="field m-0"><label for="orq-name-' + id + '">Tên hiển thị BTC</label>' +
-            '<input id="orq-name-' + id + '" class="input" maxlength="100" placeholder="' + Ui.escapeHtml(r.fullName + ' (BTC)') + '" />' +
+            '<div class="field"><label for="orq-name-' + id + '">Tên hiển thị BTC</label>' +
+            '<input id="orq-name-' + id + '" class="input" maxlength="100" placeholder="' + Ui.escapeHtml(name + ' (BTC)') + '" />' +
             '<span class="field-error" data-err="OrganizerFullName"></span></div>' +
-            '<div class="btn-row m-0"><button type="button" class="btn btn-primary btn-sm" data-approve="' + id + '">Cấp tài khoản BTC</button></div>' +
-            '<div class="field m-0"><label for="orq-reason-' + id + '">Lý do từ chối</label>' +
-            '<input id="orq-reason-' + id + '" class="input" maxlength="500" placeholder="bắt buộc khi từ chối (5–500 ký tự)" />' +
+            '<button type="button" class="btn btn-primary w-100" data-approve="' + id + '">Cấp tài khoản BTC</button></div>' +
+            '<div class="orq-box orq-reject"><div class="orq-box-title">Từ chối đơn</div>' +
+            '<p class="orq-box-hint">Người xin nhận thông báo kèm lý do.</p>' +
+            '<div class="field"><label for="orq-reason-' + id + '">Lý do từ chối <span class="req">*</span></label>' +
+            '<textarea id="orq-reason-' + id + '" class="input" rows="4" maxlength="500" placeholder="5–500 ký tự"></textarea>' +
             '<span class="field-error" data-err="Reason"></span></div>' +
-            '<div class="btn-row m-0"><button type="button" class="btn btn-ghost btn-sm" data-reject="' + id + '">Từ chối</button></div>' +
+            '<button type="button" class="btn btn-ghost w-100" data-reject="' + id + '">Từ chối</button></div>' +
             '</div><div class="orq-result mt-2" aria-live="polite"></div></div></div>';
     }
 

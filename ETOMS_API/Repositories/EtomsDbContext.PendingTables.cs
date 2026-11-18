@@ -33,6 +33,14 @@ public partial class EtomsDbContext
         });
         modelBuilder.Entity<PaymentRecord>(entity => entity.Property(e => e.IsCurrent).ValueGeneratedNever());
 
+        // Giới hạn 35 bảng: yêu cầu thay người (MAT-05/06) dùng MatchRequest; cột ghi chú khi duyệt thêm 18/11.
+        // DB chung chưa chạy script thêm cột thì bỏ qua cột (xem PendingSchema) để MatchRequest vẫn đọc được.
+        modelBuilder.Entity<MatchRequest>(entity =>
+        {
+            if (PendingSchema.MatchRequestDecisionNote) entity.Property(e => e.DecisionNote).HasMaxLength(300);
+            else entity.Ignore(e => e.DecisionNote);
+        });
+
         // ADM thông báo hệ thống + banner (code của Hải dùng _db.Set<...>()). Hai bảng bị bỏ nhầm 17/11 và khôi phục 18/11,
         // nên bản scaffold lại của context không có — ánh xạ ở đây theo đúng lược đồ DB chung.
         modelBuilder.Entity<SystemAnnouncement>(entity =>
