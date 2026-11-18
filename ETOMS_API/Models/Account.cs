@@ -37,7 +37,6 @@ public partial class Account
 
     public DateTime? OrganizerRequestedAt { get; set; }
 
-    // UC-43: mong muốn / lý do xin làm Ban tổ chức và email đề xuất cho tài khoản BTC riêng (Admin cấp).
     public string? OrganizerRequestNote { get; set; }
 
     public string? OrganizerRequestEmail { get; set; }
@@ -60,9 +59,11 @@ public partial class Account
 
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();
 
-    public virtual ICollection<MatchChatMessage> MatchChatMessageSenderAccounts { get; set; } = new List<MatchChatMessage>();
+    public virtual ICollection<MatchChatMessage> MatchChatMessages { get; set; } = new List<MatchChatMessage>();
 
     public virtual ICollection<MatchGame> MatchGames { get; set; } = new List<MatchGame>();
+
+    public virtual ICollection<MatchPickBan> MatchPickBans { get; set; } = new List<MatchPickBan>();
 
     public virtual ICollection<MatchReport> MatchReports { get; set; } = new List<MatchReport>();
 
@@ -73,6 +74,14 @@ public partial class Account
     public virtual ICollection<MatchRequest> MatchRequestOutAccounts { get; set; } = new List<MatchRequest>();
 
     public virtual ICollection<MatchRequest> MatchRequestRequestedByAccounts { get; set; } = new List<MatchRequest>();
+
+    public virtual ICollection<MatchSubstitution> MatchSubstitutionDecidedByAccounts { get; set; } = new List<MatchSubstitution>();
+
+    public virtual ICollection<MatchSubstitution> MatchSubstitutionInAccounts { get; set; } = new List<MatchSubstitution>();
+
+    public virtual ICollection<MatchSubstitution> MatchSubstitutionOutAccounts { get; set; } = new List<MatchSubstitution>();
+
+    public virtual ICollection<MatchSubstitution> MatchSubstitutionRequestedByAccounts { get; set; } = new List<MatchSubstitution>();
 
     public virtual ICollection<Match> Matches { get; set; } = new List<Match>();
 
@@ -103,7 +112,6 @@ public partial class Account
     public virtual ICollection<Team> Teams { get; set; } = new List<Team>();
 
     public virtual ICollection<Tournament> TournamentBracketLockedByAccounts { get; set; } = new List<Tournament>();
-
 
     public virtual ICollection<Tournament> TournamentOrganizerAccounts { get; set; } = new List<Tournament>();
 

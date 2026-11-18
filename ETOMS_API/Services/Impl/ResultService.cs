@@ -828,6 +828,46 @@ public class ResultService : IResultService
         if (match is not null) await AdvanceWinnerAsync(match, winnerTeamId);
     }
 
+    // Hoàn tác đúng các ô mà AdvanceWinnerAsync đã điền (loại trực tiếp: ô ở trận cha; loại kép: ô đội thắng + ô đội
+    // thua rơi xuống nhánh thua). Trận đích đã bắt đầu / có kết quả thì KHÔNG gỡ được (ném ResultRollbackBlockedException).
+    // Dùng khi BTC gỡ cờ No-show của trận đã xử thắng trắng (MAT, code của Hải gọi qua IMatchResultListener).
+    public async Task RevertAdvanceAsync(int matchId)
+    {
+        var match = await _uow.Repository<Match>().GetByIdAsync(matchId);
+        if (match?.WinnerTeamId is not int winner) return;
+        var node = await _uow.Repository<BracketNode>().GetByIdAsync(match.BracketNodeId);
+        if (node is null) return;
+        int? loser = match.TeamAid == winner ? match.TeamBid : match.TeamAid;
+
+        var slots = new List<(int NodeId, bool SideA, int TeamId)>();
+        if (node.StageType == "KNOCKOUT" && DoubleElimination.IsDoubleElimination(await _uow.Repository<Tournament>().Query()
+                .Where(t => t.TournamentId == match.TournamentId).Select(t => t.Format).FirstOrDefaultAsync()))
+        {
+            var layout = new DoubleElimination.Layout(await _uow.Repository<BracketNode>().Query()
+                .Where(n => n.TournamentId == match.TournamentId && n.StageType == "KNOCKOUT").ToListAsync());
+            if (layout.WinnerTo(node) is { } w) slots.Add((w.Node.BracketNodeId, w.SideA, winner));
+            if (loser is int l && layout.LoserTo(node) is { } d) slots.Add((d.Node.BracketNodeId, d.SideA, l));
+        }
+        else if (node.ParentNodeId is int parentId)
+            slots.Add((parentId, (node.PositionInRound ?? 1) % 2 == 1, winner));
+
+        var targets = new List<(Match Target, bool SideA)>();
+        foreach (var s in slots)
+        {
+            var target = await _uow.Repository<Match>().Query().FirstOrDefaultAsync(m => m.BracketNodeId == s.NodeId);
+            if (target is null || (s.SideA ? target.TeamAid : target.TeamBid) != s.TeamId) continue;
+            if (target.WinnerTeamId is not null || target.Status is not ("PENDING" or "READY"))
+                throw new ResultRollbackBlockedException("Trận kế tiếp của đội đã bắt đầu hoặc đã có kết quả nên không gỡ được kết quả trận này.");
+            targets.Add((target, s.SideA));
+        }
+        foreach (var (target, sideA) in targets)
+        {
+            if (sideA) target.TeamAid = null; else target.TeamBid = null;
+            _uow.Repository<Match>().Update(target);
+        }
+        await _uow.SaveChangesAsync();
+    }
+
     private async Task<int?> ResolveCaptainTeamIdAsync(Match match, int accountId)
     {
         if (match.TeamAid.HasValue && await _uow.Repository<Team>().AnyAsync(t => t.TeamId == match.TeamAid.Value && t.CaptainAccountId == accountId))

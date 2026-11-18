@@ -36,7 +36,7 @@
         var path = location.pathname.toLowerCase();
         document.querySelectorAll('#etomsNavCollapse nav a[data-nav]').forEach(function (a) {
             var key = a.getAttribute('data-nav');
-            var match = (key === 'home' && path === '/' ) ||
+            var match = (key === 'home' && path === '/') ||
                 (key !== 'home' && path.indexOf('/' + key) === 0);
             a.classList.toggle('active', match);
         });
@@ -49,18 +49,22 @@
             var isLight = document.documentElement.getAttribute('data-theme') === 'light';
             if (isLight) {
                 document.documentElement.removeAttribute('data-theme');
-                try { localStorage.setItem('etoms-theme', 'dark'); } catch (e) {}
+                try { localStorage.setItem('etoms-theme', 'dark'); } catch (e) { }
             } else {
                 document.documentElement.setAttribute('data-theme', 'light');
-                try { localStorage.setItem('etoms-theme', 'light'); } catch (e) {}
+                try { localStorage.setItem('etoms-theme', 'light'); } catch (e) { }
             }
         });
     }
 
-    // Người dùng hiện tại (JWT, auth.js) — dùng chung kết quả với trang qua Ui.currentUser().
-    async function resolveCurrentUser() {
-        var me = await Ui.currentUser();
-        return me || { isAuthenticated: false };
+    // Nạp js/notifications.js theo yêu cầu (chỉ khi đã đăng nhập) rồi gắn chuông vào đầu ô tài khoản.
+    function loadNotifyBell(slot) {
+        function go() { if (window.EtomsNotify) window.EtomsNotify.mount(slot); }
+        if (window.EtomsNotify) return go();
+        var sc = document.createElement('script');
+        sc.src = '/js/notifications.js';
+        sc.onload = go;
+        document.head.appendChild(sc);
     }
 
     async function wireAuthWidget() {
@@ -77,6 +81,7 @@
             if (me.isAuthenticated) {
                 renderUserDropdown(slot, me);
                 await loadMyTeam(me);
+                loadNotifyBell(slot);                   // chuông thông báo (ADM-08, code của Hải)
             } else {
                 slot.innerHTML = loggedOutHtml;
             }
@@ -453,7 +458,4 @@
         document.dispatchEvent(new CustomEvent('etoms:layout-ready'));
         wireTournamentNav(await mePromise);
     });
-
-    // layout.js nạp ở cuối <body>, trước script trang (defer): lúc này khung "Đang tải..." còn nguyên.
-    markLoadingStates();
 })();

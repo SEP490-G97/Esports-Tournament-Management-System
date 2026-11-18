@@ -1,0 +1,380 @@
+﻿/* Chuông thông báo + carousel Banner tổng (ADM-08, phía người dùng). Biến màu có giá trị dự phòng. */
+.etn-bell {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    --etn-bg: var(--panel, #141b2b);
+    --etn-bd: var(--border, #243049);
+    --etn-tx: var(--ink, #e9edf6);
+    --etn-mut: var(--muted, #8b95ad);
+    --etn-hi: var(--primary-050, rgba(59,108,255,.12));
+    --etn-ac: var(--primary, #3b6cff);
+}
+
+.etn-btn {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--etn-bd);
+    background: var(--panel-2, transparent);
+    color: var(--etn-tx);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+    .etn-btn:hover {
+        background: var(--etn-hi);
+    }
+
+    .etn-btn:focus-visible {
+        outline: 2px solid var(--etn-ac);
+        outline-offset: 2px;
+    }
+
+    .etn-btn svg {
+        width: 19px;
+        height: 19px;
+    }
+
+.etn-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.etn-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: min(380px, 92vw);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--etn-bg);
+    color: var(--etn-tx);
+    border: 1px solid var(--etn-bd);
+    border-radius: 14px;
+    box-shadow: var(--shadow, 0 18px 48px rgba(0,0,0,.45));
+    z-index: 2000;
+    overflow: hidden;
+    text-align: left;
+}
+
+    .etn-panel[hidden] {
+        display: none;
+    }
+
+.etn-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--etn-bd);
+    font-weight: 700;
+}
+
+.etn-link {
+    background: none;
+    border: 0;
+    color: var(--etn-ac);
+    cursor: pointer;
+    font-size: .82rem;
+    padding: 0;
+    font-weight: 600;
+}
+
+    .etn-link:disabled {
+        opacity: .5;
+        cursor: default;
+    }
+
+.etn-list {
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.etn-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--etn-bd);
+    color: inherit;
+    padding: 11px 14px;
+    cursor: pointer;
+    font: inherit;
+}
+
+    .etn-item:hover {
+        background: var(--etn-hi);
+    }
+
+    .etn-item.unread {
+        background: var(--etn-hi);
+    }
+
+    .etn-item .t {
+        font-weight: 600;
+        font-size: .92rem;
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+    }
+
+        .etn-item .t i {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--etn-ac);
+            flex: none;
+        }
+
+    .etn-item .b {
+        color: var(--etn-mut);
+        font-size: .84rem;
+        margin-top: 2px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        white-space: pre-wrap;
+    }
+
+    .etn-item .d {
+        color: var(--etn-mut);
+        font-size: .75rem;
+        margin-top: 4px;
+    }
+
+.etn-state {
+    padding: 26px 14px;
+    text-align: center;
+    color: var(--etn-mut);
+    font-size: .9rem;
+}
+
+.etn-foot {
+    padding: 8px 14px;
+    text-align: center;
+    border-top: 1px solid var(--etn-bd);
+}
+
+@media (max-width: 767.98px) {
+    .etn-panel {
+        position: fixed;
+        left: 4vw;
+        right: 4vw;
+        top: 70px;
+        width: auto;
+    }
+}
+
+/* ---------- Banner tổng ---------- */
+.etb {
+    position: relative;
+    margin: 26px 0 8px;
+    border-radius: 16px;
+    overflow: hidden;
+    aspect-ratio: 16 / 5;
+    min-height: 150px;
+    background: var(--panel-2, #11121a);
+    border: 1px solid var(--border, transparent);
+}
+
+    .etb[hidden] {
+        display: none;
+    }
+
+.etb-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .5s;
+    color: #fff;
+    text-decoration: none;
+    display: block;
+}
+
+    .etb-slide.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .etb-slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+.etb-cap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 40px 22px 18px;
+    background: linear-gradient(transparent, rgba(5,6,12,.85));
+}
+
+    .etb-cap b {
+        display: block;
+        font-size: clamp(1.05rem, 2.4vw, 1.6rem);
+        line-height: 1.2;
+    }
+
+    .etb-cap span.d {
+        display: block;
+        margin-top: 4px;
+        font-size: .92rem;
+        opacity: .85;
+        max-width: 70ch;
+    }
+
+.etb-tag {
+    display: inline-block;
+    margin-bottom: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    background: var(--primary, #3b6cff);
+    color: #fff;
+}
+
+    .etb-tag.gift {
+        background: #f59e0b;
+        color: #1a1305;
+    }
+
+.etb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(5,6,12,.55);
+    color: #fff;
+    font-size: 1.3rem;
+    cursor: pointer;
+}
+
+    .etb-nav:hover {
+        background: rgba(5,6,12,.8);
+    }
+
+    .etb-nav.prev {
+        left: 10px;
+    }
+
+    .etb-nav.next {
+        right: 10px;
+    }
+
+.etb-dots {
+    position: absolute;
+    right: 16px;
+    bottom: 12px;
+    display: flex;
+    gap: 6px;
+}
+
+    .etb-dots button {
+        width: 9px;
+        height: 9px;
+        padding: 0;
+        border-radius: 50%;
+        border: 0;
+        background: rgba(255,255,255,.45);
+        cursor: pointer;
+    }
+
+        .etb-dots button.active {
+            background: #fff;
+        }
+
+@media (prefers-reduced-motion: reduce) {
+    .etb-slide {
+        transition: none;
+    }
+}
+
+/* ---------- toast khi có thông báo mới (real-time) ---------- */
+.etn-toasts {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(340px, calc(100vw - 36px));
+}
+
+.etn-toast {
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: var(--ink, #e9edf6);
+    background: var(--panel, #141b2b);
+    border: 1px solid var(--border, #243049);
+    border-left: 3px solid var(--primary, #3b6cff);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: var(--shadow, 0 12px 40px rgba(0,0,0,.35));
+    animation: etn-in .2s ease;
+}
+
+    .etn-toast b {
+        display: block;
+        font-size: .92rem;
+    }
+
+    .etn-toast span {
+        display: block;
+        margin-top: 2px;
+        font-size: .84rem;
+        color: var(--muted, #8b95ad);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+@keyframes etn-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .etn-toast {
+        animation: none;
+    }
+}

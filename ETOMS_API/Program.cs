@@ -1,3 +1,4 @@
+using ETOMS_API.Hubs;
 using ETOMS_API.Middleware;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
@@ -7,6 +8,7 @@ using ETOMS_API.Services;
 using ETOMS_API.Services.Impl;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -36,11 +38,9 @@ builder.Services.Configure<SupportOptions>(builder.Configuration.GetSection(Supp
 
 
 
-
-
-// Email: chưa cấu hình đủ SMTP (tắt, hoặc thiếu mật khẩu) thì chỉ ghi nội dung mail ra log.
-var emailOptions = builder.Configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
-if (emailOptions.CanSend) builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
+// Email: Enabled=false thì chỉ ghi link ra log, test gửi mail trong env dev
+var emailEnabled = builder.Configuration.GetValue<bool>("Email:Enabled");
+if (emailEnabled) builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
 else builder.Services.AddScoped<IEmailSender, LogEmailSender>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -58,6 +58,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
             NameClaimType = "sub",
             RoleClaimType = "role",
+        };
+        o.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx => {
+                var token = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
         };
     });
 builder.Services.AddAuthorization();
@@ -180,12 +189,24 @@ builder.Services.AddDbContext<EtomsDbContext>((sp, options) => options
 // Dò cột RegistrationLineup.GamePositionID (GRL-04) trước khi EF dựng model; xem Repositories/PendingSchema.cs.
 PendingSchema.Detect(mysqlConnectionString);
 
+builder.Services.AddScoped(typeof(ETOMS_API.Repositories.Interface.IGenericRepository<>), typeof(ETOMS_API.Repositories.Impl.GenericRepository<>));
+builder.Services.AddScoped<IUserNotificationService, UserNotificationService>();
+builder.Services.AddScoped<ISubstitutionService, SubstitutionService>();
+builder.Services.AddScoped<IAdminGameService, AdminGameService>();
+builder.Services.AddScoped<IAdminStatsService, AdminStatsService>();
+builder.Services.AddScoped<IAdminAnnouncementService, AdminAnnouncementService>();
+builder.Services.AddScoped<IAdminBannerService, AdminBannerService>();
+builder.Services.AddSingleton<IMailQueue, MailQueue>();
+builder.Services.AddHostedService<MailQueueWorker>();
+builder.Services.AddHostedService<NoShowWorker>();
+builder.Services.AddScoped<IImageStorage, ImageStorage>();
 builder.Services.AddScoped<IAdminAccountService, AdminAccountService>();
 builder.Services.AddScoped<IOrganizerRequestService, OrganizerRequestService>();   // UC-43 xin làm BTC -> Admin cấp tài khoản BTC riêng
 builder.Services.AddScoped<OrganizerHubService>();   // trang "Giải của tôi" của Ban tổ chức
 builder.Services.AddScoped<IOneTimeTokenService, OneTimeTokenService>();
 builder.Services.AddScoped<IAccountSecurityService, AccountSecurityService>();
 builder.Services.AddScoped(typeof(ETOMS_API.Repositories.Interface.IGenericRepository<>), typeof(ETOMS_API.Repositories.Impl.GenericRepository<>));
+builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
 builder.Services.AddScoped<ETOMS_API.Repositories.Interface.IUnitOfWork, ETOMS_API.Repositories.Impl.UnitOfWork>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IProfileService, ETOMS_API.Services.Impl.ProfileService>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IOrganizationService, ETOMS_API.Services.Impl.OrganizationService>();
@@ -202,10 +223,16 @@ builder.Services.AddScoped<IBracketService, BracketService>();
 builder.Services.AddScoped<IResultService, ResultService>();
 builder.Services.AddScoped<ETOMS_API.Services.Interface.IMatchOpsService, ETOMS_API.Services.Impl.MatchOpsService>();
 builder.Services.AddHostedService<WaitlistExpirationWorker>();
-builder.Services.AddHostedService<CompletedTournamentRankingWorker>();
-builder.Services.AddHostedService<ReportTimeoutWorker>();
-builder.Services.AddScoped<CheckInReminderService>();
-builder.Services.AddHostedService<CheckInReminderWorker>();
+builder.Services.AddScoped<IMatchDetailService, MatchDetailService>();
+builder.Services.AddScoped<ICheckInService, CheckInService>();
+builder.Services.AddScoped<IManualCheckInService, ManualCheckInService>();
+builder.Services.AddScoped<INoShowService, NoShowService>();
+// Sau kết quả cuối từ luồng điểm danh / No-show: đưa đội đi tiếp theo cây của BracketService (dòng cũ đăng ký
+// interface trỏ vào chính nó nên app không khởi động được).
+builder.Services.AddScoped<IMatchResultListener, BracketResultListener>();
+builder.Services.AddScoped<IDoubleEliminationService, DoubleEliminationService>();
+
+
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -238,6 +265,12 @@ builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService
 builder.Services.AddScoped<ITournamentCancelService, TournamentCancelService>();
 builder.Services.AddScoped<ITournamentDirectoryService, TournamentDirectoryService>();
 builder.Services.AddScoped<ILiveService, LiveService>();
+
+builder.Services.AddSingleton<INotificationHub, NotificationHub>();
+
+//SignalR Chat
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IMatchChatService, MatchChatService>();
 
 var app = builder.Build();
 
@@ -282,6 +315,7 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.UseHttpsRedirection();
+app.UseMiddleware<ETOMS_API.Utils.RequestAbortedMiddleware>();
 app.UseRouting();
 app.UseSession();
 app.UseCors();
@@ -291,6 +325,7 @@ app.UseMiddleware<BanCheckMiddleware>();
 app.UseAuthorization();
 
 // API controllers (attribute routing [Route("api/...")]) — không còn route quy ước MVC.
+app.MapHub<MatchChatHub>(MatchChatHub.Route);
 app.MapControllers();
 
 // app.MapHub<...>("/hubs/...");  // đăng ký SignalR Hub cụ thể khi tạo Hub
