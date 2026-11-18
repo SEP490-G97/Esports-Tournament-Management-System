@@ -17,15 +17,15 @@
             el('list').innerHTML = '<div class="empty"><h3>Chưa có tin nào</h3><p>Bấm "Viết tin mới" để đăng tin đầu tiên.</p></div>';
             return;
         }
-        el('list').innerHTML = '<div class="ax-table-wrap"><table class="ax-table"><thead><tr><th>Tiêu đề</th><th>Trạng thái</th><th>Ngày đăng</th><th>Người viết</th><th class="text-end">Thao tác</th></tr></thead><tbody>' +
+        el('list').innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>Tiêu đề</th><th>Trạng thái</th><th>Ngày đăng</th><th>Người viết</th><th class="text-end">Thao tác</th></tr></thead><tbody>' +
             items.map(function (n) {
                 var s = STATUS[n.status] || [n.status, 'badge-soft'];
                 return '<tr><td><b>' + esc(n.title) + '</b>' + (n.isPinned ? ' <span class="badge badge-gold">Ghim</span>' : '') +
                     '<div class="field-hint">' + esc((n.body || '').slice(0, 110)) + ((n.body || '').length > 110 ? '…' : '') + '</div></td>' +
                     '<td><span class="badge ' + s[1] + '">' + s[0] + '</span></td>' +
                     '<td>' + fmt(n.publishedAt) + '</td><td>' + esc(n.author) + '</td>' +
-                    '<td class="text-end"><button type="button" class="ax-btn ghost sm" data-edit="' + n.contentItemId + '">Sửa</button>' +
-                    (n.status === 'PUBLISHED' ? ' <a class="ax-btn ghost sm" href="/news/index.html?id=' + n.contentItemId + '" target="_blank" rel="noopener">Xem</a>' : '') +
+                    '<td class="text-end"><button type="button" class="btn btn-ghost btn-sm" data-edit="' + n.contentItemId + '">Sửa</button>' +
+                    (n.status === 'PUBLISHED' ? ' <a class="btn btn-ghost btn-sm" href="/news/index.html?id=' + n.contentItemId + '" target="_blank" rel="noopener">Xem</a>' : '') +
                     '</td></tr>';
             }).join('') + '</tbody></table></div>';
         el('list').querySelectorAll('[data-edit]').forEach(function (b) {
