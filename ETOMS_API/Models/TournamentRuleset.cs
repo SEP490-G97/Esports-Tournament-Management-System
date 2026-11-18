@@ -19,5 +19,4 @@ public partial class TournamentRuleset
 
     public virtual GameRuleset GameRuleset { get; set; } = null!;
 
-    public virtual Tournament Tournament { get; set; } = null!;
 }

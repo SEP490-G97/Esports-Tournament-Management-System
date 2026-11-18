@@ -1192,11 +1192,6 @@ public partial class EtomsDbContext : DbContext
             entity.Property(e => e.TournamentId).HasColumnName("TournamentID");
             entity.Property(e => e.WaitlistExpiresAt).HasColumnType("datetime");
 
-            entity.HasOne(d => d.PromotionLink).WithMany(p => p.Registrations)
-                .HasForeignKey(d => d.PromotionLinkId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("FK_Registration_PromotionLink");
-
             entity.HasOne(d => d.SubmittedByAccount).WithMany(p => p.Registrations)
                 .HasForeignKey(d => d.SubmittedByAccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1223,13 +1218,10 @@ public partial class EtomsDbContext : DbContext
 
             entity.HasIndex(e => e.PlayerCredentialId, "FK_RegistrationLineup_Cred");
 
-            entity.HasIndex(e => e.GamePositionId, "FK_RegistrationLineup_Position");
-
             entity.HasIndex(e => new { e.RegistrationId, e.AccountId }, "UQ_RegistrationLineup_User").IsUnique();
 
             entity.Property(e => e.RegistrationLineupId).HasColumnName("RegistrationLineupID");
             entity.Property(e => e.AccountId).HasColumnName("AccountID");
-            entity.Property(e => e.GamePositionId).HasColumnName("GamePositionID");
             entity.Property(e => e.InGameNameSnapshot).HasMaxLength(150);
             entity.Property(e => e.PlayerCredentialId).HasColumnName("PlayerCredentialID");
             entity.Property(e => e.RegistrationId).HasColumnName("RegistrationID");
@@ -1240,9 +1232,6 @@ public partial class EtomsDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RegistrationLineup_Acc");
 
-            entity.HasOne(d => d.GamePosition).WithMany(p => p.RegistrationLineups)
-                .HasForeignKey(d => d.GamePositionId)
-                .HasConstraintName("FK_RegistrationLineup_Position");
 
             entity.HasOne(d => d.PlayerCredential).WithMany(p => p.RegistrationLineups)
                 .HasForeignKey(d => d.PlayerCredentialId)
