@@ -3,6 +3,7 @@ using ETOMS_API.DTOs.TournamentSetup;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Services.Interface;
+using ETOMS_API.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace ETOMS_API.Services.Impl
@@ -317,6 +318,13 @@ namespace ETOMS_API.Services.Impl
             tournament.RequireInGameName = dto.RequireIgnVerify;
 
             tournament.Status = "PUBLISHED";
+            // Chưa chọn bộ luật thì gắn bộ luật mặc định của game (để đội xếp được vị trí trong đội hình).
+            if (!await _context.TournamentRulesets.AnyAsync(tr => tr.TournamentId == tournamentId))
+            {
+                var pick = DefaultRuleset.Pick(await _context.GameRulesets.Where(r => r.GameId == tournament.GameId).ToListAsync(), tournament);
+                if (pick is not null)
+                    _context.TournamentRulesets.Add(new TournamentRuleset { TournamentId = tournamentId, GameRulesetId = pick.GameRulesetId, CreatedAt = DateTime.UtcNow });
+            }
 
             await _context.SaveChangesAsync();
             return true;

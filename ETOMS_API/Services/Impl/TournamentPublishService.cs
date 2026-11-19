@@ -83,6 +83,13 @@ public class TournamentPublishService : ITournamentPublishService
 
         tournament.Status = "PUBLISHED";
         _uow.Repository<Tournament>().Update(tournament);
+        // Chưa chọn bộ luật thì gắn bộ luật mặc định của game (để đội xếp được vị trí trong đội hình).
+        if (!await _uow.Repository<TournamentRuleset>().AnyAsync(tr => tr.TournamentId == tournamentId))
+        {
+            var pick = DefaultRuleset.Pick(await _uow.Repository<GameRuleset>().Query().Where(r => r.GameId == tournament.GameId).ToListAsync(), tournament);
+            if (pick is not null)
+                await _uow.Repository<TournamentRuleset>().AddAsync(new TournamentRuleset { TournamentId = tournamentId, GameRulesetId = pick.GameRulesetId, CreatedAt = DateTime.UtcNow });
+        }
         await _uow.SaveChangesAsync();
         return Result.Success("Đã xuất bản giải đấu.");
     }
