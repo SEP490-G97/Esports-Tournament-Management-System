@@ -1568,14 +1568,20 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
 
     private async Task ReindexWaitlistAsync(int tournamentId, CancellationToken cancellationToken)
     {
+        // Lưu trước: đơn vừa rời danh sách chờ (đôn/rút) phải mang trạng thái mới dưới DB, nếu không truy vấn
+        // dưới đây vẫn thấy nó WAITLISTED và gán lại vị trí → vi phạm CK_Registration_Wait.
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         var waiting = await Query<Registration>()
             .Where(item => item.TournamentId == tournamentId && item.Status == "WAITLISTED")
             .OrderBy(item => item.WaitlistPosition)
             .ThenBy(item => item.SubmittedAt)
             .ToListAsync(cancellationToken);
+        // Vị trí chỉ dồn lên (giảm); lưu từng dòng theo thứ tự tăng dần để không đụng UX_Registration_WaitPosition.
         for (var index = 0; index < waiting.Count; index++)
         {
+            if (waiting[index].Status != "WAITLISTED" || waiting[index].WaitlistPosition == index + 1) continue;
             waiting[index].WaitlistPosition = index + 1;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
 

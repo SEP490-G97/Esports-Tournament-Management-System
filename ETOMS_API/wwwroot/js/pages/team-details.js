@@ -91,9 +91,13 @@
             '<div class="section-title mt-4">Danh sách thành viên</div>' +
             '<div class="section-sub">Đội hình hiện tại của đội (' + team.memberCount + ' người).</div>' +
             membersHtml +
+            '<div class="section-title mt-4">Hồ sơ kỷ luật</div>' +
+            '<div class="section-sub">Thẻ phạt của đội ở mọi giải, kể cả thẻ đã hủy cùng lý do hủy.</div>' +
+            '<div id="team-discipline"></div>' +
             '<div class="btn-row mt-4">' + actionHtml + '</div>';
 
         if (window.TeamMatches) TeamMatches.load(document.getElementById('team-matches'), team.teamId, isCaptain);
+        if (window.TeamDiscipline) TeamDiscipline.load(document.getElementById('team-discipline'), team.teamId);
 
         var leaveBtn = document.getElementById('leave-btn');
         if (leaveBtn) {

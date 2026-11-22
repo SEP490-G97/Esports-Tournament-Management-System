@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=note-20261118" />
+    <link rel="stylesheet" href="/css/site.css?v=fix-20261122" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -21,6 +21,33 @@
             <p id="page-sub"></p>
         </div>
         <div id="flash"></div>
+        <!-- Góp ý 22/11: làm rõ số đội tối thiểu / tối đa và thuật toán sinh nhánh (đúng với BracketService, KnockoutDraw). -->
+        <details class="card-etoms mb-3 rule-box">
+            <summary>Quy định số đội &amp; cách hệ thống sinh nhánh</summary>
+            <div class="body">
+                <h3 class="h6">Số đội</h3>
+                <ul>
+                    <li><b>Tối đa</b>: số đội BTC đặt khi tạo giải (4, 8, 16, 32, 64 hoặc 128). Đủ suất thì đơn mới vào danh sách chờ.</li>
+                    <li><b>Tối thiểu để sinh nhánh</b>: 2 đội được duyệt; Loại kép cần 3 đội. Đóng đăng ký mà dưới mức này thì giải ở trạng thái "Chưa đủ đội": BTC gia hạn đăng ký hoặc hủy giải.</li>
+                    <li><b>Đủ tối thiểu nhưng chưa đầy</b> (ví dụ 6/8): vẫn sinh nhánh được, chỗ trống thành lượt miễn đấu.</li>
+                    <li>Chỉ sinh nhánh <b>sau khi đóng đăng ký</b>; sinh lại được cho tới khi khóa nhánh.</li>
+                </ul>
+                <h3 class="h6">Loại trực tiếp / Loại kép</h3>
+                <ul>
+                    <li>Kích thước nhánh = lũy thừa của 2 nhỏ nhất không nhỏ hơn số đội (6 đội → nhánh 8). Số lượt miễn đấu = kích thước − số đội (8 − 6 = 2).</li>
+                    <li>Đội được xếp hạt giống 1..N theo cách BTC chọn: <b>thứ tự duyệt đơn</b>, <b>bốc thăm ngẫu nhiên</b> hoặc <b>tự sắp xếp</b>.</li>
+                    <li>Cặp vòng 1 theo thứ tự hạt giống chuẩn: hạt giống 1 gặp hạt giống thấp nhất, 2 gặp áp chót... nên hạt giống mạnh gặp nhau muộn nhất. Lượt miễn đấu dành cho hạt giống cao nhất.</li>
+                    <li>Ví dụ 8 đội: 1–8, 4–5, 2–7, 3–6. Ví dụ 6 đội (nhánh 8): đội 1 và đội 2 miễn vòng 1; 4–5 và 3–6 đá vòng 1.</li>
+                    <li>Loại kép: thua một trận rơi xuống nhánh thua, thua lần hai mới bị loại; đội thắng nhánh thắng gặp đội thắng nhánh thua ở chung kết tổng.</li>
+                </ul>
+                <h3 class="h6">Vòng tròn / Vòng bảng rồi loại trực tiếp</h3>
+                <ul>
+                    <li>Chia bảng kiểu "rắn bò" theo hạt giống (1→A, 2→B, …, rồi quay ngược) để các bảng cân sức; mỗi đội gặp mọi đội cùng bảng một lần.</li>
+                    <li>Xếp hạng bảng: thắng 3 điểm, rồi theo tiêu chí phân định BTC chọn (đối đầu, hiệu số ván, số ván thắng, bốc thăm).</li>
+                    <li>Vòng bảng rồi loại trực tiếp: số bảng là lũy thừa của 2; mỗi bảng lấy K đội đi tiếp. Nhất bảng A gặp Nhì bảng B, Nhất B gặp Nhì A…, hai đội cùng bảng nằm ở hai nửa nhánh khác nhau.</li>
+                </ul>
+            </div>
+        </details>
         <div id="manage-root">
             <div class="card-etoms"><div class="empty"><h3>Đang tải...</h3></div></div>
         </div>
@@ -32,8 +59,8 @@
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=form-20261118"></script>
     <script src="/js/ui.js?v=join-20261115"></script>
-    <script src="/js/layout.js?v=note-20261118"></script>
+    <script src="/js/layout.js?v=fix-20261122"></script>
     <script src="/js/bracket-render.js"></script>
-    <script src="/js/pages/bracket-manage.js?v=once-20261118" defer></script>
+    <script src="/js/pages/bracket-manage.js?v=pen-20261122" defer></script>
 </body>
 </html>

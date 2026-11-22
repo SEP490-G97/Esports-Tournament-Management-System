@@ -172,7 +172,7 @@
             (tree.format === 'ROUND_ROBIN' || tree.format === 'HYBRID'
                 ? '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định (khi bằng điểm)</a>' : '') +
             (tree.hasBracket && !tree.isLocked ? '<a class="btn btn-primary" href="/tournament/bracket.html?id=' + tree.tournamentId + '">Đổi chỗ đội (kéo thả trên sơ đồ)</a>' : '') +
-            (tree.isLocked ? '<button type="button" class="btn btn-ghost" id="unlock-btn">Mở khóa nhánh</button>' : '') +
+            (tree.canUnlock ? '<button type="button" class="btn btn-ghost" id="unlock-btn">Mở khóa nhánh</button>' : '') +
             '</div>' +
             (!tree.isLocked ? generateFormHtml(tree, teams) : '') +
             bracketContentHtml(tree);

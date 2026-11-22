@@ -637,9 +637,11 @@ public sealed class OrganizationService : IOrganizationService
         if (member.Role == "REFEREE")
         {
             var busy = await _unitOfWork.Repository<Match>().Query().AsNoTracking()
+                // Trận đã xong là VERIFIED / WALKOVER (bảng Match không có trạng thái COMPLETED — điều kiện cũ "!= COMPLETED"
+                // làm mọi trận đã đá vẫn bị coi là "đang bận" nên không đổi được vai trò, lỗi 22/11).
                 .Where(m => m.RefereeAccountId == member.AccountId
                     && m.Tournament.OrganizationId == organizationId
-                    && m.Status != "COMPLETED" && m.Status != "CANCELLED"
+                    && m.Status != "VERIFIED" && m.Status != "WALKOVER" && m.Status != "CANCELLED"
                     && m.Tournament.Status != "COMPLETED" && m.Tournament.Status != "CANCELLED")
                 .GroupBy(m => m.Tournament.Name)
                 .Select(g => new { Name = g.Key, Count = g.Count() })
@@ -653,8 +655,18 @@ public sealed class OrganizationService : IOrganizationService
             }
         }
 
+        var oldRole = member.Role;
         member.Role = normalizedRole;
         _unitOfWork.Repository<OrganizationMember>().Update(member);
+        // Góp ý 22/11 "hiển thị role chi tiết hơn khi đổi role": người được đổi nhận thông báo vai trò mới.
+        var orgName = await _unitOfWork.Repository<Organization>().Query().Where(o => o.OrganizationId == organizationId)
+            .Select(o => o.Name).FirstOrDefaultAsync(cancellationToken);
+        await _unitOfWork.Repository<Notification>().AddAsync(new Notification
+        {
+            AccountId = member.AccountId, NotificationType = "SYSTEM", Title = "Vai trò trong đơn vị đã thay đổi",
+            Body = $"Vai trò của bạn trong {orgName} đổi từ {MemberRoleLabel(oldRole)} thành {MemberRoleLabel(normalizedRole)}.",
+            LinkUrl = "/organization/details.html?id=" + organizationId, Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow
+        });
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var account = await _unitOfWork.Repository<Account>().Query()
@@ -822,7 +834,8 @@ public sealed class OrganizationService : IOrganizationService
     public async Task<Result> SuspendAsync(
         int organizationId,
         string reason,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? actorAccountId = null)
     {
         var organization = await FindOrganizationAsync(organizationId, cancellationToken);
         if (organization is null)
@@ -845,6 +858,13 @@ public sealed class OrganizationService : IOrganizationService
         organization.SuspensionReason = normalizedReason;
         organization.SuspendedAt = DateTime.UtcNow;
         _unitOfWork.Repository<Organization>().Update(organization);
+        // BR-ADM-01 / UC-43: đình chỉ đơn vị có trong nhật ký.
+        await _unitOfWork.Repository<AuditLog>().AddAsync(new AuditLog
+        {
+            ActorAccountId = actorAccountId, ActionType = "SUSPEND_ORGANIZATION", ObjectType = "ORGANIZATION", ObjectId = organizationId,
+            BeforeValue = "Status=ACTIVE", AfterValue = "Status=SUSPENDED", Reason = normalizedReason.Length > 1000 ? normalizedReason[..1000] : normalizedReason,
+            CreatedAt = DateTime.UtcNow
+        });
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success("Đã đình chỉ đơn vị tổ chức.");

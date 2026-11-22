@@ -14,11 +14,13 @@ public class MatchOpsService : IMatchOpsService
 {
     private readonly IUnitOfWork _uow;
     private readonly IResultService _resultService;
+    private readonly IDisciplineService _discipline;
 
-    public MatchOpsService(IUnitOfWork uow, IResultService resultService)
+    public MatchOpsService(IUnitOfWork uow, IResultService resultService, IDisciplineService discipline)
     {
         _uow = uow;
         _resultService = resultService;
+        _discipline = discipline;
     }
 
     public async Task<MatchDetailDto?> GetMatchDetailAsync(int matchId, int? viewerAccountId)
@@ -37,8 +39,24 @@ public class MatchOpsService : IMatchOpsService
             (match.RefereeAccountId == viewerAccountId.Value || match.Tournament.OrganizerAccountId == viewerAccountId.Value);
         bool canSeeRoom = canManage || captainTeamId is not null;
 
+        // Đội nào đã nộp báo cáo (không đọc tỉ số), tranh chấp đang mở, tên trọng tài — gộp 1 lượt mỗi bảng.
+        var reportedTeams = await _uow.Repository<MatchReport>().Query().AsNoTracking()
+            .Where(r => r.MatchId == matchId).Select(r => r.TeamId).ToListAsync();
+        var openDisputeId = await _uow.Repository<Dispute>().Query().AsNoTracking()
+            .Where(d => d.MatchId == matchId && (d.Status == "OPEN" || d.Status == "UNDER_REVIEW"))
+            .Select(d => (int?)d.DisputeId).FirstOrDefaultAsync();
+        var refereeName = match.RefereeAccountId is int rid
+            ? await _uow.Repository<Account>().Query().AsNoTracking().Where(a => a.AccountId == rid).Select(a => a.FullName).FirstOrDefaultAsync()
+            : null;
+
         return new MatchDetailDto
         {
+            TeamAReported = match.TeamAid.HasValue && reportedTeams.Contains(match.TeamAid.Value),
+            TeamBReported = match.TeamBid.HasValue && reportedTeams.Contains(match.TeamBid.Value),
+            OpenDisputeId = openDisputeId,
+            IsReferee = viewerAccountId.HasValue && match.RefereeAccountId == viewerAccountId.Value,
+            RefereeName = refereeName,
+            ReportDeadlineAt = match.ReportDeadlineAt,
             MatchId = match.MatchId,
             TournamentId = match.TournamentId,
             TeamAId = match.TeamAid,
@@ -539,12 +557,38 @@ public class MatchOpsService : IMatchOpsService
         m.WinnerTeamId = winnerTeamId;
         _uow.Repository<Match>().Update(m);
 
-        await LogAsync(m.TournamentId, actorAccountId, "DISQUALIFY", m.MatchId,
-            $"DisqualifiedTeamId={request.TeamId}", request.Reason.Trim());
+        await LogAsync(m.TournamentId, actorAccountId, "WALKOVER", m.MatchId,
+            $"WinnerTeamId={winnerTeamId}; DisqualifiedTeamId={request.TeamId}", request.Reason.Trim());
         await _uow.SaveChangesAsync();
 
         if (winnerTeamId.HasValue) await _resultService.AdvanceWinnerAsync(matchId, winnerTeamId.Value);
-        return Result.Success("Đã tước quyền thi đấu của đội.");
+
+        // UC-24 bước 2: báo đội trưởng đội được xử thắng (đội bị tước quyền được báo trong DisqualifyTeamAsync).
+        if (winnerTeamId.HasValue)
+        {
+            var winnerCaptain = await _uow.Repository<Team>().Query().Where(t => t.TeamId == winnerTeamId.Value)
+                .Select(t => t.CaptainAccountId).FirstAsync();
+            await _uow.Repository<Notification>().AddAsync(new Notification
+            {
+                AccountId = winnerCaptain,
+                NotificationType = "PENALTY",
+                Title = "Đội bạn thắng trắng",
+                Body = $"Đối thủ trận #{matchId} đã bị tước quyền thi đấu; đội bạn được xử thắng trắng.",
+                LinkUrl = "/match/detail.html?id=" + matchId,
+                Channel = "IN_APP",
+                IsRead = false,
+                SentAt = DateTime.UtcNow
+            });
+        }
+
+        // UC-24 hậu điều kiện: đội rời giải (đơn → DISQUALIFIED), MỌI trận còn lại xử thắng trắng cho đối thủ,
+        // một dòng nhật ký DISQUALIFY ghi người thao tác + lý do, báo đội trưởng hai đội (OBS-02 đã sửa).
+        var resolved = await _discipline.DisqualifyTeamAsync(m.TournamentId, request.TeamId, actorAccountId, request.Reason.Trim(),
+            $"Cause=MANUAL; FromMatch={matchId}", matchId);
+        var others = resolved - 1;
+        return Result.Success(others > 0
+            ? $"Đã tước quyền thi đấu của đội và xử thắng trắng thêm {others} trận còn lại."
+            : "Đã tước quyền thi đấu của đội.");
     }
 
     // ===== MAT-12: Bỏ cuộc giữa giải (Forfeit) — đội trưởng tự khai =====
@@ -574,6 +618,49 @@ public class MatchOpsService : IMatchOpsService
 
         if (winnerTeamId.HasValue) await _resultService.AdvanceWinnerAsync(matchId, winnerTeamId.Value);
         return Result.Success("Đã ghi nhận đội bỏ cuộc.");
+    }
+
+    // ===== NUI-MAT-02: Tự đánh vắng và xử thắng trắng (Scheduler) =====
+    // Hết cửa sổ điểm danh (đúng giờ thi đấu, BR-MATCH-01) mà chỉ một đội điểm danh: đội còn lại vắng mặt, trận WALKOVER cho
+    // đội có mặt (cùng engine UC-23), ghi nhật ký người thực hiện = hệ thống. Hai đội cùng vắng thì để BTC xếp lại giờ (UC-23 A1).
+    // BTC muốn hủy quyết định tự động thì dùng "Hủy & đấu lại" (UC-26) kèm lý do.
+    public async Task<int> ProcessNoShowsAsync(DateTime nowUtc, CancellationToken ct = default)
+    {
+        var due = await _uow.Repository<Match>().Query()
+            .Include(m => m.TeamA).Include(m => m.TeamB).Include(m => m.Tournament)
+            .Where(m => m.Status == "PENDING" && m.ScheduledAt != null && m.ScheduledAt <= nowUtc
+                && m.TeamAid != null && m.TeamBid != null && m.Tournament.Status == "ONGOING"
+                && ((m.TeamAcheckedInAt != null && m.TeamBcheckedInAt == null) || (m.TeamAcheckedInAt == null && m.TeamBcheckedInAt != null)))
+            .OrderBy(m => m.MatchId)
+            .ToListAsync(ct);
+        var done = 0;
+        foreach (var m in due)
+        {
+            var winner = m.TeamAcheckedInAt != null ? m.TeamAid!.Value : m.TeamBid!.Value;
+            var absent = winner == m.TeamAid ? m.TeamB! : m.TeamA!;
+            var present = winner == m.TeamAid ? m.TeamA! : m.TeamB!;
+            m.Status = "WALKOVER";
+            m.ResultSource = "WALKOVER";
+            m.WinnerTeamId = winner;
+            await LogAsync(m.TournamentId, null, "WALKOVER", m.MatchId,
+                $"WinnerTeamId={winner}; NoShowTeamId={absent.TeamId}; Cause=NO_SHOW",
+                $"Tự động: đội {absent.Name} không điểm danh trước giờ thi đấu {m.ScheduledAt!.Value.AddHours(7):HH:mm dd/MM/yyyy}.");
+            foreach (var (account, title, body) in new[]
+            {
+                (absent.CaptainAccountId, "Đội bạn bị xử thua vì vắng mặt", $"Đội {absent.Name} không điểm danh trước giờ thi đấu trận #{m.MatchId} nên bị xử thua trắng. Liên hệ Ban tổ chức nếu có sai sót."),
+                (present.CaptainAccountId, "Đội bạn thắng trắng", $"Đối thủ {absent.Name} không điểm danh trước giờ thi đấu trận #{m.MatchId}; đội bạn được xử thắng trắng."),
+                (m.Tournament.OrganizerAccountId, "Trận được xử thắng trắng tự động", $"Trận #{m.MatchId}: {absent.Name} không điểm danh, {present.Name} thắng trắng. Có thể hủy và cho đấu lại kèm lý do nếu cần.")
+            })
+                await _uow.Repository<Notification>().AddAsync(new Notification
+                {
+                    AccountId = account, NotificationType = "MATCH_RESULT", Title = title, Body = body,
+                    LinkUrl = "/match/detail.html?id=" + m.MatchId, Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow
+                });
+            await _uow.SaveChangesAsync();
+            await _resultService.AdvanceWinnerAsync(m.MatchId, winner);
+            done++;
+        }
+        return done;
     }
 
     // ===== Helpers =====

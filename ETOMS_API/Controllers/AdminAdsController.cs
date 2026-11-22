@@ -129,6 +129,10 @@ public sealed class AdminAdsController : ControllerBase
         b.ImageUrl = image;
         b.UpdatedAt = now;
         await _db.SaveChangesAsync(ct);
+        // UC-43: thay đổi biểu ngữ có trong nhật ký (cần SystemBannerId nên ghi sau khi lưu).
+        AuditTrail.Add(_db, User, id is null ? "BANNER_CREATE" : "BANNER_UPDATE", "BANNER", b.SystemBannerId, null,
+            $"{b.Title}; Type={b.BannerType}; {b.StartAt:yyyy-MM-dd HH:mm}→{b.EndAt:yyyy-MM-dd HH:mm}; Order={b.DisplayOrder}; Active={b.IsActive}");
+        await _db.SaveChangesAsync(ct);
         return Ok(new { message = id is null ? "Đã thêm banner." : "Đã lưu banner.", b.SystemBannerId });
     }
 
@@ -139,6 +143,7 @@ public sealed class AdminAdsController : ControllerBase
         if (b is null) return Err("Không tìm thấy banner.", 404);
         b.IsActive = !b.IsActive;
         b.UpdatedAt = DateTime.UtcNow;
+        AuditTrail.Add(_db, User, "BANNER_UPDATE", "BANNER", b.SystemBannerId, $"Active={!b.IsActive}", $"Active={b.IsActive}");
         await _db.SaveChangesAsync(ct);
         return Ok(new { message = b.IsActive ? "Đã bật banner." : "Đã tắt banner." });
     }
@@ -146,8 +151,12 @@ public sealed class AdminAdsController : ControllerBase
     [HttpDelete("api/admin/banners/{id:int}")]
     public async Task<IActionResult> DeleteBanner(int id, CancellationToken ct)
     {
-        var n = await _db.Set<SystemBanner>().Where(x => x.SystemBannerId == id).ExecuteDeleteAsync(ct);
-        return n == 0 ? Err("Không tìm thấy banner.", 404) : Ok(new { message = "Đã xóa banner." });
+        var b = await _db.Set<SystemBanner>().FirstOrDefaultAsync(x => x.SystemBannerId == id, ct);
+        if (b is null) return Err("Không tìm thấy banner.", 404);
+        _db.Set<SystemBanner>().Remove(b);
+        AuditTrail.Add(_db, User, "BANNER_DELETE", "BANNER", id, $"{b.Title}; Type={b.BannerType}", null);
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { message = "Đã xóa banner." });
     }
 
     // Banner đang chạy cho trang chủ (công khai).
@@ -245,6 +254,8 @@ public sealed class AdminAdsController : ControllerBase
             Title = title, Body = body, LinkUrl = link.Length == 0 ? null : link, TargetRoles = target, Channel = channel,
             InAppCount = inApp, EmailCount = email, SentByAccountId = ActorId, SentAt = now
         });
+        AuditTrail.Add(_db, User, "ANNOUNCE_SEND", "ANNOUNCEMENT", null, null,
+            $"{title}; Target={target}; Channel={channel}; InApp={inApp}; Email={email}");
         // Email đã tự xếp hàng ở trên theo đúng lựa chọn kênh — tắt bộ gửi email tự động để không gửi trùng.
         using (NotificationEmailInterceptor.Suppress()) await _db.SaveChangesAsync(ct);
         foreach (var m in mails) _mail.TryEnqueue(m);

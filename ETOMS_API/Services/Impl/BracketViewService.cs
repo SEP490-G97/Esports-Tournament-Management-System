@@ -44,6 +44,7 @@ public class BracketViewService : IBracketViewService
             IsOrganizer = isOrganizer,
             IsLive = t.Status is "PUBLISHED" or "ONGOING"
         };
+        dto.CanUnlock = isOrganizer && dto.IsLocked && await BracketService.CanUnlockAsync(tournamentId, t.Status, _uow);
 
         var nodes = await _uow.Repository<BracketNode>().Query().Where(n => n.TournamentId == tournamentId).ToListAsync();
 

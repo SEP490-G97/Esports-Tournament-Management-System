@@ -61,8 +61,11 @@ public sealed class AdminNewsController : ControllerBase
             PublishedAt = status == "PUBLISHED" ? now : null,
             UpdatedAt = now
         };
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        if (item.IsPinned) await UnpinOthersAsync(0, ct);
         _db.ContentItems.Add(item);
         await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Ok(new { message = status == "PUBLISHED" ? "Đã đăng tin." : "Đã lưu tin nháp.", item.ContentItemId });
     }
 
@@ -79,9 +82,17 @@ public sealed class AdminNewsController : ControllerBase
         item.IsPinned = status == "PUBLISHED" && body.IsPinned;
         if (status == "PUBLISHED") item.PublishedAt ??= DateTime.UtcNow;   // đăng lần đầu mới đặt ngày đăng
         item.UpdatedAt = DateTime.UtcNow;
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        if (item.IsPinned) await UnpinOthersAsync(item.ContentItemId, ct);
         await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Ok(new { message = "Đã lưu tin." });
     }
+
+    // Chỉ một tin được ghim (UX_ContentItem_Pinned): ghim tin này thì bỏ ghim tin đang ghim trước, cùng giao dịch.
+    private Task<int> UnpinOthersAsync(int keepId, CancellationToken ct)
+        => _db.ContentItems.Where(c => c.IsPinned && c.ContentItemId != keepId)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.IsPinned, false), ct);
 
     private IActionResult? Validate(NewsRequest? b)
     {

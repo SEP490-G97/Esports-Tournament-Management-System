@@ -37,6 +37,8 @@ public class BracketTreeDto
     public string TournamentStatus { get; set; } = string.Empty;
     public bool IsLocked { get; set; }
     public DateTime? LockedAt { get; set; }
+    // Mở khóa được (cùng điều kiện với API unlock): đã khóa, giải chưa kết thúc/hủy, chưa trận nào bắt đầu.
+    public bool CanUnlock { get; set; }
     public int ApprovedTeamCount { get; set; }
     // UC-20: còn nhận đăng ký thì chưa được sinh nhánh (giao diện khóa nút, máy chủ cũng chặn).
     public DateTime RegCloseAt { get; set; }

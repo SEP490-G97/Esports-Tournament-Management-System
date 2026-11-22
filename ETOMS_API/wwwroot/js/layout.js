@@ -9,7 +9,7 @@
     var ADMIN_HOME = '/admin/index.html';
     function adminPathAllowed(path) {
         path = (path || '').toLowerCase();
-        return ['/admin/', '/organization/', '/auth/', '/errors/', '/events/'].some(function (p) { return path.indexOf(p) === 0; });
+        return ['/admin/', '/organization/', '/auth/', '/errors/', '/events/', '/news/'] /* admin bấm "Xem" tin ở trang quản trị tin tức */.some(function (p) { return path.indexOf(p) === 0; });
     }
     function cachedRole() {
         // Chỉ tin vai trò đã lưu khi còn token đăng nhập (đăng xuất / hết phiên thì coi như khách).
@@ -31,7 +31,8 @@
             '<a href="/admin/ads.html" data-nav="admin/ads">Quảng cáo</a>' +
             '<a href="/admin/games.html" data-nav="admin/games">Tựa game</a>' +
             '<a href="/admin/game-rules.html" data-nav="admin/game-rules">Luật game</a>' +
-            '<a href="/organization/index.html" data-nav="organization">Đơn vị</a>';
+            '<a href="/organization/index.html" data-nav="organization">Đơn vị</a>' +
+            '<a href="/admin/audit-log.html" data-nav="admin/audit-log">Nhật ký</a>';
         var header = document.querySelector('.etoms-nav');
         if (header) header.classList.add('nav-many');
         var brand = document.querySelector('.etoms-nav .brand');
@@ -100,6 +101,7 @@
                 renderUserDropdown(slot, me);
                 wireNotificationBell(slot);
                 await loadMyTeam(me);
+                loadMyOrgRoles(me);
             } else {
                 slot.innerHTML = loggedOutHtml;
             }
@@ -124,6 +126,7 @@
             '  </button>' +
             '  <div class="nav-user-menu" id="nav-user-menu">' +
             (me.role ? '    <span class="nav-user-role">' + Ui.escapeHtml(roleLabel(me.role)) + '</span>' : '') +
+            (me.role === 'ORGANIZER' ? '    <div class="nav-user-orgs" id="nav-user-orgs"></div>' : '') +
             // Mục RIÊNG từng vai trò (PermissionMatrix) — đầu trang chỉ giữ mục chung. Mỗi việc một lối vào:
             // "Tạo giải mới" nằm ở trang Giải đấu của tôi; "Đơn của đội" ở Đơn đăng ký của tôi.
             (me.role === 'ADMIN'
@@ -136,6 +139,7 @@
                   '    <a class="nav-user-menu-item" href="/free-agent/index.html">Tìm đội / tìm thành viên</a>' : '') +
             (me.role === 'ORGANIZER'
                 ? '    <a class="nav-user-menu-item" href="/registration/organizer.html">Giải đấu của tôi</a>' +
+                  '    <a class="nav-user-menu-item" href="/referee/index.html">Trận tôi làm trọng tài</a>' +
                   '    <a class="nav-user-menu-item" href="/result/disputes.html">Tranh chấp</a>' +
                   '    <a class="nav-user-menu-item" href="/organization/index.html?mine=1">Đơn vị tổ chức của tôi</a>' +
                   '    <a class="nav-user-menu-item" href="/marketing/tools.html">Công cụ truyền thông</a>' : '') +
@@ -292,6 +296,29 @@
         box.innerHTML = 'Các đội của tôi <span class="badge badge-soft">' + count + '</span>';
     }
 
+    // Góp ý 22/11 "chưa có chỗ nào hiển thị rõ đang ở role nào": Ban tổ chức thấy vai trò của mình trong từng đơn vị
+    // (Chủ nhiệm / Điều hành giải / Truyền thông / Trọng tài) ngay trong menu tài khoản. Nhớ 60 giây trong tab.
+    async function loadMyOrgRoles(me) {
+        var box = document.getElementById('nav-user-orgs');
+        if (!box) return;
+        var key = 'my-org-roles:' + (me && me.userId);
+        var list = cacheGet(key);
+        if (list === null) {
+            try {
+                var res = await Api.get('/api/organizations/mine');
+                list = (res.data || []).filter(function (o) { return o.memberStatus === 'ACTIVE'; })
+                    .map(function (o) { return { id: o.organizationId, name: o.name, role: o.roleLabel }; });
+                cacheSet(key, list, 60 * 1000);
+            } catch (e) { return; }
+        }
+        box.innerHTML = list.length
+            ? list.map(function (o) {
+                return '<a class="nav-user-org" href="/organization/details.html?id=' + Number(o.id) + '" title="Vai trò của bạn trong đơn vị này">' +
+                    '<b>' + Ui.escapeHtml(o.role) + '</b><span>' + Ui.escapeHtml(o.name) + '</span></a>';
+            }).join('')
+            : '<span class="nav-user-org muted">Chưa thuộc đơn vị nào — chưa tạo được giải</span>';
+    }
+
     function roleLabel(role) {
         return { ADMIN: 'Quản trị viên', ORGANIZER: 'Ban tổ chức', PLAYER: 'Tuyển thủ' }[role] || role;
     }
@@ -346,10 +373,13 @@
             ['/tournament/schedule.html', 'Lịch thi đấu'],
             ['/tournament/referees.html', 'Trọng tài'],
             ['/tournament/livestreams.html', 'Livestream'],
-            ['/tournament/stage-transition.html', 'Chuyển vòng']
+            ['/tournament/stage-transition.html', 'Chuyển vòng'],
+            ['/tournament/discipline.html', 'Kỷ luật'],
+            ['/tournament/audit-log.html', 'Nhật ký giải']
         ]],
         ['Cấu hình giải', [
             ['/tournament/edit.html', 'Sửa thông tin & thể lệ'],
+            ['/tournament/sponsors.html', 'Nhà tài trợ'],
             ['/tournament/clone.html', 'Nhân bản'],
             ['/tournament/cancel.html', 'Hủy giải']
         ]]

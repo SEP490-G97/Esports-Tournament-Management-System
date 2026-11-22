@@ -68,7 +68,8 @@ public sealed class TournamentMarketingService : ITournamentMarketingService
         var sponsors = await Query<TournamentSponsor>().AsNoTracking()
             .Where(item => item.TournamentId == tournamentId
                 && (tournament.Status != "CANCELLED" || item.ShowWhenCancelled))
-            .OrderBy(item => item.DisplayOrder)
+            .OrderBy(item => item.Tier == "DIAMOND" ? 0 : item.Tier == "GOLD" ? 1 : item.Tier == "SILVER" ? 2 : item.Tier == "BRONZE" ? 3 : 4)
+            .ThenBy(item => item.DisplayOrder)
             .Select(item => new TournamentSponsorResponse(
                 item.Name,
                 item.LogoUrl,

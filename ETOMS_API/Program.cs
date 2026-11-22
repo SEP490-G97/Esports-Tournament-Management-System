@@ -234,6 +234,13 @@ builder.Services.AddScoped<IStageTransitionService, StageTransitionService>();
 builder.Services.AddHostedService<StageTransitionWorker>();
 builder.Services.AddScoped<IThirdPlaceService, ThirdPlaceService>();
 builder.Services.AddHostedService<ThirdPlaceWorker>();
+// Module PEN — UC-34/UC-35: thẻ phạt, ngưỡng loại tự động (Scheduler mỗi phút).
+builder.Services.AddScoped<IDisciplineService, DisciplineService>();
+builder.Services.AddHostedService<PenaltyThresholdWorker>();
+// NUI-MAT-02 (tự đánh vắng, mỗi phút) và NUI-ADM-01 (dọn mã mời / token hết hạn, mỗi giờ).
+builder.Services.AddHostedService<NoShowWorker>();
+builder.Services.AddScoped<DataCleanupService>();
+builder.Services.AddHostedService<DataCleanupWorker>();
 builder.Services.AddScoped<IMatchScheduleService, MatchScheduleService>();
 builder.Services.AddScoped<IGroupStandingService, GroupStandingService>();
 builder.Services.AddScoped<IBracketViewService, BracketViewService>();
@@ -252,6 +259,27 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+// Người dùng bấm Back / chuyển trang khi trang đang tải (góp ý 22/11 "back nhiều trang thì lỗi"): trình duyệt hủy yêu cầu,
+// truy vấn đang chạy bị ngắt và ném OperationCanceledException (MySQL: MySqlException "Query execution was interrupted").
+// Trước đây không ai bắt nên Visual Studio dừng vào code (user-unhandled) và log ghi đỏ dù ứng dụng không hỏng.
+// Bắt ĐÚNG trường hợp yêu cầu đã bị hủy phía người dùng: không ghi lỗi, trả 499 (Client Closed Request). Lỗi thật vẫn đi tiếp.
+app.Use(async (ctx, next) =>
+{
+    try { await next(); }
+    catch (Exception ex) when (ctx.RequestAborted.IsCancellationRequested && IsCancellation(ex))
+    {
+        if (!ctx.Response.HasStarted) ctx.Response.StatusCode = 499;
+    }
+});
+static bool IsCancellation(Exception? ex)
+{
+    for (; ex is not null; ex = ex.InnerException)
+        if (ex is OperationCanceledException
+            || (ex is MySql.Data.MySqlClient.MySqlException m && m.Message.Contains("interrupted", StringComparison.OrdinalIgnoreCase)))
+            return true;
+    return false;
 }
 
 // Trang lỗi tĩnh (wwwroot/errors/*.html, KHÔNG dùng trang mặc định của trình duyệt):

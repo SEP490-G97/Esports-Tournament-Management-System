@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nhật ký giải · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=fix-20261122" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <div class="eyebrow">Giải đấu · Nhật ký</div>
+            <h1 id="page-title">Nhật ký giải</h1>
+            <p>Các quyết định có thẩm quyền của giải theo thứ tự thời gian: duyệt đơn, khóa nhánh, xử thắng trắng, phán quyết, thẻ phạt… Nhật ký chỉ để đọc.</p>
+        </div>
+
+        <div id="flash" aria-live="polite"></div>
+
+        <section class="card-etoms mb-3"><div class="body">
+            <form id="log-filter" class="row g-3 align-items-end" novalidate>
+                <div class="col-12 col-md-6 field mb-0"><label for="lf-action">Loại thao tác</label><select id="lf-action" name="actionType" class="select"><option value="">Tất cả</option></select></div>
+                <div class="col-12 col-md-2"><button type="submit" class="btn btn-primary w-100">Lọc</button></div>
+            </form>
+        </div></section>
+
+        <div id="log-root"><div class="card-etoms"><div class="empty"><h3>Đang tải…</h3></div></div></div>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=form-20261118"></script>
+    <script src="/js/ui.js?v=join-20261115"></script>
+    <script src="/js/layout.js?v=fix-20261122"></script>
+    <script src="/js/pages/audit-log.js?v=pen-20261122" defer></script>
+</body>
+</html>

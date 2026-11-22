@@ -132,6 +132,10 @@ public class StageTransitionService : IStageTransitionService
             .ToDictionaryAsync(x => x.TeamId, x => x.Name);
 
         var advance = t.AdvancePerGroup.Value;
+        // Đội bị tước quyền thi đấu (UC-24/UC-35) không được đi tiếp; suất của bảng chuyển cho đội xếp ngay sau.
+        var disqualified = (await _uow.Repository<Registration>().Query()
+            .Where(r => r.TournamentId == t.TournamentId && r.Status == "DISQUALIFIED")
+            .Select(r => r.TeamId).ToListAsync()).ToHashSet();
         var qualifiers = new List<IReadOnlyList<KnockoutDraw.Qualifier>>();
         var blocking = false;
         foreach (var group in matches.GroupBy(m => groupOf[m.BracketNodeId]).OrderBy(g => g.Key))
@@ -145,12 +149,16 @@ public class StageTransitionService : IStageTransitionService
                 a.Order, decided, group.Key + "-");
 
             var table = new GroupTableDto { GroupLabel = group.Key };
+            // Thứ hạng xét đi tiếp: chỉ tính đội còn thi đấu.
+            var eligible = rows.Where(r => !disqualified.Contains(r.TeamId)).OrderBy(r => r.Position).ToList();
+            var cut = eligible.Take(advance).Select(r => r.TeamId).ToHashSet();
             foreach (var r in rows)
                 table.Rows.Add(new GroupRowDto
                 {
-                    Position = r.Position, TeamId = r.TeamId, TeamName = NameOf(a, r.TeamId),
+                    Position = r.Position, TeamId = r.TeamId,
+                    TeamName = NameOf(a, r.TeamId) + (disqualified.Contains(r.TeamId) ? " (bị tước quyền)" : ""),
                     Played = r.Played, Won = r.Won, Lost = r.Lost, GamesWon = r.GamesWon, GamesLost = r.GamesLost,
-                    Diff = r.Diff, Points = r.Points, Qualified = r.Position <= advance && r.TieKey is null, TieKey = r.TieKey
+                    Diff = r.Diff, Points = r.Points, Qualified = cut.Contains(r.TeamId) && r.TieKey is null, TieKey = r.TieKey
                 });
             foreach (var tie in rows.Where(r => r.TieKey is not null).GroupBy(r => r.TieKey!))
             {
@@ -168,8 +176,8 @@ public class StageTransitionService : IStageTransitionService
                 });
             }
             a.Groups.Add(table);
-            qualifiers.Add(rows.Where(r => r.Position <= advance).OrderBy(r => r.Position)
-                .Select(r => new KnockoutDraw.Qualifier(r.TeamId, group.Key, r.Position)).ToList());
+            qualifiers.Add(eligible.Take(advance)
+                .Select((r, i) => new KnockoutDraw.Qualifier(r.TeamId, group.Key, i + 1)).ToList());
         }
 
         a.Total = matches.Count;

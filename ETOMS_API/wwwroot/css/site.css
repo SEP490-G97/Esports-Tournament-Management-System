@@ -1418,6 +1418,12 @@ textarea.input { min-height: 110px; resize: vertical; }
 .sponsor-logo, .sponsor-logo-lg { object-fit: contain; border-radius: 12px; background: rgba(255,255,255,.06); flex: none; }
 .sponsor-logo { width: 64px; height: 64px; }
 .sponsor-logo-lg { width: 96px; height: 96px; }
+/* BR-SPN-01: logo nhà tài trợ trên trang giải có cỡ theo hạng của giải đó. */
+.sponsor-logo.sponsor-tier-diamond { width: 96px; height: 96px; }
+.sponsor-logo.sponsor-tier-gold { width: 76px; height: 76px; }
+.sponsor-logo.sponsor-tier-silver { width: 60px; height: 60px; }
+.sponsor-logo.sponsor-tier-bronze { width: 48px; height: 48px; }
+.sponsor-logo.sponsor-tier-partner { width: 40px; height: 40px; }
 .sponsor-initial { display: grid; place-items: center; font-weight: 800; font-size: 1.6rem; color: var(--cyan); border: 1px solid var(--border); }
 .sponsor-logo-lg.sponsor-initial { font-size: 2.2rem; color: #2fd4e6; border-color: rgba(255,255,255,.18); }
 .sponsor-name { font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1913,13 +1919,13 @@ a.promo-card:hover { border-color: var(--primary); transform: translateY(-2px); 
 .site-footer h4 a.foot-head-link:hover { color: var(--cyan); }
 
 /* ---- Nhánh đấu chưa sinh: thẻ đội đã duyệt ---- */
-.bk-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 10px; }
-.bk-team { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); color: var(--ink); min-width: 0; }
-a.bk-team:hover { border-color: var(--primary); }
-.bk-team img, .bk-team .ph { width: 34px; height: 34px; border-radius: 8px; flex: none; object-fit: cover; }
-.bk-team .ph { display: grid; place-items: center; background: var(--panel-3); color: var(--cyan); font: 700 .72rem var(--font-display); }
-.bk-team .nm { font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-.bk-team .tg { font-size: .72rem; color: var(--muted-2); flex: none; }
+.bk-pteams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 10px; }
+.bk-pteam { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); color: var(--ink); min-width: 0; }
+a.bk-pteam:hover { border-color: var(--primary); }
+.bk-pteam img, .bk-pteam .ph { width: 34px; height: 34px; border-radius: 8px; flex: none; object-fit: cover; }
+.bk-pteam .ph { display: grid; place-items: center; background: var(--panel-3); color: var(--cyan); font: 700 .72rem var(--font-display); }
+.bk-pteam .nm { font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.bk-pteam .tg { font-size: .72rem; color: var(--muted-2); flex: none; }
 
 /* Thẻ đội (note Hùng mục 8): tên đội trưởng dài không đẩy nhãn xuống dòng — cắt bằng dấu …, nhãn giữ một hàng. */
 .team-card .meta { gap: 10px; }
@@ -1927,3 +1933,19 @@ a.bk-team:hover { border-color: var(--primary); }
 .team-card .meta .chips { flex: none; display: inline-flex; gap: 6px; white-space: nowrap; }
 .team-card .top .name, .team-card .top .tag { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .team-card .top > div { min-width: 0; }
+
+/* Vai trò trong đơn vị của Ban tổ chức (menu tài khoản, góp ý 22/11) */
+.nav-user-orgs { padding: 0 6px 6px; border-bottom: 1px solid var(--border-soft); margin-bottom: 4px; }
+.nav-user-org { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-radius: 8px; font-size: .8rem; color: var(--ink-2); }
+a.nav-user-org:hover { background: var(--panel-2); }
+.nav-user-org b { color: var(--cyan); font-size: .74rem; letter-spacing: .3px; }
+.nav-user-org span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-user-org.muted { color: var(--muted-2); font-size: .76rem; }
+
+/* Khung "Quy định số đội & cách sinh nhánh" (bracket/manage.html, góp ý 22/11) */
+.rule-box > summary { cursor: pointer; padding: 14px 20px; font-weight: 700; color: var(--ink); list-style: none; }
+.rule-box > summary::before { content: "▸ "; color: var(--cyan); }
+.rule-box[open] > summary::before { content: "▾ "; }
+.rule-box .body { padding-top: 0; }
+.rule-box ul { color: var(--ink-2); font-size: .9rem; padding-left: 20px; margin-bottom: 12px; }
+.rule-box li { margin-bottom: 4px; }

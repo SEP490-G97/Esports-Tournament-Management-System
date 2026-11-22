@@ -36,4 +36,8 @@ public interface IMatchOpsService
 
     // MAT-12
     Task<Result> ForfeitAsync(int matchId, int captainAccountId, ForfeitRequest request);
+
+    // NUI-MAT-02 (Report 3 §3.1.4, MF-08): tới giờ thi đấu (hết cửa sổ điểm danh) mà chỉ một đội điểm danh → đội kia vắng mặt,
+    // trận xử thắng trắng cho đội có mặt và đẩy lên vòng trên. Trả số trận đã xử.
+    Task<int> ProcessNoShowsAsync(DateTime nowUtc, CancellationToken ct = default);
 }

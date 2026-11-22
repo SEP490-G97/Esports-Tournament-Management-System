@@ -1,6 +1,6 @@
 (function () {
     // Kích thước ô trận trên sơ đồ (px, trước khi phóng to).
-    var W = 220, H = 88, COL_GAP = 64, ROW_GAP = 18, STAGE_GAP = 56, TITLE_H = 44;
+    var W = 220, H = 88, COL_GAP = 84, ROW_GAP = 28, STAGE_GAP = 64, TITLE_H = 44;   // dãn khoảng cách (góp ý 22/11)
     var MIN_ZOOM = 0.3, MAX_ZOOM = 2, REFRESH_MS = 30000;
     var MOBILE = window.matchMedia('(max-width: 767.98px)');
 
@@ -347,7 +347,7 @@
         var projectedOnly = board.stages.every(function (s) { return s.isProjected; });
         if (board.isOrganizer) {
             organizer = board.isLocked
-                ? '<button type="button" class="btn btn-ghost" id="bk-unlock">Mở khóa nhánh</button>'
+                ? (board.canUnlock ? '<button type="button" class="btn btn-ghost" id="bk-unlock">Mở khóa nhánh</button>' : '')
                 : (projectedOnly ? '' : '<button type="button" class="btn ' + (state.edit ? 'btn-primary' : 'btn-ghost') + '" id="bk-edit" aria-pressed="' + state.edit + '">' +
                   (state.edit ? 'Xong đổi chỗ' : 'Đổi chỗ đội') + '</button>') +
                   '<button type="button" class="btn btn-ghost" id="bk-lock">Khóa nhánh</button>';
@@ -386,12 +386,12 @@
             document.getElementById('bracket-root').innerHTML = '<div class="card-etoms"><div class="body">' + notice +
                 (teams.length
                     ? '<div class="section-title" style="margin:6px 0 12px">Đội đã được duyệt (' + teams.length + (b.maxTeams ? '/' + b.maxTeams : '') + ')</div>' +
-                      '<div class="bk-teams" id="participants">' + teams.map(function (p) {
+                      '<div class="bk-pteams" id="participants">' + teams.map(function (p) {
                           var logo = Ui.safeUrl(p.logoUrl)
                               ? '<img src="' + esc(Ui.safeUrl(p.logoUrl)) + '" alt="" loading="lazy">'
                               : '<span class="ph">' + esc((p.tag || p.name || '?').substring(0, 3).toUpperCase()) + '</span>';
                           var inner = logo + '<span class="nm">' + esc(p.name) + '</span>' + (p.tag ? '<span class="tg">' + esc(p.tag) + '</span>' : '');
-                          return p.teamId ? '<a class="bk-team" href="/team/details.html?id=' + Number(p.teamId) + '">' + inner + '</a>' : '<div class="bk-team">' + inner + '</div>';
+                          return p.teamId ? '<a class="bk-pteam" href="/team/details.html?id=' + Number(p.teamId) + '">' + inner + '</a>' : '<div class="bk-pteam">' + inner + '</div>';
                       }).join('') + '</div>'
                     : '<div class="hint">Chưa có đội nào được duyệt.</div>') + '</div></div>';
             return;

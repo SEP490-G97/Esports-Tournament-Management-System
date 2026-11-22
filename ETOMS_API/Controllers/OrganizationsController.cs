@@ -148,7 +148,7 @@ public sealed class OrganizationsController : ApiControllerBase
     {
         if (!_currentUser.IsAuthenticated || !await _organizationService.IsAdminAsync(_currentUser.UserId!.Value))
             return StatusCode(403, new { message = "Chỉ Admin được đình chỉ đơn vị tổ chức." });
-        return FromResult(await _organizationService.SuspendAsync(organizationId, request.Reason, cancellationToken));
+        return FromResult(await _organizationService.SuspendAsync(organizationId, request.Reason, cancellationToken, _currentUser.UserId));
     }
 
     private async Task<IActionResult?> RequireChairOrAdminAsync(int organizationId)

@@ -80,7 +80,7 @@ public class MatchScheduleService : IMatchScheduleService
         var at = ToMinute(scheduledAt.Value.ToUniversalTime());
         if (previous == at) return Result<MatchScheduleBoardDto>.Success(ToBoard(ctx), "Trận đã có đúng giờ này.");
 
-        var error = Validate(ctx, item, at);
+        var error = Validate(ctx, item, at) ?? await CrossTournamentConflictAsync(ctx, item, at);
         if (error is not null) return Result<MatchScheduleBoardDto>.FieldFailure("ScheduledAt", error);
 
         Apply(item, at);
@@ -117,7 +117,7 @@ public class MatchScheduleService : IMatchScheduleService
             var at = first.AddMinutes((double)request.GapMinutes * slot);
             slot++;
             if (item.Match.ScheduledAt == at) continue;
-            var error = Validate(ctx, item, at);
+            var error = Validate(ctx, item, at) ?? await CrossTournamentConflictAsync(ctx, item, at);
             if (error is not null) { result.Skipped.Add($"{label}: {error}"); continue; }
 
             changed.Add((item, item.Match.ScheduledAt));
@@ -186,6 +186,53 @@ public class MatchScheduleService : IMatchScheduleService
         return m.TeamAcheckedInAt is null && m.TeamBcheckedInAt is null
             ? null
             : "Đã qua giờ thi đấu và có đội đã check-in, trận được xử theo quy trình vắng mặt nên không dời giờ được.";
+    }
+
+    // Góp ý 22/11 "2 giải khác nhau cùng giờ thì không được": một tuyển thủ (qua MỌI đội đang thuộc — mỗi game một đội) hoặc
+    // một trọng tài không được có hai trận chồng giờ ở hai giải khác nhau. Mỗi trận chiếm 60 phút x số ván (như kiểm trong giải).
+    private async Task<string?> CrossTournamentConflictAsync(Context ctx, Item item, DateTime at)
+    {
+        var teamIds = new[] { item.Match.TeamAid, item.Match.TeamBid }.Where(x => x.HasValue).Select(x => x!.Value).ToList();
+        var referee = item.Match.RefereeAccountId;
+        if (teamIds.Count == 0 && referee is null) return null;
+
+        var members = await _uow.Repository<TeamMember>().Query().AsNoTracking()
+            .Where(m => teamIds.Contains(m.TeamId) && m.Status == "ACTIVE")
+            .Select(m => new { m.AccountId, m.TeamId, m.Account.FullName }).ToListAsync();
+        var accountIds = members.Select(m => m.AccountId).Distinct().ToList();
+        // Mọi đội (mọi game) mà các tuyển thủ này đang thuộc.
+        var relatedTeams = await _uow.Repository<TeamMember>().Query().AsNoTracking()
+            .Where(m => accountIds.Contains(m.AccountId) && m.Status == "ACTIVE")
+            .Select(m => new { m.AccountId, m.TeamId }).ToListAsync();
+        var relatedTeamIds = relatedTeams.Select(r => r.TeamId).Distinct().ToList();
+
+        var mineEnd = at + ReportDeadline.PerGame * Math.Max(1, item.Match.BestOf);
+        var windowStart = at - TimeSpan.FromHours(24);
+        var tournamentId = ctx.Tournament.TournamentId;
+        var others = await _uow.Repository<Match>().Query().AsNoTracking()
+            .Where(m => m.TournamentId != tournamentId && m.ScheduledAt != null
+                && m.ScheduledAt < mineEnd && m.ScheduledAt > windowStart
+                && m.Status != "VERIFIED" && m.Status != "WALKOVER" && m.Status != "CANCELLED"
+                && m.Tournament.Status != "CANCELLED" && m.Tournament.Status != "COMPLETED"
+                && ((m.TeamAid != null && relatedTeamIds.Contains(m.TeamAid.Value))
+                    || (m.TeamBid != null && relatedTeamIds.Contains(m.TeamBid.Value))
+                    || (referee != null && m.RefereeAccountId == referee)))
+            .Select(m => new { m.ScheduledAt, m.BestOf, m.TeamAid, m.TeamBid, m.RefereeAccountId, TournamentName = m.Tournament.Name })
+            .ToListAsync();
+
+        foreach (var o in others)
+        {
+            var start = DateTime.SpecifyKind(o.ScheduledAt!.Value, DateTimeKind.Utc);
+            var end = start + ReportDeadline.PerGame * Math.Max(1, o.BestOf);
+            if (!(start < mineEnd && at < end)) continue;
+            if (referee is not null && o.RefereeAccountId == referee)
+                return $"Trọng tài của trận đang làm trọng tài một trận của giải \"{o.TournamentName}\" lúc {Vn(start)} (dự kiến tới {Vn(end)}).";
+            var clashTeams = new[] { o.TeamAid, o.TeamBid }.Where(x => x.HasValue).Select(x => x!.Value).ToHashSet();
+            var who = members.FirstOrDefault(m => relatedTeams.Any(r => r.AccountId == m.AccountId && clashTeams.Contains(r.TeamId)));
+            if (who is not null)
+                return $"Tuyển thủ {who.FullName} có trận của giải \"{o.TournamentName}\" lúc {Vn(start)} (dự kiến tới {Vn(end)}). Một người không thể thi đấu hai giải cùng giờ.";
+        }
+        return null;
     }
 
     private string? Validate(Context ctx, Item item, DateTime at)

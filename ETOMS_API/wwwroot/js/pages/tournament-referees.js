@@ -51,6 +51,7 @@
             '<div class="rl">' + Ui.escapeHtml(referee) + '</div></div>' +
             '<span class="badge ' + Ui.escapeHtml(m.statusClass) + '">' + Ui.escapeHtml(m.statusLabel) + '</span>' +
             '<div class="d-flex gap-2">' + actions +
+            '<a class="btn btn-ghost" href="/match/detail.html?id=' + m.matchId + '">Mở trận</a>' +
             '<a class="btn btn-ghost" href="/match/pick-ban.html?id=' + m.matchId + '">Cấm chọn</a></div></div>';
     }
 

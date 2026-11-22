@@ -127,7 +127,9 @@
         if (!list.length) return;
         var cards = list.map(function (s) {
             var site = Ui.safeUrl(s.websiteUrl), logo = Ui.safeUrl(s.logoUrl);
-            var inner = (logo ? '<img class="sponsor-logo" src="' + esc(logo) + '" alt="" loading="lazy">' : '') +
+            // BR-SPN-01: cỡ logo theo hạng tài trợ (sponsor-tier-*).
+            var tierClass = ' sponsor-tier-' + String(s.tier || 'PARTNER').toLowerCase();
+            var inner = (logo ? '<img class="sponsor-logo' + tierClass + '" src="' + esc(logo) + '" alt="" loading="lazy">' : '') +
                 '<span class="sponsor-name">' + esc(s.name) + '</span>' +
                 '<span class="badge badge-gold">Hạng ' + esc(TIER[s.tier] || s.tier) + '</span>';
             return '<div class="col-6 col-md-4 col-lg-3">' + (site

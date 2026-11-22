@@ -124,6 +124,8 @@ public sealed partial class AdminGamesController : ControllerBase
             logo = url;
         }
 
+        var isNew = g is null;
+        var before = g is null ? null : $"{g.Title} ({g.ShortCode}); Starters={g.MinStarters}-{g.MaxStarters}; Subs={g.MaxSubstitutes}; Format={g.DefaultFormat}; Evidence={g.AllowedEvidenceTypes}/{g.MaxEvidenceFileSizeMb}MB";
         if (g is null)
         {
             g = new Game { Status = "ACTIVE" };
@@ -139,6 +141,10 @@ public sealed partial class AdminGamesController : ControllerBase
         g.AllowedEvidenceTypes = extText;
         g.MaxEvidenceFileSizeMb = f.MaxEvidenceFileSizeMb;
         await _db.SaveChangesAsync(ct);
+        // UC-43: mọi thay đổi danh mục game có trong nhật ký (cần GameId nên ghi sau khi lưu game).
+        AuditTrail.Add(_db, User, isNew ? "GAME_CREATE" : "GAME_UPDATE", "GAME", g.GameId, before,
+            $"{g.Title} ({g.ShortCode}); Starters={g.MinStarters}-{g.MaxStarters}; Subs={g.MaxSubstitutes}; Format={g.DefaultFormat}; Evidence={g.AllowedEvidenceTypes}/{g.MaxEvidenceFileSizeMb}MB");
+        await _db.SaveChangesAsync(ct);
         ClearLookups();
         return Ok(new { message = id is null ? "Đã thêm game." : "Đã lưu game. Giải đã tạo giữ nguyên luật lúc tạo; luật mới áp dụng cho đội và giải tạo sau.", g.GameId });
     }
@@ -149,7 +155,9 @@ public sealed partial class AdminGamesController : ControllerBase
     {
         var g = await _db.Games.FirstOrDefaultAsync(x => x.GameId == id, ct);
         if (g is null) return Err("Không tìm thấy game.", 404);
+        var old = g.Status;
         g.Status = g.Status == "ACTIVE" ? "INACTIVE" : "ACTIVE";
+        AuditTrail.Add(_db, User, "GAME_STATUS", "GAME", g.GameId, $"Status={old}", $"Status={g.Status}");
         await _db.SaveChangesAsync(ct);
         ClearLookups();
         return Ok(new { message = g.Status == "ACTIVE" ? $"Đã mở lại game {g.Title}." : $"Đã ngừng game {g.Title}. Đội và giải đang có không bị ảnh hưởng." });

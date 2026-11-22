@@ -19,7 +19,7 @@ public interface IOrganizationService
     Task<Result<OrganizationMemberResponse>> UpdateMemberRoleAsync(int organizationId, int memberId, string role, CancellationToken cancellationToken);
     Task<Result> TransferChairAsync(int organizationId, int newChairAccountId, CancellationToken cancellationToken);
     Task<Result<OrganizationReputationResponse>> GetReputationAsync(int organizationId, CancellationToken cancellationToken);
-    Task<Result> SuspendAsync(int organizationId, string reason, CancellationToken cancellationToken);
+    Task<Result> SuspendAsync(int organizationId, string reason, CancellationToken cancellationToken, int? actorAccountId = null);
 
     // STUB TẠM thêm kiểm quyền thay module ORG (Cấn Việt Hùng) — bản trước các API này hoàn
     // toàn không kiểm ai gọi, kể cả duyệt/đình chỉ đơn vị. Không phải bài làm cá nhân của Hùng.

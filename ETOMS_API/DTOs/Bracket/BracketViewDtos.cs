@@ -10,6 +10,8 @@ public class BracketViewDto
     public bool IsLocked { get; set; }
     // Người xem là Ban tổ chức của giải: hiện nút khóa/mở khóa và chế độ đổi chỗ đội.
     public bool IsOrganizer { get; set; }
+    // Mở khóa được (cùng điều kiện với API unlock): đã khóa, giải chưa kết thúc/hủy, chưa trận nào bắt đầu.
+    public bool CanUnlock { get; set; }
     // false: nhánh chưa khóa và người xem không phải Ban tổ chức (UC-20 E1), chỉ xem danh sách đội.
     public bool CanViewBracket { get; set; }
     public string? Notice { get; set; }

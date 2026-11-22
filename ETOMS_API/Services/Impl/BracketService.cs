@@ -427,6 +427,7 @@ public class BracketService : IBracketService
             RegCloseAt = tournament.RegCloseAt,
             RegistrationStillOpen = DateTime.UtcNow < tournament.RegCloseAt
         };
+        dto.CanUnlock = dto.IsLocked && await CanUnlockAsync(tournamentId, tournament.Status, _uow);
 
         var nodes = await _uow.Repository<BracketNode>().Query()
             .Where(n => n.TournamentId == tournamentId)
@@ -506,6 +507,13 @@ public class BracketService : IBracketService
         var nodes = await _uow.Repository<BracketNode>().Query().Where(n => n.TournamentId == tournamentId).ToListAsync();
         foreach (var n in nodes) { n.Status = "LOCKED"; _uow.Repository<BracketNode>().Update(n); }
 
+        // BR-ADM-01 / UC-43: khóa nhánh là quyết định có thẩm quyền → một dòng nhật ký LOCK_BRACKET.
+        await _uow.Repository<AuditLog>().AddAsync(new AuditLog
+        {
+            ActorAccountId = organizerAccountId, TournamentId = tournamentId, ActionType = "LOCK_BRACKET",
+            ObjectType = "TOURNAMENT", ObjectId = tournamentId, AfterValue = $"BracketLockedAt={tournament.BracketLockedAt:O}; Nodes={nodes.Count}",
+            CreatedAt = DateTime.UtcNow
+        });
         await _uow.SaveChangesAsync();
         return Result.Success("Đã khóa nhánh đấu. Roster các đội và cổng đăng ký đã đóng.");
     }
@@ -513,6 +521,15 @@ public class BracketService : IBracketService
     // Trận "chưa đấu": chưa có người thắng, chưa có tỉ số, còn ở trạng thái chờ.
     private static bool NotPlayed(Match m) =>
         m.WinnerTeamId == null && m.ScoreA == null && m.ScoreB == null && (m.Status == "PENDING" || m.Status == "READY");
+
+    // Điều kiện mở khóa nhánh, dùng chung cho API unlock và cờ CanUnlock của trang (DEF-01: nút chỉ hiện khi bấm được).
+    internal static async Task<bool> CanUnlockAsync(int tournamentId, string status, IUnitOfWork uow)
+    {
+        if (status is "COMPLETED" or "CANCELLED") return false;
+        return !await uow.Repository<Match>().Query().AnyAsync(m => m.TournamentId == tournamentId
+            && m.Status != "CANCELLED"
+            && !(m.WinnerTeamId == null && m.ScoreA == null && m.ScoreB == null && (m.Status == "PENDING" || m.Status == "READY")));
+    }
 
     public async Task<Result> UnlockBracketAsync(int tournamentId, int organizerAccountId)
     {

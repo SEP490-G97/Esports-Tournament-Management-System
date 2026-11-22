@@ -74,12 +74,15 @@
             sponsorRoot.textContent = 'Chưa có thông tin nhà tài trợ.';
         } else {
             sponsorRoot.replaceChildren();
+            // BR-SPN-01: cỡ logo theo hạng tài trợ của giải này.
+            var TIER = { DIAMOND: ['Kim cương', 96], GOLD: ['Vàng', 72], SILVER: ['Bạc', 56], BRONZE: ['Đồng', 44], PARTNER: ['Đối tác', 36] };
             data.sponsors.forEach(function (sponsor) {
+                var tier = TIER[sponsor.tier] || ['Đối tác', 36];
                 var item = document.createElement('div');
                 item.className = 'd-flex align-items-center gap-2 mb-2';
                 var link = safeExternalUrl(sponsor.websiteUrl);
                 var label = document.createElement(link ? 'a' : 'span');
-                label.textContent = sponsor.name + ' · ' + sponsor.tier;
+                label.textContent = sponsor.name + ' · Hạng ' + tier[0];
                 if (link) {
                     label.href = link;
                     label.target = '_blank';
@@ -90,8 +93,9 @@
                     var image = document.createElement('img');
                     image.src = logoUrl;
                     image.alt = '';
-                    image.width = 48;
-                    image.height = 48;
+                    image.width = tier[1];
+                    image.height = tier[1];
+                    image.style.objectFit = 'contain';
                     item.append(image);
                 }
                 item.append(label);

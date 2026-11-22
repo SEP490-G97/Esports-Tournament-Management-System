@@ -32,6 +32,15 @@ public class MatchDetailDto
     // UC-21: cửa sổ điểm danh (mở 30 phút trước giờ thi đấu, đóng đúng giờ thi đấu).
     public DateTime? CheckInOpenAt { get; set; }
     public bool MyTeamCheckedIn { get; set; }
+
+    // Khối "Kết quả trận" (góp ý 22/11: trọng tài không thấy chỗ nhập tỉ số). Theo LI-01 tỉ số chỉ vào qua 2 báo cáo mù
+    // của 2 đội trưởng hoặc phán quyết tranh chấp — trang chỉ cho biết ĐỘI NÀO đã nộp, không lộ tỉ số đã khai.
+    public bool TeamAReported { get; set; }
+    public bool TeamBReported { get; set; }
+    public int? OpenDisputeId { get; set; }
+    public bool IsReferee { get; set; }
+    public string? RefereeName { get; set; }
+    public DateTime? ReportDeadlineAt { get; set; }
 }
 
 public class ManualCheckInRequest

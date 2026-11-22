@@ -65,7 +65,7 @@ public sealed class AdminStatsController : ControllerBase
                 tournaments = tournaments.Sum(t => t.Count),
                 ongoing = tournaments.Where(t => t.Status == "ONGOING").Sum(t => t.Count),
                 approvedRegistrations = registrations,
-                matchesCompleted = matches.Where(m => m.Status == "COMPLETED").Sum(m => m.Count),
+                matchesCompleted = matches.Where(m => m.Status == "VERIFIED" || m.Status == "WALKOVER").Sum(m => m.Count),   // trận xong = VERIFIED / WALKOVER
                 matchesTotal = matches.Sum(m => m.Count)
             },
             tournamentsByStatus = TournamentStatusLabel.Select(kv => new { label = kv.Value, count = tournaments.Where(t => t.Status == kv.Key).Sum(t => t.Count) }),

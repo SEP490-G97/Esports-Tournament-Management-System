@@ -20,6 +20,44 @@
         render(detail);
     }
 
+    // Góp ý 22/11: "trọng tài chưa thấy nhập tỷ số, chưa thấy đẩy nhánh đi tiếp". Theo LI-01 tỉ số CHỈ vào hệ thống qua
+    // 2 báo cáo mù của 2 đội trưởng (khớp nhau → trận tự xác nhận, đội thắng tự vào vòng sau) hoặc phán quyết tranh chấp
+    // của trọng tài / BTC. Khối này cho mỗi vai trò biết trận đang chờ gì và nút đúng việc của mình.
+    function resultCardHtml(d) {
+        var done = d.status === 'VERIFIED' || d.status === 'WALKOVER';
+        var open = ['PENDING', 'READY', 'LIVE', 'WAITING_REPORT'].indexOf(d.status) >= 0;
+        var bothTeams = d.teamAId && d.teamBId;
+        var chip = function (ok, name) {
+            return '<span class="badge ' + (ok ? 'badge-active' : 'badge-soft') + '">' + Ui.escapeHtml(name) + ': ' + (ok ? 'đã nộp' : 'chưa nộp') + '</span>';
+        };
+        var body = '';
+        if (done) {
+            body = '<p class="mb-1">Tỉ số chung cuộc: <b>' + Ui.escapeHtml(d.teamAName) + ' ' + (d.scoreA ?? '–') + ' – ' + (d.scoreB ?? '–') + ' ' + Ui.escapeHtml(d.teamBName) + '</b>' +
+                (d.status === 'WALKOVER' ? ' (thắng trắng)' : '') + '.</p><p class="hint mb-0">Đội thắng đã được đưa vào trận tiếp theo của nhánh đấu.</p>';
+        } else if (!bothTeams) {
+            body = '<p class="hint mb-0">Trận chưa đủ hai đội — chờ kết quả các trận trước. Đội thắng ở trận trước sẽ tự được đưa vào đây.</p>';
+        } else if (d.openDisputeId) {
+            body = '<p>Hai bản báo cáo không khớp nên trận đang <b>tranh chấp</b>. ' +
+                (d.canManage ? 'Trọng tài / Ban tổ chức xem bằng chứng và ra phán quyết tỉ số; đội thắng sẽ tự vào vòng sau.' : 'Trọng tài đang xem xét bằng chứng.') + '</p>' +
+                '<div class="btn-row">' + (d.canManage ? '<a class="btn btn-primary" href="/result/dispute.html?id=' + d.openDisputeId + '">Xử lý tranh chấp</a>' : '') +
+                (d.myCaptainTeamId ? '<a class="btn btn-ghost" href="/result/evidence.html?matchId=' + d.matchId + '">Bổ sung bằng chứng</a>' : '') + '</div>';
+        } else if (open) {
+            body = '<p class="mb-2">Sau trận, <b>mỗi đội trưởng tự báo cáo tỉ số</b> (không thấy báo cáo của đội kia). Hai bản khớp nhau thì trận tự xác nhận và ' +
+                'đội thắng tự vào vòng sau; lệch nhau thì thành tranh chấp để trọng tài phán quyết.</p>' +
+                '<div class="d-flex flex-wrap gap-2 mb-2">' + chip(d.teamAReported, d.teamAName) + chip(d.teamBReported, d.teamBName) + '</div>' +
+                (d.reportDeadlineAt ? '<p class="hint">Hạn báo cáo: ' + new Date(/Z$/.test(d.reportDeadlineAt) ? d.reportDeadlineAt : d.reportDeadlineAt + 'Z').toLocaleString('vi-VN') + '. Quá hạn mà chưa đủ hai bản thì trận thành tranh chấp "Quá hạn báo cáo" để trọng tài phán quyết.</p>' : '') +
+                '<div class="btn-row">' +
+                (d.myCaptainTeamId ? '<a class="btn btn-primary" href="/result/submit.html?matchId=' + d.matchId + '">' + ((d.myCaptainTeamId === d.teamAId ? d.teamAReported : d.teamBReported) ? 'Xem / sửa báo cáo của đội tôi' : 'Báo cáo tỉ số') + '</a>' : '') +
+                (d.canManage ? '<a class="btn btn-ghost" href="/result/submit.html?matchId=' + d.matchId + '">Xem tình trạng báo cáo</a>' : '') + '</div>' +
+                (d.isReferee ? '<p class="hint mt-2 mb-0">Bạn là trọng tài trận này: không nhập tỉ số thay đội (LI-01). Việc của trọng tài là điểm danh, phòng đấu, xử lý vi phạm (thắng trắng, tước quyền, thẻ phạt) và phán quyết khi có tranh chấp.</p>' : '');
+        } else {
+            body = '<p class="hint mb-0">Trận đã hủy.</p>';
+        }
+        return '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Kết quả trận</h3>' +
+            (d.refereeName ? '<p class="hint">Trọng tài: <b>' + Ui.escapeHtml(d.refereeName) + '</b></p>' : '<p class="hint">Trận chưa có trọng tài — Ban tổ chức xử lý.</p>') +
+            body + '</div></div>';
+    }
+
     function render(d) {
         var html = '' +
             '<div class="page-head"><h1>' + Ui.escapeHtml(d.teamAName) + ' vs ' + Ui.escapeHtml(d.teamBName) + '</h1>' +
@@ -30,6 +68,8 @@
             html += '<div class="alert alert-success">Đội thắng: ' +
                 Ui.escapeHtml(d.winnerTeamId === d.teamAId ? d.teamAName : d.teamBName) + '</div>';
         }
+
+        html += resultCardHtml(d);
 
         html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Điểm danh</h3>' +
             '<p>' + Ui.escapeHtml(d.teamAName) + ': ' + (d.teamACheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>' +
@@ -88,6 +128,8 @@
                 '<button class="btn btn-ghost" data-act="rematch">Hủy &amp; đấu lại</button>' +
                 '<button class="btn btn-ghost" data-act="disqualify" data-team="' + d.teamAId + '">Tước quyền ' + Ui.escapeHtml(d.teamAName) + '</button>' +
                 '<button class="btn btn-ghost" data-act="disqualify" data-team="' + d.teamBId + '">Tước quyền ' + Ui.escapeHtml(d.teamBName) + '</button>' +
+                // UC-34: trọng tài / BTC cấp thẻ phạt cho đội của trận ở trang Kỷ luật của giải.
+                '<a class="btn btn-ghost" href="/tournament/discipline.html?id=' + d.tournamentId + '">Cấp thẻ phạt</a>' +
                 '</div></div></div>';
         }
 
@@ -171,7 +213,7 @@
 
         root.querySelectorAll('[data-act="disqualify"]').forEach(function (btn) {
             btn.addEventListener('click', async function () {
-                var ok = await etomsConfirm('Xác nhận tước quyền thi đấu của đội này?');
+                var ok = await etomsConfirm('Xác nhận tước quyền thi đấu của đội này? Đội rời giải và mọi trận còn lại của đội được xử thắng trắng cho đối thủ.');
                 if (!ok) return;
                 withReason('Lý do tước quyền thi đấu:', async function (reason) {
                     await call(Api.post('/api/matches/' + matchId + '/ops/disqualify', { teamId: parseInt(btn.dataset.team, 10), reason: reason }));
