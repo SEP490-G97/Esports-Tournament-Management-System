@@ -330,8 +330,12 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
 // Không nén phản hồi của /auth (chứa token): tránh kiểu tấn công đoán bí mật qua độ dài bản nén (BREACH).
 app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/auth"), branch => branch.UseResponseCompression());
 app.UseDefaultFiles();
+// .glb (model 3D rồng trang chủ, models/dragon.glb) không có trong bảng MIME mặc định → thiếu dòng này là 404.
+var staticTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+staticTypes.Mappings[".glb"] = "model/gltf-binary";
 app.UseStaticFiles(new StaticFileOptions
 {
+    ContentTypeProvider = staticTypes,
     // Trang .html không có ?v= như CSS/JS: thiếu Cache-Control thì trình duyệt tự giữ bản cũ một thời gian
     // (người dùng vẫn thấy giao diện trước khi sửa). "no-cache" = vẫn lưu nhưng luôn hỏi lại máy chủ
     // (ETag/Last-Modified) trước khi dùng, nên chỉ tốn một yêu cầu 304 nhẹ khi file không đổi.

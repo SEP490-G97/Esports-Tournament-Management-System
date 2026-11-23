@@ -482,6 +482,7 @@ body { overflow-x: hidden; }
 .hero-dots button.active { background: var(--cyan); width: 22px; border-radius: 5px; }
 
 /* --- Hero 3D: rồng bay (home-hero3d.js) --- */
+#hero-3d { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: block; }
 .hero-3d-on .hero-slide { filter: saturate(.75) brightness(.72); }
 .hero-3d-on .hero-scrim {
   background: linear-gradient(90deg, var(--bg-2) 2%, rgba(10,14,23,.62) 34%, rgba(10,14,23,.22) 70%, rgba(10,14,23,.4) 100%);
@@ -1986,23 +1987,6 @@ a.nav-user-org:hover { background: var(--panel-2); }
 .nav-bell-item .go { color: var(--primary-ink); font-weight: 600; }
 
 
-
-/* Rồng trang chủ (home-dragon.js): 100% canvas, không nhận chuột. Kiểu chính gắn thẳng trong JS. */
-.home-dragon-canvas { pointer-events: none; }
-@media (max-width: 1023.98px) { .home-dragon-canvas { display: none !important; } }
-
 /* Bấm thông báo tin nhắn → khung phòng chờ nháy viền một lần */
 .lobby-flash { animation: lobbyFlash 1.6s ease-out 1; }
 @keyframes lobbyFlash { 0%, 35% { box-shadow: 0 0 0 3px var(--primary); } 100% { box-shadow: 0 0 0 0 transparent; } }
-
-/* Dải trên thanh menu ở trang chủ — chỗ cho đầu rồng vàng (home-dragon.js); ẩn ở màn nhỏ cùng canvas */
-.home-crown { height: clamp(140px, 10.5vw, 200px); background:
-    radial-gradient(ellipse 34% 120% at 50% 0%, rgba(255,170,60,.18), transparent 65%),
-    radial-gradient(ellipse 22% 90% at 4% 30%, rgba(255,160,50,.12), transparent 70%),
-    radial-gradient(ellipse 22% 90% at 96% 30%, rgba(255,160,50,.12), transparent 70%),
-    linear-gradient(180deg, #04060b 0%, #0a0f1d 100%); }
-@media (max-width: 1023.98px) { .home-crown { display: none; } }
-/* Trang chủ có rồng: chữ/nút trên thanh menu nằm TRÊN canvas rồng (z 60) → móng ghim vào thanh nhưng không che chức năng;
-   nền thanh trong hơn để vẫn thấy móng và vết nứt phía sau */
-.home-crown + #site-header .etoms-nav { z-index: 70; background: rgba(8,12,24,.38); backdrop-filter: none; }
-@media (max-width: 1023.98px) { .home-crown + #site-header .etoms-nav { z-index: 50; background: rgba(10,14,23,.82); } }
