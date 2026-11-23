@@ -39,12 +39,22 @@
             '</div></a>';
     }
 
-    function renderHero() {
+    // Ảnh nền banner theo game, phải NÉT (góp ý 23/11: nền nhòe "mờ tịt"): 1) ảnh banner riêng của game (Game.BannerUrl /
+    // images/games/banners/<mã>.jpg); 2) ảnh bài tin mới nhất về game đó (ảnh thật, đổi theo tin); 3) game chưa có tin →
+    // logo nét đặt bên phải trên nền màu của game. Nhớ ảnh theo game để sang trang 2, 3 không đổi nền.
+    var heroPhoto = {};
+    function renderHero(items) {
         var g = gameOf(state.game);
         var hero = el('news-hero'), bg = el('news-hero-bg'), logo = el('news-hero-logo');
         hero.style.setProperty('--news-accent', g ? (ACCENT[g.code] || '#7c5cff') : '#7c5cff');
-        hero.classList.toggle('is-logo', !!(g && !g.bannerUrl));
-        bg.style.backgroundImage = cssUrl(g ? (g.bannerUrl || g.logoUrl || '/images/hero.jpg') : '/images/hero.jpg');
+        var key = g ? g.code : 'all';
+        if (!heroPhoto[key] && g) {
+            var withImg = (items || []).filter(function (n) { return n.gameCode === g.code && Ui.safeUrl(n.imageUrl); })[0];
+            if (withImg) heroPhoto[key] = Ui.safeUrl(withImg.imageUrl);
+        }
+        var photo = g ? (g.bannerUrl || heroPhoto[key]) : '/images/hero.jpg';
+        hero.classList.toggle('is-logo', !photo);
+        bg.style.backgroundImage = cssUrl(photo || (g && g.logoUrl) || '/images/hero.jpg');
         if (g && g.logoUrl) { logo.src = g.logoUrl; logo.hidden = false; } else { logo.hidden = true; logo.removeAttribute('src'); }
         el('news-hero-title').textContent = g ? 'Tin tức ' + g.title : 'Tin tức esports';
         el('news-hero-sub').textContent = g ? 'Tin mới nhất về ' + g.title + ' từ ETOMS và các trang báo thể thao điện tử.'
@@ -87,7 +97,7 @@
             var res = await Api.get('/api/news?' + qs.toString());
             games = res.games || [];
             state.total = res.total;
-            renderHero();
+            renderHero(res.items);
             renderSources(res.sources || []);
             var items = res.items || [];
             var lead = items.length > 1;
