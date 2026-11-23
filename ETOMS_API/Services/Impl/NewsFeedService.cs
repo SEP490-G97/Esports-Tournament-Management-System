@@ -5,9 +5,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
-using ETOMS_API.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 

@@ -1,6 +1,5 @@
 using ETOMS_API.DTOs.Tournament;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;

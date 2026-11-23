@@ -15,7 +15,6 @@
 
         if (!page.canSubmit) {
             root.innerHTML =
-                '<div class="eyebrow">Kết quả &amp; Khiếu nại</div>' +
                 '<div class="page-head"><h1>Báo cáo tỉ số mù</h1>' +
                 '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong class="text-ink">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
                 '<div class="card-etoms"><div class="empty"><h3>Không thể nộp báo cáo</h3><p>' + Ui.escapeHtml(page.cannotSubmitReason) + '</p>' +
@@ -24,7 +23,6 @@
         }
 
         root.innerHTML =
-            '<div class="eyebrow">Kết quả &amp; Khiếu nại</div>' +
             '<div class="page-head"><h1>Báo cáo tỉ số mù</h1>' +
             '<p>' + Ui.escapeHtml(page.tournamentName) + ' · Bo' + page.bestOf + ' · <strong class="text-ink">' + Ui.escapeHtml(page.myTeamName) + '</strong> vs ' + Ui.escapeHtml(page.opponentTeamName) + '</p></div>' +
             deadlineNote(page.reportDeadlineAt) +

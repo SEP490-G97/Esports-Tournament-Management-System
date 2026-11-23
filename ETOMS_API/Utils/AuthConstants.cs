@@ -1,8 +1,5 @@
 ﻿namespace ETOMS_API.Utils
 {
-    public class AuthConstants
-    {
-    }
     public static class TokenTypes
     {
         public const string Refresh = "REFRESH";

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace ETOMS_API.Models;
 
 // GRL-07. Bảng MatchPickBan chưa có trong database chung, ánh xạ ở Repositories/EtomsDbContext.PendingTables.cs.

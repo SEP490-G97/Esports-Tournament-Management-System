@@ -1,9 +1,7 @@
 ﻿using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Org.BouncyCastle.Asn1.Ocsp;
 using static ETOMS_API.DTOs.Auth.AuthDtos;
-using static Google.Apis.Requests.BatchRequest;
 
 namespace ETOMS_API.Controllers
 {

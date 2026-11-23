@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace ETOMS_API.Models;
 
 // GRL-02. Bản đồ thuộc một bộ luật. Viết tay trước khi bảng GameMap có trong database; đặt tên theo

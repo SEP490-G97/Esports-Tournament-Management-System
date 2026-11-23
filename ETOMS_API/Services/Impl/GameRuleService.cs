@@ -2,7 +2,6 @@ using System.Data.Common;
 using System.Text.RegularExpressions;
 using ETOMS_API.DTOs.GameRule;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;

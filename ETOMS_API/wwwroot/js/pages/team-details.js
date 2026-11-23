@@ -14,15 +14,17 @@
 
     function historyHtml(history) {
         if (!history.length) return '<div class="card-etoms"><div class="empty"><h3>Chưa tham gia giải nào</h3></div></div>';
-        return '<div class="row g-3" data-history>' + history.map(function (h) {
-            return '<div class="col-12"><div class="member-card">' +
-                '<div class="flex-grow-1"><a class="nm" href="/bracket/view.html?id=' + h.tournamentId + '">' + Ui.escapeHtml(h.tournamentName) + '</a>' +
-                '<div class="rl">' + tourStatusLabel(h.tournamentStatus) + '</div></div>' +
-                (h.registrationStatus === 'DISQUALIFIED'
-                    ? '<span class="badge badge-danger">Bị tước quyền</span>'
-                    : '<span class="badge badge-soft">' + placementLabel(h.finalPlacement) + (h.finalRank ? ' (#' + h.finalRank + ')' : '') + '</span>') +
-                '</div></div>';
-        }).join('') + '</div>';
+        return '<div data-history></div>';
+    }
+
+    function historyRow(h) {
+        return '<div class="col-12"><div class="member-card">' +
+            '<div class="flex-grow-1"><a class="nm" href="/bracket/view.html?id=' + h.tournamentId + '">' + Ui.escapeHtml(h.tournamentName) + '</a>' +
+            '<div class="rl">' + tourStatusLabel(h.tournamentStatus) + '</div></div>' +
+            (h.registrationStatus === 'DISQUALIFIED'
+                ? '<span class="badge badge-danger">Bị tước quyền</span>'
+                : '<span class="badge badge-soft">' + placementLabel(h.finalPlacement) + (h.finalRank ? ' (#' + h.finalRank + ')' : '') + '</span>') +
+            '</div></div>';
     }
 
     function render(team, isCaptain, isMember) {
@@ -61,7 +63,6 @@
         }
 
         root.innerHTML =
-            '<div class="eyebrow">Hồ sơ đội · Mã đội #' + team.teamId + '</div>' +
             '<div class="card-etoms"><div class="body"><div class="team-hero">' + logo +
             '<div style="flex:1;min-width:260px"><h1>' + Ui.escapeHtml(team.name) + ' <span class="text-muted-etoms fw-bold">[' + Ui.escapeHtml(team.tag) + ']</span></h1>' +
             '<div class="sub"><span>' + Ui.escapeHtml(team.gameTitle) + '</span>' +
@@ -98,7 +99,12 @@
             '<div id="team-discipline"></div>' +
             '<div class="btn-row mt-4">' + actionHtml + '</div>';
 
-        Ui.limitList(root.querySelector('[data-history]'), 10);   // đội lâu năm có hàng trăm giải
+        // Đội lâu năm có hàng trăm giải: tìm theo tên giải + phân trang 10 giải/trang.
+        Ui.listPager(root.querySelector('[data-history]'), {
+            items: team.tournamentHistory || [], render: historyRow, pageSize: 10, listClass: 'row g-3',
+            text: function (h) { return h.tournamentName + ' ' + tourStatusLabel(h.tournamentStatus); },
+            placeholder: 'Tìm giải đội đã tham gia...'
+        });
         if (window.TeamMatches) TeamMatches.load(document.getElementById('team-matches'), team.teamId, isCaptain);
         if (window.TeamDiscipline) TeamDiscipline.load(document.getElementById('team-discipline'), team.teamId);
 

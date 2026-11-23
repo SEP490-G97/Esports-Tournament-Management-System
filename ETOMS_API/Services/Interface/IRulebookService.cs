@@ -16,4 +16,7 @@ public interface IRulebookService
 
     Task<Result<RulebookSavedDto>> SaveRulebookAsync(int tournamentId, SaveRulebookRequest request, int organizerAccountId);
     Task<Result<string>> UploadRulebookPdfAsync(int tournamentId, IFormFile? file, int organizerAccountId, string webRootPath);
+
+    // Thể lệ mẫu đầy đủ theo cấu hình giải và luật của tựa game (Utils/RulebookTemplate).
+    Task<Result<string>> BuildTemplateAsync(int tournamentId);
 }

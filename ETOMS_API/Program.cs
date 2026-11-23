@@ -1,15 +1,12 @@
 using ETOMS_API.Middleware;
-using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Impl;
 using ETOMS_API.Repositories.Interface;
-using ETOMS_API.Services;
 using ETOMS_API.Services.Impl;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MySql.Data.MySqlClient;
 using System.Text;
@@ -146,6 +143,18 @@ builder.Services.AddSwaggerGen();
 // (MySQL 15.135.76.150) nên mỗi round-trip mạng tốn ~1s, cache giúp các lượt tải lại
 // trong vài chục giây không phải hỏi DB nữa.
 builder.Services.AddMemoryCache();
+
+// Nén phản hồi (Brotli/Gzip): JSON danh sách, HTML, CSS, JS nhỏ đi 4–8 lần khi máy chủ không chạy cùng máy người xem.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+    options.MimeTypes = Microsoft.AspNetCore.ResponseCompression.ResponseCompressionDefaults.MimeTypes
+        .Concat(new[] { "image/svg+xml", "application/problem+json" });
+});
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Fastest);
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Fastest);
 
 // Session (phục vụ stub đăng nhập demo — thay khi có AUTH thật).
 builder.Services.AddHttpContextAccessor();
@@ -318,13 +327,11 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
     app.Lifetime.ApplicationStarted.Register(() => _ = Task.Run(() => SharedFiles.BackfillAsync(stopping)));
 }
 
+// Không nén phản hồi của /auth (chứa token): tránh kiểu tấn công đoán bí mật qua độ dài bản nén (BREACH).
+app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/auth"), branch => branch.UseResponseCompression());
 app.UseDefaultFiles();
-// .glb (model 3D rồng trang chủ) không có trong bảng MIME mặc định → thiếu dòng này là 404.
-var staticTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
-staticTypes.Mappings[".glb"] = "model/gltf-binary";
 app.UseStaticFiles(new StaticFileOptions
 {
-    ContentTypeProvider = staticTypes,
     // Trang .html không có ?v= như CSS/JS: thiếu Cache-Control thì trình duyệt tự giữ bản cũ một thời gian
     // (người dùng vẫn thấy giao diện trước khi sửa). "no-cache" = vẫn lưu nhưng luôn hỏi lại máy chủ
     // (ETag/Last-Modified) trước khi dùng, nên chỉ tốn một yêu cầu 304 nhẹ khi file không đổi.
@@ -336,6 +343,12 @@ app.UseStaticFiles(new StaticFileOptions
         // mỗi lần chuyển trang (mỗi trang ~8 tệp).
         else if (ctx.Context.Request.Query.ContainsKey("v"))
             ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        // Ảnh tải lên có tên ngẫu nhiên (đổi ảnh = tên mới) → giữ 7 ngày; ảnh tĩnh của web (có thể bị thay cùng tên) giữ 1 giờ.
+        // Trước đây không có Cache-Control nên mỗi trang danh sách (logo đội, nhà tài trợ…) lại hỏi lại máy chủ.
+        else if (ctx.Context.Request.Path.StartsWithSegments("/uploads"))
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=604800";
+        else if (ctx.Context.Request.Path.StartsWithSegments("/images"))
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=3600";
     }
 });
 app.UseHttpsRedirection();

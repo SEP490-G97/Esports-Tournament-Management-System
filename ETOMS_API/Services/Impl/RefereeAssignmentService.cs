@@ -1,6 +1,5 @@
 using ETOMS_API.DTOs.Tournament;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -279,7 +278,7 @@ public class RefereeAssignmentService : IRefereeAssignmentService
         var now = DateTime.UtcNow;
 
         if (referee.NotifyInApp)
-            await AddNotificationAsync(referee.AccountId, $"Bạn được gán làm trọng tài trận {label} của giải {tournament.Name}.", now);
+            await AddNotificationAsync(referee.AccountId, $"Bạn được gán làm trọng tài trận {label} của giải {tournament.Name}.", match.MatchId, now);
 
         var teamIds = new[] { match.TeamAid, match.TeamBid };
         var captains = await _uow.Repository<Team>().Query()
@@ -289,16 +288,17 @@ public class RefereeAssignmentService : IRefereeAssignmentService
             .ToListAsync();
 
         foreach (var captainId in captains.Where(id => id != referee.AccountId))
-            await AddNotificationAsync(captainId, $"Trận {label} của giải {tournament.Name} do {referee.FullName} làm trọng tài.", now);
+            await AddNotificationAsync(captainId, $"Trận {label} của giải {tournament.Name} do {referee.FullName} làm trọng tài.", match.MatchId, now);
     }
 
-    private Task AddNotificationAsync(int accountId, string body, DateTime now)
+    private Task AddNotificationAsync(int accountId, string body, int matchId, DateTime now)
         => _uow.Repository<Notification>().AddAsync(new Notification
         {
             AccountId = accountId,
             NotificationType = "SYSTEM",
             Title = "Phân công trọng tài",
             Body = body,
+            LinkUrl = "/match/detail.html?id=" + matchId,   // bấm thông báo mở thẳng trang trận
             Channel = "IN_APP",
             IsRead = false,
             SentAt = now

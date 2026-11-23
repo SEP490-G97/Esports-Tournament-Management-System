@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace ETOMS_API.Models;
+﻿namespace ETOMS_API.Models;
 
 // Khớp bảng MatchChatMessage trên DB chung (bảng đã đổi cấu trúc ngày 17/11): Body, SenderRole, TeamID.
 public partial class MatchChatMessage

@@ -14,14 +14,19 @@ window.TeamDiscipline = (function () {
         try {
             var list = ((await Api.get('/api/teams/' + teamId + '/penalties')) || {}).penalties || [];
             if (!list.length) { container.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có thẻ phạt</h3><p>Đội chưa bị cấp thẻ phạt ở giải nào.</p></div></div>'; return; }
-            container.innerHTML = '<div class="d-grid gap-2">' + list.map(function (p) {
-                var note = p.cancelsPenaltyId ? ' · hủy thẻ #' + p.cancelsPenaltyId
-                    : p.cancelledByPenaltyId ? ' · đã hủy (dòng #' + p.cancelledByPenaltyId + ')' : '';
-                return '<div class="member-card' + (p.status === 'CANCELLED' ? ' opacity-75' : '') + '">' +
-                    '<div class="grow min-w-0"><div class="nm">#' + p.penaltyId + ' · ' + esc(p.severityLabel) + (p.points ? ' · ' + p.points + ' điểm' : '') + '</div>' +
-                    '<div class="rl"><a href="/bracket/view.html?id=' + Number(p.tournamentId) + '">' + esc(p.tournamentName) + '</a> · ' + when(p.issuedAt) + ' · ' + esc(p.statusLabel) + note + '</div>' +
-                    '<div>' + esc(p.reason) + '</div></div></div>';
-            }).join('') + '</div>';
+            // Mọi thẻ phạt ở mọi giải: tìm theo giải / lý do + phân trang 10 thẻ/trang.
+            Ui.listPager(container, {
+                items: list, pageSize: 10, listClass: 'd-grid gap-2', placeholder: 'Tìm thẻ phạt theo giải, lý do...',
+                text: function (p) { return p.tournamentName + ' ' + p.reason + ' ' + p.severityLabel + ' ' + p.statusLabel; },
+                render: function (p) {
+                    var note = p.cancelsPenaltyId ? ' · hủy thẻ #' + p.cancelsPenaltyId
+                        : p.cancelledByPenaltyId ? ' · đã hủy (dòng #' + p.cancelledByPenaltyId + ')' : '';
+                    return '<div class="member-card' + (p.status === 'CANCELLED' ? ' opacity-75' : '') + '">' +
+                        '<div class="grow min-w-0"><div class="nm">#' + p.penaltyId + ' · ' + esc(p.severityLabel) + (p.points ? ' · ' + p.points + ' điểm' : '') + '</div>' +
+                        '<div class="rl"><a href="/bracket/view.html?id=' + Number(p.tournamentId) + '">' + esc(p.tournamentName) + '</a> · ' + when(p.issuedAt) + ' · ' + esc(p.statusLabel) + note + '</div>' +
+                        '<div>' + esc(p.reason) + '</div></div></div>';
+                }
+            });
         } catch (e) {
             container.innerHTML = '<p class="hint">Không tải được hồ sơ kỷ luật của đội.</p>';
         }

@@ -242,7 +242,7 @@ public class LiveService : ILiveService
 
     public async Task<Result<LiveStreamDto>> CreateStreamAsync(int tournamentId, int actorAccountId, SaveLivestreamRequest request)
     {
-        var (t, error) = await LoadForStreamManageAsync(tournamentId, actorAccountId);
+        var (_, error) = await LoadForStreamManageAsync(tournamentId, actorAccountId);
         if (error is not null) return error;
 
         var (fields, fieldError) = await ValidateStreamAsync(tournamentId, null, request);

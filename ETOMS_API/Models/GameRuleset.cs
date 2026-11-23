@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace ETOMS_API.Models;
 
 // GRL-01. Viết tay trước khi bảng GameRuleset có trong database; đặt tên theo đúng quy ước scaffold

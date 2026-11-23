@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using ETOMS_API.Models;
 using Microsoft.EntityFrameworkCore;
 

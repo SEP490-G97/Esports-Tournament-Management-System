@@ -22,10 +22,16 @@
             ? '<img class="org-logo-large" src="' + Ui.escapeHtml(logoUrl) + '" alt="" />'
             : '<div class="org-logo-large">' + Ui.escapeHtml((org.name || '?').slice(0, 1)) + '</div>';
         var link = websiteUrl ? '<a href="' + Ui.escapeHtml(websiteUrl) + '" target="_blank" rel="noopener noreferrer">' + Ui.escapeHtml(org.websiteUrl) + '</a>' : 'Chưa cung cấp';
-        var tournaments = (org.tournaments || []).map(function (item) {
+        function tournamentRow(item) {
             return '<a class="feature-list-item" href="/bracket/view.html?id=' + Number(item.tournamentId) + '"><div><div class="item-title">' + Ui.escapeHtml(item.name) + '</div><div class="item-sub">' + Ui.escapeHtml(item.statusLabel) + ' · ' + Ui.escapeHtml(Ui.parseUtc(item.startAt).toLocaleDateString('vi-VN')) + '</div></div><span class="muted-copy">Xem →</span></a>';
-        }).join('');
-        root.innerHTML = '<section class="feature-card"><div class="team-hero">' + logo + '<div><h2 class="mb-1">' + Ui.escapeHtml(org.name) + '</h2><div class="team-hero sub">' + (org.parentOrganization ? '<span>Trực thuộc: ' + Ui.escapeHtml(org.parentOrganization) + '</span>' : '') + '<span>' + Ui.escapeHtml(org.contactEmail || 'Chưa có email liên hệ') + '</span></div></div></div>' +
+        }
+        // Đơn vị chưa được duyệt / bị đình chỉ: chỉ thành viên và Admin mở được — ghi rõ để không tưởng là lỗi.
+        var statusNote = org.status && org.status !== 'ACTIVE'
+            ? '<div class="alert alert-warn-etoms org-status-note">Đơn vị đang ở trạng thái <strong>' + Ui.escapeHtml(org.statusLabel || org.status) + '</strong>. ' +
+              (org.status === 'PENDING' ? 'Hồ sơ sẽ hiển thị công khai sau khi Quản trị viên duyệt; hiện chỉ thành viên đơn vị và Quản trị viên xem được.'
+                : 'Hồ sơ không hiển thị công khai; chỉ thành viên đơn vị và Quản trị viên xem được.') + '</div>'
+            : '';
+        root.innerHTML = statusNote + '<section class="feature-card"><div class="team-hero">' + logo + '<div><h2 class="mb-1">' + Ui.escapeHtml(org.name) + '</h2><div class="team-hero sub">' + (org.parentOrganization ? '<span>Trực thuộc: ' + Ui.escapeHtml(org.parentOrganization) + '</span>' : '') + '<span>' + Ui.escapeHtml(org.contactEmail || 'Chưa có email liên hệ') + '</span></div></div></div>' +
             '<p class="mt-4 mb-2">' + Ui.escapeHtml(org.description || 'Đơn vị chưa có mô tả.') + '</p><div class="muted-copy">Website: ' + link + (org.contactPhone ? ' · Điện thoại: ' + Ui.escapeHtml(org.contactPhone) : '') + '</div>' +
             '<nav class="org-public-nav" aria-label="Các nội dung trong hồ sơ"><a href="#organization-reputation">Chỉ số hoạt động</a><a href="#organization-tournaments">Giải đấu</a></nav></section>' +
             // 4 chỉ số chính trên một hàng (trước là 6 ô xếp 2 hàng lệch nhau).
@@ -33,8 +39,13 @@
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Tỷ lệ hoàn thành</div><div class="num">' + Math.round(Number(reputation.completionRate || 0)) + '%</div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Trận có tranh chấp</div><div class="num">' + Number(reputation.disputedMatchCount) + '<small> / ' + Number(reputation.totalMatchCount) + ' trận</small></div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Xử lý tranh chấp trung bình</div><div class="num">' + (reputation.averageDisputeResolutionHours === null ? '—' : Number(reputation.averageDisputeResolutionHours).toFixed(1)) + '<small>' + (reputation.averageDisputeResolutionHours === null ? '' : ' giờ') + '</small></div></div></div></div>' +
-            '<section id="organization-tournaments" class="feature-card mt-4"><h2>Giải đấu của đơn vị</h2>' + (tournaments ? '<div class="feature-list mt-3">' + tournaments + '</div>' : '<p class="muted-copy mt-3">Chưa có giải đấu công khai.</p>') + '</section>';
-        Ui.limitList(root.querySelector('#organization-tournaments .feature-list'), 10);   // đơn vị lớn có hàng trăm giải
+            '<section id="organization-tournaments" class="feature-card mt-4"><h2>Giải đấu của đơn vị</h2><div data-org-tournaments></div></section>';
+        // Đơn vị lớn có hàng trăm giải: tìm theo tên + phân trang 10 giải/trang.
+        Ui.listPager(root.querySelector('[data-org-tournaments]'), {
+            items: org.tournaments || [], render: tournamentRow, pageSize: 10,
+            text: function (item) { return item.name + ' ' + item.statusLabel; },
+            placeholder: 'Tìm giải theo tên hoặc trạng thái...', emptyText: 'Chưa có giải đấu công khai.'
+        });
     }
 
     function renderMembers() {

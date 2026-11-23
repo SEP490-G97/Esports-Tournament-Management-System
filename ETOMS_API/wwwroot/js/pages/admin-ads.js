@@ -85,8 +85,12 @@
             el('banner-list').innerHTML = '<div class="empty"><h3>Chưa có banner nào</h3><p>Bấm "Thêm banner" để đăng banner đầu tiên.</p></div>';
             return;
         }
-        el('banner-list').innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>Ảnh</th><th>Tiêu đề</th><th>Thời gian hiển thị</th><th>Trạng thái</th><th class="text-end">Thao tác</th></tr></thead><tbody>' +
-            banners.map(function (b) {
+        Ui.listPager(el('banner-list'), {
+            items: banners, pageSize: 10, listClass: 'table-wrap',
+            text: function (b) { return b.title + ' ' + (TYPE[b.bannerType] || b.bannerType) + ' ' + ((STATE[b.state] || [b.state])[0]); },
+            placeholder: 'Tìm banner theo tiêu đề, loại...',
+            wrap: function (rows) { return '<table class="data-table"><thead><tr><th>Ảnh</th><th>Tiêu đề</th><th>Thời gian hiển thị</th><th>Trạng thái</th><th class="text-end">Thao tác</th></tr></thead><tbody>' + rows + '</tbody></table>'; },
+            render: function (b) {
                 var s = STATE[b.state] || [b.state, 'badge-soft'];
                 return '<tr><td><img class="banner-thumb" src="' + esc(Ui.safeUrl(b.imageUrl)) + '" alt=""></td>' +
                     '<td><b>' + esc(b.title) + '</b> <span class="badge badge-gold">' + esc(TYPE[b.bannerType] || b.bannerType) + '</span>' +
@@ -98,7 +102,8 @@
                     '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + b.systemBannerId + '">Sửa</button> ' +
                     '<button type="button" class="btn btn-ghost btn-sm" data-toggle="' + b.systemBannerId + '">' + (b.isActive ? 'Tắt' : 'Bật') + '</button> ' +
                     '<button type="button" class="btn btn-ghost btn-sm" data-del="' + b.systemBannerId + '">Xóa</button></td></tr>';
-            }).join('') + '</tbody></table></div>';
+            }
+        });
     }
 
     async function loadBanners() {
@@ -179,13 +184,18 @@
         try {
             var rows = await Api.get('/api/admin/announcements');
             if (!rows.length) { el('ann-list').innerHTML = '<div class="empty"><h3>Chưa gửi thông báo nào</h3></div>'; return; }
-            el('ann-list').innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>Thông báo</th><th>Người nhận</th><th>Kênh</th><th class="text-end">Đã gửi</th><th>Thời gian</th></tr></thead><tbody>' +
-                rows.map(function (a) {
+            Ui.listPager(el('ann-list'), {
+                items: rows, pageSize: 10, listClass: 'table-wrap',
+                text: function (a) { return a.title + ' ' + (a.body || ''); },
+                placeholder: 'Tìm thông báo đã gửi...',
+                wrap: function (html) { return '<table class="data-table"><thead><tr><th>Thông báo</th><th>Người nhận</th><th>Kênh</th><th class="text-end">Đã gửi</th><th>Thời gian</th></tr></thead><tbody>' + html + '</tbody></table>'; },
+                render: function (a) {
                     return '<tr><td><b>' + esc(a.title) + '</b><div class="field-hint">' + esc((a.body || '').slice(0, 120)) + ((a.body || '').length > 120 ? '…' : '') + '</div></td>' +
                         '<td>' + esc(TARGET[a.targetRoles] || a.targetRoles) + '</td><td>' + esc(CHANNEL[a.channel] || a.channel) + '</td>' +
                         '<td class="text-end text-nowrap">' + a.inAppCount + ' trong web<br>' + a.emailCount + ' email</td>' +
                         '<td>' + fmt(a.sentAt) + '<div class="field-hint">' + esc(a.sentBy) + '</div></td></tr>';
-                }).join('') + '</tbody></table></div>';
+                }
+            });
         } catch (err) { el('ann-list').innerHTML = '<div class="empty"><h3>Không tải được lịch sử</h3><p>' + esc(err.message) + '</p></div>'; }
     }
 

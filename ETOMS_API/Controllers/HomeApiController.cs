@@ -2,7 +2,6 @@
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
-using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +17,12 @@ public class HomeApiController : ApiControllerBase
     private const string SummaryCacheKey = "home-summary";
 
     private readonly IUnitOfWork _uow;
-    private readonly ITeamService _teamService;
     private readonly EtomsDbContext _db;
     private readonly IMemoryCache _cache;
 
-    public HomeApiController(IUnitOfWork uow, ITeamService teamService, EtomsDbContext db, IMemoryCache cache)
+    public HomeApiController(IUnitOfWork uow, EtomsDbContext db, IMemoryCache cache)
     {
         _uow = uow;
-        _teamService = teamService;
         _db = db;
         _cache = cache;
     }
@@ -33,14 +30,14 @@ public class HomeApiController : ApiControllerBase
     // Đếm Teams/Players/Tournaments trong 1 round-trip thay vì 3 — database ở xa nên gộp bớt lượt gọi qua lại.
     private sealed record HomeCountsRow(int Teams, int Players, int Tournaments);
 
-    // GET /api/home/summary — cache RAM 30 giây: dữ liệu trang chủ đổi chậm, database ở xa
+    // GET /api/home/summary — cache RAM 60 giây: dữ liệu trang chủ đổi chậm, database ở xa
     // nên lượt tải lại trong 30 giây không cần hỏi DB nữa.
     [HttpGet("summary")]
     public async Task<IActionResult> GetSummary()
     {
         var cached = await _cache.GetOrCreateAsync(SummaryCacheKey, async entry =>
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);   // 7 truy vấn; trang chủ, bảng xếp hạng, hồ sơ đều dùng
             return await BuildSummaryAsync();
         });
         return Ok(cached);

@@ -88,8 +88,11 @@
             var response = await Api.get('/api/home/summary');
             var games = response.games || [];
             if (!games.length) { gameSelect.innerHTML = '<option value="">Chưa có tựa game</option>'; body.innerHTML = row('Chưa có tựa game nào.'); return; }
-            // Lấy mùa của mọi game cùng lúc để ghi chú ngay trong danh sách game nào chưa có giải kết thúc.
-            await Promise.all(games.map(function (g) { return seasonsOf(g.gameId).catch(function () { seasonsByGame[g.gameId] = []; }); }));
+            // Lấy mùa của mọi game trong MỘT lần gọi để ghi chú ngay trong danh sách game nào chưa có giải kết thúc.
+            try {
+                var all = (await Api.get('/api/rankings/seasons/by-game')).data || {};
+                games.forEach(function (g) { seasonsByGame[g.gameId] = all[g.gameId] || all[String(g.gameId)] || []; });
+            } catch (e) { games.forEach(function (g) { seasonsByGame[g.gameId] = []; }); }
             gameSelect.innerHTML = games.map(function (game) {
                 var none = !(seasonsByGame[game.gameId] || []).length;
                 return '<option value="' + game.gameId + '">' + Ui.escapeHtml(game.title) + (none ? ' — chưa có giải kết thúc' : '') + '</option>';

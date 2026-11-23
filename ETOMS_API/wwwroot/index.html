@@ -9,21 +9,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=ux-20261123" />
+    <link rel="stylesheet" href="/css/site.css?v=fb7-20261123" />
 </head>
 <body>
+    <div class="home-crown" aria-hidden="true"></div>
     <div id="site-header"></div>
 
     <main class="container-etoms">
         <div id="ticker-root"></div>
 
-        <section class="fullbleed hero" id="heroCarousel">
+        <section class="fullbleed hero hero-3d-on" id="heroCarousel">
             <div class="hero-slide active" style="background-image:url('/images/hero.jpg')"></div>
-            <div class="hero-slide" style="background-image:url('/images/hero2.jpg')"></div>
-            <div class="hero-slide" style="background-image:url('/images/hero3.jpg')"></div>
+            <div class="hero-slide" data-bg="/images/hero2.jpg"></div>
+            <div class="hero-slide" data-bg="/images/hero3.jpg"></div>
             <div class="hero-scrim"></div>
-            <!-- Rồng bay 3D (home-hero3d.js). Không có WebGL hoặc bật "giảm chuyển động" thì canvas để trống. -->
-            <canvas id="hero-3d" aria-hidden="true" data-model="/models/dragon.glb" data-forward="z" data-size="5"></canvas>
             <div class="hero-dots">
                 <button type="button" class="active" data-slide="0" aria-label="Ảnh 1"></button>
                 <button type="button" data-slide="1" aria-label="Ảnh 2"></button>
@@ -104,13 +103,13 @@
             <div class="wrap row g-4">
                 <div class="col-12 col-lg-5 foot-brand">
                     <div class="brand"><span class="mark">ET</span><span class="txt"><b>ETOMS</b><span>Esports Platform</span></span></div>
-                    <p>Nền tảng tổ chức và vận hành giải đấu thể thao điện tử. SEP490 — FPT University.</p>
+                    <p>Nền tảng tổ chức và vận hành giải đấu thể thao điện tử.</p>
                 </div>
                 <div class="col-6 col-lg-2"><h4>Giải đấu</h4><a href="/tournament/index.html">Danh sách giải</a><a href="/rankings/index.html">Bảng xếp hạng</a><a href="/tournament-setup/index.html" data-hide-roles="GUEST PLAYER ADMIN">Tổ chức giải</a></div>
                 <div class="col-6 col-lg-2"><h4>Cộng đồng</h4><a href="/team/index.html">Đội tuyển</a><a href="/team/join.html" data-hide-roles="ORGANIZER ADMIN">Gia nhập đội</a></div>
                 <div class="col-6 col-lg-2"><h4><a href="/contact.html" class="foot-head-link">Hỗ trợ</a></h4><a href="/terms.html">Điều khoản</a><a href="/privacy.html">Bảo mật</a><a href="/contact.html">Liên hệ</a></div>
             </div>
-            <div class="foot-bottom wrap">© 2026 ETOMS · SEP490_G97 · Nền tảng quản lý giải đấu E-Sports</div>
+            <div class="foot-bottom wrap">© 2026 ETOMS · Nền tảng quản lý giải đấu thể thao điện tử</div>
         </footer>
     </main>
 
@@ -118,12 +117,10 @@
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=form-20261118"></script>
-    <script src="/js/ui.js?v=ux-20261123"></script>
-    <script src="/js/layout.js?v=ux-20261123"></script>
-    <script src="/js/pages/home.js?v=ux-20261123" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
-    <script src="/js/pages/home-hero3d.js?v=dragon-20261116d" defer></script>
+    <script src="/js/ui.js?v=fb-20261123"></script>
+    <script src="/js/layout.js?v=fb2-20261123"></script>
+    <script src="/js/pages/home.js?v=perf-20261123" defer></script>
+    <script src="/js/pages/home-hero3d.js?v=tilt-20261123" defer></script>
+    <script src="/js/pages/home-dragon.js?v=mist3-20261123" defer></script>
 </body>
 </html>

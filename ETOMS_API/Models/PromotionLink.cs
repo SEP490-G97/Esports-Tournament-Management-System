@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace ETOMS_API.Models;
+﻿namespace ETOMS_API.Models;
 
 public partial class PromotionLink
 {

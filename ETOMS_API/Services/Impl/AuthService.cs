@@ -1,5 +1,4 @@
-﻿using ETOMS_API.DTOs.Auth;
-using ETOMS_API.Models;
+﻿using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -84,6 +83,7 @@ namespace ETOMS_API.Services.Impl
                     NotifyInApp = true,   // mặc định bật như lược đồ (EF ghi giá trị thật, không để DB tự điền)
                     NotifyEmail = true,
                 };
+                WelcomeNotification.AddTo(acc);   // tài khoản Google mới: chào mừng ngay (email đã được Google xác minh)
                 await accounts.AddAsync(acc, ct);
             }
             else if (acc.GoogleSubjectId is null)

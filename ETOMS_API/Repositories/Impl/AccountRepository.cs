@@ -1,8 +1,6 @@
-﻿using ETOMS_API.DTOs.Auth;
-using ETOMS_API.Models;
+﻿using ETOMS_API.Models;
 using ETOMS_API.Repositories.Interface;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Principal;
 using static ETOMS_API.DTOs.Auth.AuthDtos;
 
 namespace ETOMS_API.Repositories.Impl

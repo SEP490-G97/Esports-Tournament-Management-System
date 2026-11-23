@@ -10,7 +10,7 @@ public interface IOrganizationService
     Task<Result<OrganizationDocumentResponse>> UploadDocumentAsync(int organizationId, string documentType, IFormFile file, int uploaderAccountId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<OrganizationReviewResponse>>> GetReviewQueueAsync(CancellationToken cancellationToken);
     Task<Result<OrganizationReviewResponse>> ReviewAsync(int organizationId, ReviewOrganizationRequest request, int reviewerAccountId, CancellationToken cancellationToken);
-    Task<Result<PublicOrganizationResponse>> GetPublicProfileAsync(int organizationId, CancellationToken cancellationToken);
+    Task<Result<PublicOrganizationResponse>> GetPublicProfileAsync(int organizationId, int? viewerAccountId, bool viewerIsAdmin, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<PublicOrganizationResponse>>> GetPublicOrganizationsAsync(CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<OrganizationMemberResponse>>> GetMembersAsync(int organizationId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<MyOrganizationResponse>>> GetMyOrganizationsAsync(int accountId, CancellationToken cancellationToken);

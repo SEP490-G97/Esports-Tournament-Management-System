@@ -9,6 +9,11 @@
     var hasSavedContent = false;
     var isDraft = false;
 
+    async function loadTemplate() {
+        try { return (await Api.get('/api/tournaments/' + tournamentId + '/rulebook/template')).data || null; }
+        catch (err) { return null; }
+    }
+
     function showEmpty(title, message, linkHtml) {
         document.getElementById('rulebook-root').innerHTML =
             '<div class="card-etoms"><div class="empty"><h3>' + Ui.escapeHtml(title) + '</h3>' +
@@ -126,7 +131,15 @@
         isDraft = rulebook.tournamentStatus === 'DRAFT';
 
         var editor = document.getElementById('editor');
-        editor.innerHTML = rulebook.content || STARTER_TEMPLATE;
+        // Giải chưa có thể lệ: điền sẵn bản mẫu đầy đủ theo tựa game (máy chủ sinh từ cấu hình giải) thay cho 3 tiêu đề trống.
+        editor.innerHTML = rulebook.content || (await loadTemplate()) || STARTER_TEMPLATE;
+        document.getElementById('template-btn').addEventListener('click', async function () {
+            var hasText = (editor.textContent || '').trim().length > 0;
+            if (hasText && !(await window.etomsConfirm('Thay toàn bộ nội dung đang soạn bằng thể lệ mẫu theo tựa game? Nội dung chưa lưu sẽ mất.', { title: 'Dùng thể lệ mẫu', okText: 'Thay nội dung' }))) return;
+            var html = await loadTemplate();
+            if (html) editor.innerHTML = html;
+            else Ui.showAlert(document.getElementById('flash'), 'danger', 'Không tải được thể lệ mẫu. Vui lòng thử lại.');
+        });
         document.getElementById('history-link').href = historyUrl;
         updateVersionLine(rulebook.tournamentName);
 

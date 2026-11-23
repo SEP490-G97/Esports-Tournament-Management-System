@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace ETOMS_API.DTOs.Home;
+﻿namespace ETOMS_API.DTOs.Home;
 
 public class HomeSummaryDto
 {

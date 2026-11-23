@@ -211,7 +211,7 @@
                 return '<button type="button" class="nav-bell-item' + (n.isRead ? '' : ' unread') + '" data-id="' + n.notificationId + '">' +
                     '<span class="t">' + Ui.escapeHtml(n.title || '') + '</span>' +
                     (n.body ? '<span class="b">' + Ui.escapeHtml(n.body) + '</span>' : '') +
-                    '<span class="w">' + when(n.sentAt) + '</span></button>';
+                    '<span class="w">' + when(n.sentAt) + (n.linkUrl ? ' · <span class="go">Mở trang →</span>' : '') + '</span></button>';
             }).join('');
         }
         async function load(reset) {
@@ -258,7 +258,18 @@
                 render();
             }
             // Chỉ mở liên kết nội bộ (bắt đầu bằng một dấu /).
-            if (n.linkUrl && /^\/(?!\/)/.test(n.linkUrl)) location.href = n.linkUrl;
+            if (!n.linkUrl || !/^\/(?!\/)/.test(n.linkUrl)) return;
+            // Đang đứng đúng trang đích (vd trang trận, bấm thông báo chat): chỉ đổi #… thì trình duyệt không tải lại,
+            // nên báo cho trang tự cuộn tới khung tương ứng.
+            var u = new URL(n.linkUrl, location.origin);
+            if (u.pathname === location.pathname && u.search === location.search) {
+                close();
+                if (u.hash && u.hash !== location.hash) location.hash = u.hash;
+                else if (u.hash) window.dispatchEvent(new HashChangeEvent('hashchange'));
+                else location.reload();
+                return;
+            }
+            location.href = n.linkUrl;
         });
 
         poll();
@@ -451,7 +462,7 @@
 
     // Nút "← Quay lại" cho mọi trang chưa có sẵn link quay lại: đi từ trang khác trong web thì về trang
     // trước (giữ bộ lọc/vị trí cuộn), mở thẳng link thì về trang chủ.
-    var NO_BACK = ['/', '/index.html', '/auth/login.html', '/auth/register.html'];
+    var NO_BACK = ['/', '/index.html', '/auth/login.html', '/auth/register.html', '/admin/index.html'];   // trang chủ của khách/người chơi và của Admin
     function injectBackLink() {
         var main = document.querySelector('main');
         if (!main || NO_BACK.indexOf(location.pathname.toLowerCase()) >= 0 || main.querySelector('.back-link')) return;

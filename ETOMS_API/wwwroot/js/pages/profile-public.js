@@ -7,12 +7,12 @@
             root.innerHTML = '<div class="empty"><p>' + Ui.escapeHtml(emptyText) + '</p></div>';
             return;
         }
-        // Lịch sử trận có thể rất dài: hiện 10 mục, bấm "Xem thêm" để mở tiếp.
-        var shown = Math.min(items.length, Number(root.dataset.shown) || 10);
-        root.innerHTML = '<div class="feature-list">' + items.slice(0, shown).map(renderer).join('') + '</div>' +
-            (items.length > shown ? '<div class="btn-row justify-content-center mt-2"><button type="button" class="btn btn-ghost btn-sm" data-list-more>Xem thêm (còn ' + (items.length - shown) + ')</button></div>' : '');
-        var more = root.querySelector('[data-list-more]');
-        if (more) more.addEventListener('click', function () { root.dataset.shown = shown + 10; renderList(root, items, emptyText, renderer); });
+        // Lịch sử trận có thể rất dài: ô tìm kiếm + phân trang 10 mục/trang.
+        Ui.listPager(root, {
+            items: items, render: renderer, pageSize: 10, emptyText: emptyText,
+            text: function (item) { return Object.keys(item).map(function (k) { var v = item[k]; return v !== null && typeof v !== 'object' ? v : ''; }).join(' '); },
+            placeholder: 'Tìm theo tên giải, đội...'
+        });
     }
 
     function renderProfile(profile) {

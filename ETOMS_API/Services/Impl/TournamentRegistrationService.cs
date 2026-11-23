@@ -423,12 +423,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             .Where(item => item.Team.CaptainAccountId == accountId)
             .OrderByDescending(item => item.SubmittedAt)
             .ToListAsync(cancellationToken);
-        var responses = new List<RegistrationResponse>(registrations.Count);
-        foreach (var registration in registrations)
-        {
-            responses.Add(await MapRegistrationAsync(registration, false, cancellationToken));
-        }
-
+        var responses = await MapRegistrationsAsync(registrations, false, cancellationToken);
         return Result.Success<IReadOnlyList<RegistrationResponse>>(responses);
     }
 
@@ -492,11 +487,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             .OrderBy(item => item.Status == "WAITLISTED" ? item.WaitlistPosition : int.MaxValue)
             .ThenBy(item => item.SubmittedAt)
             .ToListAsync(cancellationToken);
-        var responses = new List<RegistrationResponse>(registrations.Count);
-        foreach (var registration in registrations)
-        {
-            responses.Add(await MapRegistrationAsync(registration, true, cancellationToken));
-        }
+        var responses = await MapRegistrationsAsync(registrations, true, cancellationToken);
 
         var occupied = await CountOccupiedSlotsAsync(tournamentId, DateTime.UtcNow, cancellationToken);
         var waitlistCount = await Query<Registration>().CountAsync(
@@ -1628,21 +1619,39 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         Registration registration,
         bool includeIdentityDocumentIds,
         CancellationToken cancellationToken)
+        => (await MapRegistrationsAsync([registration], includeIdentityDocumentIds, cancellationToken))[0];
+
+    // Danh sách đơn: đọc giấy tờ định danh + tên vị trí của MỌI đơn trong 2 truy vấn chung (trước đây mỗi đơn 1–2 truy
+    // vấn riêng — giải 32 đội là hơn 30 lượt đi về database ở xa cho một lần mở trang xét duyệt).
+    private async Task<List<RegistrationResponse>> MapRegistrationsAsync(
+        IReadOnlyList<Registration> registrations,
+        bool includeIdentityDocumentIds,
+        CancellationToken cancellationToken)
     {
-        var accountIds = registration.RegistrationLineups.Select(item => item.AccountId).Distinct().ToArray();
-        var identityDocuments = includeIdentityDocumentIds
-            ? await Query<PlayerCredential>().AsNoTracking()
+        var allLineups = registrations.SelectMany(r => r.RegistrationLineups).ToList();
+        var accountIds = allLineups.Select(item => item.AccountId).Distinct().ToArray();
+        var identityDocuments = includeIdentityDocumentIds && accountIds.Length > 0
+            ? (await Query<PlayerCredential>().AsNoTracking()
                 .Where(item => accountIds.Contains(item.AccountId)
                     && item.CredentialType == IdentityDocumentType
                     && item.FileUrl != null)
                 .Select(item => new { item.AccountId, item.PlayerCredentialId })
-                .ToListAsync(cancellationToken)
-            : [];
+                .ToListAsync(cancellationToken))
+                .ToLookup(item => item.AccountId, item => item.PlayerCredentialId)
+            : Array.Empty<(int AccountId, int PlayerCredentialId)>().ToLookup(item => item.AccountId, item => item.PlayerCredentialId);
         // Tên vị trí đã xếp (bảng GamePosition) — đọc riêng theo mã, không phụ thuộc Include ở từng nơi gọi.
-        var positionIds = registration.RegistrationLineups.Where(item => item.GamePositionId.HasValue).Select(item => item.GamePositionId!.Value).Distinct().ToArray();
+        var positionIds = allLineups.Where(item => item.GamePositionId.HasValue).Select(item => item.GamePositionId!.Value).Distinct().ToArray();
         var positionNames = positionIds.Length == 0 ? new Dictionary<int, string>()
             : await Query<GamePosition>().AsNoTracking().Where(p => positionIds.Contains(p.GamePositionId))
                 .ToDictionaryAsync(p => p.GamePositionId, p => p.Name, cancellationToken);
+        return registrations.Select(r => MapRegistration(r, identityDocuments, positionNames)).ToList();
+    }
+
+    private static RegistrationResponse MapRegistration(
+        Registration registration,
+        ILookup<int, int> identityDocuments,
+        IReadOnlyDictionary<int, string> positionNames)
+    {
         var lineups = registration.RegistrationLineups
             .OrderBy(item => item.Slot == "STARTER" ? 0 : 1)
             .ThenBy(item => item.Account.FullName)
@@ -1651,9 +1660,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 item.Account.FullName,
                 item.Slot,
                 item.InGameNameSnapshot,
-                identityDocuments.Where(document => document.AccountId == item.AccountId)
-                    .Select(document => document.PlayerCredentialId)
-                    .ToArray(),
+                identityDocuments[item.AccountId].ToArray(),
                 item.GamePositionId.HasValue && positionNames.TryGetValue(item.GamePositionId.Value, out var pos) ? pos : null))
             .ToArray();
         var aheadCount = registration.Status == "WAITLISTED" && registration.WaitlistPosition.HasValue

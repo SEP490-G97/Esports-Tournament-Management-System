@@ -64,7 +64,6 @@
         var membersHtml = '<div class="d-grid gap-3 mt-2">' + roster.members.map(function (m) { return memberItemHtml(m, roster); }).join('') + '</div>';
 
         root.innerHTML =
-            '<div class="eyebrow">Quản trị đội · Đội hình</div>' +
             '<div class="page-head"><h1>Quản lý đội hình — ' + Ui.escapeHtml(roster.name) + '</h1>' +
             '<p>Phân loại thành viên chính thức / dự bị theo luật ' + Ui.escapeHtml(roster.gameTitle) + ', loại thành viên hoặc chuyển quyền đội trưởng.</p></div>' +
             lockedAlert + pendingHtml +

@@ -384,17 +384,28 @@ public sealed class OrganizationService : IOrganizationService
 
     public async Task<Result<PublicOrganizationResponse>> GetPublicProfileAsync(
         int organizationId,
+        int? viewerAccountId,
+        bool viewerIsAdmin,
         CancellationToken cancellationToken)
     {
         var organization = await _unitOfWork.Repository<Organization>().Query()
             .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.OrganizationId == organizationId && item.Status == "ACTIVE", cancellationToken);
-        if (organization is null)
+            .FirstOrDefaultAsync(item => item.OrganizationId == organizationId, cancellationToken);
+        // Đơn vị chưa duyệt / bị từ chối / bị đình chỉ không công khai, nhưng thành viên của chính đơn vị đó
+        // (kể cả người đang được mời) và Admin vẫn phải mở được — thanh điều hướng có liên kết tới đơn vị của tôi.
+        var visible = organization is not null && (organization.Status == "ACTIVE" || viewerIsAdmin ||
+            (viewerAccountId is int viewer && await _unitOfWork.Repository<OrganizationMember>().Query()
+                .AnyAsync(m => m.OrganizationId == organizationId && m.AccountId == viewer && m.Status != "REMOVED", cancellationToken)));
+        if (!visible)
         {
             return Result.Failure<PublicOrganizationResponse>("Không tìm thấy đơn vị tổ chức.", StatusCodes.Status404NotFound);
         }
 
-        return Result.Success(await ToPublicResponseAsync(organization, cancellationToken));
+        return Result.Success(await ToPublicResponseAsync(organization!, cancellationToken) with
+        {
+            Status = organization!.Status,
+            StatusLabel = OrganizationStatusLabel(organization.Status)
+        });
     }
 
     public async Task<Result<IReadOnlyList<PublicOrganizationResponse>>> GetPublicOrganizationsAsync(

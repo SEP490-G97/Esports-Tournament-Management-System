@@ -3,6 +3,7 @@ using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ETOMS_API.Controllers;
 
@@ -13,7 +14,8 @@ namespace ETOMS_API.Controllers;
 public sealed class AdminStatsController : ControllerBase
 {
     private readonly EtomsDbContext _db;
-    public AdminStatsController(EtomsDbContext db) => _db = db;
+    private readonly IMemoryCache _cache;
+    public AdminStatsController(EtomsDbContext db, IMemoryCache cache) { _db = db; _cache = cache; }
 
     private static readonly Dictionary<string, string> TournamentStatusLabel = new()
     {
@@ -21,10 +23,23 @@ public sealed class AdminStatsController : ControllerBase
         ["COMPLETED"] = "Đã kết thúc", ["CANCELLED"] = "Đã hủy"
     };
 
+    // 9 truy vấn đếm/gom nhóm (database ở xa ~200ms/lượt) → giữ kết quả 60 giây: trang tổng quan và trang thống kê
+    // của Admin mở lại / chuyển qua lại không phải đếm lại từ đầu. Số liệu thống kê chậm 1 phút là chấp nhận được.
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] int months = 6, CancellationToken ct = default)
     {
         months = Math.Clamp(months, 3, 12);
+        Response.Headers.CacheControl = "no-store";
+        var data = await _cache.GetOrCreateAsync("admin-stats-" + months, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
+            return await BuildAsync(months, ct);
+        });
+        return Ok(data);
+    }
+
+    private async Task<object> BuildAsync(int months, CancellationToken ct)
+    {
         var now = DateTime.UtcNow;
         var from = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(months - 1));
 
@@ -53,8 +68,7 @@ public sealed class AdminStatsController : ControllerBase
             .OrderByDescending(g => g.Count).Take(6).ToListAsync(ct);
 
         int Acc(string role) => accounts.Where(a => a.Role == role).Sum(a => a.Count);
-        Response.Headers.CacheControl = "no-store";
-        return Ok(new
+        return new
         {
             tiles = new
             {
@@ -72,7 +86,7 @@ public sealed class AdminStatsController : ControllerBase
             topGames = topGames.Select(g => new { label = g.Label, count = g.Count }),
             newAccounts = newAccounts.Select(m => new { label = m.Key, count = m.Count }),
             newTournaments = newTournaments.Select(m => new { label = m.Key, count = m.Count }),
-            newRegistrations = newRegistrations.Select(m => new { label = m.Key, count = m.Count })
-        });
+            newRegistrations = newRegistrations.Select(m => new { label = m.Key, count = m.Count }).ToList()
+        };
     }
 }

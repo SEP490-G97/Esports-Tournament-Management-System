@@ -29,7 +29,6 @@
         }
 
         root.innerHTML =
-            '<div class="eyebrow">Quản trị đội · Mã mời</div>' +
             '<div class="page-head"><h1>Mã mời thành viên</h1><p>Mỗi đội có một mã mời đang hiệu lực. Tạo mã mới sẽ thay mã cũ. Có thể đặt thời hạn.</p></div>' +
             '<div class="card-etoms form-narrow"><div class="body">' + currentBlock + '</div></div>' +
             '<div class="card-etoms form-narrow" style="margin-top:20px"><div class="body">' +

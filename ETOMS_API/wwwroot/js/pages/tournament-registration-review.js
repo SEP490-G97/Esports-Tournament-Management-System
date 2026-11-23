@@ -31,27 +31,41 @@
         }).join('');
     }
 
-    async function loadDisciplineHistory(items) {
-        await Promise.all(items.map(async function (item) {
+    // Lịch sử kỷ luật chỉ tải khi Ban tổ chức MỞ mục đó (trước đây tải chi tiết từng đơn ngay khi vào trang và
+    // lặp lại mỗi 30 giây — giải 32 đội là hơn 120 truy vấn database ở xa mỗi lượt). Đã tải thì nhớ lại cho các
+    // lượt làm mới sau.
+    var historyHtml = {};
+    function historyMarkup(history) {
+        return history.length
+            ? history.map(function (penalty) {
+                var severity = { WARNING: 'Cảnh cáo', MINOR: 'Lỗi nhẹ', MAJOR: 'Lỗi nặng', DISQUALIFICATION: 'Tước quyền thi đấu', CANCELLATION: 'Hủy kết quả' }[penalty.severity] || penalty.severity;
+                var state = { ACTIVE: 'Còn hiệu lực', EXPIRED: 'Hết hiệu lực', CANCELLED: 'Đã hủy' }[penalty.status] || penalty.status;
+                return '<div class="item-sub">' + Ui.escapeHtml(penalty.tournamentName) + ' · ' +
+                    Ui.escapeHtml(severity) + ' · ' + Number(penalty.points) + ' điểm · ' +
+                    Ui.escapeHtml(penalty.reason) + ' · ' + Ui.escapeHtml(state) + '</div>';
+            }).join('')
+            : '<div class="item-sub">Không có ghi nhận kỷ luật trước đây.</div>';
+    }
+    function wireDisciplineHistory(items) {
+        items.forEach(function (item) {
             var card = root.querySelector('article[data-registration-id="' + item.registrationId + '"]');
-            if (!card) return;
-            try {
-                var response = await Api.get('/api/tournaments/' + tournamentId + '/registrations/' + item.registrationId);
-                var history = response.data.disciplineHistory || [];
-                card.querySelector('.discipline-history').innerHTML = history.length
-                    ? history.map(function (penalty) {
-                        var severity = { WARNING: 'Cảnh cáo', MINOR: 'Lỗi nhẹ', MAJOR: 'Lỗi nặng', DISQUALIFICATION: 'Tước quyền thi đấu', CANCELLATION: 'Hủy kết quả' }[penalty.severity] || penalty.severity;
-                        var state = { ACTIVE: 'Còn hiệu lực', EXPIRED: 'Hết hiệu lực', CANCELLED: 'Đã hủy' }[penalty.status] || penalty.status;
-                        return '<div class="item-sub">' + Ui.escapeHtml(penalty.tournamentName) + ' · ' +
-                            Ui.escapeHtml(severity) + ' · ' + Number(penalty.points) + ' điểm · ' +
-                            Ui.escapeHtml(penalty.reason) + ' · ' + Ui.escapeHtml(state) + '</div>';
-                    }).join('')
-                    : '<div class="item-sub">Không có ghi nhận kỷ luật trước đây.</div>';
-            } catch (error) {
-                card.querySelector('.discipline-history').textContent =
-                    error.message || 'Không thể tải lịch sử kỷ luật.';
-            }
-        }));
+            var box = card && card.querySelector('.discipline-history');
+            if (!box) return;
+            if (historyHtml[item.registrationId]) { box.innerHTML = historyHtml[item.registrationId]; return; }
+            var details = box.closest('details');
+            details.addEventListener('toggle', async function onOpen() {
+                if (!details.open) return;
+                details.removeEventListener('toggle', onOpen);
+                try {
+                    var response = await Api.get('/api/tournaments/' + tournamentId + '/registrations/' + item.registrationId);
+                    historyHtml[item.registrationId] = historyMarkup(response.data.disciplineHistory || []);
+                    box.innerHTML = historyHtml[item.registrationId];
+                } catch (error) {
+                    box.textContent = error.message || 'Không thể tải lịch sử kỷ luật.';
+                    details.addEventListener('toggle', onOpen);   // cho thử lại lần mở sau
+                }
+            });
+        });
     }
 
     function render(items, summary) {
@@ -87,7 +101,7 @@
         }).join('') : '<div class="card-etoms"><div class="empty"><h3>Không có đơn phù hợp</h3>' +
             '<p>Thử đổi bộ lọc hoặc quay lại sau khi có đội gửi đăng ký.</p></div></div>';
 
-        loadDisciplineHistory(items);
+        wireDisciplineHistory(items);
         // Tiêu chí phân định (BRK-07) không thuộc việc duyệt đơn — cấu hình ở trang Chia nhánh > "Tiêu chí phân định".
         if (window.RegistrationReviewDecisions) {
             window.RegistrationReviewDecisions.render(root, items, context);

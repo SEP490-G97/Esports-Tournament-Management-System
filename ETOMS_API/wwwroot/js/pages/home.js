@@ -82,7 +82,11 @@
         var slides = hero.querySelectorAll('.hero-slide');
         var dots = hero.querySelectorAll('.hero-dots button');
         var current = 0, timer = null;
+        // Ảnh nền 2 và 3 chỉ tải sau khi trang đã hiện xong (trước đây cả 3 ảnh nặng tải cùng lúc khi mở trang).
+        function loadLazy() { slides.forEach(function (s) { if (s.dataset.bg) { s.style.backgroundImage = 'url("' + s.dataset.bg + '")'; delete s.dataset.bg; } }); }
+        if (document.readyState === 'complete') setTimeout(loadLazy, 1500); else window.addEventListener('load', function () { setTimeout(loadLazy, 1500); });
         function show(i) {
+            loadLazy();
             current = (i + slides.length) % slides.length;
             slides.forEach(function (s, idx) { s.classList.toggle('active', idx === current); });
             dots.forEach(function (d, idx) { d.classList.toggle('active', idx === current); });

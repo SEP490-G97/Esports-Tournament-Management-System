@@ -4,6 +4,7 @@
     var esc = function (s) { return Ui.escapeHtml(s == null ? '' : String(s)); };
     var isAdmin = location.pathname.toLowerCase().indexOf('/admin/') === 0;
     var tournamentId = null, page = 1, flash, form, actionsLoaded = false;
+    var PAGE_SIZE = 20;   // 20 dòng/trang: trang nhật ký hệ thống có hàng nghìn dòng
     var OBJECT = {
         ACCOUNT: 'Tài khoản', ORGANIZATION: 'Đơn vị tổ chức', TOURNAMENT: 'Giải đấu', REGISTRATION: 'Đơn đăng ký', MATCH: 'Trận đấu',
         DISPUTE: 'Tranh chấp', TEAM: 'Đội', PENALTY: 'Thẻ phạt', GAME: 'Tựa game', BANNER: 'Biểu ngữ', ANNOUNCEMENT: 'Thông báo hệ thống'
@@ -29,7 +30,7 @@
             if (form.to.value) p.set('to', form.to.value);
         }
         p.set('page', page);
-        p.set('pageSize', 50);
+        p.set('pageSize', PAGE_SIZE);
         return p.toString();
     }
 
@@ -57,8 +58,7 @@
             '<div class="section-title mt-0">' + d.total + ' dòng nhật ký</div>' +
             '<div class="table-responsive"><table class="data-table"><thead><tr><th>Thời điểm</th><th>Thao tác</th><th>Người thực hiện</th>' +
             (isAdmin ? '<th>Giải</th>' : '') + '<th>Lý do / thay đổi</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-            (pages > 1 ? '<div class="btn-row mt-3 align-items-center"><button type="button" class="btn btn-ghost btn-sm" data-page="' + (page - 1) + '"' + (page <= 1 ? ' disabled' : '') + '>Trang trước</button>' +
-                '<span>Trang ' + page + '/' + pages + '</span><button type="button" class="btn btn-ghost btn-sm" data-page="' + (page + 1) + '"' + (page >= pages ? ' disabled' : '') + '>Trang sau</button></div>' : '') +
+            (pages > 1 ? '<div class="hint mt-3 text-center">Trang ' + page + '/' + pages + ' · ' + d.total + ' dòng</div>' : '') + Ui.pagerHtml(page, pages) +
             '</div></section>';
     }
 

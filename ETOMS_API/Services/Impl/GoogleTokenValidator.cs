@@ -1,5 +1,4 @@
-﻿using ETOMS_API.DTOs.Auth;
-using ETOMS_API.Services.Interface;
+﻿using ETOMS_API.Services.Interface;
 using Google.Apis.Auth;
 using static ETOMS_API.DTOs.Auth.AuthDtos;
 

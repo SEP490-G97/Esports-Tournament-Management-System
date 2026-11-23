@@ -1,6 +1,7 @@
 (function () {
     var flash = document.getElementById('organization-flash');
     var organizations = [];
+    var orgPage = 1, ORG_PAGE_SIZE = 12;   // 12 thẻ/trang (lưới 3 cột)
 
     function showFailure(error, fallback) {
         Ui.showAlert(flash, 'danger', (error && error.message) || fallback);
@@ -15,7 +16,9 @@
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>' + title + '</h3><p>' + message + '</p></div></div>';
             return;
         }
-        root.innerHTML = '<div class="row g-3">' + items.map(function (item) {
+        var pages = Math.max(1, Math.ceil(items.length / ORG_PAGE_SIZE));
+        if (orgPage > pages) orgPage = pages;
+        root.innerHTML = '<div class="row g-3">' + items.slice((orgPage - 1) * ORG_PAGE_SIZE, orgPage * ORG_PAGE_SIZE).map(function (item) {
             var logoUrl = Ui.safeUrl(item.logoUrl);
             var logo = logoUrl
                 ? '<img src="' + Ui.escapeHtml(logoUrl) + '" alt="" />'
@@ -26,10 +29,18 @@
                 '<p>' + Ui.escapeHtml(item.description || 'Chưa có mô tả.') + '</p>' +
                 '<div class="org-meta"><span>' + Number(item.reputation.totalTournamentCount) + ' giải</span><span>' + rate + '% hoàn thành</span></div>' +
                 '</a></div>';
-        }).join('') + '</div>';
+        }).join('') + '</div>' + Ui.pagerHtml(orgPage, pages);
+        root.querySelectorAll('[data-page]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                orgPage = parseInt(b.dataset.page, 10);
+                renderOrganizations(items, hasSearch);
+                root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
     }
 
     function applyOrganizationFilters() {
+        orgPage = 1;
         var term = document.getElementById('organization-search').value.trim().toLocaleLowerCase('vi');
         var filtered = organizations.filter(function (item) {
             var matchesName = !term || (item.name || '').toLocaleLowerCase('vi').includes(term);

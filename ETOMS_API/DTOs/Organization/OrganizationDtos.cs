@@ -139,7 +139,9 @@ public sealed record PublicOrganizationResponse(
     string? LogoUrl,
     string? Description,
     IReadOnlyList<OrganizationTournamentResponse> Tournaments,
-    OrganizationReputationResponse Reputation);
+    OrganizationReputationResponse Reputation,
+    string Status = "ACTIVE",
+    string StatusLabel = "Đang hoạt động");
 
 public sealed record OrganizationReviewResponse(
     int OrganizationId,

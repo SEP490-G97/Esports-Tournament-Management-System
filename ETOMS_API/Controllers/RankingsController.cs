@@ -53,6 +53,16 @@ public sealed class RankingsController : ApiControllerBase
         });
     }
 
+    // Mùa giải của MỌI tựa game trong một lần hỏi (trang Bảng xếp hạng trước đây gọi /seasons cho từng game —
+    // 24 game là 24 lượt đi về database ở xa chỉ để ghi chú "chưa có giải kết thúc").
+    [HttpGet("seasons/by-game")]
+    public async Task<IActionResult> GetSeasonsByGame(CancellationToken cancellationToken)
+        => Ok(new
+        {
+            message = "Đã tải danh sách mùa giải.",
+            data = await _rankingService.GetSeasonsByGameAsync(cancellationToken)
+        });
+
     [HttpGet("teams/{teamId:int}")]
     public async Task<IActionResult> GetTeamProfile(int teamId, CancellationToken cancellationToken)
         => FromResult(await _rankingService.GetTeamProfileAsync(teamId, cancellationToken));

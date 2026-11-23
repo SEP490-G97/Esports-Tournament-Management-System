@@ -15,20 +15,25 @@ window.TeamMatches = (function () {
         try {
             var list = (await Api.get('/api/teams/' + teamId + '/upcoming-matches')).data || [];
             if (!list.length) { container.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có trận sắp tới</h3><p>Trận sẽ hiện ở đây khi đội vào nhánh đấu của một giải.</p></div></div>'; return; }
-            container.innerHTML = '<div class="d-grid gap-2">' + list.map(function (m) {
-                // Nút "Điểm danh" chỉ khi cửa sổ điểm danh đang mở (30 phút trước giờ đấu tới đúng giờ đấu); quá giờ thì chỉ "Xem trận".
-                var kick = m.scheduledAt ? Ui.parseUtc(m.scheduledAt).getTime() : null, now = Date.now();
-                var checkInOpen = kick !== null && now >= kick - 30 * 60000 && now < kick;
-                var cta = isCaptain && m.lobbyOpen
-                    ? '<a class="btn btn-primary btn-sm" href="/match/detail.html?id=' + Number(m.matchId) + '#lobby-box">Vào phòng chờ</a>'
-                    : isCaptain && m.status === 'PENDING' && checkInOpen
-                        ? '<a class="btn btn-ghost btn-sm" href="/match/detail.html?id=' + Number(m.matchId) + '">Điểm danh</a>'
-                        : '<a class="btn btn-ghost btn-sm" href="/match/detail.html?id=' + Number(m.matchId) + '">Xem trận</a>';
-                return '<div class="member-card team-match-row">' +
-                    '<div class="grow min-w-0"><div class="nm text-truncate">vs ' + esc(m.opponentName) + '</div>' +
-                    '<div class="rl text-truncate">' + esc(m.tournamentName) + ' · ' + esc(when(m.scheduledAt)) + '</div></div>' +
-                    '<span class="badge ' + (m.status === 'DISPUTED' ? 'badge-danger' : m.lobbyOpen ? 'badge-active' : 'badge-soft') + '">' + esc(m.statusLabel) + '</span>' + cta + '</div>';
-            }).join('') + '</div>';
+            // Đội lâu năm có rất nhiều trận: tìm theo đối thủ / tên giải + phân trang 10 trận/trang.
+            Ui.listPager(container, {
+                items: list, pageSize: 10, listClass: 'd-grid gap-2', placeholder: 'Tìm trận theo đối thủ, tên giải...',
+                text: function (m) { return m.opponentName + ' ' + m.tournamentName + ' ' + m.statusLabel; },
+                render: function (m) {
+                    // Nút "Điểm danh" chỉ khi cửa sổ điểm danh đang mở (30 phút trước giờ đấu tới đúng giờ đấu); quá giờ thì chỉ "Xem trận".
+                    var kick = m.scheduledAt ? Ui.parseUtc(m.scheduledAt).getTime() : null, now = Date.now();
+                    var checkInOpen = kick !== null && now >= kick - 30 * 60000 && now < kick;
+                    var cta = isCaptain && m.lobbyOpen
+                        ? '<a class="btn btn-primary btn-sm" href="/match/detail.html?id=' + Number(m.matchId) + '#lobby-box">Vào phòng chờ</a>'
+                        : isCaptain && m.status === 'PENDING' && checkInOpen
+                            ? '<a class="btn btn-ghost btn-sm" href="/match/detail.html?id=' + Number(m.matchId) + '">Điểm danh</a>'
+                            : '<a class="btn btn-ghost btn-sm" href="/match/detail.html?id=' + Number(m.matchId) + '">Xem trận</a>';
+                    return '<div class="member-card team-match-row">' +
+                        '<div class="grow min-w-0"><div class="nm text-truncate">vs ' + esc(m.opponentName) + '</div>' +
+                        '<div class="rl text-truncate">' + esc(m.tournamentName) + ' · ' + esc(when(m.scheduledAt)) + '</div></div>' +
+                        '<span class="badge ' + (m.status === 'DISPUTED' ? 'badge-danger' : m.lobbyOpen ? 'badge-active' : 'badge-soft') + '">' + esc(m.statusLabel) + '</span>' + cta + '</div>';
+                }
+            });
         } catch (e) {
             container.innerHTML = '<p class="hint">Không tải được lịch thi đấu của đội.</p>';
         }

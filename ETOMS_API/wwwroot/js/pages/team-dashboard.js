@@ -33,7 +33,6 @@
         membersHtml += '</div>';
 
         root.innerHTML =
-            '<div class="eyebrow">Trang quản trị đội · Chỉ đội trưởng</div>' +
             '<div class="card-etoms"><div class="body"><div class="team-hero">' + logo +
             '<div style="flex:1;min-width:240px"><h1 style="font-size:1.6rem">' + Ui.escapeHtml(d.name) + ' <span class="text-muted-etoms fw-bold">[' + Ui.escapeHtml(d.tag) + ']</span></h1>' +
             '<div class="sub"><span>' + Ui.escapeHtml(d.gameTitle) + '</span>' + (d.status === 'ACTIVE' ? '<span class="badge badge-active">Đang hoạt động</span>' : '') + '</div></div>' +

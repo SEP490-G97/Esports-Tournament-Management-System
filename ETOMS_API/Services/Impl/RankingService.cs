@@ -123,6 +123,17 @@ public sealed class RankingService : IRankingService
         return seasons.Select(item => (int)item).ToArray();
     }
 
+    public async Task<IReadOnlyDictionary<int, int[]>> GetSeasonsByGameAsync(CancellationToken cancellationToken)
+    {
+        var rows = await Query<VwLeaderboard>().AsNoTracking()
+            .Where(item => item.Season.HasValue)
+            .Select(item => new { item.GameId, Season = item.Season!.Value })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        return rows.GroupBy(r => r.GameId)
+            .ToDictionary(g => g.Key, g => g.Select(r => (int)r.Season).OrderByDescending(s => s).ToArray());
+    }
+
     public async Task<Result<RankedTeamProfileResponse>> GetTeamProfileAsync(
         int teamId,
         CancellationToken cancellationToken)
@@ -292,16 +303,26 @@ public sealed class RankingService : IRankingService
 
     public async Task FinalizeCompletedTournamentsAsync(CancellationToken cancellationToken)
     {
-        var tournamentIds = await Query<Tournament>().AsNoTracking()
-            .Where(item => item.Status == "COMPLETED")
+        // Chỉ những giải đã kết thúc còn đơn chưa gắn danh hiệu (giải đã gắn xong thì vòng cũ cũng không đổi gì),
+        // và đọc đơn của các giải đó trong MỘT truy vấn — trước đây mỗi 2 phút đọc từng giải một (N+1 lượt đi về
+        // database dùng chung ở xa, nhân với số máy đang chạy worker).
+        var pendingIds = await Query<Registration>().AsNoTracking()
+            .Where(item => item.Tournament.Status == "COMPLETED" && item.Status == "APPROVED" && item.FinalPlacement == "NONE")
             .Select(item => item.TournamentId)
+            .Distinct()
             .ToListAsync(cancellationToken);
-
-        foreach (var tournamentId in tournamentIds)
+        if (pendingIds.Count == 0)
         {
-            var registrations = await Query<Registration>()
-                .Where(item => item.TournamentId == tournamentId && item.Status == "APPROVED")
-                .ToListAsync(cancellationToken);
+            return;
+        }
+        var byTournament = (await Query<Registration>()
+                .Where(item => pendingIds.Contains(item.TournamentId) && item.Status == "APPROVED")
+                .ToListAsync(cancellationToken))
+            .GroupBy(item => item.TournamentId);
+
+        foreach (var group in byTournament)
+        {
+            var registrations = group.ToList();
             if (registrations.Count == 0
                 || registrations.Any(item => !item.FinalRank.HasValue || item.FinalRank.Value < 1)
                 || registrations.Count(item => item.FinalRank == 1) != 1

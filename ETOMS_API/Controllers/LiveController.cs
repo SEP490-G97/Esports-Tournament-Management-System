@@ -1,6 +1,5 @@
 using ETOMS_API.DTOs.Live;
 using ETOMS_API.Services.Interface;
-using ETOMS_API.Utils;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ETOMS_API.Controllers;

@@ -2,6 +2,7 @@ using ETOMS_API.Repositories;
 using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace ETOMS_API.Controllers;
 
@@ -37,8 +38,57 @@ public sealed class NotificationsController : ControllerBase
             .Skip((page - 1) * pageSize).Take(pageSize)
             .Select(n => new { n.NotificationId, n.NotificationType, n.Title, n.Body, n.LinkUrl, n.IsRead, n.SentAt })
             .ToListAsync(ct);
+        // Thông báo ghi trước khi có LinkUrl (hoặc do bản code cũ ghi) thì suy ra trang đích để bấm vào vẫn đi đúng chỗ.
+        var guessed = new Dictionary<int, string?>();
+        foreach (var n in items.Where(n => string.IsNullOrEmpty(n.LinkUrl)))
+            guessed[n.NotificationId] = await GuessLinkAsync(id, n.Title, n.Body, ct);
+        var result = items.Select(n => new
+        {
+            n.NotificationId, n.NotificationType, n.Title, n.Body,
+            LinkUrl = string.IsNullOrEmpty(n.LinkUrl) ? guessed.GetValueOrDefault(n.NotificationId) : n.LinkUrl,
+            n.IsRead, n.SentAt
+        });
         Response.Headers.CacheControl = "no-store";
-        return Ok(new { total, unread, page, pageSize, items });
+        return Ok(new { total, unread, page, pageSize, items = result });
+    }
+
+    private const string Tbd = "Chờ xác định";
+    private static readonly Regex RefereeBody = new(@"[Tt]rận (?<a>.+?) vs (?<b>.+?) của giải (?<t>.+?)(?: do .+ làm trọng tài)?\.$", RegexOptions.Compiled);
+    private static readonly Regex ChangedBody = new(@"^Ban tổ chức giải (?<t>.+?) vừa thay đổi", RegexOptions.Compiled);
+
+    // Chỉ dựa vào dữ liệu người nhận được thấy: trận mình làm trọng tài hoặc đội mình làm đội trưởng.
+    private async Task<string?> GuessLinkAsync(int me, string title, string? body, CancellationToken ct)
+    {
+        body ??= "";
+        if (title == "Phân công trọng tài" && RefereeBody.Match(body) is { Success: true } m)
+        {
+            var tName = m.Groups["t"].Value;
+            string a = m.Groups["a"].Value, b = m.Groups["b"].Value;
+            var tourIds = await _db.Tournaments.AsNoTracking().Where(t => t.Name == tName).Select(t => t.TournamentId).ToListAsync(ct);
+            if (tourIds.Count == 0) return body.StartsWith("Bạn được gán") ? "/referee/index.html" : null;
+            var cands = await _db.Matches.AsNoTracking()
+                .Where(x => tourIds.Contains(x.TournamentId)
+                    && (x.RefereeAccountId == me || (x.TeamA != null && x.TeamA.CaptainAccountId == me) || (x.TeamB != null && x.TeamB.CaptainAccountId == me)))
+                .OrderBy(x => x.MatchId)
+                .Select(x => new { x.MatchId, x.TournamentId, A = x.TeamA != null ? x.TeamA.Name : null, B = x.TeamB != null ? x.TeamB.Name : null })
+                .ToListAsync(ct);
+            // Khớp đúng tên hai đội; "Chờ xác định" lúc gửi có thể đã thành đội thật nên khớp lỏng nếu không có cái đúng.
+            bool Exact(string? name, string want) => want == Tbd ? name == null : name == want;
+            bool Loose(string? name, string want) => want == Tbd || name == want;
+            var exact = cands.Where(x => Exact(x.A, a) && Exact(x.B, b)).ToList();
+            var loose = cands.Where(x => Loose(x.A, a) && Loose(x.B, b)).ToList();
+            var pick = exact.Count == 1 ? exact[0] : loose.Count == 1 ? loose[0] : null;
+            if (pick != null) return "/match/detail.html?id=" + pick.MatchId;
+            return body.StartsWith("Bạn được gán") ? "/referee/index.html" : "/tournament/schedule.html?id=" + tourIds[0];
+        }
+        if (title == "Giải thay đổi thông tin" && ChangedBody.Match(body) is { Success: true } c)
+        {
+            var tName = c.Groups["t"].Value;
+            var tid = await _db.Tournaments.AsNoTracking().Where(t => t.Name == tName).Select(t => (int?)t.TournamentId).FirstOrDefaultAsync(ct);
+            return tid is int x ? "/bracket/view.html?id=" + x : null;
+        }
+        if (title == "Lời mời vào ban tổ chức") return "/organization/index.html?mine=1";
+        return null;
     }
 
     [HttpGet("unread-count")]

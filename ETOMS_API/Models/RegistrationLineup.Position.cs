@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace ETOMS_API.Models;
 
 // GRL-04. Cột GamePositionID chưa có trong bảng RegistrationLineup của database chung.

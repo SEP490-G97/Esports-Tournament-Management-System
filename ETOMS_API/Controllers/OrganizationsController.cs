@@ -33,7 +33,7 @@ public sealed class OrganizationsController : ApiControllerBase
 
     [HttpGet("{organizationId:int}")]
     public async Task<IActionResult> GetPublicProfile(int organizationId, CancellationToken cancellationToken)
-        => FromResult(await _organizationService.GetPublicProfileAsync(organizationId, cancellationToken));
+        => FromResult(await _organizationService.GetPublicProfileAsync(organizationId, _currentUser.UserId, User.IsInRole(ETOMS_API.Utils.AccountRoles.Admin), cancellationToken));
 
     [HttpPost]
     public async Task<IActionResult> CreateOrganization(

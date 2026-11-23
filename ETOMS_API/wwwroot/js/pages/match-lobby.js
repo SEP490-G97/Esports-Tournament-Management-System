@@ -137,11 +137,25 @@ window.MatchLobby = (function () {
         renderShell();
         if (draft) document.getElementById('lobby-input').value = draft;
         refresh().then(function () {
-            // Đến từ nút "Vào phòng chờ" ở trang đội (#lobby-box): phòng chờ vẽ sau khi tải nên phải tự cuộn tới.
-            if (location.hash === '#lobby-box' && !mount.scrolled) { mount.scrolled = true; box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+            // Đến từ nút "Vào phòng chờ" ở trang đội hoặc bấm thông báo tin nhắn (#lobby-box): phòng chờ vẽ sau khi
+            // tải nên phải tự cuộn tới.
+            if (location.hash === '#lobby-box' && !mount.scrolled) { mount.scrolled = true; goToChat(); }
         });
         loop();
     }
+
+    // Cuộn tới khung chat, kéo xuống tin mới nhất, đặt con trỏ vào ô nhập và nháy viền để mắt bắt được.
+    function goToChat() {
+        if (!box || !document.body.contains(box)) return;
+        var card = box.closest('.card-etoms') || box;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var list = document.getElementById('lobby-list');
+        if (list) list.scrollTop = list.scrollHeight;
+        var input = document.getElementById('lobby-input');
+        if (input && !input.disabled) { try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); } }
+        card.classList.remove('lobby-flash'); void card.offsetWidth; card.classList.add('lobby-flash');
+    }
+    window.addEventListener('hashchange', function () { if (location.hash === '#lobby-box') goToChat(); });
 
     return { mount: mount };
 })();

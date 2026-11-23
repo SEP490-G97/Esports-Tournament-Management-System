@@ -1,6 +1,5 @@
 using ETOMS_API.DTOs.Bracket;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -173,6 +172,7 @@ public class ThirdPlaceService : IThirdPlaceService
                     NotificationType = "SYSTEM",
                     Title = "Trận tranh hạng Ba",
                     Body = $"Đội {c.Name} vào trận tranh hạng Ba của giải {t.Name}.",
+                    LinkUrl = "/bracket/view.html?id=" + t.TournamentId,
                     Channel = "IN_APP",
                     IsRead = false,
                     SentAt = now

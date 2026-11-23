@@ -1,5 +1,6 @@
 using ETOMS_API.DTOs.Match;
 using ETOMS_API.Models;
+using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -415,6 +416,7 @@ public class MatchOpsService : IMatchOpsService
         };
         await _uow.Repository<MatchChatMessage>().AddAsync(msg);
         await _uow.SaveChangesAsync();
+        await NotifyNewChatAsync(ctx, senderAccountId);
         return Result<ChatMessageDto>.Success(new ChatMessageDto
         {
             MatchChatMessageId = msg.MatchChatMessageId,
@@ -425,6 +427,37 @@ public class MatchOpsService : IMatchOpsService
             SenderRoleLabel = RoleLabel(ctx.Role, ctx.Match),
             IsMine = true
         }, "Đã gửi tin nhắn.");
+    }
+
+    // Góp ý 23/11 mục 14: có tin nhắn mới thì người còn lại trong phòng chờ thấy trên chuông, bấm vào mở thẳng khung chat.
+    // Mỗi người chỉ giữ MỘT thông báo chưa đọc cho mỗi trận (không sinh một thông báo cho từng tin), và không gửi
+    // email cho từng tin nhắn — chỉ hiện trong web, theo cài đặt "nhận thông báo trong web" của người nhận.
+    private const string ChatNotificationTitle = "Tin nhắn mới trong phòng chờ";
+    private async Task NotifyNewChatAsync(LobbyContext ctx, int senderAccountId)
+    {
+        var m = ctx.Match;
+        var link = "/match/detail.html?id=" + m.MatchId + "#lobby-box";
+        var targets = new[] { ctx.CaptainA, ctx.CaptainB, m.RefereeAccountId, m.Tournament.OrganizerAccountId }
+            .Where(id => id is > 0 && id != senderAccountId).Select(id => id!.Value).Distinct().ToList();
+        if (targets.Count == 0) return;
+        var skip = await _uow.Repository<Notification>().Query().AsNoTracking()
+            .Where(n => targets.Contains(n.AccountId) && n.LinkUrl == link && !n.IsRead)
+            .Select(n => n.AccountId).ToListAsync();
+        var recipients = await _uow.Repository<Account>().Query().AsNoTracking()
+            .Where(a => targets.Contains(a.AccountId) && !skip.Contains(a.AccountId) && a.NotifyInApp)
+            .Select(a => a.AccountId).ToListAsync();
+        if (recipients.Count == 0) return;
+        var sender = await _uow.Repository<Account>().Query().AsNoTracking()
+            .Where(a => a.AccountId == senderAccountId).Select(a => a.FullName).FirstOrDefaultAsync();
+        var now = DateTime.UtcNow;
+        foreach (var to in recipients)
+            await _uow.Repository<Notification>().AddAsync(new Notification
+            {
+                AccountId = to, NotificationType = "SYSTEM", Title = ChatNotificationTitle,
+                Body = $"{sender} vừa nhắn trong phòng chờ trận #{m.MatchId}.",
+                LinkUrl = link, Channel = "IN_APP", IsRead = false, SentAt = now
+            });
+        using (NotificationEmailInterceptor.Suppress()) await _uow.SaveChangesAsync();
     }
 
     // UC-25 A2: báo cáo tin nhắn xúc phạm — gửi thông báo cho Ban tổ chức + trọng tài (có thể phạt qua UC-34).

@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using ETOMS_API.DTOs.TournamentSetup;
+﻿using ETOMS_API.DTOs.TournamentSetup;
 using ETOMS_API.Models;
 using ETOMS_API.Repositories;
 using ETOMS_API.Services.Interface;

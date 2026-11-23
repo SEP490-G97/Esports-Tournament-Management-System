@@ -78,6 +78,7 @@ namespace ETOMS_API.Services.Impl
                 NotifyInApp = true,
                 NotifyEmail = true
             };
+            if (activateNow) WelcomeNotification.AddTo(account);   // không có bước xác minh nên chào ngay
             _db.Accounts.Add(account);
 
             try { await _db.SaveChangesAsync(ct); }
@@ -105,7 +106,10 @@ namespace ETOMS_API.Services.Impl
             account.EmailVerifiedAt ??= DateTime.UtcNow;
             // Tài khoản BANNED giữ nguyên trạng thái, chỉ PENDING_VERIFY mới được nâng lên ACTIVE.
             if (account.Status == AccountStatuses.PendingVerify)
+            {
                 account.Status = AccountStatuses.Active;
+                WelcomeNotification.AddTo(account);   // lần kích hoạt đầu tiên: lời chào trong web + email
+            }
 
             await _db.SaveChangesAsync(ct);
             return SecurityResult.Success();

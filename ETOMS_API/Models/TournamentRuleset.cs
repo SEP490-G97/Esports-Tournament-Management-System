@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace ETOMS_API.Models;
 
 // GRL-06. Bộ luật mà giải đã chọn, tách bảng riêng để không thêm cột vào Tournament.

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace ETOMS_API.Models;
 
 // GRL-03. Vị trí trong đội thuộc một bộ luật. Viết tay trước khi bảng GamePosition có trong database;

@@ -158,8 +158,71 @@ var Ui = (function () {
         apply();
     }
 
+    // Thanh số trang dùng chung: ‹ Trước 1 … 4 5 6 … 20 Sau ›. Nút mang data-page để trang tự bắt sự kiện.
+    function pagerHtml(page, totalPages) {
+        if (totalPages <= 1) return '';
+        function btn(p, label, disabled, active) {
+            return '<button type="button" class="btn ' + (active ? 'btn-primary' : 'btn-ghost') + ' btn-sm" data-page="' + p + '"' +
+                (disabled ? ' disabled' : '') + (active ? ' aria-current="page"' : '') + '>' + label + '</button>';
+        }
+        var html = btn(page - 1, '‹ Trước', page <= 1, false);
+        for (var p = 1; p <= totalPages; p++) {
+            if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) html += btn(p, String(p), false, p === page);
+            else if (Math.abs(p - page) === 2) html += '<span class="hint px-1">…</span>';
+        }
+        html += btn(page + 1, 'Sau ›', page >= totalPages, false);
+        return '<nav class="pager" aria-label="Phân trang">' + html + '</nav>';
+    }
+
+    // Danh sách dài phía trình duyệt: ô tìm kiếm + phân trang số. Dùng cho danh sách đã tải hết một lần
+    // (giải của đơn vị, lịch sử đội, lịch sử trận...). opts: items, render(item) -> html, text(item) -> chuỗi để tìm,
+    // pageSize (mặc định 10), placeholder, emptyText, listClass (mặc định feature-list),
+    // wrap(rowsHtml) -> html (bảng: bọc <table>), after(bodyEl) gọi sau mỗi lần vẽ để gắn sự kiện.
+    function listPager(root, opts) {
+        if (!root) return;
+        var items = opts.items || [];
+        var size = opts.pageSize || 10;
+        var page = 1, keyword = '';
+        if (!items.length) { root.innerHTML = '<p class="muted-copy mt-3">' + escapeHtml(opts.emptyText || 'Chưa có dữ liệu.') + '</p>'; return; }
+        var searchable = items.length > size && typeof opts.text === 'function';
+        root.innerHTML = (searchable ? '<div class="list-search"><input type="search" class="input" maxlength="100" placeholder="' +
+            escapeHtml(opts.placeholder || 'Tìm trong danh sách...') + '" aria-label="' + escapeHtml(opts.placeholder || 'Tìm trong danh sách') + '" /></div>' : '') +
+            '<div class="' + (opts.listClass || 'feature-list') + ' mt-3" data-list-body></div><div data-list-pager></div>';
+        var body = root.querySelector('[data-list-body]');
+        var pager = root.querySelector('[data-list-pager]');
+        // Bỏ dấu tiếng Việt để gõ "giai mua he" vẫn tìm ra "Giải mùa hè": tách dấu (NFD) rồi bỏ các ký tự dấu U+0300..U+036F.
+        function norm(s) {
+            var t = String(s || '').normalize('NFD'), out = '';
+            for (var i = 0; i < t.length; i++) {
+                var c = t.charCodeAt(i);
+                if (c < 0x300 || c > 0x36f) out += t.charAt(i);
+            }
+            return out.replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+        }
+        function draw() {
+            var k = norm(keyword.trim());
+            var list = k ? items.filter(function (it) { return norm(opts.text(it)).indexOf(k) >= 0; }) : items;
+            var pages = Math.max(1, Math.ceil(list.length / size));
+            if (page > pages) page = pages;
+            var rows = list.slice((page - 1) * size, page * size).map(opts.render).join('');
+            body.innerHTML = list.length ? (opts.wrap ? opts.wrap(rows) : rows)
+                : '<p class="muted-copy">Không có mục nào khớp "' + escapeHtml(keyword.trim()) + '".</p>';
+            pager.innerHTML = (list.length > size ? '<div class="hint mt-2">' + list.length + ' mục · trang ' + page + '/' + pages + '</div>' : '') + pagerHtml(page, pages);
+            if (opts.after) opts.after(body);   // gắn lại sự kiện cho các nút trong trang vừa vẽ
+        }
+        pager.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-page]');
+            if (!b || b.disabled) return;
+            page = parseInt(b.dataset.page, 10); draw();
+            root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        var input = root.querySelector('.list-search input');
+        if (input) input.addEventListener('input', function () { keyword = input.value; page = 1; draw(); });
+        draw();
+    }
+
     return {
-        parseUtc: parseUtc, fmtDateTime: fmtDateTime, limitList: limitList,
+        parseUtc: parseUtc, fmtDateTime: fmtDateTime, limitList: limitList, pagerHtml: pagerHtml, listPager: listPager,
         escapeHtml: escapeHtml, safeUrl: safeUrl, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
         applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth, currentUser: currentUser,
         setFlash: setFlash, consumeFlash: consumeFlash

@@ -110,6 +110,7 @@ public class TournamentCancelService : ITournamentCancelService
                 Title = "Giải đấu đã bị hủy",
                 Body = $"Giải {t.Name} đã bị hủy. Lý do: {reason}" +
                        (paid ? " Ban tổ chức sẽ liên hệ để hoàn lệ phí đội đã nộp; việc hoàn tiền thực hiện ngoài ETOMS." : string.Empty),
+                LinkUrl = "/bracket/view.html?id=" + t.TournamentId,
                 Channel = "IN_APP",
                 IsRead = false,
                 SentAt = now

@@ -2,7 +2,6 @@ using System.Data.Common;
 using System.Text.RegularExpressions;
 using ETOMS_API.DTOs.Tournament;
 using ETOMS_API.Models;
-using ETOMS_API.Repositories;
 using ETOMS_API.Repositories.Interface;
 using ETOMS_API.Services.Interface;
 using ETOMS_API.Utils;
@@ -364,6 +363,7 @@ public class TournamentSettingsService : ITournamentSettingsService
                 NotificationType = "SYSTEM",
                 Title = "Giải thay đổi thông tin",
                 Body = $"Ban tổ chức giải {t.Name} vừa thay đổi {what}. Khai mạc lúc {Vn(t.StartAt)}, đóng đăng ký lúc {Vn(t.RegCloseAt)}.",
+                LinkUrl = "/bracket/view.html?id=" + t.TournamentId,
                 Channel = "IN_APP",
                 IsRead = false,
                 SentAt = now

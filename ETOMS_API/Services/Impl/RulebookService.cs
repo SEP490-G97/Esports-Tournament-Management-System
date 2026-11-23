@@ -200,6 +200,26 @@ public class RulebookService : IRulebookService
             "Lưu thông tin thành công.");
     }
 
+
+    public async Task<Result<string>> BuildTemplateAsync(int tournamentId)
+    {
+        var tournament = await _uow.Repository<Tournament>().Query().AsNoTracking()
+            .Include(t => t.Game).FirstOrDefaultAsync(t => t.TournamentId == tournamentId);
+        if (tournament is null) return Result<string>.Failure("Không tìm thấy giải đấu.");
+
+        // Bộ luật đã gắn cho giải; giải chưa gắn thì lấy bộ luật đang dùng của tựa game.
+        var rulesetId = await _uow.Repository<TournamentRuleset>().Query().AsNoTracking()
+            .Where(r => r.TournamentId == tournamentId).Select(r => (int?)r.GameRulesetId).FirstOrDefaultAsync()
+            ?? await _uow.Repository<GameRuleset>().Query().AsNoTracking()
+                .Where(r => r.GameId == tournament.GameId && r.Status == "ACTIVE")
+                .OrderBy(r => r.GameRulesetId).Select(r => (int?)r.GameRulesetId).FirstOrDefaultAsync();
+        var maps = rulesetId is null ? new List<string>() : await _uow.Repository<GameMap>().Query().AsNoTracking()
+            .Where(m => m.GameRulesetId == rulesetId && m.Status == "ACTIVE").OrderBy(m => m.Name).Select(m => m.Name).ToListAsync();
+        var positions = rulesetId is null ? new List<string>() : await _uow.Repository<GamePosition>().Query().AsNoTracking()
+            .Where(p => p.GameRulesetId == rulesetId && p.Status == "ACTIVE").OrderBy(p => p.SortOrder).Select(p => p.Name).ToListAsync();
+
+        return Result<string>.Success(RichTextSanitizer.Sanitize(RulebookTemplate.Build(tournament, tournament.Game, maps, positions)));
+    }
     private static bool IsEditable(Tournament t) => t.Status != "COMPLETED" && t.Status != "CANCELLED";
 
     // Trang hiển thị dùng innerHTML, mà cột này còn được ghi từ dữ liệu mẫu và chức năng tạo giải.

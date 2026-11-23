@@ -9,74 +9,43 @@
         return null;
     }
 
-    var TILES = [
+    // Góp ý 23/11: các ô lối tắt trùng hệ menu quản trị phía trên và làm trang dài, tràn trên màn hình nhỏ.
+    // Chỉ giữ 2 việc CẦN Admin xử lý ở dạng thẻ; phần còn lại thu về một hàng số liệu nhỏ.
+    var TASKS = [
         {
-            key: 'orgreq', overline: 'Chờ cấp quyền', title: 'Đơn xin làm Ban tổ chức', primaryWhenPositive: true,
-            text: 'Tuyển thủ xin làm Ban tổ chức (UC-43). Duyệt = cấp một tài khoản Ban tổ chức riêng, không có đội.',
-            href: '#organizer-requests', action: 'Xem đơn',
+            key: 'orgreq', title: 'Đơn xin làm Ban tổ chức', href: '#organizer-requests', action: 'Xem đơn',
+            text: 'Duyệt = cấp một tài khoản Ban tổ chức riêng, không có đội.',
             url: '/api/admin/organizer-requests', pick: count
         },
         {
-            key: 'review', overline: 'Chờ xét duyệt', title: 'Hồ sơ đơn vị tổ chức', primaryWhenPositive: true,
-            text: 'Duyệt hoặc từ chối hồ sơ đăng ký đơn vị (ORG-02). Từ chối phải ghi lý do.',
-            href: '/organization/index.html#review-section', action: 'Mở hàng chờ duyệt',
+            key: 'review', title: 'Hồ sơ đơn vị chờ duyệt', href: '/organization/index.html#review-section', action: 'Mở hàng chờ duyệt',
+            text: 'Duyệt hoặc từ chối hồ sơ đăng ký đơn vị; từ chối phải ghi lý do.',
             url: '/api/organizations/review-queue', pick: count
-        },
+        }
+    ];
+    var STATS = [
+        { key: 'accounts', label: 'Tài khoản', href: '/admin/user.html', url: '/api/admin/accounts?page=1&pageSize=1', pick: function (d) { return d && typeof d.total === 'number' ? d.total : null; } },
+        { key: 'stats', label: 'Giải đấu', href: '/admin/stats.html', url: '/api/admin/stats?months=3', pick: function (d) { return d && d.tiles ? d.tiles.tournaments : null; } },
+        { key: 'news', label: 'Tin tức', href: '/admin/news.html', url: '/api/admin/news', pick: count },
+        { key: 'ads', label: 'Banner', href: '/admin/ads.html', url: '/api/admin/banners', pick: count },
+        { key: 'games', label: 'Tựa game', href: '/admin/games.html', url: '/api/admin/games', pick: count },
         {
-            key: 'accounts', overline: 'Tài khoản', title: 'Quản lý tài khoản',
-            text: 'Tìm kiếm, lọc theo vai trò / trạng thái, khóa và mở khóa tài khoản (ADM-01/02).',
-            href: '/admin/user.html', action: 'Quản lý tài khoản',
-            url: '/api/admin/accounts?page=1&pageSize=1', pick: function (d) { return d && typeof d.total === 'number' ? d.total : null; }
-        },
-        {
-            key: 'stats', overline: 'Thống kê', title: 'Thống kê hệ thống',
-            text: 'Số tài khoản, đội, giải đấu, đơn đăng ký và trận đấu; biểu đồ theo tháng và theo tựa game.',
-            href: '/admin/stats.html', action: 'Xem thống kê',
-            url: '/api/admin/stats?months=3', pick: function (d) { return d && d.tiles ? d.tiles.tournaments : null; }
-        },
-        {
-            key: 'ads', overline: 'Quảng cáo', title: 'Banner & thông báo hệ thống',
-            text: 'Đăng banner sự kiện, quà tặng ở trang chủ và gửi thông báo tới mọi tài khoản theo vai trò.',
-            href: '/admin/ads.html', action: 'Quản lý quảng cáo',
-            url: '/api/admin/banners', pick: count
-        },
-        {
-            key: 'news', overline: 'Tin tức', title: 'Tin tức ETOMS',
-            text: 'Viết, ghim, ẩn tin của ETOMS hiện ở trang chủ và trang Tin tức.',
-            href: '/admin/news.html', action: 'Quản lý tin tức',
-            url: '/api/admin/news', pick: count
-        },
-        {
-            key: 'games', overline: 'Danh mục', title: 'Tựa game & luật mặc định',
-            text: 'Thêm, sửa, ngừng tựa game và luật đội hình mặc định (số người, thể thức, loại tệp minh chứng).',
-            href: '/admin/games.html', action: 'Quản lý tựa game',
-            url: '/api/admin/games', pick: count
-        },
-        {
-            key: 'rules', overline: 'Luật thi đấu', title: 'Bộ luật theo tựa game',
-            text: 'Quản lý bộ luật, bản đồ và vị trí cho từng game (GRL-01..03).',
-            href: '/admin/game-rules.html', action: 'Quản lý bộ luật',
-            url: '/api/game-rules', pick: function (d) {
+            key: 'rules', label: 'Bộ luật', href: '/admin/game-rules.html', url: '/api/game-rules', pick: function (d) {
                 var games = d && d.games ? d.games : [];
                 return games.reduce(function (sum, g) { return sum + (g.rulesets ? g.rulesets.length : 0); }, 0);
             }
-        },
-        {
-            key: 'orgs', overline: 'Đơn vị', title: 'Đơn vị tổ chức',
-            text: 'Danh sách công khai các đơn vị tổ chức giải và điểm uy tín.',
-            href: '/organization/index.html', action: 'Xem danh sách'
         }
-        // Bỏ ô "Đội tuyển": Admin chỉ dùng khu quản trị, trang đội tuyển là trang của người chơi.
     ];
 
-    function tile(t) {
-        return '<div class="card-etoms admin-tile" data-tile="' + t.key + '">' +
-            '<span class="profile-overline">' + Ui.escapeHtml(t.overline) + '</span>' +
-            (t.url ? '<div class="num">…</div>' : '') +
-            '<h2>' + Ui.escapeHtml(t.title) + '</h2>' +
-            '<p>' + Ui.escapeHtml(t.text) + '</p>' +
-            '<a class="btn btn-ghost btn-sm" href="' + t.href + '">' + Ui.escapeHtml(t.action) + '</a>' +
-            '</div>';
+    function taskCard(t) {
+        return '<div class="card-etoms admin-task" data-tile="' + t.key + '">' +
+            '<div class="num">…</div><div class="admin-task-body"><h2>' + Ui.escapeHtml(t.title) + '</h2>' +
+            '<p>' + Ui.escapeHtml(t.text) + '</p></div>' +
+            '<a class="btn btn-ghost btn-sm" href="' + t.href + '">' + Ui.escapeHtml(t.action) + '</a></div>';
+    }
+
+    function statChip(s) {
+        return '<a class="admin-stat" data-tile="' + s.key + '" href="' + s.href + '"><span class="num">…</span><span>' + Ui.escapeHtml(s.label) + '</span></a>';
     }
 
     async function fill(t) {
@@ -87,7 +56,9 @@
             value = t.pick(res.data !== undefined ? res.data : res);
         } catch (e) { value = null; }
         box.querySelector('.num').textContent = value === null || value === undefined ? '—' : String(value);
-        if (t.primaryWhenPositive && value > 0) {
+        // Việc đang chờ thì làm nổi thẻ + nút để Admin thấy ngay.
+        if (box.classList.contains('admin-task') && value > 0) {
+            box.classList.add('has-work');
             var btn = box.querySelector('.btn');
             btn.classList.remove('btn-ghost');
             btn.classList.add('btn-primary');
@@ -203,12 +174,14 @@
         var me = await Ui.requireAuth(['ADMIN']);
         if (!me) return;
 
-        document.getElementById('admin-root').innerHTML = '<div class="admin-grid">' + TILES.map(tile).join('') + '</div>' +
+        document.getElementById('admin-root').innerHTML =
+            '<div class="section-title mt-0">Việc cần xử lý</div><div class="admin-tasks">' + TASKS.map(taskCard).join('') + '</div>' +
+            '<nav class="admin-stats" aria-label="Số liệu nhanh">' + STATS.map(statChip).join('') + '</nav>' +
             '<section id="organizer-requests" class="mt-4" aria-labelledby="orq-title">' +
             '<div class="section-title" id="orq-title">Đơn xin làm Ban tổ chức</div>' +
             '<div class="section-sub">Duyệt đơn = tạo một tài khoản Ban tổ chức RIÊNG (email khác, không có đội). Tài khoản tuyển thủ của người xin giữ nguyên đội.</div>' +
             '<div id="organizer-requests-list" class="d-grid gap-3"><div class="hint">Đang tải…</div></div></section>';
-        TILES.filter(function (t) { return t.url; }).forEach(fill);
+        TASKS.concat(STATS).forEach(fill);
         await loadRequests();
         if (location.hash === '#organizer-requests') document.getElementById('organizer-requests').scrollIntoView({ block: 'start' });
     });

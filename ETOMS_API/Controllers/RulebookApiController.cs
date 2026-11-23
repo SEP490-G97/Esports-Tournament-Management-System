@@ -1,5 +1,4 @@
 using ETOMS_API.DTOs.Tournament;
-using ETOMS_API.Services;
 using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 
@@ -45,6 +44,20 @@ public class RulebookApiController : ApiControllerBase
         if (isOrganizer == false) return StatusCode(403);
 
         return FromResult(await _rulebookService.SaveRulebookAsync(tournamentId, request, _currentUser.UserId.Value));
+    }
+
+    // GET /api/tournaments/{id}/rulebook/template — bản thể lệ mẫu sinh từ cấu hình giải + luật của tựa game
+    // (góp ý 23/11 mục 8). Chỉ Ban tổ chức của giải; trang Soạn thể lệ dùng làm bản nháp.
+    [HttpGet("template")]
+    public async Task<IActionResult> GetTemplate(int tournamentId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+
+        var isOrganizer = await _rulebookService.IsOrganizerAsync(tournamentId, _currentUser.UserId!.Value);
+        if (isOrganizer is null) return NotFound();
+        if (isOrganizer == false) return StatusCode(403);
+
+        return FromResult(await _rulebookService.BuildTemplateAsync(tournamentId));
     }
 
     // POST /api/tournaments/{id}/rulebook/pdf — thể lệ dạng file PDF (≤ 10 MB), chỉ Ban tổ chức của giải.
