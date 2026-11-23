@@ -20,42 +20,116 @@
         render(detail);
     }
 
-    // Góp ý 22/11: "trọng tài chưa thấy nhập tỷ số, chưa thấy đẩy nhánh đi tiếp". Theo LI-01 tỉ số CHỈ vào hệ thống qua
-    // 2 báo cáo mù của 2 đội trưởng (khớp nhau → trận tự xác nhận, đội thắng tự vào vòng sau) hoặc phán quyết tranh chấp
-    // của trọng tài / BTC. Khối này cho mỗi vai trò biết trận đang chờ gì và nút đúng việc của mình.
+    var esc = function (s) { return Ui.escapeHtml(s == null ? '' : String(s)); };
+    function fmtFull(iso) { var t = utc(iso); return t ? t.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : ''; }
+
+    // Phần đầu trang: bảng tỉ số hai đội (logo, tên, điểm danh), tỉ số chính thức hoặc giờ thi đấu ở giữa.
+    function heroHtml(d) {
+        var done = d.status === 'VERIFIED' || d.status === 'WALKOVER';
+        function team(side) {
+            var id = side === 'A' ? d.teamAId : d.teamBId;
+            var name = side === 'A' ? d.teamAName : d.teamBName;
+            var logo = Ui.safeUrl(side === 'A' ? d.teamALogoUrl : d.teamBLogoUrl);
+            var tag = side === 'A' ? d.teamATag : d.teamBTag;
+            var checked = side === 'A' ? d.teamACheckedIn : d.teamBCheckedIn;
+            var win = d.winnerTeamId && d.winnerTeamId === id, lose = d.winnerTeamId && id && d.winnerTeamId !== id;
+            var avatar = logo ? '<img src="' + esc(logo) + '" alt="" />' : '<span>' + esc((name || '?').trim().slice(0, 1).toUpperCase()) + '</span>';
+            var pill = !id ? '<span class="mh-pill">Chờ đội thắng trận trước</span>'
+                : done || d.status === 'CANCELLED' ? (win ? '<span class="mh-pill win">Thắng</span>' : '')
+                : !d.scheduledAt ? ''
+                : checked ? '<span class="mh-pill ok">✓ Đã điểm danh</span>' : '<span class="mh-pill">Chưa điểm danh</span>';
+            var inner = '<div class="mh-logo">' + avatar + '</div><div class="mh-name">' + esc(name) + '</div>' +
+                (tag ? '<div class="mh-tag">' + esc(tag) + '</div>' : '') + pill;
+            return id ? '<a class="mh-team' + (win ? ' is-win' : '') + (lose ? ' is-lose' : '') + '" href="/team/details.html?id=' + Number(id) + '">' + inner + '</a>'
+                : '<div class="mh-team is-tbd">' + inner + '</div>';
+        }
+        var center = done
+            ? '<div class="mh-score"><span class="' + (d.winnerTeamId === d.teamAId ? 'w' : '') + '">' + (d.scoreA ?? '–') + '</span><i>:</i><span class="' + (d.winnerTeamId === d.teamBId ? 'w' : '') + '">' + (d.scoreB ?? '–') + '</span></div>' +
+              '<div class="mh-state">' + (d.status === 'WALKOVER' ? 'Thắng trắng' : 'Kết thúc') + '</div>'
+            : '<div class="mh-vs">VS</div><div class="mh-state' + (d.status === 'LIVE' ? ' live' : '') + '">' +
+              esc(!d.scheduledAt && d.status === 'PENDING' ? 'Chưa xếp lịch' : statusLabel(d.status)) + '</div>' +
+              (d.scheduledAt ? '<div class="mh-time">' + esc(fmtFull(d.scheduledAt)) + '</div>' : '');
+        var meta = ['BO' + Number(d.bestOf)];
+        if (d.gameTitle) meta.unshift(esc(d.gameTitle));
+        if (d.refereeName) meta.push('Trọng tài: ' + esc(d.refereeName));
+        return '<section class="match-hero">' +
+            '<a class="mh-tournament" href="/bracket/view.html?id=' + Number(d.tournamentId) + '">← ' + esc(d.tournamentName || 'Về giải đấu') + '</a>' +
+            '<h1 class="visually-hidden">' + esc(d.teamAName) + ' đấu với ' + esc(d.teamBName) + '</h1>' +
+            '<div class="mh-board">' + team('A') + '<div class="mh-center">' + center + '</div>' + team('B') + '</div>' +
+            '<div class="mh-meta">' + meta.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div>' +
+            stepsHtml(d) + '</section>';
+    }
+
+    // Tiến trình trận: Lên lịch → Điểm danh → Thi đấu → Xác nhận kết quả.
+    function stepsHtml(d) {
+        if (d.status === 'CANCELLED') return '<div class="mh-cancelled">' + (d.awaitingDecision ? 'Kết quả bị hủy sau tranh chấp — chờ Ban tổ chức xử lý.' : 'Trận đã bị hủy.') + '</div>';
+        var both = d.teamAId && d.teamBId;
+        var stage = !both ? 0
+            : d.status === 'PENDING' ? (d.scheduledAt ? 1 : 0)
+            : d.status === 'READY' ? 2
+            : d.status === 'LIVE' ? 2
+            : d.status === 'WAITING_REPORT' || d.status === 'DISPUTED' ? 3 : 4;
+        var steps = ['Xếp lịch', 'Điểm danh', 'Thi đấu', 'Xác nhận kết quả'];
+        return '<ol class="mh-steps">' + steps.map(function (s, i) {
+            var cls = i < stage ? 'done' : i === stage ? (d.status === 'DISPUTED' && i === 3 ? 'warn' : 'now') : '';
+            return '<li class="' + cls + '"><span class="dot"></span>' + s + '</li>';
+        }).join('') + '</ol>';
+    }
+
+    // Khối kết quả viết cho người dùng cuối: mỗi vai trò chỉ thấy điều cần biết và nút việc của mình.
+    // (Tỉ số chính thức chỉ vào qua 2 báo cáo của 2 đội trưởng hoặc phán quyết tranh chấp — LI-01.)
     function resultCardHtml(d) {
         var done = d.status === 'VERIFIED' || d.status === 'WALKOVER';
         var open = ['PENDING', 'READY', 'LIVE', 'WAITING_REPORT'].indexOf(d.status) >= 0;
         var bothTeams = d.teamAId && d.teamBId;
-        var chip = function (ok, name) {
-            return '<span class="badge ' + (ok ? 'badge-active' : 'badge-soft') + '">' + Ui.escapeHtml(name) + ': ' + (ok ? 'đã nộp' : 'chưa nộp') + '</span>';
-        };
-        var body = '';
+        var mine = d.myCaptainTeamId, myReported = mine && (mine === d.teamAId ? d.teamAReported : d.teamBReported);
+        var icon = '', title = '', text = '', actions = '';
         if (done) {
-            body = '<p class="mb-1">Tỉ số chung cuộc: <b>' + Ui.escapeHtml(d.teamAName) + ' ' + (d.scoreA ?? '–') + ' – ' + (d.scoreB ?? '–') + ' ' + Ui.escapeHtml(d.teamBName) + '</b>' +
-                (d.status === 'WALKOVER' ? ' (thắng trắng)' : '') + '.</p><p class="hint mb-0">Đội thắng đã được đưa vào trận tiếp theo của nhánh đấu.</p>';
+            var winner = d.winnerTeamId === d.teamAId ? d.teamAName : d.teamBName;
+            icon = '🏆'; title = winner + ' thắng' + (d.status === 'WALKOVER' ? ' (thắng trắng)' : ' ' + (d.scoreA ?? '–') + ' – ' + (d.scoreB ?? '–'));
+            text = 'Kết quả đã được xác nhận. ' + esc(winner) + ' đi tiếp vào trận sau của nhánh đấu.';
+            actions = '<a class="btn btn-ghost" href="/bracket/view.html?id=' + Number(d.tournamentId) + '">Xem nhánh đấu</a>';
+        } else if (d.status === 'CANCELLED' && d.awaitingDecision) {
+            // Kết quả bị hủy sau phán quyết tranh chấp: nhánh dừng ở trận này cho tới khi BTC xử thắng / tước quyền / cho đấu lại.
+            icon = '⚖️'; title = 'Kết quả trận đã bị hủy sau tranh chấp';
+            text = d.canManage ? 'Nhánh đấu đang dừng ở trận này. Hãy xử thắng trắng cho đội không vi phạm, tước quyền thi đấu của đội vi phạm, hoặc cho hai đội đấu lại — dùng các nút ở mục Công cụ trọng tài & Ban tổ chức bên dưới.'
+                : 'Ban tổ chức đang xử lý kết quả trận này. Đội đi tiếp sẽ được cập nhật vào nhánh đấu ngay khi có quyết định.';
+        } else if (d.status === 'CANCELLED') {
+            icon = '⛔'; title = 'Trận đã hủy'; text = 'Trận này không diễn ra. Xem nhánh đấu để biết lịch các trận còn lại.';
         } else if (!bothTeams) {
-            body = '<p class="hint mb-0">Trận chưa đủ hai đội — chờ kết quả các trận trước. Đội thắng ở trận trước sẽ tự được đưa vào đây.</p>';
+            icon = '⏳'; title = 'Đang chờ xác định đối thủ'; text = 'Đội thắng ở trận trước sẽ tự vào trận này khi có kết quả.';
         } else if (d.openDisputeId) {
-            body = '<p>Hai bản báo cáo không khớp nên trận đang <b>tranh chấp</b>. ' +
-                (d.canManage ? 'Trọng tài / Ban tổ chức xem bằng chứng và ra phán quyết tỉ số; đội thắng sẽ tự vào vòng sau.' : 'Trọng tài đang xem xét bằng chứng.') + '</p>' +
-                '<div class="btn-row">' + (d.canManage ? '<a class="btn btn-primary" href="/result/dispute.html?id=' + d.openDisputeId + '">Xử lý tranh chấp</a>' : '') +
-                (d.myCaptainTeamId ? '<a class="btn btn-ghost" href="/result/evidence.html?matchId=' + d.matchId + '">Bổ sung bằng chứng</a>' : '') + '</div>';
+            icon = '⚖️'; title = 'Kết quả đang được xem xét';
+            text = d.canManage ? 'Báo cáo tỉ số của hai đội không khớp. Hãy xem bằng chứng và ra phán quyết; đội thắng sẽ tự vào vòng sau.'
+                : 'Hai đội báo cáo tỉ số chưa khớp nhau, trọng tài đang xem bằng chứng. Kết quả sẽ cập nhật ngay khi có phán quyết.';
+            actions = (d.canManage ? '<a class="btn btn-primary" href="/result/dispute.html?id=' + d.openDisputeId + '">Xử lý tranh chấp</a>' : '') +
+                (mine ? '<a class="btn btn-ghost" href="/result/evidence.html?matchId=' + d.matchId + '">Bổ sung bằng chứng</a>' : '');
         } else if (open) {
-            body = '<p class="mb-2">Sau trận, <b>mỗi đội trưởng tự báo cáo tỉ số</b> (không thấy báo cáo của đội kia). Hai bản khớp nhau thì trận tự xác nhận và ' +
-                'đội thắng tự vào vòng sau; lệch nhau thì thành tranh chấp để trọng tài phán quyết.</p>' +
-                '<div class="d-flex flex-wrap gap-2 mb-2">' + chip(d.teamAReported, d.teamAName) + chip(d.teamBReported, d.teamBName) + '</div>' +
-                (d.reportDeadlineAt ? '<p class="hint">Hạn báo cáo: ' + new Date(/Z$/.test(d.reportDeadlineAt) ? d.reportDeadlineAt : d.reportDeadlineAt + 'Z').toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) + '. Quá hạn mà chưa đủ hai bản thì trận thành tranh chấp "Quá hạn báo cáo" để trọng tài phán quyết.</p>' : '') +
-                '<div class="btn-row">' +
-                (d.myCaptainTeamId ? '<a class="btn btn-primary" href="/result/submit.html?matchId=' + d.matchId + '">' + ((d.myCaptainTeamId === d.teamAId ? d.teamAReported : d.teamBReported) ? 'Xem báo cáo đội tôi đã nộp' : 'Báo cáo tỉ số') + '</a>' : '') +
-                (d.canManage ? '<a class="btn btn-ghost" href="/result/submit.html?matchId=' + d.matchId + '">Xem tình trạng báo cáo</a>' : '') + '</div>' +
-                (d.isReferee ? '<p class="hint mt-2 mb-0">Bạn là trọng tài trận này: không nhập tỉ số thay đội (LI-01). Việc của trọng tài là điểm danh, phòng đấu, xử lý vi phạm (thắng trắng, tước quyền, thẻ phạt) và phán quyết khi có tranh chấp.</p>' : '');
-        } else {
-            body = '<p class="hint mb-0">Trận đã hủy.</p>';
+            var deadline = d.reportDeadlineAt ? fmtFull(d.reportDeadlineAt) : '';
+            if (mine) {
+                icon = myReported ? '✅' : '📝';
+                title = myReported ? 'Đội bạn đã báo cáo tỉ số' : 'Báo cáo tỉ số sau khi đấu xong';
+                text = myReported ? 'Đang chờ đội bạn kia báo cáo. Hai bên khớp nhau là kết quả được xác nhận ngay.'
+                    : 'Đấu xong, đội trưởng gửi tỉ số kèm ảnh kết quả. Đội bạn kia không xem được tỉ số bạn khai; hai bên khớp nhau là kết quả được xác nhận ngay.';
+                if (deadline) text += ' Hạn báo cáo: ' + deadline + '.';
+                actions = '<a class="btn btn-primary" href="/result/submit.html?matchId=' + d.matchId + '">' + (myReported ? 'Xem báo cáo đã gửi' : 'Báo cáo tỉ số') + '</a>';
+            } else if (d.canManage) {
+                icon = '📋'; title = 'Chờ hai đội báo cáo tỉ số';
+                text = 'Kết quả tự xác nhận khi báo cáo của hai đội khớp nhau; không khớp hoặc quá hạn thì chuyển thành tranh chấp để bạn phán quyết.' + (deadline ? ' Hạn báo cáo: ' + deadline + '.' : '');
+                actions = '<a class="btn btn-ghost" href="/result/submit.html?matchId=' + d.matchId + '">Xem tình trạng báo cáo</a>';
+            } else {
+                icon = '🎮'; title = d.status === 'LIVE' ? 'Trận đang diễn ra' : 'Trận chưa có kết quả';
+                text = 'Kết quả chính thức sẽ hiện ở đây sau khi trận kết thúc và hai đội xác nhận tỉ số.';
+            }
         }
-        return '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Kết quả trận</h3>' +
-            (d.refereeName ? '<p class="hint">Trọng tài: <b>' + Ui.escapeHtml(d.refereeName) + '</b></p>' : '<p class="hint">Trận chưa có trọng tài — Ban tổ chức xử lý.</p>') +
-            body + '</div></div>';
+        var reports = (open && bothTeams && !d.openDisputeId && (mine || d.canManage))
+            ? '<div class="mr-reports">' + [[d.teamAName, d.teamAReported], [d.teamBName, d.teamBReported]].map(function (x) {
+                return '<span class="mr-report' + (x[1] ? ' ok' : '') + '">' + esc(x[0]) + ': ' + (x[1] ? 'đã báo cáo' : 'chưa báo cáo') + '</span>';
+            }).join('') + '</div>' : '';
+        return '<section class="match-result card-etoms' + (done ? ' is-done' : d.openDisputeId ? ' is-dispute' : '') + '"><div class="body">' +
+            '<div class="mr-icon" aria-hidden="true">' + icon + '</div><div class="mr-body"><div class="mr-label">Kết quả trận</div>' +
+            '<h2>' + esc(title) + '</h2><p>' + esc(text) + '</p>' + reports +
+            (actions ? '<div class="btn-row mt-2">' + actions + '</div>' : '') + '</div></div></section>';
     }
 
     function render(d) {
@@ -64,29 +138,21 @@
         // Chưa đủ hai đội (chờ đội thắng trận trước) thì chưa có gì để thay người / bỏ cuộc / nhập phòng.
         var playable = bothTeams && ['PENDING', 'READY', 'LIVE'].indexOf(d.status) >= 0;
         var closed = ['VERIFIED', 'WALKOVER', 'CANCELLED'].indexOf(d.status) >= 0;
-        var html = '' +
-            '<div class="page-head"><h1>' + Ui.escapeHtml(d.teamAName) + ' vs ' + Ui.escapeHtml(d.teamBName) + '</h1>' +
-            '<p>Bo' + d.bestOf + ' · ' + statusLabel(d.status) +
-            (d.scheduledAt ? ' · Lịch: ' + new Date(/Z$|[+-]\d\d:\d\d$/.test(d.scheduledAt) ? d.scheduledAt : d.scheduledAt + 'Z').toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '') + '</p></div>';
-
-        if (d.winnerTeamId) {
-            html += '<div class="alert alert-success">Đội thắng: ' +
-                Ui.escapeHtml(d.winnerTeamId === d.teamAId ? d.teamAName : d.teamBName) + '</div>';
-        }
+        document.title = d.teamAName + ' vs ' + d.teamBName + ' · ETOMS';
+        var html = '<div class="page-head">' + heroHtml(d) + '</div>';
 
         html += resultCardHtml(d);
 
-        html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Điểm danh</h3>' +
-            '<p>' + Ui.escapeHtml(d.teamAName) + ': ' + (d.teamACheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>' +
-            '<p>' + Ui.escapeHtml(d.teamBName) + ': ' + (d.teamBCheckedIn ? '<span class="badge badge-active">Đã điểm danh</span>' : '<span class="badge badge-soft">Chưa</span>') + '</p>' +
-            checkInWindowHtml(d);
-        if (d.canManage && playable) {
-            html += '<div class="btn-row">' +
-                (d.teamACheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="A">Điểm danh thủ công Đội A</button>') +
-                (d.teamBCheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="B">Điểm danh thủ công Đội B</button>') +
-                '</div>';
+        // Điểm danh: trạng thái từng đội đã ở bảng tỉ số; khối này chỉ cho đội trưởng / trọng tài khi còn điểm danh được.
+        var checkIn = checkInWindowHtml(d);
+        var manual = d.canManage && playable && (!d.teamACheckedIn || !d.teamBCheckedIn)
+            ? '<div class="btn-row">' +
+              (d.teamACheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="A">Điểm danh hộ ' + esc(d.teamAName) + '</button>') +
+              (d.teamBCheckedIn ? '' : '<button class="btn btn-ghost" data-act="checkin" data-side="B">Điểm danh hộ ' + esc(d.teamBName) + '</button>') + '</div>'
+            : '';
+        if ((d.myCaptainTeamId || d.canManage) && (checkIn || manual)) {
+            html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Điểm danh</h3>' + checkIn + manual + '</div></div>';
         }
-        html += '</div></div>';
 
         if ((d.canManage || d.myCaptainTeamId) && bothTeams && !(closed && !d.roomCode)) {
             html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Phòng đấu</h3>';
@@ -142,8 +208,8 @@
         }
 
         if (d.canManage) {
-            html += '<div class="card-etoms"><div class="body"><h3>Xử lý trận (BTC/trọng tài)</h3><div class="btn-row">' +
-            (closed || !bothTeams ? '' :
+            html += '<div class="card-etoms"><div class="body"><h3>Công cụ trọng tài &amp; Ban tổ chức</h3><div class="btn-row">' +
+            ((closed && !d.awaitingDecision) || !bothTeams ? '' :
                 '<button class="btn btn-ghost" data-act="walkover" data-winner="' + d.teamAId + '">Thắng trắng cho ' + Ui.escapeHtml(d.teamAName) + '</button>' +
                 '<button class="btn btn-ghost" data-act="walkover" data-winner="' + d.teamBId + '">Thắng trắng cho ' + Ui.escapeHtml(d.teamBName) + '</button>' +
                 '<button class="btn btn-ghost" data-act="rematch">Hủy &amp; đấu lại</button>' +
@@ -163,7 +229,9 @@
         // Tiêu đề trận đặt trên khối Trực tiếp (UC-45/46, match-live.js); phần còn lại ở dưới.
         var headSlot = document.getElementById('match-head');
         var head = root.querySelector('.page-head');
-        if (headSlot && head) headSlot.replaceChildren(head);
+        // Khối kết quả ngay dưới bảng tỉ số, trên khối tỉ số trực tiếp.
+        var result = root.querySelector('.match-result');
+        if (headSlot && head) headSlot.replaceChildren.apply(headSlot, result ? [head, result] : [head]);
         wireActions(d);
         if (d.canManage) loadSubRequests();
         var lobbyBox = document.getElementById('lobby-box');

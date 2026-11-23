@@ -27,7 +27,7 @@ public class MatchOpsService : IMatchOpsService
     public async Task<MatchDetailDto?> GetMatchDetailAsync(int matchId, int? viewerAccountId)
     {
         var match = await _uow.Repository<Match>().Query()
-            .Include(m => m.TeamA).Include(m => m.TeamB).Include(m => m.Tournament)
+            .Include(m => m.TeamA).Include(m => m.TeamB).Include(m => m.Tournament).ThenInclude(t => t.Game)
             .FirstOrDefaultAsync(m => m.MatchId == matchId);
         if (match is null) return null;
 
@@ -63,6 +63,7 @@ public class MatchOpsService : IMatchOpsService
             TeamAReported = match.TeamAid.HasValue && reportedTeams.Contains(match.TeamAid.Value),
             TeamBReported = match.TeamBid.HasValue && reportedTeams.Contains(match.TeamBid.Value),
             OpenDisputeId = openDisputeId,
+            AwaitingDecision = match.Status == "CANCELLED" && match.ResultSource == "VAR_RULING",
             IsReferee = viewerAccountId.HasValue && match.RefereeAccountId == viewerAccountId.Value,
             RefereeName = refereeName,
             ReportDeadlineAt = match.ReportDeadlineAt,
@@ -72,6 +73,12 @@ public class MatchOpsService : IMatchOpsService
             TeamAName = match.TeamA?.Name ?? "Chưa xác định",
             TeamBId = match.TeamBid,
             TeamBName = match.TeamB?.Name ?? "Chưa xác định",
+            TeamALogoUrl = match.TeamA?.LogoUrl,
+            TeamBLogoUrl = match.TeamB?.LogoUrl,
+            TeamATag = match.TeamA?.Tag,
+            TeamBTag = match.TeamB?.Tag,
+            TournamentName = match.Tournament.Name,
+            GameTitle = match.Tournament.Game?.Title,
             BestOf = match.BestOf,
             ScheduledAt = match.ScheduledAt,
             Status = match.Status,
@@ -523,7 +530,8 @@ public class MatchOpsService : IMatchOpsService
         if (match.ManageError is not null) return match.ManageError;
         var m = match.Match!;
 
-        if (m.Status is "VERIFIED" or "CANCELLED" or "WALKOVER")
+        // Trận bị HỦY KẾT QUẢ sau phán quyết tranh chấp (VAR_RULING) vẫn xử tiếp được — không thì nhánh kẹt (mục 15, 23/11).
+        if (m.Status is "VERIFIED" or "WALKOVER" || (m.Status == "CANCELLED" && m.ResultSource != "VAR_RULING"))
             return Result.Failure("Trận đã kết thúc, không thể xử thắng trắng.");
         if (request.WinnerTeamId != m.TeamAid && request.WinnerTeamId != m.TeamBid)
             return Result.FieldFailure(nameof(request.WinnerTeamId), "Đội thắng không thuộc trận này.");
@@ -629,7 +637,7 @@ public class MatchOpsService : IMatchOpsService
 
         if (request.TeamId != m.TeamAid && request.TeamId != m.TeamBid)
             return Result.FieldFailure(nameof(request.TeamId), "Đội không thuộc trận này.");
-        if (m.Status is "VERIFIED" or "CANCELLED" or "WALKOVER")
+        if (m.Status is "VERIFIED" or "WALKOVER" || (m.Status == "CANCELLED" && m.ResultSource != "VAR_RULING"))
             return Result.Failure("Trận đã kết thúc, không thể tước quyền thi đấu.");
 
         var winnerTeamId = request.TeamId == m.TeamAid ? m.TeamBid : m.TeamAid;

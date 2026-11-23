@@ -157,6 +157,24 @@
         });
     }
 
+    // Mốc thời gian: báo lỗi ngay khi chọn giờ (Ui.liveTimeline). Mốc nào người dùng đổi thì không được ở quá khứ;
+    // mốc cũ đã qua (khóa) giữ nguyên. Thứ tự mốc cùng luật với máy chủ (Utils/TournamentTimeline.cs).
+    var timeline = null;
+    function timelineRules(v) {
+        var e = {}, now = Date.now(), HOUR = 3600 * 1000;
+        var changed = function (f) { return timeline && timeline.changed(f); };
+        DATES.forEach(function (f) {
+            if (v[f] && changed(f) && !el(f).disabled && v[f].getTime() <= now) e[f] = 'Không chọn thời gian đã qua.';
+        });
+        var open = v.RegOpenAt, close = v.RegCloseAt, start = v.StartAt, end = v.EndAt;
+        if (!e.RegCloseAt && open && close && close <= open) e.RegCloseAt = 'Đóng đăng ký phải sau mở đăng ký.';
+        else if (!e.RegCloseAt && open && close && (changed('RegOpenAt') || changed('RegCloseAt')) && close - open < 24 * HOUR)
+            e.RegCloseAt = 'Thời gian nhận đăng ký phải kéo dài ít nhất 1 ngày (từ 24 giờ).';
+        if (!e.StartAt && close && start && start - close < HOUR) e.StartAt = 'Khai mạc phải sau đóng đăng ký ít nhất 1 giờ.';
+        if (!e.EndAt && start && end && end <= start) e.EndAt = 'Kết thúc phải sau khai mạc.';
+        return e;
+    }
+
     function render(b) {
         board = b;
         el('page-title').textContent = 'Sửa thông tin · ' + b.values.name;
@@ -167,6 +185,8 @@
         fill(b);
         applyLocks(b);
         syncVisibility();
+        if (!timeline) timeline = Ui.liveTimeline(DATES, timelineRules, { futureOnlyIfChanged: true });
+        timeline.reset();
         mountBanner(b);
         mountRules();
     }
@@ -232,6 +252,11 @@
             e.preventDefault();
             Ui.clearAlert(flash());
             Ui.clearFieldErrors(form);
+            if (timeline && !timeline.check()) {
+                Ui.showAlert(flash(), 'danger', 'Mốc thời gian chưa hợp lệ — xem thông báo đỏ dưới từng ô.');
+                el('RegOpenAt').closest('fieldset').scrollIntoView({ block: 'center' });
+                return;
+            }
             var badBank = bankError();
             if (badBank) {
                 Ui.applyFieldErrors(form, { BankAccountInfo: badBank });

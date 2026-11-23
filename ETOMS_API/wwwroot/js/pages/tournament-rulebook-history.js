@@ -35,15 +35,46 @@
         } catch (err) {
             target.textContent = err.message;
         }
+        buildToc(target);
+    }
+
+    // Mục lục theo các tiêu đề của thể lệ: nội dung hiện đủ chiều dài (không khung cuộn riêng),
+    // mục lục dính bên phải để nhảy nhanh tới mục cần đọc; mục đang đọc được tô sáng.
+    var tocObserver = null;
+    function buildToc(content) {
+        var toc = document.getElementById('rb-toc');
+        if (!toc) return;
+        var heads = Array.prototype.slice.call(content.querySelectorAll('h2, h3'));
+        var layout = toc.parentElement;
+        if (heads.length < 2) { toc.hidden = true; toc.innerHTML = ''; layout.classList.remove('has-toc'); return; }
+        layout.classList.add('has-toc');
+        heads.forEach(function (h, i) { h.id = 'muc-' + (i + 1); });
+        toc.innerHTML = '<div class="rb-toc-title">Mục lục</div><ol>' + heads.map(function (h) {
+            return '<li class="' + (h.tagName === 'H3' ? 'sub' : '') + '"><a href="#' + h.id + '">' + Ui.escapeHtml(h.textContent.trim()) + '</a></li>';
+        }).join('') + '</ol><a class="rb-toc-top" href="#page-title">↑ Lên đầu trang</a>';
+        toc.hidden = false;
+        if (tocObserver) tocObserver.disconnect();
+        if ('IntersectionObserver' in window) {
+            tocObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (en) {
+                    if (!en.isIntersecting) return;
+                    toc.querySelectorAll('a.active').forEach(function (a) { a.classList.remove('active'); });
+                    var link = toc.querySelector('a[href="#' + en.target.id + '"]');
+                    if (link) link.classList.add('active');
+                });
+            }, { rootMargin: '-15% 0px -70% 0px' });
+            heads.forEach(function (h) { tocObserver.observe(h); });
+        }
     }
 
     function render(versions) {
         // Người xem đọc MỘT bản (bản hiện hành); chỉ khi có nhiều phiên bản mới hiện ô chọn để xem bản cũ.
         var newest = versions[0].version;
         document.getElementById('history-root').innerHTML =
-            '<div class="card-etoms"><div class="body">' +
+            '<div class="rb-layout"><div class="card-etoms"><div class="body">' +
             (versions.length > 1 ? '<div class="field rulebook-version-pick">' + selectHtml('version-right', versions, newest) + '</div>' : '') +
-            '<div id="content-right" class="rulebook-content"></div></div></div>';
+            '<div id="content-right" class="rulebook-content rb-page-content"></div></div></div>' +
+            '<nav id="rb-toc" class="rb-toc" aria-label="Mục lục thể lệ" hidden></nav></div>';
         var right = document.getElementById('version-right');
         if (right) right.addEventListener('change', function () { loadInto('content-right', right.value); });
         loadInto('content-right', newest);

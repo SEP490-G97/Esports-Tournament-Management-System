@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=fb8-20261123" />
+    <link rel="stylesheet" href="/css/site.css?v=fb12-20261123" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -20,7 +20,6 @@
                 <h1 id="tournament-name">Đăng ký giải đấu</h1>
                 <p id="tournament-summary">Chọn đội hình, kiểm tra điều kiện và xác nhận thể lệ giải.</p>
             </div>
-            <a class="btn btn-ghost" href="/registration/mine.html">Đơn của đội tôi</a>
         </div>
         <div id="waitlist-note" class="waitlist-note mb-3" role="status" hidden></div>
         <div id="registration-flash" aria-live="polite"></div>
@@ -74,16 +73,14 @@
                             <h2>Biên lai lệ phí</h2>
                             <p class="field-hint" id="payment-proof-hint"></p>
                             <div class="payment-recipient"><strong>Thông tin nhận lệ phí</strong><span id="payment-bank-info"></span></div>
-                            <label for="payment-amount">Lệ phí cần chuyển</label>
-                            <input id="payment-amount" class="input" type="text" readonly aria-describedby="payment-amount-hint" /><span id="payment-amount-hint" class="field-hint">Do Ban tổ chức đặt khi tạo giải; chuyển đúng số này rồi tải biên lai.</span>
-                            <label for="payment-proof" class="mt-3">Ảnh/PDF biên lai <span id="payment-proof-required" class="req" hidden>*</span></label>
+                            <div class="payment-recipient"><strong>Lệ phí cần chuyển</strong><span id="payment-amount" class="payment-amount"></span><small>Do Ban tổ chức đặt khi tạo giải; chuyển đúng số này rồi tải biên lai.</small></div>
+                            <label for="payment-proof">Ảnh/PDF biên lai <span id="payment-proof-required" class="req" hidden>*</span></label>
                             <input id="payment-proof" class="input" type="file" accept=".jpg,.jpeg,.png,.pdf" />
                             <span class="field-hint">JPG, PNG hoặc PDF; tối đa 10 MB.</span>
                         </section>
                         <div class="tournament-registration-actions">
                             <button class="btn btn-primary" type="submit" id="submit-registration">Gửi đơn đăng ký</button>
                             <button class="btn btn-ghost" type="submit" name="saveAsDraft" value="true">Lưu nháp</button>
-                            <a class="registration-cancel-link" href="/registration/mine.html">Đơn của đội tôi</a>
                         </div>
                     </aside>
                 </div>
@@ -92,8 +89,8 @@
     </main>
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=form-20261118"></script>
-    <script src="/js/ui.js?v=fb-20261123"></script>
+    <script src="/js/ui.js?v=af-20261123"></script>
     <script src="/js/layout.js?v=fb2-20261123"></script>
-    <script src="/js/pages/tournament-registration-register.js?v=ux-20261123" defer></script>
+    <script src="/js/pages/tournament-registration-register.js?v=rb3-20261123" defer></script>
 </body>
 </html>

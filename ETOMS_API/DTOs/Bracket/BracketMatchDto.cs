@@ -40,6 +40,9 @@ public class BracketTreeDto
     // Mở khóa được (cùng điều kiện với API unlock): đã khóa, giải chưa kết thúc/hủy, chưa trận nào bắt đầu.
     public bool CanUnlock { get; set; }
     public int ApprovedTeamCount { get; set; }
+    // Luật 23/11: phải có hơn một nửa số suất (TournamentLifecycle.MinTeams) mới sinh được nhánh.
+    public int MaxTeams { get; set; }
+    public int MinTeams { get; set; }
     // UC-20: còn nhận đăng ký thì chưa được sinh nhánh (giao diện khóa nút, máy chủ cũng chặn).
     public DateTime RegCloseAt { get; set; }
     public bool RegistrationStillOpen { get; set; }

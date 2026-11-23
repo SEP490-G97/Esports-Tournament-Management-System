@@ -12,6 +12,13 @@ public class MatchDetailDto
     public string TeamAName { get; set; } = string.Empty;
     public int? TeamBId { get; set; }
     public string TeamBName { get; set; } = string.Empty;
+    // Phần đầu trang trận (bảng tỉ số): logo, tag đội, tên giải, game.
+    public string? TeamALogoUrl { get; set; }
+    public string? TeamBLogoUrl { get; set; }
+    public string? TeamATag { get; set; }
+    public string? TeamBTag { get; set; }
+    public string TournamentName { get; set; } = string.Empty;
+    public string? GameTitle { get; set; }
     public int BestOf { get; set; }
     public DateTime? ScheduledAt { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -38,6 +45,9 @@ public class MatchDetailDto
     public bool TeamAReported { get; set; }
     public bool TeamBReported { get; set; }
     public int? OpenDisputeId { get; set; }
+    // Trận bị hủy kết quả sau phán quyết tranh chấp (VAR_RULING): BTC/trọng tài phải xử thắng cho một đội hoặc cho đấu lại
+    // thì nhánh mới đi tiếp (mục 15, 23/11).
+    public bool AwaitingDecision { get; set; }
     public bool IsReferee { get; set; }
     public string? RefereeName { get; set; }
     public DateTime? ReportDeadlineAt { get; set; }

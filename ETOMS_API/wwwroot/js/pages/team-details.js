@@ -12,23 +12,34 @@
         return { ONGOING: 'Đang diễn ra', COMPLETED: 'Đã kết thúc', PUBLISHED: 'Sắp diễn ra', CANCELLED: 'Đã hủy' }[s] || s;
     }
 
-    function historyHtml(history) {
-        if (!history.length) return '<div class="card-etoms"><div class="empty"><h3>Chưa tham gia giải nào</h3></div></div>';
-        return '<div data-history></div>';
+    // Giải đội đang tham gia (sắp diễn ra / đang diễn ra) tách khỏi "Lịch sử giải đấu" — lịch sử chỉ gồm giải đã
+    // kết thúc, đã hủy hoặc đội đã bị loại (trước đây giải sắp diễn ra lẫn vào lịch sử, kèm nhãn "Đang diễn ra" sai).
+    function isCurrent(h) {
+        return (h.tournamentStatus === 'PUBLISHED' || h.tournamentStatus === 'ONGOING') && h.registrationStatus !== 'DISQUALIFIED';
+    }
+
+    function resultBadge(h) {
+        if (h.registrationStatus === 'DISQUALIFIED') return '<span class="badge badge-danger">Bị tước quyền</span>';
+        if (h.tournamentStatus === 'CANCELLED') return '<span class="badge badge-soft">Giải đã hủy</span>';
+        if (h.tournamentStatus === 'PUBLISHED') return '<span class="badge badge-soft">Sắp diễn ra</span>';
+        if (h.tournamentStatus === 'ONGOING') return '<span class="badge badge-live">Đang thi đấu</span>';
+        var p = h.finalPlacement;
+        if (p === 'CHAMPION' || p === 'RUNNER_UP' || p === 'THIRD')
+            return '<span class="badge badge-gold">' + placementLabel(p) + '</span>';
+        return '<span class="badge badge-soft">' + (h.finalRank ? 'Hạng ' + h.finalRank : 'Đã tham gia') + '</span>';
     }
 
     function historyRow(h) {
         return '<div class="col-12"><div class="member-card">' +
-            '<div class="flex-grow-1"><a class="nm" href="/bracket/view.html?id=' + h.tournamentId + '">' + Ui.escapeHtml(h.tournamentName) + '</a>' +
-            '<div class="rl">' + tourStatusLabel(h.tournamentStatus) + '</div></div>' +
-            (h.registrationStatus === 'DISQUALIFIED'
-                ? '<span class="badge badge-danger">Bị tước quyền</span>'
-                : '<span class="badge badge-soft">' + placementLabel(h.finalPlacement) + (h.finalRank ? ' (#' + h.finalRank + ')' : '') + '</span>') +
-            '</div></div>';
+            '<div class="flex-grow-1"><a class="nm" href="/bracket/view.html?id=' + Number(h.tournamentId) + '">' + Ui.escapeHtml(h.tournamentName) + '</a>' +
+            '<div class="rl">' + tourStatusLabel(h.tournamentStatus) + '</div></div>' + resultBadge(h) + '</div></div>';
     }
 
     function render(team, isCaptain, isMember) {
         var root = document.getElementById('team-root');
+        var allHistory = team.tournamentHistory || [];
+        var current = allHistory.filter(isCurrent);
+        var past = allHistory.filter(function (h) { return !isCurrent(h); });
         var logo = team.logoUrl
             ? '<img class="logo-big" src="' + Ui.escapeHtml(team.logoUrl) + '" alt="Logo ' + Ui.escapeHtml(team.name) + '" />'
             : '<span class="logo-big">' + Ui.escapeHtml(team.tag && team.tag.length > 0 ? team.tag.substring(0, 1) : '?') + '</span>';
@@ -79,7 +90,7 @@
             '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Trạng thái</div><div class="num" style="font-size:1.3rem;margin-top:14px">' + (team.status === 'ACTIVE' ? 'Hoạt động' : 'Giải tán') + '</div></div></div>' +
             '</div>' +
             '<div class="section-title">Thành tích thi đấu</div>' +
-            '<div class="section-sub">Tính trên các trận đã có kết quả chính thức (VERIFIED).</div>' +
+            '<div class="section-sub">Tính trên các trận đã có kết quả chính thức.</div>' +
             '<div class="row g-3 my-3">' +
             '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Thắng / Thua</div><div class="num accent">' + team.wins + '/' + team.losses + '</div><div class="sub">' + team.winRate + '% thắng</div></div></div>' +
             '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Danh hiệu</div><div class="num">' + team.titleCount + '</div><div class="sub">lần vô địch</div></div></div>' +
@@ -88,9 +99,12 @@
             '<div class="section-title">Trận sắp tới</div>' +
             '<div class="section-sub">Lịch thi đấu sắp tới và trận đang diễn ra của đội.</div>' +
             '<div id="team-matches"></div>' +
+            (current.length ? '<div class="section-title">Giải đang tham gia</div>' +
+                '<div class="section-sub">Giải sắp diễn ra hoặc đang diễn ra mà đội đã được duyệt.</div>' +
+                '<div class="row g-3">' + current.map(historyRow).join('') + '</div>' : '') +
             '<div class="section-title">Lịch sử giải đấu</div>' +
-            '<div class="section-sub">Các giải đội đã đăng ký và được duyệt.</div>' +
-            historyHtml(team.tournamentHistory) +
+            '<div class="section-sub">Các giải đội đã thi đấu xong, kèm thành tích.</div>' +
+            (past.length ? '<div data-history></div>' : '<div class="card-etoms"><div class="empty"><h3>Chưa có giải nào đã kết thúc</h3></div></div>') +
             '<div class="section-title mt-4">Danh sách thành viên</div>' +
             '<div class="section-sub">Đội hình hiện tại của đội (' + team.memberCount + ' người).</div>' +
             membersHtml +
@@ -100,8 +114,8 @@
             '<div class="btn-row mt-4">' + actionHtml + '</div>';
 
         // Đội lâu năm có hàng trăm giải: tìm theo tên giải + phân trang 10 giải/trang.
-        Ui.listPager(root.querySelector('[data-history]'), {
-            items: team.tournamentHistory || [], render: historyRow, pageSize: 10, listClass: 'row g-3',
+        if (past.length) Ui.listPager(root.querySelector('[data-history]'), {
+            items: past, render: historyRow, pageSize: 10, listClass: 'row g-3',
             text: function (h) { return h.tournamentName + ' ' + tourStatusLabel(h.tournamentStatus); },
             placeholder: 'Tìm giải đội đã tham gia...'
         });

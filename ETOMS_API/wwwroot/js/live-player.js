@@ -47,7 +47,7 @@ window.LivePlayer = (function () {
         return '<div class="live-score">' + side(d.teamAName, d.winsA, d.teamAId) +
             '<div class="live-mid"><div class="hint">BO' + d.bestOf + '</div>' + badge + '</div>' +
             side(d.teamBName, d.winsB, d.teamBId) + '</div>' + rows +
-            '<p class="hint mt-2 mb-0">' + (final ? 'Đây là kết quả chính thức của trận.' : 'Tỉ số trực tiếp do Trọng tài/Ban tổ chức cập nhật để theo dõi. Kết quả chính thức chốt khi hai đội trưởng nộp báo cáo khớp nhau.') + '</p>';
+            '<p class="hint mt-2 mb-0">' + (final ? 'Đây là kết quả chính thức của trận.' : 'Tỉ số cập nhật theo từng ván trong lúc thi đấu. Kết quả chính thức được công bố sau khi trận kết thúc.') + '</p>';
     }
 
     return { playerHtml: playerHtml, scoreHtml: scoreHtml, streamBadge: streamBadge };

@@ -114,7 +114,9 @@ public sealed record OrganizationTournamentResponse(
     string Name,
     string Status,
     string StatusLabel,
-    DateTime StartAt);
+    DateTime StartAt,
+    string? GameTitle,
+    DateTime CreatedAt);
 
 public sealed record OrganizationReputationResponse(
     int OrganizationId,

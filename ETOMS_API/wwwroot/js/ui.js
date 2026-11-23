@@ -221,7 +221,90 @@ var Ui = (function () {
         draw();
     }
 
+    // Giá trị cho ô datetime-local theo giờ máy người dùng (yyyy-MM-ddTHH:mm).
+    function localInputValue(d) {
+        d = d || new Date();
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+
+    // Kiểm mốc thời gian NGAY KHI người dùng chọn/gõ (không đợi bấm Lưu).
+    // ids: các ô datetime-local; rules(values) -> { id: 'thông báo lỗi' } với values[id] = Date | null.
+    // Lịch chọn ngày không cho chọn giờ đã qua (min = bây giờ, cập nhật mỗi lần bấm vào ô).
+    // opts.futureOnlyIfChanged: ô đã có giá trị cũ (trang Sửa) chỉ bị bắt "ở tương lai" khi người dùng đổi nó.
+    // Trả về hàm check() -> true nếu không lỗi (dùng lại khi bấm Lưu).
+    function liveTimeline(ids, rules, opts) {
+        opts = opts || {};
+        var inputs = ids.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+        var touched = {};
+        function errorEl(input) {
+            var next = input.nextElementSibling;
+            if (next && next.classList.contains('live-time-error')) return next;
+            var span = document.createElement('span');
+            span.className = 'field-error live-time-error';
+            span.setAttribute('aria-live', 'polite');
+            input.insertAdjacentElement('afterend', span);
+            return span;
+        }
+        function values() {
+            var v = {};
+            inputs.forEach(function (i) { var d = i.value ? new Date(i.value) : null; v[i.id] = d && !isNaN(d.getTime()) ? d : null; });
+            return v;
+        }
+        function check(all) {
+            var errs = rules(values()) || {};
+            var ok = true;
+            inputs.forEach(function (i) {
+                var msg = errs[i.id] || '';
+                if (msg) ok = false;
+                var show = msg && (all || touched[i.id]);
+                errorEl(i).textContent = show ? msg : '';
+                i.classList.toggle('is-invalid', !!show);
+                if (show) i.setAttribute('aria-invalid', 'true'); else i.removeAttribute('aria-invalid');
+            });
+            return ok;
+        }
+        inputs.forEach(function (i) {
+            i.dataset.initial = i.value;
+            var setMin = function () {
+                if (opts.futureOnlyIfChanged && i.dataset.initial && i.value === i.dataset.initial && new Date(i.value) < new Date()) return;
+                i.min = localInputValue(new Date());
+            };
+            setMin();
+            i.addEventListener('focus', setMin);
+            ['input', 'change', 'blur'].forEach(function (ev) {
+                i.addEventListener(ev, function () { if (i.value || ev !== 'blur') touched[i.id] = true; check(false); });
+            });
+        });
+        return {
+            check: function () { return check(true); },
+            // Trang Sửa: nạp giá trị cũ xong thì ghi nhớ lại làm mốc "chưa đổi".
+            reset: function () { touched = {}; inputs.forEach(function (i) { i.dataset.initial = i.value; }); check(false); },
+            changed: function (id) { var i = document.getElementById(id); return !!i && i.value !== i.dataset.initial; }
+        };
+    }
+
+    // Thanh lọc dùng chung cho cả dự án: lọc NGAY khi đổi — ô chọn / ngày / hộp kiểm áp dụng liền, ô gõ chữ áp dụng
+    // sau khi ngừng gõ ~0,4 giây; Enter cũng áp dụng ngay. Không cần nút "Lọc". apply() do từng trang tự viết.
+    function autoFilter(form, apply, opts) {
+        if (!form) return;
+        var delay = (opts && opts.delay) || 400, timer = null;
+        var run = function () { clearTimeout(timer); timer = null; apply(); };
+        form.addEventListener('submit', function (e) { e.preventDefault(); run(); });
+        form.addEventListener('input', function (e) {
+            var t = e.target;
+            if (!t || !t.matches('input[type=search], input[type=text], input[type=number], input:not([type])')) return;
+            clearTimeout(timer);
+            timer = setTimeout(run, delay);
+        });
+        form.addEventListener('change', function (e) {
+            var t = e.target;
+            if (!t || t.matches('input[type=search], input[type=text], input[type=number], input:not([type])')) return;
+            run();
+        });
+    }
+
     return {
+        localInputValue: localInputValue, liveTimeline: liveTimeline, autoFilter: autoFilter,
         parseUtc: parseUtc, fmtDateTime: fmtDateTime, limitList: limitList, pagerHtml: pagerHtml, listPager: listPager,
         escapeHtml: escapeHtml, safeUrl: safeUrl, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
         applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth, currentUser: currentUser,

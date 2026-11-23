@@ -9,37 +9,74 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=fb8-20261123" />
+    <link rel="stylesheet" href="/css/site.css?v=fb12-20261123" />
 </head>
 <body>
     <div id="site-header"></div>
     <main class="container-etoms py-4">
-        <div class="page-head mb-3">
-            <h1>Tin tức esports</h1>
-            <p>Tin của ETOMS và tin thể thao điện tử mới nhất từ các trang báo. Bấm vào tin để đọc ngay trên ETOMS; tin của báo có nút đọc toàn bài trên trang báo.</p>
-        </div>
+        <!-- Banner theo game: ảnh nền game (nếu có) chạy chậm phía sau, đổi theo game đang lọc -->
+        <section id="news-hero" class="news-hero" aria-labelledby="news-hero-title">
+            <div class="news-hero-bg" id="news-hero-bg" aria-hidden="true"></div>
+            <div class="news-hero-shade" aria-hidden="true"></div>
+            <div class="news-hero-inner">
+                <img id="news-hero-logo" class="news-hero-logo" alt="" hidden />
+                <div>
+                    <h1 id="news-hero-title">Tin tức esports</h1>
+                    <p id="news-hero-sub">Tin của ETOMS và tin thể thao điện tử mới nhất từ các trang báo.</p>
+                </div>
+            </div>
+            <nav id="news-games" class="news-game-tabs" aria-label="Lọc theo tựa game"></nav>
+        </section>
 
-        <!-- Đọc một bài tin ETOMS (?id=) -->
+        <!-- Đọc một bài tin (?id= tin ETOMS, ?ext= tin báo) -->
         <article id="news-article" class="card-etoms mb-4" hidden></article>
 
-        <div class="news-toolbar">
-            <div id="news-sources" class="news-chips" role="tablist" aria-label="Lọc theo nguồn tin"></div>
-            <label class="visually-hidden" for="news-search">Tìm tin</label>
-            <input id="news-search" class="input news-search" type="search" maxlength="100" placeholder="Tìm tin: LMHT, PUBG, Valorant…" autocomplete="off" />
+        <section class="news-filters card-etoms" aria-label="Bộ lọc tin">
+            <div class="news-filter">
+                <label for="news-source">Nguồn tin</label>
+                <select id="news-source" class="select"><option value="all">Tất cả nguồn</option></select>
+            </div>
+            <div class="news-filter news-filter-time">
+                <span class="news-filter-label" id="news-time-label">Thời gian</span>
+                <div class="news-chips" role="group" aria-labelledby="news-time-label">
+                    <button type="button" class="news-chip active" data-range="all">Tất cả</button>
+                    <button type="button" class="news-chip" data-range="today">Hôm nay</button>
+                    <button type="button" class="news-chip" data-range="7">7 ngày</button>
+                    <button type="button" class="news-chip" data-range="30">30 ngày</button>
+                    <button type="button" class="news-chip" data-range="custom">Chọn ngày</button>
+                </div>
+                <div id="news-custom-range" class="news-date-range" hidden>
+                    <label class="visually-hidden" for="news-from">Từ ngày</label>
+                    <input id="news-from" class="input" type="date" />
+                    <span aria-hidden="true">→</span>
+                    <label class="visually-hidden" for="news-to">Đến ngày</label>
+                    <input id="news-to" class="input" type="date" />
+                </div>
+            </div>
+            <div class="news-filter news-filter-search">
+                <label for="news-search">Tìm tin</label>
+                <input id="news-search" class="input" type="search" maxlength="100" placeholder="Tên đội, giải, tuyển thủ…" autocomplete="off" />
+            </div>
+            <button id="news-reset" class="btn btn-ghost btn-sm" type="button" hidden>Xóa lọc</button>
+        </section>
+
+        <div class="news-list-head">
+            <h2 id="news-list-title">Tin mới nhất</h2>
+            <span id="news-count" class="field-hint"></span>
         </div>
         <div id="news-flash" aria-live="polite"></div>
         <div id="news-list" class="news-cards" aria-live="polite">
             <div class="card-etoms"><div class="empty"><h3>Đang tải tin…</h3></div></div>
         </div>
-        <div class="text-center mt-4"><button id="news-more" class="btn btn-ghost" type="button" hidden>Xem thêm tin</button></div>
+        <div id="news-pager" class="mt-4"></div>
         <p id="news-note" class="field-hint mt-3"></p>
     </main>
     <div id="confirm-modal-root"></div>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=form-20261118"></script>
-    <script src="/js/ui.js?v=fb-20261123"></script>
+    <script src="/js/ui.js?v=af-20261123"></script>
     <script src="/js/layout.js?v=fb2-20261123"></script>
-    <script src="/js/pages/news.js?v=reader-20261118" defer></script>
+    <script src="/js/pages/news.js?v=hero2-20261123" defer></script>
 </body>
 </html>

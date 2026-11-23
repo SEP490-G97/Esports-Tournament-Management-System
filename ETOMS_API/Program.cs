@@ -328,7 +328,10 @@ app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
 }
 
 // Không nén phản hồi của /auth (chứa token): tránh kiểu tấn công đoán bí mật qua độ dài bản nén (BREACH).
-app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/auth"), branch => branch.UseResponseCompression());
+// Khi dev (Visual Studio) thì không nén: Browser Link không chèn được script vào phản hồi đã nén và báo cảnh báo
+// mỗi trang; chạy trên máy mình thì nén cũng không nhanh hơn.
+if (!app.Environment.IsDevelopment())
+    app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/auth"), branch => branch.UseResponseCompression());
 app.UseDefaultFiles();
 // .glb (model 3D rồng trang chủ, models/dragon.glb) không có trong bảng MIME mặc định → thiếu dòng này là 404.
 var staticTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();

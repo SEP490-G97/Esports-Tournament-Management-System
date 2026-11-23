@@ -109,6 +109,21 @@
 
     function wire() {
         document.querySelectorAll('input[type=datetime-local]').forEach(function (input) {
+            // Báo ngay khi chọn giờ đã qua / sớm hơn mốc cho phép (không đợi bấm Lưu).
+            input.addEventListener('change', function () {
+                var msg = '';
+                var d = input.value ? new Date(input.value) : null;
+                if (d && d.getTime() <= Date.now()) msg = 'Không chọn thời gian đã qua.';
+                else if (d && input.min && input.value < input.min) msg = 'Giờ thi đấu phải từ ' + formatTime(new Date(input.min).toISOString().replace('Z', '')) + ' trở đi.';
+                var holder = input.dataset.time ? document.querySelector('[data-row-error="' + input.dataset.time + '"]') : null;
+                if (!holder) {
+                    holder = input.nextElementSibling && input.nextElementSibling.classList.contains('live-time-error') ? input.nextElementSibling : null;
+                    if (!holder) { holder = document.createElement('span'); holder.className = 'field-error live-time-error'; input.insertAdjacentElement('afterend', holder); }
+                }
+                holder.textContent = msg;
+                input.classList.toggle('is-invalid', !!msg);
+            });
+            input.addEventListener('focus', function () { var now = toLocalInput(new Date()); if (!input.min || input.min < now) input.min = now; });
             input.addEventListener('click', function () { openPicker(input); });
             input.addEventListener('keydown', function (e) {
                 if (e.key === 'Tab') return;
@@ -121,6 +136,7 @@
                 var id = btn.dataset.save;
                 var value = document.querySelector('[data-time="' + id + '"]').value;
                 if (!value) { showRowError(id, 'Vui lòng chọn giờ thi đấu.'); return; }
+                if (new Date(value).getTime() <= Date.now()) { showRowError(id, 'Không chọn thời gian đã qua.'); return; }
                 save(id, toUtc(value));
             });
         });
@@ -157,6 +173,7 @@
         var key = btn.dataset.round;
         var first = document.getElementById('first-' + key).value;
         if (!first) { Ui.showAlert(flash(), 'danger', 'Vui lòng chọn giờ trận đầu của vòng.'); return; }
+        if (new Date(first).getTime() <= Date.now()) { Ui.showAlert(flash(), 'danger', 'Giờ trận đầu của vòng không được ở quá khứ.'); return; }
         Ui.clearAlert(flash());
         try {
             var res = await Api.post('/api/tournaments/' + tournamentId + '/schedule/round', {

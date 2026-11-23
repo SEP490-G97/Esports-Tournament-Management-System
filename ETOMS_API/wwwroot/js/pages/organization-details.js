@@ -22,9 +22,6 @@
             ? '<img class="org-logo-large" src="' + Ui.escapeHtml(logoUrl) + '" alt="" />'
             : '<div class="org-logo-large">' + Ui.escapeHtml((org.name || '?').slice(0, 1)) + '</div>';
         var link = websiteUrl ? '<a href="' + Ui.escapeHtml(websiteUrl) + '" target="_blank" rel="noopener noreferrer">' + Ui.escapeHtml(org.websiteUrl) + '</a>' : 'Chưa cung cấp';
-        function tournamentRow(item) {
-            return '<a class="feature-list-item" href="/bracket/view.html?id=' + Number(item.tournamentId) + '"><div><div class="item-title">' + Ui.escapeHtml(item.name) + '</div><div class="item-sub">' + Ui.escapeHtml(item.statusLabel) + ' · ' + Ui.escapeHtml(Ui.parseUtc(item.startAt).toLocaleDateString('vi-VN')) + '</div></div><span class="muted-copy">Xem →</span></a>';
-        }
         // Đơn vị chưa được duyệt / bị đình chỉ: chỉ thành viên và Admin mở được — ghi rõ để không tưởng là lỗi.
         var statusNote = org.status && org.status !== 'ACTIVE'
             ? '<div class="alert alert-warn-etoms org-status-note">Đơn vị đang ở trạng thái <strong>' + Ui.escapeHtml(org.statusLabel || org.status) + '</strong>. ' +
@@ -39,13 +36,75 @@
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Tỷ lệ hoàn thành</div><div class="num">' + Math.round(Number(reputation.completionRate || 0)) + '%</div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Trận có tranh chấp</div><div class="num">' + Number(reputation.disputedMatchCount) + '<small> / ' + Number(reputation.totalMatchCount) + ' trận</small></div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Xử lý tranh chấp trung bình</div><div class="num">' + (reputation.averageDisputeResolutionHours === null ? '—' : Number(reputation.averageDisputeResolutionHours).toFixed(1)) + '<small>' + (reputation.averageDisputeResolutionHours === null ? '' : ' giờ') + '</small></div></div></div></div>' +
-            '<section id="organization-tournaments" class="feature-card mt-4"><h2>Giải đấu của đơn vị</h2><div data-org-tournaments></div></section>';
-        // Đơn vị lớn có hàng trăm giải: tìm theo tên + phân trang 10 giải/trang.
-        Ui.listPager(root.querySelector('[data-org-tournaments]'), {
-            items: org.tournaments || [], render: tournamentRow, pageSize: 10,
-            text: function (item) { return item.name + ' ' + item.statusLabel; },
-            placeholder: 'Tìm giải theo tên hoặc trạng thái...', emptyText: 'Chưa có giải đấu công khai.'
+            '<section id="organization-tournaments" class="feature-card mt-4"><div class="org-tournament-head"><h2 class="mb-0">Giải đấu của đơn vị</h2>' +
+            '<a id="org-create-tournament" class="btn btn-primary btn-sm" href="/tournament-setup/index.html" hidden>+ Tạo giải mới</a></div>' +
+            '<div data-org-tournaments></div></section>';
+    }
+
+    // Danh sách giải của đơn vị: 5 giải/trang, tìm theo tên, lọc trạng thái + game, sắp xếp, phân trang số.
+    // Thành viên điều hành (Chủ nhiệm / Điều hành giải) thấy thêm nút Tạo giải và Quản lý / Sửa từng giải.
+    var ORG_PAGE_SIZE = 5;
+    function renderTournaments(items, canManage) {
+        var root = document.querySelector('[data-org-tournaments]');
+        if (!root) return;
+        document.getElementById('org-create-tournament').hidden = !canManage;
+        if (!items.length) { root.innerHTML = '<p class="muted-copy mt-3">Chưa có giải đấu công khai.</p>'; return; }
+        var esc = Ui.escapeHtml;
+        function distinct(key) {
+            return items.map(function (t) { return t[key]; }).filter(function (v, i, a) { return v && a.indexOf(v) === i; }).sort();
+        }
+        var view = { q: '', status: '', game: '', sort: 'start-desc', page: 1 };
+        root.innerHTML = '<div class="org-tournament-filters">' +
+            '<input type="search" class="input" data-f="q" maxlength="100" placeholder="Tìm giải theo tên..." aria-label="Tìm giải theo tên" />' +
+            '<select class="select" data-f="status" aria-label="Lọc theo trạng thái"><option value="">Mọi trạng thái</option>' +
+            distinct('statusLabel').map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('') + '</select>' +
+            '<select class="select" data-f="game" aria-label="Lọc theo game"><option value="">Mọi game</option>' +
+            distinct('gameTitle').map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('') + '</select>' +
+            '<select class="select" data-f="sort" aria-label="Sắp xếp">' +
+            '<option value="start-desc">Khai mạc: mới nhất</option><option value="start-asc">Khai mạc: sớm nhất</option>' +
+            '<option value="created-desc">Mới tạo gần đây</option><option value="name-asc">Tên A → Z</option></select>' +
+            '</div><div class="feature-list mt-3" data-body></div><div data-pager></div>';
+        var body = root.querySelector('[data-body]'), pager = root.querySelector('[data-pager]');
+        function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(); }
+        function time(v) { var d = Ui.parseUtc(v); return d ? d.getTime() : 0; }
+        function row(t) {
+            var id = Number(t.tournamentId);
+            var open = t.status !== 'COMPLETED' && t.status !== 'CANCELLED';
+            var actions = '<a class="btn btn-ghost btn-xs" href="/bracket/view.html?id=' + id + '">Xem</a>' +
+                (canManage ? '<a class="btn btn-ghost btn-xs" href="/tournament/manage.html?id=' + id + '">Quản lý</a>' +
+                    (open ? '<a class="btn btn-ghost btn-xs" href="/tournament/edit.html?id=' + id + '">Sửa</a>' +
+                            '<a class="btn btn-ghost btn-xs text-danger" href="/tournament/cancel.html?id=' + id + '">Hủy giải</a>' : '') : '');
+            return '<div class="feature-list-item org-tournament-row"><div><a class="item-title" href="/bracket/view.html?id=' + id + '">' + esc(t.name) + '</a>' +
+                '<div class="item-sub">' + (t.gameTitle ? esc(t.gameTitle) + ' · ' : '') + esc(t.statusLabel) + ' · Khai mạc ' +
+                esc(Ui.parseUtc(t.startAt).toLocaleDateString('vi-VN')) + '</div></div><div class="org-tournament-actions">' + actions + '</div></div>';
+        }
+        function draw() {
+            var k = norm(view.q.trim());
+            var list = items.filter(function (t) {
+                return (!k || norm(t.name).indexOf(k) >= 0) && (!view.status || t.statusLabel === view.status) && (!view.game || t.gameTitle === view.game);
+            });
+            list.sort(function (a, b) {
+                if (view.sort === 'start-asc') return time(a.startAt) - time(b.startAt);
+                if (view.sort === 'created-desc') return time(b.createdAt) - time(a.createdAt);
+                if (view.sort === 'name-asc') return String(a.name).localeCompare(String(b.name), 'vi');
+                return time(b.startAt) - time(a.startAt);
+            });
+            var pages = Math.max(1, Math.ceil(list.length / ORG_PAGE_SIZE));
+            if (view.page > pages) view.page = pages;
+            body.innerHTML = list.length ? list.slice((view.page - 1) * ORG_PAGE_SIZE, view.page * ORG_PAGE_SIZE).map(row).join('')
+                : '<p class="muted-copy">Không có giải nào khớp bộ lọc.</p>';
+            pager.innerHTML = '<div class="hint mt-2">' + list.length + ' giải' + (pages > 1 ? ' · trang ' + view.page + '/' + pages : '') + '</div>' + Ui.pagerHtml(view.page, pages);
+        }
+        root.querySelectorAll('[data-f]').forEach(function (c) {
+            c.addEventListener(c.tagName === 'INPUT' ? 'input' : 'change', function () { view[c.dataset.f] = c.value; view.page = 1; draw(); });
         });
+        pager.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-page]');
+            if (!b || b.disabled) return;
+            view.page = parseInt(b.dataset.page, 10); draw();
+            document.getElementById('organization-tournaments').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        draw();
     }
 
     function renderMembers() {
@@ -181,6 +240,8 @@
             var currentMembership = members.find(function (member) {
                 return member.accountId === currentUserId && member.status === 'ACTIVE';
             });
+            var canManageTournaments = !!currentMembership && (currentMembership.role === 'CHAIR' || currentMembership.role === 'TOURNAMENT_OPERATOR');
+            renderTournaments(results[0].data.tournaments || [], canManageTournaments);
             // Chủ nhiệm: thành viên + bàn giao. Đình chỉ đơn vị là việc của Admin (máy chủ chỉ cho Admin).
             var isAdmin = me && me.role === 'ADMIN';
             if ((currentMembership && currentMembership.role === 'CHAIR') || isAdmin) {

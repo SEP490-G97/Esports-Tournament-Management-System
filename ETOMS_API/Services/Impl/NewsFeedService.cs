@@ -38,6 +38,7 @@ public sealed class NewsFeedService
         string Url, string? ImageUrl, DateTime? PublishedAt, bool IsInternal, bool IsPinned, string? Description = null)
     {
         public string ReaderUrl => IsInternal ? Url : "/news/index.html?ext=" + Uri.EscapeDataString(Id);
+        public string? GameCode { get; } = DetectGame(Title + " " + Summary);
     }
 
     public sealed record SourceStatus(string Key, string Name, bool Ok, int Count);
@@ -49,11 +50,59 @@ public sealed class NewsFeedService
 
     private readonly IUnitOfWork _uow;
     private readonly IMemoryCache _cache;
+    private readonly IWebHostEnvironment _env;
 
-    public NewsFeedService(IUnitOfWork uow, IMemoryCache cache)
+    public NewsFeedService(IUnitOfWork uow, IMemoryCache cache, IWebHostEnvironment env)
     {
         _uow = uow;
         _cache = cache;
+        _env = env;
+    }
+
+    // Nhận ra tin nói về game nào theo từ khóa ở tiêu đề + tóm tắt (RSS báo không gắn game).
+    // Tốc Chiến đứng trước LMHT vì tên đầy đủ "Liên Minh Huyền Thoại: Tốc Chiến" chứa cả hai.
+    private static readonly (string Code, string[] Keywords)[] GameKeywords =
+    {
+        ("LMTC", new[] { "tốc chiến", "wild rift" }),
+        ("LOL", new[] { "lmht", "liên minh huyền thoại", "league of legends", "cktg", "lck", "vcs", "faker", "msi 20" }),
+        ("VAL", new[] { "valorant", "vct" }),
+        ("LQM", new[] { "liên quân", "arena of valor", "aov", "đấu trường danh vọng", "đtdv" }),
+        ("PUM", new[] { "pubg" }),
+        ("FCO", new[] { "fc online", "fifa online", "fco" }),
+    };
+
+    public static string? DetectGame(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var lower = text.ToLower(new CultureInfo("vi-VN")).Normalize(NormalizationForm.FormC);
+        foreach (var (code, keys) in GameKeywords)
+            if (keys.Any(k => Regex.IsMatch(lower, @"(?<![\p{L}\p{N}])" + Regex.Escape(k) + @"(?![\p{L}\p{N}])"))) return code;
+        return null;
+    }
+
+    public sealed record GameInfo(string Code, string Title, string? LogoUrl, string? BannerUrl);
+
+    // Game đang hoạt động cho thanh lọc + nền trang. Ảnh nền: Game.BannerUrl, nếu trống thì tệp
+    // wwwroot/images/games/banners/<mã>.jpg (thả ảnh vào là dùng, không cần sửa DB). Nhớ 10 phút.
+    public async Task<List<GameInfo>> GetGamesAsync(CancellationToken ct)
+    {
+        if (_cache.TryGetValue("news-games", out List<GameInfo>? cached) && cached is not null) return cached;
+        var games = await _uow.Repository<Game>().Query().AsNoTracking()
+            .Where(g => g.Status == "ACTIVE").OrderBy(g => g.GameId)
+            .Select(g => new { g.ShortCode, g.Title, g.LogoUrl, g.BannerUrl }).ToListAsync(ct);
+        var list = games.Select(g => new GameInfo(g.ShortCode, g.Title, g.LogoUrl, g.BannerUrl ?? LocalBanner(g.ShortCode))).ToList();
+        _cache.Set("news-games", list, TimeSpan.FromMinutes(10));
+        return list;
+    }
+
+    private string? LocalBanner(string code)
+    {
+        foreach (var ext in new[] { ".jpg", ".webp", ".png" })
+        {
+            var rel = "images/games/banners/" + code.ToLowerInvariant() + ext;
+            if (File.Exists(Path.Combine(_env.WebRootPath ?? "wwwroot", rel))) return "/" + rel;
+        }
+        return null;
     }
 
     private static HttpClient CreateClient()

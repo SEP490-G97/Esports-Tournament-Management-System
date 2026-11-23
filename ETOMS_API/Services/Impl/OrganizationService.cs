@@ -753,7 +753,7 @@ public sealed class OrganizationService : IOrganizationService
 
     // Số liệu giải + uy tín cho nhiều đơn vị cùng lúc: luôn 4 câu SQL dù có bao nhiêu đơn vị
     // (trước đây mỗi đơn vị 7 câu → danh sách đơn vị bị N+1, rất chậm khi database ở xa).
-    private sealed record TournamentRow(int OrganizationId, int TournamentId, string Name, string Status, DateTime StartAt);
+    private sealed record TournamentRow(int OrganizationId, int TournamentId, string Name, string Status, DateTime StartAt, string? GameTitle, DateTime CreatedAt);
     private sealed record DisputeRow(int OrganizationId, int MatchId, DateTime OpenedAt, DateTime? ResolvedAt);
 
     private sealed class OrganizationStats(
@@ -771,7 +771,9 @@ public sealed class OrganizationService : IOrganizationService
                     item.Name,
                     item.Status,
                     TournamentStatusLabel(item.Status),
-                    item.StartAt))
+                    item.StartAt,
+                    item.GameTitle,
+                    item.CreatedAt))
                 .ToList();
 
         public OrganizationReputationResponse ReputationOf(int organizationId)
@@ -820,7 +822,7 @@ public sealed class OrganizationService : IOrganizationService
         var tournaments = await _unitOfWork.Repository<Tournament>().Query()
             .AsNoTracking()
             .Where(item => item.OrganizationId != null && organizationIds.Contains(item.OrganizationId.Value))
-            .Select(item => new TournamentRow(item.OrganizationId!.Value, item.TournamentId, item.Name, item.Status, item.StartAt))
+            .Select(item => new TournamentRow(item.OrganizationId!.Value, item.TournamentId, item.Name, item.Status, item.StartAt, item.Game.Title, item.CreatedAt))
             .ToListAsync(cancellationToken);
         var matchCounts = await _unitOfWork.Repository<Match>().Query()
             .Where(item => item.Tournament.OrganizationId != null && organizationIds.Contains(item.Tournament.OrganizationId.Value))

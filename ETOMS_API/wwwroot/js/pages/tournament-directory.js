@@ -149,7 +149,8 @@
         await loadFilters();
         var page = readUrl();
 
-        form.addEventListener('submit', function (e) { e.preventDefault(); search(1, true); });
+        // Lọc ngay khi đổi ô chọn / ngày; ô tìm kiếm lọc sau khi ngừng gõ (Ui.autoFilter) — không cần nút "Lọc".
+        Ui.autoFilter(form, function () { search(1, true); });
         el('dir-reset').addEventListener('click', function () {
             form.reset();
             Ui.clearFieldErrors(form);

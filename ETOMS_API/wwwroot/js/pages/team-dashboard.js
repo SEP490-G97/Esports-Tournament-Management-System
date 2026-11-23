@@ -52,12 +52,11 @@
             '<div id="team-matches"></div>' +
             '<div class="section-title">Thao tác quản trị</div>' +
             '<div class="section-sub">Các chức năng điều hành đội.</div>' +
-            // 4 ô thao tác cùng một khuôn: phần chân (nút) luôn nằm đáy ô và cùng cỡ nút, nên thẳng hàng dù chữ dài/ngắn.
-            '<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 dash-actions">' +
-            action('/team/roster.html?id=' + d.teamId, 'R', 'Quản lý đội hình', 'Chính thức / dự bị, loại thành viên') +
+            // 3 ô thao tác cùng một khuôn (chuyển quyền đội trưởng nằm trong Quản lý đội hình): phần chân (nút) luôn nằm đáy ô và cùng cỡ nút, nên thẳng hàng dù chữ dài/ngắn.
+            '<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3 dash-actions">' +
+            action('/team/roster.html?id=' + d.teamId, 'R', 'Quản lý đội hình', 'Xếp đội hình, đổi đội trưởng') +
             action('/team/invites.html?id=' + d.teamId, 'M', 'Mã mời', 'Tạo link/mã mời thành viên') +
-            action('/team/roster.html?id=' + d.teamId, 'Đ', 'Chuyển quyền đội trưởng', 'Trao vai trò cho thành viên khác') +
-            '<div class="col"><div class="team-card h-100"><div class="top"><span class="team-logo">G</span><div><div class="name">Giải tán đội</div><div class="tag">Xóa mềm, giữ lịch sử thi đấu</div></div></div>' +
+            '<div class="col"><div class="team-card h-100"><div class="top"><span class="team-logo">G</span><div><div class="name">Giải tán đội</div><div class="tag">Đội ngừng hoạt động, vẫn giữ lịch sử thi đấu</div></div></div>' +
             '<div class="meta"><button type="button" class="btn btn-ghost btn-sm dash-danger" id="disband-btn">Giải tán đội</button></div></div></div>' +
             '</div>' +
             '<div class="section-title">Thành viên (' + d.activeMemberCount + ')</div>' +

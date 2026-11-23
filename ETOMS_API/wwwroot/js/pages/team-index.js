@@ -95,6 +95,24 @@
         form.querySelector('[name="Sort"]').value = sort;
         document.getElementById('clear-filter').style.display = hasFilter ? '' : 'none';
 
+        // Đồng bộ với mọi thanh lọc khác: ô chọn đổi là lọc ngay (onchange), ô tìm kiếm tự lọc sau khi ngừng gõ ~0,5 giây
+        // (không cần nút "Tìm"). Trang tải lại theo URL nên ghi nhớ để đặt lại con trỏ cuối ô tìm kiếm.
+        var typingTimer = null;
+        qInput.addEventListener('input', function () {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(function () {
+                try { sessionStorage.setItem('team-q-focus', '1'); } catch (e) { /* bỏ qua */ }
+                if (form.requestSubmit) form.requestSubmit(); else form.submit();
+            }, 500);
+        });
+        try {
+            if (sessionStorage.getItem('team-q-focus')) {
+                sessionStorage.removeItem('team-q-focus');
+                qInput.focus();
+                qInput.setSelectionRange(qInput.value.length, qInput.value.length);
+            }
+        } catch (e) { /* bỏ qua */ }
+
         // Kiểm tra trước khi gửi: từ khóa tối đa 100 ký tự. Gửi form luôn về trang 1 (form không có ô Page).
         form.addEventListener('submit', function (e) {
             Ui.clearFieldErrors(form);

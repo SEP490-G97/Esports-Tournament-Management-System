@@ -67,14 +67,23 @@
         if (d.canRule) {
             ruleFormHtml =
                 '<div class="card-etoms form-narrow mt-4"><div class="body">' +
-                '<div class="section-title mt-0">Phán quyết VAR (Force Update)</div>' +
-                '<div class="section-sub">Đặt tỉ số cuối cùng và lý do — bắt buộc, không lưu được nếu bỏ trống.</div>' +
-                '<form id="force-form">' +
-                '<div class="row g-3"><div class="col-6"><label>Tỉ số ' + Ui.escapeHtml(d.teamAName) + '</label>' +
-                '<input name="ScoreA" type="number" min="0" max="50" class="input" required /></div>' +
+                '<div class="section-title mt-0">Ra phán quyết</div>' +
+                '<div class="section-sub">Chọn kết luận và ghi lý do. Đội được xử thắng sẽ tự vào trận sau của nhánh đấu.</div>' +
+                '<form id="force-form" novalidate>' +
+                '<div class="ruling-options">' +
+                '<label class="ruling-option"><input type="radio" name="Outcome" value="SCORE" checked /> <span><b>Chốt tỉ số</b><small>Nhập tỉ số cuối cùng; đội nhiều điểm hơn thắng.</small></span></label>' +
+                '<label class="ruling-option"><input type="radio" name="Outcome" value="CHEAT" /> <span><b>Một đội gian lận</b><small>Đội vi phạm bị tước quyền thi đấu (rời giải); đối thủ thắng và đi tiếp.</small></span></label>' +
+                '<label class="ruling-option"><input type="radio" name="Outcome" value="VOID" /> <span><b>Hủy kết quả</b><small>Không đội nào thắng (cả hai vi phạm). Sau đó Ban tổ chức xử thắng trắng hoặc cho đấu lại ở trang trận.</small></span></label>' +
+                '</div>' +
+                '<div class="row g-3 mt-1" data-outcome="SCORE"><div class="col-6"><label>Tỉ số ' + Ui.escapeHtml(d.teamAName) + '</label>' +
+                '<input name="ScoreA" type="number" min="0" max="50" class="input" /></div>' +
                 '<div class="col-6"><label>Tỉ số ' + Ui.escapeHtml(d.teamBName) + '</label>' +
-                '<input name="ScoreB" type="number" min="0" max="50" class="input" required /></div></div>' +
-                '<div class="field mt-3"><label><input type="checkbox" name="IsVoid" /> Không đội nào thắng (hủy kết quả — cả hai vi phạm)</label></div>' +
+                '<input name="ScoreB" type="number" min="0" max="50" class="input" /></div>' +
+                '<span class="field-error col-12" data-field-error="ScoreA"></span></div>' +
+                '<div class="field mt-3" data-outcome="CHEAT" hidden><label>Đội vi phạm</label><select name="CheatTeam" class="select">' +
+                '<option value="' + Number(d.teamAId) + '">' + Ui.escapeHtml(d.teamAName) + '</option>' +
+                '<option value="' + Number(d.teamBId) + '">' + Ui.escapeHtml(d.teamBName) + '</option></select>' +
+                '<span class="field-error" data-field-error="DisqualifyTeamId"></span></div>' +
                 '<div class="field"><label>Lý do phán quyết <span class="req">*</span></label>' +
                 '<textarea name="Reason" class="input" rows="4" minlength="10" maxlength="1000" required placeholder="Căn cứ vào minh chứng/chat log nào để ra quyết định này"></textarea>' +
                 '<span class="field-error" data-field-error="Reason"></span></div>' +
@@ -113,16 +122,38 @@
 
         var forceForm = document.getElementById('force-form');
         if (forceForm) {
+            var outcomeOf = function () { return forceForm.querySelector('[name="Outcome"]:checked').value; };
+            forceForm.querySelectorAll('[name="Outcome"]').forEach(function (r) {
+                r.addEventListener('change', function () {
+                    forceForm.querySelectorAll('[data-outcome]').forEach(function (b) { b.hidden = b.dataset.outcome !== outcomeOf(); });
+                });
+            });
             forceForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
                 var flash = document.getElementById('flash');
                 Ui.clearAlert(flash);
                 Ui.clearFieldErrors(forceForm);
+                var outcome = outcomeOf();
+                var a = parseInt(forceForm.querySelector('[name="ScoreA"]').value, 10);
+                var b = parseInt(forceForm.querySelector('[name="ScoreB"]').value, 10);
+                if (outcome === 'SCORE' && (isNaN(a) || isNaN(b) || a === b)) {
+                    Ui.applyFieldErrors(forceForm, { ScoreA: isNaN(a) || isNaN(b) ? 'Nhập tỉ số của cả hai đội.' : 'Phải có đội thắng: hai tỉ số không được bằng nhau.' });
+                    return;
+                }
+                if (outcome !== 'SCORE') {
+                    var teamName = forceForm.querySelector('[name="CheatTeam"]').selectedOptions[0].text;
+                    var ok = await window.etomsConfirm(outcome === 'CHEAT'
+                        ? 'Tước quyền thi đấu của ' + teamName + '? Đội rời giải, các trận còn lại của đội bị xử thua; đối thủ trận này thắng và đi tiếp.'
+                        : 'Hủy kết quả trận, không đội nào thắng? Nhánh đấu sẽ dừng ở trận này cho tới khi Ban tổ chức xử thắng trắng hoặc cho đấu lại.',
+                        { title: 'Xác nhận phán quyết', okText: 'Ghi nhận' });
+                    if (!ok) return;
+                }
                 try {
                     var res = await Api.post('/api/disputes/' + disputeId + '/force-update', {
-                        ScoreA: parseInt(forceForm.querySelector('[name="ScoreA"]').value, 10),
-                        ScoreB: parseInt(forceForm.querySelector('[name="ScoreB"]').value, 10),
-                        IsVoid: forceForm.querySelector('[name="IsVoid"]').checked,
+                        ScoreA: outcome === 'SCORE' ? a : 0,
+                        ScoreB: outcome === 'SCORE' ? b : 0,
+                        IsVoid: outcome === 'VOID',
+                        DisqualifyTeamId: outcome === 'CHEAT' ? parseInt(forceForm.querySelector('[name="CheatTeam"]').value, 10) : null,
                         Reason: forceForm.querySelector('[name="Reason"]').value
                     });
                     Ui.setFlash(res.message, 'success');

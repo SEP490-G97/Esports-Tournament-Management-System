@@ -114,7 +114,7 @@ public sealed class TournamentDirectoryService : ITournamentDirectoryService
         var items = rows.Select(t =>
         {
             var open = t.Status == "PUBLISHED" && t.BracketLockedAt == null && t.RegOpenAt <= now && now < t.RegCloseAt;
-            var (label, cls) = TournamentLifecycle.PublicLabel(t.Status, t.BracketLockedAt != null, t.RegOpenAt, t.RegCloseAt, now, t.Teams, t.Format);
+            var (label, cls) = TournamentLifecycle.PublicLabel(t.Status, t.BracketLockedAt != null, t.RegOpenAt, t.RegCloseAt, now, t.Teams, t.Format, t.MaxTeams);
             return new TournamentCardDto(
                 t.TournamentId, t.Name, t.GameId, t.Game, t.Status,
                 label,
@@ -175,7 +175,7 @@ public sealed class TournamentDirectoryService : ITournamentDirectoryService
 
         var now = DateTime.UtcNow;
         var open = t.Status == "PUBLISHED" && t.BracketLockedAt == null && t.RegOpenAt <= now && now < t.RegCloseAt;
-        var (label, cls) = TournamentLifecycle.PublicLabel(t.Status, t.BracketLockedAt != null, t.RegOpenAt, t.RegCloseAt, now, t.Approved, t.Format);
+        var (label, cls) = TournamentLifecycle.PublicLabel(t.Status, t.BracketLockedAt != null, t.RegOpenAt, t.RegCloseAt, now, t.Approved, t.Format, t.MaxTeams);
         return Result<TournamentOverviewDto>.Success(new TournamentOverviewDto(
             t.TournamentId, t.Name, t.Game, t.Status,
             label,
@@ -189,7 +189,8 @@ public sealed class TournamentDirectoryService : ITournamentDirectoryService
             t.BracketLockedAt != null, t.Status == "CANCELLED" ? t.CancelReason : null,
             t.Approved, t.Waitlisted,
             string.IsNullOrWhiteSpace(t.BannerUrl) ? "/images/tournament-cover.svg" : t.BannerUrl!,
-            t.LiveStreams));
+            t.LiveStreams,
+            TournamentLifecycle.MinTeams(t.Format, t.MaxTeams)));
     }
 
     public async Task<Result<TournamentParticipantsDto>> GetParticipantsAsync(int tournamentId, int? viewerAccountId, CancellationToken ct)
@@ -201,7 +202,7 @@ public sealed class TournamentDirectoryService : ITournamentDirectoryService
             return Result.Failure<TournamentParticipantsDto>(NotFoundMessage, StatusCodes.Status404NotFound);
 
         var rows = await _db.Registrations.AsNoTracking()
-            .Where(r => r.TournamentId == tournamentId && (r.Status == "APPROVED" || r.Status == "WAITLISTED"))
+            .Where(r => r.TournamentId == tournamentId && (r.Status == "APPROVED" || r.Status == "DISQUALIFIED" || r.Status == "WAITLISTED"))
             .Select(r => new
             {
                 r.Status, r.TeamId, r.Team.Name, r.Team.Tag, r.Team.LogoUrl, r.WaitlistPosition,
@@ -214,17 +215,18 @@ public sealed class TournamentDirectoryService : ITournamentDirectoryService
             "CHAMPION" => "Vô địch", "RUNNER_UP" => "Á quân", "THIRD" => "Hạng ba", _ => null
         };
 
-        var approved = rows.Where(r => r.Status == "APPROVED")
+        // Đội bị loại giữa giải vẫn là đội đã tham dự (trước đây biến mất khỏi danh sách): giữ lại, xếp cuối, gắn nhãn "Bị loại".
+        var approved = rows.Where(r => r.Status == "APPROVED" || r.Status == "DISQUALIFIED")
             // Giải đã có thứ hạng thì xếp theo hạng; chưa có thì theo thứ tự được duyệt.
-            .OrderBy(r => r.FinalRank ?? int.MaxValue).ThenBy(r => r.ReviewedAt).ThenBy(r => r.Name)
-            .Select(r => new ParticipantDto(r.TeamId, r.Name, r.Tag, r.LogoUrl, null, r.FinalRank, Placement(r.FinalPlacement)))
+            .OrderBy(r => r.Status == "DISQUALIFIED").ThenBy(r => r.FinalRank ?? int.MaxValue).ThenBy(r => r.ReviewedAt).ThenBy(r => r.Name)
+            .Select(r => new ParticipantDto(r.TeamId, r.Name, r.Tag, r.LogoUrl, null, r.FinalRank, Placement(r.FinalPlacement), r.Status == "DISQUALIFIED"))
             .ToList();
         var waitlisted = rows.Where(r => r.Status == "WAITLISTED")
             .OrderBy(r => r.WaitlistPosition ?? int.MaxValue).ThenBy(r => r.Name)
             .Select(r => new ParticipantDto(r.TeamId, r.Name, r.Tag, r.LogoUrl, r.WaitlistPosition, null, null))
             .ToList();
 
-        return Result<TournamentParticipantsDto>.Success(new TournamentParticipantsDto(tournamentId, t.Name, t.MaxTeams, approved, waitlisted));
+        return Result<TournamentParticipantsDto>.Success(new TournamentParticipantsDto(tournamentId, t.Name, t.MaxTeams, approved, waitlisted, t.Status));
     }
 
     public static string FormatLabel(string format) => format switch

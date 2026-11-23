@@ -153,27 +153,32 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // TOUR-02: Bước 2 - Timeline & Quy mô
     var step2Form = document.getElementById('step2Form');
-    // Lịch chọn ngày không cho chọn mốc đã qua (máy chủ vẫn kiểm lại).
-    var nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    ['tRegOpen', 'tRegClose', 'tStart', 'tEnd'].forEach(function (id) { document.getElementById(id).min = nowLocal; });
+    // Luật 4 mốc thời gian, cùng luật với máy chủ (Utils/TournamentTimeline.cs). Báo lỗi NGAY dưới từng ô khi chọn giờ
+    // (Ui.liveTimeline), và kiểm lại khi bấm Lưu. Lịch chọn ngày không cho chọn mốc đã qua.
+    var HOUR = 3600 * 1000;
+    function timelineRules(v) {
+        var e = {}, now = Date.now();
+        var open = v.tRegOpen, close = v.tRegClose, start = v.tStart, end = v.tEnd;
+        // Mở đăng ký cho lệch 5 phút: chọn giờ xong mới bấm lưu.
+        if (open && open.getTime() < now - 5 * 60 * 1000) e.tRegOpen = 'Không chọn thời gian đã qua — mở đăng ký phải từ bây giờ trở đi.';
+        if (close && close.getTime() <= now) e.tRegClose = 'Không chọn thời gian đã qua.';
+        else if (open && close && close <= open) e.tRegClose = 'Đóng đăng ký phải sau mở đăng ký.';
+        else if (open && close && close - open < 24 * HOUR) e.tRegClose = 'Thời gian nhận đăng ký phải kéo dài ít nhất 1 ngày (từ 24 giờ).';
+        if (start && start.getTime() <= now) e.tStart = 'Không chọn thời gian đã qua.';
+        else if (close && start && start - close < HOUR) e.tStart = 'Khai mạc phải sau đóng đăng ký ít nhất 1 giờ để Ban tổ chức duyệt đơn và sinh nhánh đấu.';
+        if (end && end.getTime() <= now) e.tEnd = 'Không chọn thời gian đã qua.';
+        else if (start && end && end - start < HOUR) e.tEnd = 'Kết thúc phải sau khai mạc ít nhất 1 giờ.';
+        ['tRegOpen', 'tRegClose', 'tStart', 'tEnd'].forEach(function (id) { if (!v[id] && !e[id]) e[id] = 'Chọn ngày giờ.'; });
+        return e;
+    }
+    var timeline = Ui.liveTimeline(['tRegOpen', 'tRegClose', 'tStart', 'tEnd'], timelineRules);
     step2Form.addEventListener('submit', async function (e) {
         e.preventDefault();
         Ui.clearAlert(flashBox());
         if (!currentTournamentId) return showError('Chưa có mã giải đấu — hãy hoàn thành bước 1 trước.');
 
         var open = readDate('tRegOpen'), close = readDate('tRegClose'), start = readDate('tStart'), end = readDate('tEnd');
-        if (!open || !close || !start || !end) return showError('Vui lòng nhập đủ 4 mốc thời gian.');
-        // Cùng luật với máy chủ (Utils/TournamentTimeline.cs).
-        var HOUR = 3600 * 1000;
-        // Cả 4 mốc từ hiện tại trở đi (mở đăng ký cho lệch 5 phút: chọn giờ xong mới bấm lưu).
-        if (open < new Date(Date.now() - 5 * 60 * 1000)) return showError('Thời gian mở đăng ký phải từ hiện tại trở đi, không chọn ngày đã qua.');
-        if (close <= new Date() || start <= new Date() || end <= new Date()) return showError('Thời gian đóng đăng ký, khai mạc và kết thúc phải ở tương lai.');
-        if (open >= close) return showError('Thời gian đóng đăng ký phải sau thời gian mở đăng ký.');
-        if (close - open < 24 * HOUR) return showError('Thời gian nhận đăng ký phải kéo dài ít nhất 1 ngày (đóng đăng ký sau mở đăng ký từ 24 giờ trở lên).');
-        if (close > start) return showError('Ngày khai mạc phải sau thời gian đóng đăng ký.');
-        if (start - close < HOUR) return showError('Khai mạc phải sau đóng đăng ký ít nhất 1 giờ để Ban tổ chức duyệt đơn và sinh nhánh đấu.');
-        if (end <= start) return showError('Ngày kết thúc phải sau ngày khai mạc.');
-        if (end - start < HOUR) return showError('Giải phải kéo dài ít nhất 1 giờ tính từ khai mạc.');
+        if (!timeline.check()) return showError('Mốc thời gian chưa hợp lệ — xem thông báo đỏ dưới từng ô.');
 
         var maxTeams = readInt('tMaxTeams', 4, 128);
         if (maxTeams === null || (maxTeams & (maxTeams - 1)) !== 0)

@@ -62,7 +62,7 @@ public sealed class OrganizerHubService
                 "COMPLETED" => "COMPLETED",
                 "ONGOING" => "ONGOING",
                 _ => now < t.RegOpenAt ? "REG_UPCOMING" : now < t.RegCloseAt ? "REG_OPEN"
-                    : TournamentLifecycle.IsShortOfTeams(t.Status, t.BracketLockedAt != null, t.RegCloseAt, now, t.Approved, t.Format) ? "SHORT_OF_TEAMS"
+                    : TournamentLifecycle.IsShortOfTeams(t.Status, t.BracketLockedAt != null, t.RegCloseAt, now, t.Approved, t.Format, t.MaxTeams) ? "SHORT_OF_TEAMS"
                     : "WAITING_START"
             };
             string? next = phase switch

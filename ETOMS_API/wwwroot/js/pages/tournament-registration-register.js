@@ -82,7 +82,8 @@
         document.getElementById('tournament-name').textContent = 'Đăng ký: ' + options.tournamentName;
         document.getElementById('tournament-summary').textContent =
             options.gameName + ' · Nhận đăng ký đến ' + formatDate(options.regCloseAt) +
-            ' · Còn ' + options.availableSlots + '/' + options.maxTeams + ' suất.';
+            ' · Còn ' + options.availableSlots + '/' + options.maxTeams + ' suất' +
+            (options.minTeams ? ' · Cần ít nhất ' + options.minTeams + ' đội được duyệt để khai mạc.' : '.');
         // Giải đã đủ suất: đơn vẫn gửi được và vào DANH SÁCH CHỜ (đã có sẵn ở máy chủ) — báo rõ để đội không tưởng là hết chỗ.
         var full = options.availableSlots <= 0;
         var note = document.getElementById('waitlist-note');
@@ -98,7 +99,10 @@
             ' dự bị. IGN' + (options.requireInGameName ? ' và giấy tờ định danh' : '') +
             (options.requireIdentityDocument ? ' bắt buộc cho toàn bộ lineup.' : ' cần được khai báo nếu giải yêu cầu.');
         document.getElementById('rulebook-version').textContent = options.rulebookVersion;
-        document.getElementById('rulebook-content').textContent = options.rulebookContent || 'Giải chưa công bố nội dung thể lệ.';
+        // Máy chủ đã chuyển thể lệ sang HTML an toàn (RichTextSanitizer.ToDisplayHtml) — HTML từ trình soạn thảo được lọc,
+        // văn bản thường giữ xuống dòng — nên gán innerHTML để hiện đúng tiêu đề, in đậm, danh sách thay vì thẻ <h2>/<li>.
+        var rb = document.getElementById('rulebook-content');
+        if (options.rulebookContent) rb.innerHTML = options.rulebookContent; else rb.textContent = 'Giải chưa công bố nội dung thể lệ.';
         // Đội chưa đủ số người chính thức của giải thì vẫn hiện (để đội trưởng biết lý do) nhưng không chọn được.
         var eligible = options.teams.filter(isTeamEligible);
         document.getElementById('team-select').innerHTML = options.teams.length
@@ -130,7 +134,7 @@
                 : 'Tải biên lai nếu có. ETOMS chỉ lưu bằng chứng, không thực hiện hoặc xác minh giao dịch.';
             var bankInfo = document.getElementById('payment-bank-info');
             bankInfo.textContent = options.bankAccountInfo || 'Ban tổ chức chưa cung cấp thông tin tài khoản nhận lệ phí.';
-            document.getElementById('payment-amount').value = Number(options.entryFee).toLocaleString('vi-VN') + ' đ';
+            document.getElementById('payment-amount').textContent =Number(options.entryFee).toLocaleString('vi-VN') + ' đ';
             document.getElementById('payment-proof').required = options.requirePaymentProof;
             document.getElementById('payment-proof-required').hidden = !options.requirePaymentProof;
         }

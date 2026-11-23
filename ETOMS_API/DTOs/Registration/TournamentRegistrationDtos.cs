@@ -101,7 +101,9 @@ public sealed record RegistrationOptionsResponse(
     int RulebookVersion,
     string? RulebookContent,
     int AvailableSlots,
-    IReadOnlyList<RegistrationTeamOptionResponse> Teams);
+    IReadOnlyList<RegistrationTeamOptionResponse> Teams,
+    // Số đội tối thiểu để giải khai mạc (TournamentLifecycle.MinTeams) — hiện cho đội trưởng biết trước khi đăng ký.
+    int MinTeams);
 
 public sealed record RegistrationLineupResponse(
     int AccountId,

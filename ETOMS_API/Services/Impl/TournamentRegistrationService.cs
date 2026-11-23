@@ -129,9 +129,10 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             tournament.EntryFee,
             tournament.BankAccountInfo,
             tournament.RulebookVersion,
-            tournament.RulebookContent,
+            RichTextSanitizer.ToDisplayHtml(tournament.RulebookContent),   // trang đăng ký hiển thị bằng innerHTML
             Math.Max(0, tournament.MaxTeams - occupied),
-            teamOptions));
+            teamOptions,
+            TournamentLifecycle.MinTeams(tournament.Format, tournament.MaxTeams)));
     }
 
     public async Task<Result<RegistrationResponse>> CreateAsync(

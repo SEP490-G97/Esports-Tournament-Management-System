@@ -61,8 +61,8 @@ public class BracketViewService : IBracketViewService
             var count = dto.ParticipantTeams.Count;
             dto.Notice = DateTime.UtcNow < t.RegCloseAt
                 ? $"Giải đang nhận đăng ký đến {t.RegCloseAt.AddHours(7):HH:mm dd/MM/yyyy} ({count}/{t.MaxTeams} đội đã được duyệt). Nhánh đấu được sinh sau khi đóng đăng ký."
-                : count < TournamentLifecycle.MinTeams(t.Format)
-                    ? $"Đã đóng đăng ký nhưng mới có {count} đội được duyệt — chưa đủ để sinh nhánh. Ban tổ chức sẽ gia hạn đăng ký hoặc hủy giải."
+                : count < TournamentLifecycle.MinTeams(t.Format, t.MaxTeams)
+                    ? $"Đã đóng đăng ký nhưng mới có {count}/{t.MaxTeams} đội được duyệt — cần ít nhất {TournamentLifecycle.MinTeams(t.Format, t.MaxTeams)} đội (hơn một nửa số suất) để khai mạc. Ban tổ chức sẽ gia hạn đăng ký hoặc hủy giải."
                     : $"Đã đóng đăng ký với {count}/{t.MaxTeams} đội. Ban tổ chức đang chuẩn bị nhánh đấu; sơ đồ sẽ hiện ở đây ngay khi được sinh (khai mạc {t.StartAt.AddHours(7):HH:mm dd/MM/yyyy}).";
             dto.Version = Hash("participants|" + string.Join("|", dto.Participants));
             return dto;

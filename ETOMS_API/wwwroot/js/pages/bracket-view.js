@@ -13,15 +13,35 @@
         return '<div class="ov-row"><span class="k">' + esc(label) + '</span><span class="v">' + value + '</span></div>';
     }
 
+    // Tiến độ theo TRẠNG THÁI THẬT của giải, không chỉ theo lịch: quá giờ khai mạc mà giải chưa đủ đội (chưa diễn ra)
+    // thì không được tô "Khai mạc"/"Kết thúc" — trước đây thanh tiến độ chạy hết tới "Kết thúc" dù giải đứng yên.
     function timeline(t) {
-        var now = Date.now();
+        var now = Date.now(), st = t.status;
+        var at = function (iso) { return iso ? new Date(/Z$/.test(iso) ? iso : iso + 'Z').getTime() : null; };
+        var passed = function (iso) { var v = at(iso); return st !== 'DRAFT' && v !== null && v <= now; };
+        var started = st === 'ONGOING' || st === 'COMPLETED';
         var steps = [
-            ['Mở đăng ký', t.regOpenAt], ['Đóng đăng ký', t.regCloseAt], ['Khai mạc', t.startAt], ['Kết thúc', t.endAt]
+            ['Mở đăng ký', t.regOpenAt, started || passed(t.regOpenAt)],
+            ['Đóng đăng ký', t.regCloseAt, started || passed(t.regCloseAt)],
+            ['Khai mạc', t.startAt, started],
+            ['Kết thúc', t.endAt, st === 'COMPLETED']
         ];
-        return '<ol class="ov-timeline">' + steps.map(function (s) {
-            var at = s[1] ? new Date(/Z$/.test(s[1]) ? s[1] : s[1] + 'Z').getTime() : null;
-            var done = at !== null && at <= now;
-            return '<li class="' + (done ? 'done' : '') + '"><span class="dot"></span><span class="lbl">' + esc(s[0]) + '</span>' +
+        // Bước đang bị chặn (tô đỏ + ghi chú): giải bị hủy, hoặc chưa đủ đội nên chưa khai mạc được.
+        var blocked = -1, note = '';
+        if (st === 'CANCELLED') {
+            blocked = steps.findIndex(function (s) { return !s[2]; });
+            note = 'Giải đã bị hủy';
+        } else if (t.statusLabel === 'Chưa đủ đội') {
+            blocked = 2;
+            note = 'Chưa đủ đội nên chưa khai mạc';
+        } else if (st === 'PUBLISHED' && passed(t.startAt)) {
+            blocked = 2;
+            note = 'Đang chờ Ban tổ chức bắt đầu giải';
+        }
+        return '<ol class="ov-timeline">' + steps.map(function (s, i) {
+            var cls = s[2] ? 'done' : (i === blocked ? 'blocked' : '');
+            return '<li class="' + cls + '"><span class="dot"></span><span class="lbl">' + esc(s[0]) +
+                (i === blocked ? '<small class="ov-note">' + esc(note) + '</small>' : '') + '</span>' +
                 '<span class="at">' + esc(s[1] ? fmtDateTime(s[1]) : 'Chưa xác định') + '</span></li>';
         }).join('') + '</ol>';
     }
@@ -49,7 +69,8 @@
             heroText = 'Giải đã bị hủy';
         } else if (t.registrationOpen) {
             heroText = 'Đang nhận đăng ký đến ' + fmtDateTime(t.regCloseAt);
-            heroSub = full ? 'Đã đủ ' + t.maxTeams + ' suất — đơn mới vào danh sách chờ.' : 'Còn ' + (t.maxTeams - t.approvedTeams) + ' trên ' + t.maxTeams + ' suất.';
+            heroSub = (full ? 'Đã đủ ' + t.maxTeams + ' suất — đơn mới vào danh sách chờ.' : 'Còn ' + (t.maxTeams - t.approvedTeams) + ' trên ' + t.maxTeams + ' suất.') +
+                (t.minTeams ? ' Cần ít nhất ' + t.minTeams + ' đội được duyệt để khai mạc.' : '');
             primary = '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + id + '">Đăng ký cho đội</a>';
             secondary = '<a class="btn btn-ghost" href="/tournament/rulebook-history.html?id=' + id + '">Đọc thể lệ</a>';
         } else if (t.status === 'PUBLISHED' && at(t.regOpenAt) > now) {
@@ -67,6 +88,15 @@
             secondary = '<a class="btn btn-ghost" href="/tournament/standings.html?id=' + id + '">Bảng xếp hạng</a>';
         } else if (t.status === 'DRAFT') {
             heroText = 'Bản nháp';
+        } else if (t.statusLabel === 'Chưa đủ đội') {
+            // minTeams do máy chủ tính (TournamentLifecycle.MinTeams: 2 đội, Loại kép 3 đội).
+            var need = t.minTeams || 2;
+            heroText = 'Chưa đủ đội để khai mạc';
+            heroSub = 'Mới có ' + Number(t.approvedTeams || 0) + ' đội được duyệt, cần ít nhất ' + need + ' đội. Ban tổ chức có thể gia hạn đăng ký hoặc hủy giải.';
+            primary = '<a class="btn btn-primary" href="/tournament/participants.html?id=' + id + '">Xem đội tham dự</a>';
+        } else if (at(t.startAt) !== null && at(t.startAt) <= now) {
+            heroText = 'Đã đến giờ khai mạc — chờ Ban tổ chức bắt đầu giải';
+            primary = '<a class="btn btn-primary" href="/tournament/participants.html?id=' + id + '">Xem đội tham dự</a>';
         } else {
             heroText = 'Đã đóng đăng ký — chờ khai mạc ' + fmtDateTime(t.startAt);
             primary = '<a class="btn btn-primary" href="/tournament/participants.html?id=' + id + '">Xem đội tham dự</a>';

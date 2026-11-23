@@ -57,10 +57,14 @@
         // Còn nhận đăng ký thì chưa sinh nhánh (UC-20: đóng đăng ký rồi mới sinh) — máy chủ cũng chặn.
         var stillOpen = !!tree.registrationStillOpen;
         var closeAt = tree.regCloseAt ? Ui.fmtDateTime(tree.regCloseAt) : '';
-        var disabled = (tree.approvedTeamCount < 2 || stillOpen) ? 'disabled' : '';
+        // Luật 23/11: cần HƠN MỘT NỬA số suất được duyệt (máy chủ cũng chặn).
+        var minTeams = tree.minTeams || 2;
+        var shortOfTeams = tree.approvedTeamCount < minTeams;
+        var disabled = (shortOfTeams || stillOpen) ? 'disabled' : '';
         var warn = stillOpen
             ? '<div class="hint" style="color:var(--warn);margin-top:8px">Giải còn nhận đăng ký đến ' + Ui.escapeHtml(closeAt) + '. Sinh nhánh sau khi đóng đăng ký để danh sách đội đã chốt.</div>'
-            : tree.approvedTeamCount < 2 ? '<div class="hint" style="color:var(--warn);margin-top:8px">Cần ít nhất 2 đội đã duyệt để sinh nhánh đấu.</div>' : '';
+            : shortOfTeams ? '<div class="hint" style="color:var(--warn);margin-top:8px">Cần ít nhất ' + minTeams + ' đội đã duyệt (hơn một nửa trong ' + Number(tree.maxTeams) +
+                ' suất) để sinh nhánh đấu — hiện có ' + Number(tree.approvedTeamCount) + ' đội. Hãy gia hạn đăng ký hoặc hủy giải.</div>' : '';
 
         return '<div class="card-etoms form-narrow" style="margin-bottom:28px"><div class="body">' +
             '<div class="section-title mt-0">' + (tree.hasBracket ? 'Sinh lại nhánh đấu' : 'Sinh nhánh đấu') + '</div>' +

@@ -70,7 +70,7 @@ public static class SharedFiles
             var bytes = await File.ReadAllBytesAsync(fullPath, ct);
             if (bytes.Length == 0) return;
             await using var conn = new MySqlConnection(_connectionString);
-            await conn.OpenAsync(ct);
+            await conn.OpenAsync(CancellationToken.None);   // không kèm token huỷ: huỷ giữa lúc bắt tay SSL làm MySql.Data ném lỗi trong callback
             var uploader = uploaderAccountId ?? CurrentAccountId();
             if (uploader is null)
             {
@@ -104,7 +104,7 @@ public static class SharedFiles
         try
         {
             await using var conn = new MySqlConnection(_connectionString);
-            await conn.OpenAsync(ct);
+            await conn.OpenAsync(CancellationToken.None);   // không kèm token huỷ: huỷ giữa lúc bắt tay SSL làm MySql.Data ném lỗi trong callback
             await using var cmd = new MySqlCommand("SELECT Content FROM Attachment WHERE FileUrl = @k AND Content IS NOT NULL ORDER BY AttachmentID DESC LIMIT 1", conn);
             cmd.Parameters.AddWithValue("@k", key);
             if (await cmd.ExecuteScalarAsync(ct) is not byte[] bytes || bytes.Length == 0) return false;
@@ -130,7 +130,7 @@ public static class SharedFiles
             var have = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             await using (var conn = new MySqlConnection(_connectionString))
             {
-                await conn.OpenAsync(ct);
+                await conn.OpenAsync(CancellationToken.None);   // không kèm token huỷ: huỷ giữa lúc bắt tay SSL làm MySql.Data ném lỗi trong callback
                 await using var cmd = new MySqlCommand("SELECT FileUrl FROM Attachment WHERE Content IS NOT NULL", conn);
                 await using var r = await cmd.ExecuteReaderAsync(ct);
                 while (await r.ReadAsync(ct)) have.Add(r.GetString(0));

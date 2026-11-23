@@ -11,21 +11,23 @@ public static class TournamentLifecycle
 {
     public const string ShortOfTeamsLabel = "Chưa đủ đội";
 
-    // Cùng mức với BracketService.GenerateBracketAsync: 2 đội; Loại kép cần 3 đội mới có nhánh thua thật.
-    public static int MinTeams(string? format) => format == "DOUBLE_ELIMINATION" ? 3 : 2;
+    // Số đội tối thiểu để khai mạc (nhóm chốt 23/11): NHIỀU HƠN MỘT NỬA số suất, và không dưới 2 đội (Loại kép 3 đội
+    // mới có nhánh thua thật) để sinh được nhánh. Vd 8 suất cần 5 đội, 16 suất cần 9. BracketService chặn sinh nhánh theo đúng mức này.
+    public static int MinTeams(string? format, int maxTeams)
+        => Math.Max(DoubleElimination.IsDoubleElimination(format) ? DoubleElimination.MinTeams : 2, maxTeams / 2 + 1);
 
     public static bool IsRegistrationOpen(string status, bool bracketLocked, DateTime regOpenAt, DateTime regCloseAt, DateTime now)
         => status == "PUBLISHED" && !bracketLocked && regOpenAt <= now && now < regCloseAt;
 
-    public static bool IsShortOfTeams(string status, bool bracketLocked, DateTime regCloseAt, DateTime now, int approved, string? format)
-        => status == "PUBLISHED" && !bracketLocked && now >= regCloseAt && approved < MinTeams(format);
+    public static bool IsShortOfTeams(string status, bool bracketLocked, DateTime regCloseAt, DateTime now, int approved, string? format, int maxTeams)
+        => status == "PUBLISHED" && !bracketLocked && now >= regCloseAt && approved < MinTeams(format, maxTeams);
 
     // Nhãn công khai (danh sách giải, trang giải, trang chủ).
     public static (string Label, string Class) PublicLabel(string status, bool bracketLocked, DateTime regOpenAt, DateTime regCloseAt,
-        DateTime now, int approved, string? format)
+        DateTime now, int approved, string? format, int maxTeams)
     {
         if (IsRegistrationOpen(status, bracketLocked, regOpenAt, regCloseAt, now)) return ("Đang mở đăng ký", "badge-active");
-        if (IsShortOfTeams(status, bracketLocked, regCloseAt, now, approved, format)) return (ShortOfTeamsLabel, "badge-danger");
+        if (IsShortOfTeams(status, bracketLocked, regCloseAt, now, approved, format, maxTeams)) return (ShortOfTeamsLabel, "badge-danger");
         if (status == "PUBLISHED") return ("Sắp diễn ra", "badge-active");
         return (StatusText.Tournament(status), StatusText.TournamentClass(status));
     }

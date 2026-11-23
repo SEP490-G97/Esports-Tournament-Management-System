@@ -10,6 +10,25 @@ namespace ETOMS_API.Repositories;
 // Worker nền tạo scope mới mỗi lượt nên cũng chỉ giữ kết nối trong một lượt.
 public sealed class KeepConnectionOpenInterceptor : DbConnectionInterceptor
 {
+    // Tự mở kết nối KHÔNG kèm token huỷ của request. Bắt tay SSL tới database ở xa mất 3–4 giây; nếu người dùng
+    // tải lại/chuyển trang đúng lúc đó, MySql.Data ném IOException ngay trong callback huỷ → Kestrel ghi
+    // "An unhandled exception was thrown by the application ... Authentication to host failed (I/O error)".
+    // Mở nốt cho xong thì kết nối vẫn vào nhóm WarmConnectionPool dùng lại được; câu SQL sau đó vẫn bị huỷ đúng như cũ.
+    public override InterceptionResult ConnectionOpening(
+        DbConnection connection, ConnectionEventData eventData, InterceptionResult result)
+    {
+        connection.Open();
+        return InterceptionResult.Suppress();
+    }
+
+    public override async ValueTask<InterceptionResult> ConnectionOpeningAsync(
+        DbConnection connection, ConnectionEventData eventData, InterceptionResult result,
+        CancellationToken cancellationToken = default)
+    {
+        await connection.OpenAsync(CancellationToken.None);
+        return InterceptionResult.Suppress();
+    }
+
     public override InterceptionResult ConnectionClosing(
         DbConnection connection, ConnectionEventData eventData, InterceptionResult result)
         => InterceptionResult.Suppress();

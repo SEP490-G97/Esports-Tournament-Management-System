@@ -50,10 +50,10 @@ public class BracketService : IBracketService
             return Result.Failure($"Giải còn nhận đăng ký đến {tournament.RegCloseAt.AddHours(7):HH:mm dd/MM/yyyy}. Chỉ sinh nhánh sau khi đóng đăng ký.");
 
         var approved = await GetApprovedTeamsAsync(tournamentId);
-        if (approved.Count < 2) return Result.Failure("Cần ít nhất 2 đội đã được duyệt để sinh nhánh đấu.");
-        // Loại kép 2 đội chỉ là đánh lại đúng một cặp ở nhánh thua — cần ít nhất 3 đội mới có nhánh thua thật.
-        if (DoubleElimination.IsDoubleElimination(tournament.Format) && approved.Count < DoubleElimination.MinTeams)
-            return Result.Failure($"Thể thức Loại kép cần ít nhất {DoubleElimination.MinTeams} đội đã được duyệt.");
+        // Nhóm chốt 23/11: phải có NHIỀU HƠN MỘT NỬA số suất được duyệt (không dưới 2; Loại kép 3) mới sinh nhánh / khai mạc.
+        var minTeams = TournamentLifecycle.MinTeams(tournament.Format, tournament.MaxTeams);
+        if (approved.Count < minTeams)
+            return Result.Failure($"Cần ít nhất {minTeams} đội đã được duyệt (hơn một nửa trong {tournament.MaxTeams} suất) để sinh nhánh đấu — hiện có {approved.Count} đội. Hãy gia hạn đăng ký hoặc hủy giải.");
 
         // Xác định thứ tự hạt giống theo phương thức đã chọn.
         List<int> seedOrder;
@@ -410,7 +410,7 @@ public class BracketService : IBracketService
     {
         var tournament = await _uow.Repository<Tournament>().Query()
             .Where(t => t.TournamentId == tournamentId)
-            .Select(t => new { t.TournamentId, t.Name, t.Format, t.Status, t.BracketLockedAt, t.RegCloseAt })
+            .Select(t => new { t.TournamentId, t.Name, t.Format, t.Status, t.BracketLockedAt, t.RegCloseAt, t.MaxTeams })
             .FirstOrDefaultAsync();
         if (tournament is null) return null;
 
@@ -423,6 +423,8 @@ public class BracketService : IBracketService
             IsLocked = tournament.BracketLockedAt != null,
             LockedAt = tournament.BracketLockedAt,
             ApprovedTeamCount = (await GetApprovedTeamsAsync(tournamentId)).Count,
+            MaxTeams = tournament.MaxTeams,
+            MinTeams = TournamentLifecycle.MinTeams(tournament.Format, tournament.MaxTeams),
             RegCloseAt = tournament.RegCloseAt,
             RegistrationStillOpen = DateTime.UtcNow < tournament.RegCloseAt
         };

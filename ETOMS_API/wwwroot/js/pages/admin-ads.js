@@ -124,11 +124,21 @@
         el('b-imglink').value = '';
         el('b-start').value = localInput(b ? toDate(b.startAt) : new Date());
         el('b-end').value = localInput(b ? toDate(b.endAt) : new Date(Date.now() + 14 * 86400000));
+        if (!adTimeline) adTimeline = Ui.liveTimeline(['b-start', 'b-end'], function (v) {
+            var er = {}, now = Date.now();
+            // Bắt đầu cho lệch 5 phút (mặc định là "bây giờ"); banner cũ giữ nguyên mốc đã qua nếu không đổi.
+            if (v['b-start'] && adTimeline && adTimeline.changed('b-start') && v['b-start'].getTime() < now - 5 * 60000) er['b-start'] = 'Không chọn thời gian đã qua.';
+            if (v['b-end'] && v['b-end'].getTime() <= now) er['b-end'] = 'Không chọn thời gian đã qua.';
+            else if (v['b-start'] && v['b-end'] && v['b-end'] <= v['b-start']) er['b-end'] = 'Kết thúc phải sau bắt đầu.';
+            return er;
+        }, { futureOnlyIfChanged: true });
+        adTimeline.reset();
         el('banner-editor').hidden = false;
         el('banner-editor').scrollIntoView({ block: 'start', behavior: 'smooth' });
         el('b-title').focus();
     }
 
+    var adTimeline = null;
     async function saveBanner(e) {
         e.preventDefault();
         var flash = el('flash');
@@ -137,6 +147,7 @@
         if (!el('b-start').value || !el('b-end').value) return Ui.showAlert(flash, 'danger', 'Chọn thời gian bắt đầu và kết thúc hiển thị.');
         var start = new Date(el('b-start').value), end = new Date(el('b-end').value);
         if (start >= end) return Ui.showAlert(flash, 'danger', 'Thời gian kết thúc phải sau thời gian bắt đầu.');
+        if (adTimeline && !adTimeline.check()) return Ui.showAlert(flash, 'danger', 'Thời gian hiển thị chưa hợp lệ — xem thông báo dưới từng ô.');
         var file = el('b-file').files[0], imgLink = el('b-imglink').value.trim();
         if (!editingId && !file && !imgLink) return Ui.showAlert(flash, 'danger', 'Chọn ảnh banner (tải ảnh lên hoặc dán liên kết ảnh).');
         if (file && file.size > 5 * 1024 * 1024) return Ui.showAlert(flash, 'danger', 'Ảnh tối đa 5 MB.');

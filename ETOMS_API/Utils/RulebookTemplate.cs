@@ -23,6 +23,7 @@ public static class RulebookTemplate
             $"Thể thức: <strong>{FormatLabel(t.Format)}</strong>{FormatDetail(t)}; tối đa {t.MaxTeams} đội.",
             t.IsOnline ? "Hình thức: thi đấu trực tuyến." : $"Hình thức: thi đấu tại địa điểm{(string.IsNullOrWhiteSpace(t.Venue) ? "" : " — " + E(t.Venue))}.",
             $"Đăng ký: {Vn(t.RegOpenAt)} đến {Vn(t.RegCloseAt)}. Khai mạc: {Vn(t.StartAt)}.",
+            $"Số đội tối thiểu: giải cần ít nhất <strong>{TournamentLifecycle.MinTeams(t.Format, t.MaxTeams)} đội</strong> được duyệt (hơn một nửa trong {t.MaxTeams} suất) mới khai mạc; không đủ thì Ban tổ chức gia hạn đăng ký hoặc hủy giải.",
             "Ban tổ chức có quyền điều chỉnh lịch thi đấu và sẽ thông báo cho các đội trên ETOMS. Khi thể lệ đổi, ETOMS tạo phiên bản mới; đội vẫn giữ bản đã chấp nhận lúc đăng ký.");
 
         H2(html, "2. Điều kiện tham gia và đội hình");

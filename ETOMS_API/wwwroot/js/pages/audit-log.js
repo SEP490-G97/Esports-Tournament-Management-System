@@ -82,12 +82,15 @@
             tournamentId = Ui.qsInt('id');
             if (!tournamentId || tournamentId < 1) { showEmpty('Không xác định được giải đấu', 'Đường dẫn thiếu mã giải.'); return; }
         }
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            if (isAdmin && form.keyword.value.trim().length > 100) { Ui.applyFieldErrors(form, { keyword: 'Bộ lọc không hợp lệ.' }); return; }
-            if (isAdmin && form.from.value && form.to.value && form.from.value > form.to.value) { Ui.applyFieldErrors(form, { from: 'Bộ lọc không hợp lệ.' }); return; }
+        // Lọc ngay khi đổi (Ui.autoFilter) — đồng bộ với mọi thanh lọc khác.
+        var applyFilter = function () {
+            Ui.clearFieldErrors(form);
+            if (isAdmin && form.keyword.value.trim().length > 100) { Ui.applyFieldErrors(form, { keyword: 'Từ khóa tối đa 100 ký tự.' }); return; }
+            if (isAdmin && form.from.value && form.to.value && form.from.value > form.to.value) { Ui.applyFieldErrors(form, { from: 'Từ ngày phải trước hoặc bằng Đến ngày.' }); return; }
             page = 1; load();
-        });
+        };
+        Ui.autoFilter(form, applyFilter);
+        form.addEventListener('reset', function () { setTimeout(applyFilter, 0); });
         document.getElementById('log-root').addEventListener('click', function (e) {
             var b = e.target.closest('[data-page]');
             if (!b || b.disabled) return;

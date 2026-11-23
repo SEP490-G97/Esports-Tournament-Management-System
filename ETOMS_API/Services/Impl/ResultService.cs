@@ -811,6 +811,31 @@ public class ResultService : IResultService
 
         var match = dispute.Match;
 
+        // Mục 15 (23/11): xác nhận một đội gian lận → tước quyền đội đó qua đúng luồng MAT-11 (phạt DISQUALIFICATION,
+        // trận này thắng trắng cho đối thủ + đẩy đối thủ vào vòng sau, các trận còn lại của đội vi phạm xử thắng trắng).
+        // Trước đây chỉ có "hủy kết quả" → trận CANCELLED, không ai đi tiếp, nhánh đấu kẹt.
+        if (request.DisqualifyTeamId is int cheater)
+        {
+            if (cheater != match.TeamAid && cheater != match.TeamBid)
+                return Result.FieldFailure(nameof(request.DisqualifyTeamId), "Đội vi phạm không thuộc trận này.");
+            var ops = _services.GetRequiredService<IMatchOpsService>();
+            var dq = await ops.DisqualifyAsync(match.MatchId, adjudicatorAccountId,
+                new DTOs.Match.DisqualifyRequest { TeamId = cheater, Reason = request.Reason.Trim() });
+            if (!dq.IsSuccess) return dq;
+
+            dispute.Status = "RESOLVED";
+            dispute.FinalScoreA = cheater == match.TeamAid ? 0 : 1;   // CK_Dispute_Ruling cần tỉ số: ghi 1–0 cho đội được xử thắng
+            dispute.FinalScoreB = cheater == match.TeamAid ? 1 : 0;
+            dispute.RulingReason = request.Reason.Trim();
+            dispute.ResolvedByAccountId = adjudicatorAccountId;
+            dispute.ResolvedAt = DateTime.UtcNow;
+            _uow.Repository<Dispute>().Update(dispute);
+            await _uow.SaveChangesAsync();
+            var recomputedDq = await _services.GetRequiredService<ITournamentLifecycleService>().RecomputeCompletedAsync(match.TournamentId);
+            return Result.Success("Đã ghi nhận phán quyết: " + dq.Message + " Đối thủ được xử thắng và đi tiếp vào vòng sau." +
+                (recomputedDq ? " Thứ hạng và điểm của giải đã được tính lại." : ""));
+        }
+
         dispute.Status = "RESOLVED";
         dispute.FinalScoreA = request.ScoreA;
         dispute.FinalScoreB = request.ScoreB;

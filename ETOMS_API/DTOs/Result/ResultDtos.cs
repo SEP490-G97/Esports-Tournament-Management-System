@@ -164,6 +164,10 @@ public class ForceUpdateRequest
     // true = không đội nào thắng (hủy kết quả, vd cả hai gian lận) — MSG-RES-004 áp dụng cho cả 2 trường hợp.
     public bool IsVoid { get; set; }
 
+    // Góp ý 23/11 (mục 15): xác nhận MỘT đội gian lận → đội đó bị tước quyền thi đấu, đối thủ thắng trắng và đi tiếp
+    // (cùng luồng MAT-11 / UC-24). Có giá trị thì bỏ qua ScoreA/ScoreB/IsVoid.
+    public int? DisqualifyTeamId { get; set; }
+
     [Required(ErrorMessage = "Vui lòng nhập lý do phán quyết.")]
     [StringLength(1000, MinimumLength = 10, ErrorMessage = "Lý do phải từ 10 đến 1000 ký tự.")]
     public string Reason { get; set; } = string.Empty;

@@ -292,8 +292,8 @@ public class TournamentLifecycleService : ITournamentLifecycleService
         var data = await LoadAsync(t);
         var approved = data.TeamIds.Count;
         var locked = t.BracketLockedAt is not null;
-        var (label, cls) = TournamentLifecycle.PublicLabel(t.Status, locked, Utc(t.RegOpenAt), Utc(t.RegCloseAt), now, approved, t.Format);
-        var min = TournamentLifecycle.MinTeams(t.Format);
+        var (label, cls) = TournamentLifecycle.PublicLabel(t.Status, locked, Utc(t.RegOpenAt), Utc(t.RegCloseAt), now, approved, t.Format, t.MaxTeams);
+        var min = TournamentLifecycle.MinTeams(t.Format, t.MaxTeams);
         var dto = new TournamentLifecycleDto
         {
             TournamentId = t.TournamentId,
@@ -304,7 +304,7 @@ public class TournamentLifecycleService : ITournamentLifecycleService
             MinTeams = min,
             MaxTeams = t.MaxTeams,
             RegistrationOpen = TournamentLifecycle.IsRegistrationOpen(t.Status, locked, Utc(t.RegOpenAt), Utc(t.RegCloseAt), now),
-            ShortOfTeams = TournamentLifecycle.IsShortOfTeams(t.Status, locked, Utc(t.RegCloseAt), now, approved, t.Format),
+            ShortOfTeams = TournamentLifecycle.IsShortOfTeams(t.Status, locked, Utc(t.RegCloseAt), now, approved, t.Format, t.MaxTeams),
             HasBracket = data.Nodes.Count > 0,
             BracketLocked = locked,
             MatchesTotal = data.Matches.Count,
@@ -343,9 +343,11 @@ public class TournamentLifecycleService : ITournamentLifecycleService
             "ONGOING" => dto.CanFinish
                 ? (dto.TiedTop.Count > 0 ? "Mọi trận đã xong nhưng các đội đứng đầu đang bằng nhau. Chọn thứ tự rồi bấm Kết thúc giải." : "Mọi trận đã xong. Hệ thống sẽ tự kết thúc giải trong ít phút, hoặc bấm Kết thúc giải.")
                 : $"Giải đang diễn ra: {dto.MatchesFinished}/{dto.MatchesTotal} trận đã xong. Giải tự kết thúc khi trận cuối có kết quả.",
-            _ when dto.RegistrationOpen => $"Đang nhận đăng ký: {approved}/{t.MaxTeams} đội đã duyệt, đóng đăng ký lúc {Vn(t.RegCloseAt)}.",
-            _ when now < Utc(t.RegOpenAt) => $"Mở đăng ký lúc {Vn(t.RegOpenAt)}.",
-            _ when dto.ShortOfTeams => $"Đã đóng đăng ký nhưng mới có {approved} đội được duyệt, cần ít nhất {min} đội để sinh nhánh. Gia hạn đăng ký hoặc hủy giải.",
+            // Cảnh báo sớm (nhóm chốt 23/11): còn dưới mức tối thiểu (hơn một nửa số suất) thì nói rõ trước khi hết hạn đăng ký.
+            _ when dto.RegistrationOpen && approved < min => $"Đang nhận đăng ký: {approved}/{t.MaxTeams} đội đã duyệt — CẦN ÍT NHẤT {min} đội (hơn một nửa số suất) để khai mạc. Đóng đăng ký lúc {Vn(t.RegCloseAt)}; đến lúc đó vẫn thiếu thì giải ở trạng thái Chưa đủ đội.",
+            _ when dto.RegistrationOpen => $"Đang nhận đăng ký: {approved}/{t.MaxTeams} đội đã duyệt (đã đạt tối thiểu {min} đội), đóng đăng ký lúc {Vn(t.RegCloseAt)}.",
+            _ when now < Utc(t.RegOpenAt) => $"Mở đăng ký lúc {Vn(t.RegOpenAt)}. Cần ít nhất {min} đội được duyệt (hơn một nửa trong {t.MaxTeams} suất) để khai mạc.",
+            _ when dto.ShortOfTeams => $"Đã đóng đăng ký nhưng mới có {approved}/{t.MaxTeams} đội được duyệt, cần ít nhất {min} đội (hơn một nửa số suất) để sinh nhánh. Gia hạn đăng ký hoặc hủy giải.",
             _ when !dto.HasBracket => $"Đã đóng đăng ký với {approved}/{t.MaxTeams} đội. Sinh nhánh đấu" + (approved < t.MaxTeams ? " (đội thiếu sẽ thành lượt miễn đấu)" : "") + " hoặc gia hạn đăng ký.",
             _ when !locked => "Nhánh đấu đang là bản nháp. Kiểm tra rồi khóa nhánh đấu.",
             _ => $"Nhánh đã khóa. Giải tự bắt đầu lúc khai mạc {Vn(t.StartAt)}, hoặc bấm Bắt đầu giải để bắt đầu ngay."

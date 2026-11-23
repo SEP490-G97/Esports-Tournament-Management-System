@@ -46,7 +46,17 @@
                 });
             }
         });
+        // Báo lỗi ngay khi chọn giờ (không đợi bấm Nhân bản).
+        timeline = Ui.liveTimeline(ids, function (v) {
+            var e = {}, nowMs = Date.now(), HOUR = 3600 * 1000;
+            ids.forEach(function (id) { if (v[id] && v[id].getTime() <= nowMs) e[id] = 'Không chọn thời gian đã qua.'; });
+            if (!e.RegCloseAt && v.RegOpenAt && v.RegCloseAt && v.RegCloseAt <= v.RegOpenAt) e.RegCloseAt = 'Đóng đăng ký phải sau mở đăng ký.';
+            else if (!e.RegCloseAt && v.RegOpenAt && v.RegCloseAt && v.RegCloseAt - v.RegOpenAt < 24 * HOUR) e.RegCloseAt = 'Thời gian nhận đăng ký phải kéo dài ít nhất 1 ngày (từ 24 giờ).';
+            if (!e.StartAt && v.RegCloseAt && v.StartAt && v.StartAt - v.RegCloseAt < HOUR) e.StartAt = 'Khai mạc phải sau đóng đăng ký ít nhất 1 giờ.';
+            return e;
+        });
     }
+    var timeline = null;
 
     function wireSubmit() {
         var form = document.getElementById('clone-form');
@@ -57,6 +67,7 @@
             e.preventDefault();
             Ui.clearAlert(flash);
             Ui.clearFieldErrors(form);
+            if (timeline && !timeline.check()) { Ui.showAlert(flash, 'danger', 'Mốc thời gian chưa hợp lệ — xem thông báo đỏ dưới từng ô.'); return; }
 
             btn.disabled = true;
             try {

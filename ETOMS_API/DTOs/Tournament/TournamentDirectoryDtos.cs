@@ -84,17 +84,21 @@ public sealed record TournamentOverviewDto(
     int WaitlistedTeams,
     string ImageUrl,
     // UC-46: số livestream đang phát — trang tổng quan hiện dải "Đang phát trực tiếp".
-    int LiveStreams);
+    int LiveStreams,
+    // Số đội tối thiểu để khai mạc (TournamentLifecycle.MinTeams: 2, Loại kép 3) — trang tổng quan ghi khi giải chưa đủ đội.
+    int MinTeams);
 
-// POR-04: đội đã duyệt và đội trong danh sách chờ (chỉ tên đội — không lộ dữ liệu cá nhân thành viên).
-public sealed record ParticipantDto(int TeamId, string Name, string Tag, string? LogoUrl, int? WaitlistPosition, int? FinalRank, string? PlacementLabel);
+// POR-04: đội chính thức (đã duyệt, kể cả đội bị loại giữa giải — vẫn là đội đã tham dự) và đội trong danh sách chờ
+// (chỉ tên đội — không lộ dữ liệu cá nhân thành viên).
+public sealed record ParticipantDto(int TeamId, string Name, string Tag, string? LogoUrl, int? WaitlistPosition, int? FinalRank, string? PlacementLabel, bool Disqualified = false);
 
 public sealed record TournamentParticipantsDto(
     int TournamentId,
     string TournamentName,
     int MaxTeams,
     IReadOnlyList<ParticipantDto> Approved,
-    IReadOnlyList<ParticipantDto> Waitlisted);
+    IReadOnlyList<ParticipantDto> Waitlisted,
+    string Status);
 
 public sealed record DirectoryGameOption(int GameId, string Title);
 

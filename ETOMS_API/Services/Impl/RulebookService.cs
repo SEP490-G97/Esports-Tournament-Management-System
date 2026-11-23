@@ -224,7 +224,7 @@ public class RulebookService : IRulebookService
 
     // Trang hiển thị dùng innerHTML, mà cột này còn được ghi từ dữ liệu mẫu và chức năng tạo giải.
     private static string? SanitizeForDisplay(string? content)
-        => content is null ? null : RichTextSanitizer.Sanitize(content);
+        => RichTextSanitizer.ToDisplayHtml(content);
 
     // Giải nháp không công khai: người ngoài nhận 404 như giải không tồn tại (UC-36 E2).
     private static bool CanView(Tournament t, int? viewerAccountId)

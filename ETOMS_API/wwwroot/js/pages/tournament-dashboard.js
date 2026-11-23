@@ -214,10 +214,20 @@
             });
         });
         var ext = document.getElementById('lc-extend');
+        // Báo lỗi ngay khi chọn giờ: không chọn giờ đã qua, khai mạc sau đóng đăng ký ít nhất 1 giờ.
+        var extTimeline = ext ? Ui.liveTimeline(['lc-close', 'lc-start-at'], function (v) {
+            var er = {}, now = Date.now();
+            if (!v['lc-close']) er['lc-close'] = 'Chọn hạn đóng đăng ký mới.';
+            else if (v['lc-close'].getTime() <= now) er['lc-close'] = 'Không chọn thời gian đã qua.';
+            if (!v['lc-start-at']) er['lc-start-at'] = 'Chọn thời gian khai mạc mới.';
+            else if (v['lc-start-at'].getTime() <= now) er['lc-start-at'] = 'Không chọn thời gian đã qua.';
+            else if (v['lc-close'] && v['lc-start-at'] - v['lc-close'] < 3600 * 1000) er['lc-start-at'] = 'Khai mạc phải sau đóng đăng ký ít nhất 1 giờ.';
+            return er;
+        }) : null;
         if (ext) ext.addEventListener('submit', async function (e) {
             e.preventDefault();
             var close = document.getElementById('lc-close').value, start = document.getElementById('lc-start-at').value;
-            if (!close || !start) return Ui.showAlert(flash, 'danger', 'Chọn hạn đóng đăng ký và thời gian khai mạc mới.');
+            if (!extTimeline.check()) return Ui.showAlert(flash, 'danger', 'Mốc thời gian gia hạn chưa hợp lệ — xem thông báo dưới từng ô.');
             try {
                 var r = await Api.post('/api/tournaments/' + tournamentId + '/lifecycle/extend',
                     { regCloseAt: new Date(close).toISOString(), startAt: new Date(start).toISOString() });
