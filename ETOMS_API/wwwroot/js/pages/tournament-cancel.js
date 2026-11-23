@@ -20,7 +20,7 @@
     function formatTime(value) {
         if (!value) return '';
         var d = new Date(/Z$/.test(value) ? value : value + 'Z');
-        return d.toLocaleString('vi-VN');
+        return Ui.fmtDateTime(d);
     }
 
     function refundHtml(b) {

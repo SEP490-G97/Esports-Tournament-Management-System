@@ -81,6 +81,8 @@ namespace ETOMS_API.Services.Impl
                     OrganizerRequestStatus = OrganizerRequestStatuses.None,
                     EmailVerifiedAt = DateTime.UtcNow,
                     CreatedAt = DateTime.UtcNow,
+                    NotifyInApp = true,   // mặc định bật như lược đồ (EF ghi giá trị thật, không để DB tự điền)
+                    NotifyEmail = true,
                 };
                 await accounts.AddAsync(acc, ct);
             }

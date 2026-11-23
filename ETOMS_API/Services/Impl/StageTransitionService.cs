@@ -68,13 +68,13 @@ public class StageTransitionService : IStageTransitionService
 
         // UC-18 E1: đã tạo ở lần chạy trước thì không làm gì.
         if (analysis.State == "DONE")
-            return Result<StageTransitionBoardDto>.Success(ToDto(analysis), "Nhánh knockout đã được tạo trước đó, hệ thống không tạo lại.");
+            return Result<StageTransitionBoardDto>.Success(ToDto(analysis), "Nhánh loại trực tiếp đã được tạo trước đó, hệ thống không tạo lại.");
         if (analysis.State != "READY")
             return Result<StageTransitionBoardDto>.Failure(analysis.Message);
 
         var teamCount = await CreateKnockoutAsync(analysis);
         var after = await AnalyzeAsync(tournament, null);
-        return Result<StageTransitionBoardDto>.Success(ToDto(after), $"Đã tạo nhánh knockout với {teamCount} đội đi tiếp. Hãy xếp lịch các trận.");
+        return Result<StageTransitionBoardDto>.Success(ToDto(after), $"Đã tạo nhánh loại trực tiếp với {teamCount} đội đi tiếp. Hãy xếp lịch các trận.");
     }
 
     public async Task<int> RunScheduledAsync(CancellationToken cancellationToken)
@@ -103,7 +103,7 @@ public class StageTransitionService : IStageTransitionService
         var a = new Analysis { Tournament = t, Order = GroupStandingCalculator.ParseOrder(t.TieBreakerOrder) };
 
         if (t.Format != "HYBRID")
-            return Stop(a, "NOT_HYBRID", "Chỉ giải thể thức vòng bảng rồi loại trực tiếp mới chuyển từ vòng bảng sang knockout.");
+            return Stop(a, "NOT_HYBRID", "Chỉ giải thể thức vòng bảng rồi loại trực tiếp mới chuyển từ vòng bảng sang vòng loại trực tiếp.");
         if (t.GroupCount is null || t.AdvancePerGroup is null)
             return Stop(a, "NO_GROUP_STAGE", "Giải chưa khai số bảng hoặc số đội đi tiếp mỗi bảng.");
         if (t.BracketLockedAt is null)
@@ -186,19 +186,19 @@ public class StageTransitionService : IStageTransitionService
         if (knockout.Count > 0)
         {
             a.State = "DONE";
-            a.Message = "Đã tạo nhánh knockout cho giai đoạn " + knockout.Min(n => n.StageNo) + ".";
+            a.Message = "Đã tạo nhánh loại trực tiếp cho giai đoạn " + knockout.Min(n => n.StageNo) + ".";
             a.Pairings = await ExistingPairingsAsync(a, knockout.Where(n => n.RoundNo == 1).Select(n => n.BracketNodeId).ToList(), qualifiers);
             return a;
         }
         if (a.Finished < a.Total)
             return Stop(a, "IN_PROGRESS", $"Vòng bảng còn {a.Total - a.Finished} trận chưa có kết quả.");
         if (blocking)
-            return Stop(a, "NEEDS_DECISION", "Có đội bằng nhau sau mọi tiêu chí phân định ở vị trí ảnh hưởng tới suất đi tiếp. Ban tổ chức cần xếp thứ tự trước khi chuyển sang knockout.");
+            return Stop(a, "NEEDS_DECISION", "Có đội bằng nhau sau mọi tiêu chí phân định ở vị trí ảnh hưởng tới suất đi tiếp. Ban tổ chức cần xếp thứ tự trước khi chuyển sang vòng loại trực tiếp.");
         if (qualifiers.Sum(q => q.Count) < 2)
             return Stop(a, "NO_KNOCKOUT", "Chỉ có một đội đi tiếp nên không cần vòng knockout.");
 
         a.State = "READY";
-        a.Message = "Vòng bảng đã xong. Có thể tạo nhánh knockout.";
+        a.Message = "Vòng bảng đã xong. Có thể tạo nhánh loại trực tiếp.";
         a.Slots = KnockoutDraw.Build(qualifiers);
         a.Pairings = Enumerable.Range(0, a.Slots.Count / 2).Select(k =>
         {
@@ -320,7 +320,7 @@ public class StageTransitionService : IStageTransitionService
             AccountId = t.OrganizerAccountId,
             NotificationType = "SYSTEM",
             Title = "Vòng bảng đã kết thúc",
-            Body = $"Giải {t.Name} đã có nhánh knockout giai đoạn {stageNo} với {a.Slots.Count(s => s is not null)} đội đi tiếp. Hãy xếp lịch các trận.",
+            Body = $"Giải {t.Name} đã có nhánh loại trực tiếp giai đoạn {stageNo} với {a.Slots.Count(s => s is not null)} đội đi tiếp. Hãy xếp lịch các trận.",
             LinkUrl = "/tournament/stage-transition.html?id=" + t.TournamentId,
             Channel = "IN_APP",
             IsRead = false,

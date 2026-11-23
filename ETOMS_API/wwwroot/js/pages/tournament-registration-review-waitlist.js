@@ -1,13 +1,17 @@
 (function () {
     function render(root, items, summary, context) {
         var capacity = document.getElementById('registration-capacity');
-        capacity.insertAdjacentHTML('beforeend',
-            '<button type="button" class="btn btn-primary mt-2" id="promote-first">Đôn đội đầu hàng chờ</button>');
-        var promoteFirst = document.getElementById('promote-first');
-        promoteFirst.disabled = summary.availableSlots < 1 || summary.waitlistCount < 1;
-        promoteFirst.addEventListener('click', function () {
-            promote(promoteFirst, context, null);
-        });
+        // Chỉ hiện nút khi thật sự có đội trong hàng chờ; hết suất thì nút khóa kèm lý do.
+        if (summary.waitlistCount > 0) {
+            capacity.insertAdjacentHTML('beforeend',
+                '<button type="button" class="btn btn-primary mt-2" id="promote-first">Đôn đội đầu hàng chờ</button>' +
+                (summary.availableSlots < 1 ? '<div class="field-hint">Chưa có suất trống để đôn.</div>' : ''));
+            var promoteFirst = document.getElementById('promote-first');
+            promoteFirst.disabled = summary.availableSlots < 1;
+            promoteFirst.addEventListener('click', function () {
+                promote(promoteFirst, context, null);
+            });
+        }
 
         items.forEach(function (item) {
             var card = root.querySelector('article[data-registration-id="' + item.registrationId + '"]');
@@ -21,7 +25,7 @@
                     '>Đôn đội này thủ công</button>';
             } else if (item.status === 'PENDING' && item.waitlistExpiresAt) {
                 message = '<p class="field-hint mt-3">Được mời nhận suất; đội trưởng cần xác nhận trước ' +
-                    Ui.escapeHtml(new Date(item.waitlistExpiresAt).toLocaleString('vi-VN')) + '.</p>';
+                    Ui.escapeHtml(Ui.fmtDateTime(item.waitlistExpiresAt)) + '.</p>';
             }
             card.querySelector('.registration-waitlist-actions').innerHTML = message;
         });

@@ -59,7 +59,10 @@
             'Xét duyệt: ' + (summary.tournamentName || (items[0] && items[0].tournamentName) || 'đăng ký giải');
         document.getElementById('registration-capacity').innerHTML =
             '<div class="registration-capacity-stat"><strong>' + Number(summary.availableSlots) + '</strong>' +
-            '<span>suất còn trống / ' + Number(summary.maxTeams) + '</span></div>' +
+            '<span>suất còn trống / ' + Number(summary.maxTeams) + '</span>' +
+            // Đơn đang chờ duyệt vẫn giữ suất (CountOccupiedSlotsAsync) — ghi rõ để BTC không tưởng là lỗi.
+            '<small class="field-hint d-block">' + Number(summary.occupiedSlots) +
+            ' suất đã có đội giữ (gồm cả đơn chờ duyệt)</small></div>' +
             '<div class="registration-capacity-stat"><strong>' + Number(summary.waitlistCount) + '</strong>' +
             '<span>đội đang chờ</span></div>';
 
@@ -68,7 +71,7 @@
                 '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h3>' +
                 Ui.escapeHtml(item.teamName) + ' [' + Ui.escapeHtml(item.teamTag) + ']</h3>' +
                 '<div class="muted-copy">Nộp: ' +
-                Ui.escapeHtml(item.submittedAt ? new Date(item.submittedAt).toLocaleString('vi-VN') : '—') +
+                Ui.escapeHtml(item.submittedAt ? Ui.fmtDateTime(item.submittedAt) : '—') +
                 ' · Đồng ý Rulebook v' + Number(item.rulebookVersionAccepted || 0) + '</div></div>' +
                 '<span class="badge badge-soft">' + Ui.escapeHtml(statusLabel(item.status)) + '</span></div>' +
                 (item.reviewNote ? '<p class="field-hint">' + Ui.escapeHtml(item.reviewNote) + '</p>' : '') +

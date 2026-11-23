@@ -72,7 +72,11 @@ namespace ETOMS_API.Services.Impl
                 DateOfBirth = dateOfBirth,
                 Role = AccountRoles.Player,
                 Status = activateNow ? AccountStatuses.Active : AccountStatuses.PendingVerify,
-                EmailVerifiedAt = activateNow ? DateTime.UtcNow : null
+                EmailVerifiedAt = activateNow ? DateTime.UtcNow : null,
+                // Lược đồ để DEFAULT 1 cho 2 cột này, nhưng EF ghi giá trị thật (ValueGeneratedNever, xem PendingTables) —
+                // không gán thì tài khoản mới bị TẮT cả thông báo trong web lẫn email (lỗi phát hiện 22/11).
+                NotifyInApp = true,
+                NotifyEmail = true
             };
             _db.Accounts.Add(account);
 

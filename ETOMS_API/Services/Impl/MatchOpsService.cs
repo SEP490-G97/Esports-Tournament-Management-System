@@ -48,9 +48,17 @@ public class MatchOpsService : IMatchOpsService
         var refereeName = match.RefereeAccountId is int rid
             ? await _uow.Repository<Account>().Query().AsNoTracking().Where(a => a.AccountId == rid).Select(a => a.FullName).FirstOrDefaultAsync()
             : null;
+        var myTeamMembers = captainTeamId is int myTeam
+            ? await _uow.Repository<TeamMember>().Query().AsNoTracking()
+                .Where(tm => tm.TeamId == myTeam && tm.Status == "ACTIVE")
+                .OrderBy(tm => tm.Slot).ThenBy(tm => tm.Account.FullName)
+                .Select(tm => new MatchTeamMemberOption { AccountId = tm.AccountId, FullName = tm.Account.FullName, Slot = tm.Slot })
+                .ToListAsync()
+            : new List<MatchTeamMemberOption>();
 
         return new MatchDetailDto
         {
+            MyTeamMembers = myTeamMembers,
             TeamAReported = match.TeamAid.HasValue && reportedTeams.Contains(match.TeamAid.Value),
             TeamBReported = match.TeamBid.HasValue && reportedTeams.Contains(match.TeamBid.Value),
             OpenDisputeId = openDisputeId,
@@ -86,7 +94,7 @@ public class MatchOpsService : IMatchOpsService
     public async Task<Result> ManualCheckInAsync(int matchId, int actorAccountId, ManualCheckInRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
-            return Result.FieldFailure(nameof(request.Reason), "Check-in thủ công bắt buộc phải có lý do.");
+            return Result.FieldFailure(nameof(request.Reason), "Điểm danh thủ công bắt buộc phải có lý do.");
 
         var match = await LoadForManageAsync(matchId, actorAccountId);
         if (match.Match is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
@@ -95,6 +103,8 @@ public class MatchOpsService : IMatchOpsService
 
         if (m.Status != "PENDING" && m.Status != "READY")
             return Result.Failure("Trận không còn ở trạng thái chờ check-in.");
+        if (await _resultService.IsFrozenByUpstreamDisputeAsync(matchId))   // UC-30 A2
+            return Result.Failure(ResultService.FrozenMessage, StatusCodes.Status409Conflict);
 
         var side = request.TeamSide.Trim().ToUpperInvariant();
         if (side != "A" && side != "B")
@@ -112,7 +122,7 @@ public class MatchOpsService : IMatchOpsService
         await LogAsync(m.TournamentId, actorAccountId, "MANUAL_CHECKIN", m.MatchId,
             $"TeamSide={side}", request.Reason.Trim());
         await _uow.SaveChangesAsync();
-        return Result.Success("Đã check-in thủ công.");
+        return Result.Success("Đã điểm danh thủ công.");
     }
 
     // UC-25 bước 1 / UC-21 bước 6: trận Sẵn sàng thì mở phòng chờ và báo cho hai đội trưởng.
@@ -148,6 +158,8 @@ public class MatchOpsService : IMatchOpsService
             return Result.Failure("Trận không còn ở giai đoạn điểm danh.");
         if (m.ScheduledAt is null || m.CheckInOpenAt is null)
             return Result.Failure("Trận chưa được xếp giờ thi đấu nên chưa điểm danh được.");
+        if (await _resultService.IsFrozenByUpstreamDisputeAsync(matchId))   // UC-30 A2
+            return Result.Failure(ResultService.FrozenMessage, StatusCodes.Status409Conflict);
 
         var now = DateTime.UtcNow;
         if (now < m.CheckInOpenAt) // E1 — MSG-MAT-001
@@ -506,6 +518,12 @@ public class MatchOpsService : IMatchOpsService
         if (match.ManageError is not null) return match.ManageError;
         var m = match.Match!;
 
+        // UC-26 "Other Information": đảo kết quả trong MỘT giao dịch — reset dở dang để nhánh ở trạng thái không luật nào mô tả.
+        await using var tx = await _uow.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
+
+        // A1/A2: gỡ đội đã được đẩy sang trận sau; trận sau đã đá thì cũng hủy để đấu lại.
+        var downstream = await _resultService.RevertAdvancementAsync(matchId, apply: true);
+
         var oldReports = await _uow.Repository<MatchReport>().Query().Where(r => r.MatchId == matchId).ToListAsync();
         foreach (var r in oldReports) _uow.Repository<MatchReport>().Remove(r);
 
@@ -516,9 +534,53 @@ public class MatchOpsService : IMatchOpsService
         m.Status = "PENDING";
         _uow.Repository<Match>().Update(m);
 
-        await LogAsync(m.TournamentId, actorAccountId, "REMATCH", m.MatchId, "Status=PENDING", request.Reason.Trim());
+        var reason = request.Reason.Trim();
+        await LogAsync(m.TournamentId, actorAccountId, "REMATCH", m.MatchId,
+            "Status=PENDING" + (downstream.Count > 0 ? "; AlsoReset=" + string.Join(",", downstream.Select(d => d.MatchId)) : ""), reason);
+        foreach (var d in downstream)
+            await LogAsync(d.TournamentId, actorAccountId, "REMATCH", d.MatchId, $"Status=PENDING; Cause=REMATCH_OF_{matchId}", reason);
+
+        // Bước 2: báo hai đội trưởng của trận; A2: báo các đội có trận đã đá phía sau sẽ phải đấu lại.
+        var teamIds = new[] { m.TeamAid, m.TeamBid }.Concat(downstream.SelectMany(d => new[] { d.TeamAid, d.TeamBid }))
+            .Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
+        var captains = await _uow.Repository<Team>().Query().Where(t => teamIds.Contains(t.TeamId))
+            .Select(t => new { t.TeamId, t.CaptainAccountId }).ToListAsync();
+        foreach (var c in captains)
+        {
+            var own = c.TeamId == m.TeamAid || c.TeamId == m.TeamBid;
+            await _uow.Repository<Notification>().AddAsync(new Notification
+            {
+                AccountId = c.CaptainAccountId, NotificationType = "MATCH_RESULT",
+                Title = own ? "Trận đấu được cho đấu lại" : "Trận đã đá của đội bạn sẽ đấu lại",
+                Body = (own ? $"Kết quả trận #{matchId} đã bị hủy, trận sẽ được xếp giờ và đấu lại." :
+                        $"Trận #{matchId} ở vòng trước được cho đấu lại nên kết quả trận đội bạn đã đá phía sau cũng bị hủy và sẽ đấu lại.")
+                    + " Lý do: " + (reason.Length > 600 ? reason[..600] : reason),
+                LinkUrl = "/match/detail.html?id=" + (own ? matchId : (downstream.FirstOrDefault(d => d.TeamAid == c.TeamId || d.TeamBid == c.TeamId)?.MatchId ?? matchId)),
+                Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow
+            });
+        }
         await _uow.SaveChangesAsync();
-        return Result.Success("Đã hủy kết quả cũ, trận quay lại trạng thái chờ đấu.");
+        await tx.CommitAsync();
+        return Result.Success(downstream.Count > 0
+            ? $"Đã hủy kết quả cũ và {downstream.Count} trận đã đá phía sau; các trận quay lại trạng thái chờ đấu."
+            : "Đã hủy kết quả cũ, trận quay lại trạng thái chờ đấu.");
+    }
+
+    // UC-26 bước 3 / A2: xem trước các trận phía sau sẽ bị hủy kết quả nếu cho trận này đấu lại.
+    public async Task<Result<List<RematchImpactDto>>> PreviewRematchAsync(int matchId, int actorAccountId)
+    {
+        var match = await LoadForManageAsync(matchId, actorAccountId);
+        if (match.Match is null) return Result.Failure<List<RematchImpactDto>>("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
+        if (match.ManageError is not null) return Result.Failure<List<RematchImpactDto>>(match.ManageError.Message, match.ManageError.StatusCode);
+        var list = await _resultService.RevertAdvancementAsync(matchId, apply: false);
+        var ids = list.SelectMany(d => new[] { d.TeamAid, d.TeamBid }).Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
+        var names = await _uow.Repository<Team>().Query().Where(t => ids.Contains(t.TeamId)).ToDictionaryAsync(t => t.TeamId, t => t.Name);
+        return Result.Success(list.Select(d => new RematchImpactDto
+        {
+            MatchId = d.MatchId,
+            Label = $"{(d.TeamAid is int a ? names.GetValueOrDefault(a) : "?")} vs {(d.TeamBid is int b ? names.GetValueOrDefault(b) : "?")}",
+            Status = StatusText.Match(d.Status)
+        }).ToList());
     }
 
     // ===== MAT-11: Tước quyền thi đấu (Disqualify) =====
@@ -636,6 +698,7 @@ public class MatchOpsService : IMatchOpsService
         var done = 0;
         foreach (var m in due)
         {
+            if (await _resultService.IsFrozenByUpstreamDisputeAsync(m.MatchId)) continue;   // UC-30 A2: chờ phán quyết trận trước
             var winner = m.TeamAcheckedInAt != null ? m.TeamAid!.Value : m.TeamBid!.Value;
             var absent = winner == m.TeamAid ? m.TeamB! : m.TeamA!;
             var present = winner == m.TeamAid ? m.TeamA! : m.TeamB!;

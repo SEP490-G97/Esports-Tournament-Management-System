@@ -20,8 +20,14 @@ internal static class MatchReconcileLock
 public class ResultService : IResultService
 {
     private readonly IUnitOfWork _uow;
+    private readonly IServiceProvider _services;
 
-    public ResultService(IUnitOfWork uow) => _uow = uow;
+    // IServiceProvider: lấy ITournamentLifecycleService lúc cần (UC-33 A1) mà không tạo vòng phụ thuộc khi dựng service.
+    public ResultService(IUnitOfWork uow, IServiceProvider services)
+    {
+        _uow = uow;
+        _services = services;
+    }
 
     private static readonly string[] OpenMatchStatuses = { "PENDING", "READY", "LIVE", "WAITING_REPORT" };
 
@@ -91,6 +97,10 @@ public class ResultService : IResultService
 
         var myTeamId = await ResolveCaptainTeamIdAsync(match, captainAccountId);
         if (myTeamId is null) return Result.Failure("Bạn không phải đội trưởng của đội nào trong trận này.");
+
+        // UC-30 A2: kết quả trận trước (đưa đội vào trận này) đang bị tranh chấp → trận này tạm đóng băng.
+        if (await IsFrozenByUpstreamDisputeAsync(matchId))
+            return Result.Failure(FrozenMessage, StatusCodes.Status409Conflict);
 
         // E1 (MSG-RES-001) — BR-RES-01: đúng một báo cáo cho một đội trong một trận, không sửa/rút lại.
         if (await _uow.Repository<MatchReport>().AnyAsync(r => r.MatchId == matchId && r.TeamId == myTeamId.Value))
@@ -207,12 +217,17 @@ public class ResultService : IResultService
             _uow.Repository<Match>().Update(match);
             foreach (var r in reports) { r.Status = "CONFLICTING"; _uow.Repository<MatchReport>().Update(r); }
 
-            await _uow.Repository<Dispute>().AddAsync(new Dispute
+            var dispute = new Dispute
             {
                 MatchId = match.MatchId,
                 OpenReason = "CONFLICTING_REPORT",
                 Status = "OPEN"
-            });
+            };
+            await _uow.Repository<Dispute>().AddAsync(dispute);
+            await _uow.SaveChangesAsync();
+            // UC-28 A1: báo trọng tài của trận, không có thì Ban tổ chức.
+            await NotifyAdjudicatorAsync(match, "Tranh chấp mới: hai báo cáo lệch nhau",
+                $"Trận #{match.MatchId}: hai đội trưởng báo tỉ số khác nhau. Trận đã bị khóa, mở hồ sơ tranh chấp để phân xử.", dispute.DisputeId);
             await _uow.SaveChangesAsync();
         }
     }
@@ -363,6 +378,128 @@ public class ResultService : IResultService
         await Place(layout.WinnerTo(node), winnerTeamId);
         if (loserTeamId is int loser) await Place(layout.LoserTo(node), loser);
         await _uow.SaveChangesAsync();
+    }
+
+    // ===== UC-30 A2: đóng băng vị trí phía sau của trận đang tranh chấp =====
+    public const string FrozenMessage = "Kết quả trận trước đưa đội vào trận này đang bị tranh chấp, trận tạm đóng băng cho tới khi có phán quyết.";
+
+    public async Task<bool> IsFrozenByUpstreamDisputeAsync(int matchId)
+    {
+        var tid = await _uow.Repository<Match>().Query().Where(m => m.MatchId == matchId).Select(m => (int?)m.TournamentId).FirstOrDefaultAsync();
+        if (tid is null) return false;
+        var disputed = await _uow.Repository<Match>().Query()
+            .Where(m => m.TournamentId == tid && m.Status == "DISPUTED" && m.WinnerTeamId != null && m.MatchId != matchId)
+            .ToListAsync();
+        foreach (var d in disputed)
+            if ((await DownstreamSlotsAsync(d)).Any(s => s.Target.MatchId == matchId)) return true;
+        return false;
+    }
+
+    // UC-28 A1 / UC-30 bước 4: báo người phân xử — trọng tài của trận, không có thì Ban tổ chức.
+    private async Task NotifyAdjudicatorAsync(Match match, string title, string body, int disputeId)
+    {
+        var organizerId = await _uow.Repository<Tournament>().Query().Where(t => t.TournamentId == match.TournamentId)
+            .Select(t => t.OrganizerAccountId).FirstAsync();
+        await _uow.Repository<Notification>().AddAsync(new Notification
+        {
+            AccountId = match.RefereeAccountId ?? organizerId,
+            NotificationType = "DISPUTE",
+            Title = title,
+            Body = body.Length > 1000 ? body[..1000] : body,
+            LinkUrl = "/result/dispute.html?id=" + disputeId,
+            Channel = "IN_APP",
+            IsRead = false,
+            SentAt = DateTime.UtcNow
+        });
+    }
+
+    // ===== UC-26: gỡ kết quả đã đẩy sang trận sau =====
+    private static bool Played(Match m) =>
+        m.WinnerTeamId != null || m.ScoreA != null || m.ScoreB != null || (m.Status != "PENDING" && m.Status != "READY");
+
+    public async Task<IReadOnlyList<Match>> RevertAdvancementAsync(int matchId, bool apply)
+    {
+        var reset = new List<Match>();
+        await RevertAsync(matchId, apply, reset, new HashSet<int>());
+        if (apply) await _uow.SaveChangesAsync();
+        return reset;
+    }
+
+    // Các ô (trận, phía A?, đội) mà kết quả của trận này đã ghi đội vào.
+    private async Task<List<(Match Target, bool SideA, int TeamId)>> DownstreamSlotsAsync(Match match)
+    {
+        var slots = new List<(Match, bool, int)>();
+        if (match.WinnerTeamId is not int winner) return slots;
+        int? loser = match.TeamAid == winner ? match.TeamBid : match.TeamAid;
+        var node = await _uow.Repository<BracketNode>().GetByIdAsync(match.BracketNodeId);
+        if (node is null || node.StageType != "KNOCKOUT") return slots;   // vòng bảng: không đẩy ai, bảng điểm tự tính lại
+
+        async Task Add(int nodeId, bool sideA, int team)
+        {
+            var t = await _uow.Repository<Match>().Query().FirstOrDefaultAsync(m => m.BracketNodeId == nodeId);
+            if (t is not null && (sideA ? t.TeamAid : t.TeamBid) == team) slots.Add((t, sideA, team));
+        }
+
+        var format = await _uow.Repository<Tournament>().Query().Where(t => t.TournamentId == match.TournamentId).Select(t => t.Format).FirstOrDefaultAsync();
+        if (DoubleElimination.IsDoubleElimination(format))
+        {
+            var nodes = await _uow.Repository<BracketNode>().Query()
+                .Where(n => n.TournamentId == match.TournamentId && n.StageType == "KNOCKOUT").ToListAsync();
+            var layout = new DoubleElimination.Layout(nodes);
+            if (layout.WinnerTo(node) is { } w) await Add(w.Node.BracketNodeId, w.SideA, winner);
+            if (loser is int l && layout.LoserTo(node) is { } ls) await Add(ls.Node.BracketNodeId, ls.SideA, l);
+            return slots;
+        }
+        if (node.ParentNodeId is int parentId)
+        {
+            await Add(parentId, (node.PositionInRound ?? 1) % 2 == 1, winner);
+            // Đội thua bán kết vào trận tranh hạng Ba (cùng vòng với chung kết, vị trí 2, không có nút cha).
+            var parent = await _uow.Repository<BracketNode>().GetByIdAsync(parentId);
+            if (loser is int l && parent is not null && parent.ParentNodeId is null)
+            {
+                var third = await _uow.Repository<BracketNode>().Query().FirstOrDefaultAsync(n => n.TournamentId == match.TournamentId
+                    && n.StageType == "KNOCKOUT" && n.StageNo == parent.StageNo && n.RoundNo == parent.RoundNo
+                    && n.PositionInRound == 2 && n.ParentNodeId == null);
+                if (third is not null)
+                {
+                    var tm = await _uow.Repository<Match>().Query().FirstOrDefaultAsync(m => m.BracketNodeId == third.BracketNodeId);
+                    if (tm is not null && tm.TeamAid == l) slots.Add((tm, true, l));
+                    else if (tm is not null && tm.TeamBid == l) slots.Add((tm, false, l));
+                }
+            }
+        }
+        return slots;
+    }
+
+    private async Task RevertAsync(int matchId, bool apply, List<Match> reset, HashSet<int> seen)
+    {
+        if (!seen.Add(matchId)) return;
+        var match = await _uow.Repository<Match>().GetByIdAsync(matchId);
+        if (match is null) return;
+        foreach (var (target, sideA, _) in await DownstreamSlotsAsync(match))
+        {
+            if (Played(target))
+            {
+                // A2: trận phía sau đã đá trên kết quả sắp hủy → hủy luôn (đệ quy trước khi xóa đội thắng của nó).
+                await RevertAsync(target.MatchId, apply, reset, seen);
+                if (reset.All(r => r.MatchId != target.MatchId)) reset.Add(target);
+                if (apply)
+                {
+                    foreach (var r in await _uow.Repository<MatchReport>().Query().Where(r => r.MatchId == target.MatchId).ToListAsync())
+                        _uow.Repository<MatchReport>().Remove(r);
+                    target.ScoreA = null; target.ScoreB = null; target.WinnerTeamId = null;
+                    target.ResultSource = null; target.VerifiedAt = null;
+                    target.Status = "PENDING";
+                }
+            }
+            if (apply)
+            {
+                if (sideA) target.TeamAid = null; else target.TeamBid = null;
+                target.TeamAcheckedInAt = null; target.TeamBcheckedInAt = null;
+                target.CheckInMode = "SELF"; target.OverrideReason = null;
+                _uow.Repository<Match>().Update(target);
+            }
+        }
     }
 
     // ===== RES-04 + RES-09 (UC-39) =====
@@ -537,6 +674,12 @@ public class ResultService : IResultService
 
         match.Status = "DISPUTED";
         _uow.Repository<Match>().Update(match);
+        await _uow.SaveChangesAsync();
+
+        // UC-30 bước 4: báo người phân xử. A2: trận đã đẩy đội thắng đi thì trận phía sau tạm đóng băng
+        // (IsFrozenByUpstreamDisputeAsync chặn điểm danh và nộp báo cáo ở đó cho tới khi có phán quyết).
+        await NotifyAdjudicatorAsync(match, "Trận bị cắm cờ nghi vấn",
+            $"Trận #{match.MatchId} bị cắm cờ ({FlagCategoryLabel(request.Category)}): {request.Note}", dispute.DisputeId);
         await _uow.SaveChangesAsync();
 
         return Result.Success("Đã ghi nhận cờ nghi vấn. Trận đấu đã bị đóng băng chờ xem xét.");
@@ -715,7 +858,9 @@ public class ResultService : IResultService
         if (!request.IsVoid && match.WinnerTeamId.HasValue)
             await AdvanceWinnerAsync(match, match.WinnerTeamId.Value);
 
-        return Result.Success("Đã ghi nhận phán quyết VAR.");
+        // UC-19 A3 / UC-33 A1: giải đã kết thúc mà kết quả đổi → tính lại hạng, danh hiệu và điểm.
+        var recomputed = await _services.GetRequiredService<ITournamentLifecycleService>().RecomputeCompletedAsync(match.TournamentId);
+        return Result.Success(recomputed ? "Đã ghi nhận phán quyết VAR. Thứ hạng và điểm của giải đã được tính lại." : "Đã ghi nhận phán quyết VAR.");
     }
 
     // ===== RES-08 (UC-33) =====

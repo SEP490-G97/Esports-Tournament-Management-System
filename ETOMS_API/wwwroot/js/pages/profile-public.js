@@ -7,7 +7,12 @@
             root.innerHTML = '<div class="empty"><p>' + Ui.escapeHtml(emptyText) + '</p></div>';
             return;
         }
-        root.innerHTML = '<div class="feature-list">' + items.map(renderer).join('') + '</div>';
+        // Lịch sử trận có thể rất dài: hiện 10 mục, bấm "Xem thêm" để mở tiếp.
+        var shown = Math.min(items.length, Number(root.dataset.shown) || 10);
+        root.innerHTML = '<div class="feature-list">' + items.slice(0, shown).map(renderer).join('') + '</div>' +
+            (items.length > shown ? '<div class="btn-row justify-content-center mt-2"><button type="button" class="btn btn-ghost btn-sm" data-list-more>Xem thêm (còn ' + (items.length - shown) + ')</button></div>' : '');
+        var more = root.querySelector('[data-list-more]');
+        if (more) more.addEventListener('click', function () { root.dataset.shown = shown + 10; renderList(root, items, emptyText, renderer); });
     }
 
     function renderProfile(profile) {
@@ -40,7 +45,7 @@
         var response = await Api.get('/api/profiles/' + accountId + '/match-history');
         renderList(document.getElementById('public-match-history'), response.data || [], 'Chưa có lịch sử trận đấu.', function (match) {
             var score = match.scoreFor === null || match.scoreAgainst === null ? 'Chưa có kết quả' : match.scoreFor + ' - ' + match.scoreAgainst;
-            var schedule = match.scheduledAt ? new Date(match.scheduledAt).toLocaleString('vi-VN') : 'Chưa xếp lịch';
+            var schedule = match.scheduledAt ? Ui.fmtDateTime(match.scheduledAt) : 'Chưa xếp lịch';
             return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(match.tournamentName) + ' · ' + Ui.escapeHtml(match.teamName) + '</div><div class="item-sub">' + Ui.escapeHtml(match.slot) + ' · ' + Ui.escapeHtml(schedule) + '</div></div><span class="badge badge-soft">' + Ui.escapeHtml(match.statusLabel || match.status) + ' · ' + Ui.escapeHtml(score) + '</span></div>';
         });
     }

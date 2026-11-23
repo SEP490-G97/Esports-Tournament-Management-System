@@ -35,18 +35,19 @@ window.LivePlayer = (function () {
         function side(name, wins, teamId) {
             return '<div class="live-side' + (leader && leader === teamId ? ' win' : '') + '"><div class="nm">' + esc(name) + '</div><div class="num">' + Number(wins) + '</div></div>';
         }
+        var final = d.status === 'VERIFIED' || d.status === 'WALKOVER';
         var rows = d.games.length
             ? '<table class="live-games"><thead><tr><th>Ván</th><th>' + esc(d.teamAName) + '</th><th>' + esc(d.teamBName) + '</th></tr></thead><tbody>' +
               d.games.map(function (g) {
                   return '<tr><td>' + g.gameNo + '</td><td class="' + (g.scoreA > g.scoreB ? 'w' : '') + '">' + esc(g.scoreA) + '</td>' +
                       '<td class="' + (g.scoreB > g.scoreA ? 'w' : '') + '">' + esc(g.scoreB) + '</td></tr>';
               }).join('') + '</tbody></table>'
-            : '<p class="hint mt-3 mb-0">Chưa có ván nào được cập nhật tỉ số.</p>';
+            : (final ? '' : '<p class="hint mt-3 mb-0">Chưa có ván nào được cập nhật tỉ số.</p>');
         var badge = '<span class="badge ' + (d.status === 'LIVE' ? 'badge-live' : 'badge-soft') + '">' + esc(d.statusLabel) + '</span>';
         return '<div class="live-score">' + side(d.teamAName, d.winsA, d.teamAId) +
             '<div class="live-mid"><div class="hint">BO' + d.bestOf + '</div>' + badge + '</div>' +
             side(d.teamBName, d.winsB, d.teamBId) + '</div>' + rows +
-            '<p class="hint mt-2 mb-0">Tỉ số trực tiếp do Trọng tài/Ban tổ chức cập nhật để theo dõi. Kết quả chính thức chốt khi hai đội trưởng nộp báo cáo khớp nhau.</p>';
+            '<p class="hint mt-2 mb-0">' + (final ? 'Đây là kết quả chính thức của trận.' : 'Tỉ số trực tiếp do Trọng tài/Ban tổ chức cập nhật để theo dõi. Kết quả chính thức chốt khi hai đội trưởng nộp báo cáo khớp nhau.') + '</p>';
     }
 
     return { playerHtml: playerHtml, scoreHtml: scoreHtml, streamBadge: streamBadge };

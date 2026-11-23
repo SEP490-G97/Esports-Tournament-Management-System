@@ -16,7 +16,7 @@
     }
 
     function formatDate(value) {
-        return value ? new Date(value).toLocaleString('vi-VN') : '—';
+        return value ? Ui.fmtDateTime(value) : '—';
     }
 
     function isTeamEligible(team) { return team.members.length >= options.starterCount; }
@@ -181,7 +181,9 @@
 
             var proofInput = document.getElementById('payment-proof');
             var file = proofInput.files[0];
-            if (!isDraft && options.requirePaymentProof && !file) {
+            // Giải miễn phí không có biên lai để nộp (khung biên lai bị ẩn) — chỉ đòi khi có lệ phí, giống máy chủ (lỗi 22/11:
+            // giải 0 đồng mà đội trưởng bị chặn "Giải yêu cầu tải biên lai" và không có chỗ nào để tải).
+            if (!isDraft && options.requirePaymentProof && options.entryFee > 0 && !file) {
                 Ui.showAlert(flash, 'danger', 'Giải yêu cầu tải biên lai lệ phí.');
                 proofInput.focus();
                 return;

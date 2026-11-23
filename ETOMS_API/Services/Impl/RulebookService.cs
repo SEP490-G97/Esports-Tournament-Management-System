@@ -177,7 +177,8 @@ public class RulebookService : IRulebookService
             var captains = await GetCaptainsToNotifyAsync(tournamentId);
             foreach (var captainId in captains)
             {
-                await _uow.Repository<Notification>().AddAsync(new Notification
+                // UC-40 A1: đổi thể lệ ràng buộc đội nên vẫn ghi khi đội trưởng tắt thông báo trong web.
+                await _uow.Repository<Notification>().AddAsync(NotificationEmailInterceptor.Binding(new Notification
                 {
                     AccountId = captainId,
                     NotificationType = "NEWS",
@@ -187,7 +188,7 @@ public class RulebookService : IRulebookService
                     Channel = "IN_APP",
                     IsRead = false,
                     SentAt = now
-                });
+                }));
             }
             notified = captains.Count;
         }

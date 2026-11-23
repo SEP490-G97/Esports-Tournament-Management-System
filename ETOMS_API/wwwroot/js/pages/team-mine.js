@@ -59,7 +59,7 @@
             '<div class="section-title m-0">Lời mời vào đội <span class="badge badge-active">' + list.length + '</span></div>' +
             '<div class="section-sub">Chấp nhận để vào đội ngay; mỗi tựa game bạn chỉ thuộc một đội.</div>' +
             list.map(function (v) {
-                var when = v.invitedAt ? new Date(/Z$|[+-]\d\d:\d\d$/.test(v.invitedAt) ? v.invitedAt : v.invitedAt + 'Z').toLocaleString('vi-VN') : '';
+                var when = v.invitedAt ? Ui.fmtDateTime(v.invitedAt) : '';
                 return '<div class="invite-row">' + logo({ logoUrl: v.logoUrl, name: v.teamName, tag: v.teamTag }) +
                     '<div class="grow"><div class="name"><a href="/team/details.html?id=' + Number(v.teamId) + '">' + Ui.escapeHtml(v.teamName) + '</a> ' +
                     '<span class="text-muted-2">[' + Ui.escapeHtml(v.teamTag) + '] · ' + Ui.escapeHtml(v.gameTitle) + '</span></div>' +

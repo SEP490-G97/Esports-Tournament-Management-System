@@ -23,7 +23,7 @@
             : '<div class="org-logo-large">' + Ui.escapeHtml((org.name || '?').slice(0, 1)) + '</div>';
         var link = websiteUrl ? '<a href="' + Ui.escapeHtml(websiteUrl) + '" target="_blank" rel="noopener noreferrer">' + Ui.escapeHtml(org.websiteUrl) + '</a>' : 'Chưa cung cấp';
         var tournaments = (org.tournaments || []).map(function (item) {
-            return '<a class="feature-list-item" href="/bracket/view.html?id=' + Number(item.tournamentId) + '"><div><div class="item-title">' + Ui.escapeHtml(item.name) + '</div><div class="item-sub">' + Ui.escapeHtml(item.statusLabel) + ' · ' + Ui.escapeHtml(new Date(item.startAt).toLocaleDateString('vi-VN')) + '</div></div><span class="muted-copy">Xem →</span></a>';
+            return '<a class="feature-list-item" href="/bracket/view.html?id=' + Number(item.tournamentId) + '"><div><div class="item-title">' + Ui.escapeHtml(item.name) + '</div><div class="item-sub">' + Ui.escapeHtml(item.statusLabel) + ' · ' + Ui.escapeHtml(Ui.parseUtc(item.startAt).toLocaleDateString('vi-VN')) + '</div></div><span class="muted-copy">Xem →</span></a>';
         }).join('');
         root.innerHTML = '<section class="feature-card"><div class="team-hero">' + logo + '<div><h2 class="mb-1">' + Ui.escapeHtml(org.name) + '</h2><div class="team-hero sub">' + (org.parentOrganization ? '<span>Trực thuộc: ' + Ui.escapeHtml(org.parentOrganization) + '</span>' : '') + '<span>' + Ui.escapeHtml(org.contactEmail || 'Chưa có email liên hệ') + '</span></div></div></div>' +
             '<p class="mt-4 mb-2">' + Ui.escapeHtml(org.description || 'Đơn vị chưa có mô tả.') + '</p><div class="muted-copy">Website: ' + link + (org.contactPhone ? ' · Điện thoại: ' + Ui.escapeHtml(org.contactPhone) : '') + '</div>' +
@@ -34,6 +34,7 @@
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Trận có tranh chấp</div><div class="num">' + Number(reputation.disputedMatchCount) + '<small> / ' + Number(reputation.totalMatchCount) + ' trận</small></div></div></div>' +
             '<div class="col-6 col-lg-3"><div class="stat-card h-100"><div class="label">Xử lý tranh chấp trung bình</div><div class="num">' + (reputation.averageDisputeResolutionHours === null ? '—' : Number(reputation.averageDisputeResolutionHours).toFixed(1)) + '<small>' + (reputation.averageDisputeResolutionHours === null ? '' : ' giờ') + '</small></div></div></div></div>' +
             '<section id="organization-tournaments" class="feature-card mt-4"><h2>Giải đấu của đơn vị</h2>' + (tournaments ? '<div class="feature-list mt-3">' + tournaments + '</div>' : '<p class="muted-copy mt-3">Chưa có giải đấu công khai.</p>') + '</section>';
+        Ui.limitList(root.querySelector('#organization-tournaments .feature-list'), 10);   // đơn vị lớn có hàng trăm giải
     }
 
     function renderMembers() {

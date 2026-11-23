@@ -2,6 +2,9 @@
     var root = document.getElementById('my-registrations');
     var flash = document.getElementById('registration-flash');
     var registrations = [];
+    // Đội trưởng lâu năm có thể có hàng trăm đơn: chỉ vẽ PAGE đơn đầu, bấm "Xem thêm" để mở tiếp.
+    var PAGE = 10;
+    var shown = PAGE;
 
     function statusLabel(status) {
         return {
@@ -44,7 +47,8 @@
             if (clearButton) clearButton.addEventListener('click', clearFilters);
             return;
         }
-        root.innerHTML = items.map(function (item) {
+        var total = items.length;
+        root.innerHTML = items.slice(0, shown).map(function (item) {
             var lineup = (item.lineup || []).map(function (member) {
                 return '<div class="item-sub">' + Ui.escapeHtml(member.slot === 'STARTER' ? 'Chính thức' : 'Dự bị') +
                     ' · ' + Ui.escapeHtml(member.fullName) + (member.inGameName ? ' · IGN: ' + Ui.escapeHtml(member.inGameName) : '') +
@@ -57,7 +61,7 @@
                     (record.note ? ' · ' + Ui.escapeHtml(record.note) : '') + '</div>';
             }).join('');
             var offer = item.waitlistExpiresAt
-                ? '<div class="field-hint">Được mời nhận suất; xác nhận trước ' + Ui.escapeHtml(new Date(item.waitlistExpiresAt).toLocaleString('vi-VN')) + '.</div>' +
+                ? '<div class="field-hint">Được mời nhận suất; xác nhận trước ' + Ui.escapeHtml(Ui.fmtDateTime(item.waitlistExpiresAt)) + '.</div>' +
                     '<button type="button" class="btn btn-primary" data-accept-offer="' + item.registrationId + '">Xác nhận nhận suất</button>'
                 : '';
             var proof = item.paymentStatus === 'UNPAID' && item.requirePaymentProof && item.entryFee > 0
@@ -83,13 +87,17 @@
                 (item.status === 'WAITLISTED' ? '<p class="field-hint mt-2">Vị trí chờ: ' + Number(item.waitlistPosition) + ' · ' + Number(item.waitlistAheadCount) + ' đội phía trước.</p>' : '') +
                 (item.reviewNote ? '<p class="field-hint mt-2">' + Ui.escapeHtml(item.reviewNote) + '</p>' : '') +
                 (item.rulebookVersionAccepted ? '<p class="item-sub mt-2">Đã đồng ý thể lệ phiên bản ' + Number(item.rulebookVersionAccepted) +
-                    ' lúc ' + Ui.escapeHtml(new Date(item.consentAt).toLocaleString('vi-VN')) + '.</p>' : '') +
-                '<div class="mt-3"><strong>Lineup</strong>' + lineup + '</div>' +
+                    ' lúc ' + Ui.escapeHtml(Ui.fmtDateTime(item.consentAt)) + '.</p>' : '') +
+                '<div class="mt-3"><strong>Đội hình</strong>' + lineup + '</div>' +
                 '<div class="mt-3"><strong>Lệ phí: ' +
                 (item.entryFee > 0 ? Number(item.entryFee).toLocaleString('vi-VN') + ' đ · ' + Ui.escapeHtml(paymentLabel(item.paymentStatus)) : 'Miễn phí') +
                 '</strong>' + paymentRecords + '</div>' +
                 offer + proof + '<div class="btn-row mt-3">' + editDraft + positions + withdraw + '</div></article>';
-        }).join('');
+        }).join('') +
+            (total > shown ? '<div class="btn-row justify-content-center mt-2"><button type="button" class="btn btn-ghost" id="registration-more">Xem thêm ' +
+                Math.min(PAGE, total - shown) + ' đơn (còn ' + (total - shown) + ')</button></div>' : '');
+        var more = document.getElementById('registration-more');
+        if (more) more.addEventListener('click', function () { shown += PAGE; render(items); });
 
         root.querySelectorAll('[data-accept-offer]').forEach(function (button) {
             button.addEventListener('click', async function () {
@@ -152,6 +160,7 @@
     }
 
     function applyFilters() {
+        shown = PAGE;
         var status = document.getElementById('registration-status-filter').value;
         var term = document.getElementById('registration-search').value.trim().toLocaleLowerCase('vi');
         var filtered = registrations.filter(function (item) {

@@ -44,9 +44,9 @@ public sealed class RankingService : IRankingService
                     };
 
         var source = await query
+            // UC-38 A2: bằng điểm thì đội đã đấu ÍT giải hơn xếp trên (luật ghi rõ trên trang Bảng xếp hạng).
             .OrderByDescending(item => item.AchievementPoint)
-            .ThenByDescending(item => item.TitleCount)
-            .ThenByDescending(item => item.TournamentPlayed)
+            .ThenBy(item => item.TournamentPlayed)
             .ThenBy(item => item.Name)
             .ThenBy(item => item.TeamId)
             .ToListAsync(cancellationToken);
@@ -72,8 +72,7 @@ public sealed class RankingService : IRankingService
                         group.Sum(item => item.AchievementPoint));
                 })
                 .OrderByDescending(item => item.AchievementPoint)
-                .ThenByDescending(item => item.TitleCount)
-                .ThenByDescending(item => item.TournamentPlayed)
+                .ThenBy(item => item.TournamentPlayed)
                 .ThenBy(item => item.Name)
                 .ThenBy(item => item.TeamId)
                 .ToList();

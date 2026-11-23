@@ -186,6 +186,12 @@ public class LiveService : ILiveService
         int need = m.BestOf / 2 + 1;
         bool decided = winsA >= need || winsB >= need;
         int? leader = winsA >= need ? m.TeamAid : winsB >= need ? m.TeamBid : null;
+        // Trận đã chốt (báo cáo khớp / phán quyết / thắng trắng): ô tỉ số hiện kết quả CHÍNH THỨC, không để 0 – 0 cạnh nhãn "Đã xác nhận".
+        if ((m.Status == "VERIFIED" || m.Status == "WALKOVER") && m.ScoreA.HasValue && m.ScoreB.HasValue)
+        {
+            winsA = m.ScoreA.Value; winsB = m.ScoreB.Value;
+            decided = true; leader = m.WinnerTeamId ?? leader;
+        }
         var closed = ScoringClosedReason(m);
         int lastNo = games.Count == 0 ? 0 : games.Max(g => g.GameNo);
         int? next = closed is null && !decided && lastNo < m.BestOf ? lastNo + 1 : null;

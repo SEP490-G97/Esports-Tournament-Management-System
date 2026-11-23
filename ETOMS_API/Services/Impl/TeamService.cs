@@ -377,7 +377,8 @@ public class TeamService : ITeamService
                 TournamentName = r.Tournament.Name,
                 TournamentStatus = r.Tournament.Status,
                 FinalPlacement = r.FinalPlacement,
-                FinalRank = r.FinalRank
+                FinalRank = r.FinalRank,
+                RegistrationStatus = r.Status
             })
             .ToListAsync();
 
@@ -822,7 +823,7 @@ public class TeamService : ITeamService
     }
 
     // Roster khóa khi đội có đơn đã duyệt ở giải đang diễn ra (TEAM-03) HOẶC giải đã khóa nhánh mà chưa kết thúc
-    // (BRK-03: "Chốt sơ đồ, khóa Roster của mọi đội") — để đội không tụt dưới số người thi đấu sau khi đã chốt.
+    // (BRK-03: "Chốt sơ đồ, khóa đội hình của mọi đội") — để đội không tụt dưới số người thi đấu sau khi đã chốt.
     private Task<bool> IsRosterLockedAsync(int teamId)
         => _uow.Repository<Registration>().AnyAsync(r =>
             r.TeamId == teamId && r.Status == "APPROVED"

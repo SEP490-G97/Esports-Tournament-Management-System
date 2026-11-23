@@ -13,4 +13,7 @@ public interface ITournamentLifecycleService
     Task<Result<TournamentLifecycleDto>> ExtendRegistrationAsync(int tournamentId, int organizerAccountId, ExtendRegistrationRequest request);
     // Chạy định kỳ: tự bắt đầu giải đã khóa nhánh khi tới giờ khai mạc, tự kết thúc giải đã xong mọi trận.
     Task<int> RunScheduledAsync(CancellationToken ct);
+    // UC-19 A3 / UC-33 A1: kết quả của giải ĐÃ KẾT THÚC đổi (phán quyết, khiếu nại) → tính lại hạng, danh hiệu; điểm bảng xếp hạng
+    // đọc từ vw_Leaderboard nên tự đổi theo. Trả true khi đã tính lại.
+    Task<bool> RecomputeCompletedAsync(int tournamentId);
 }

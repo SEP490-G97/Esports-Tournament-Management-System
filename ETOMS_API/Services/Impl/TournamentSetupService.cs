@@ -49,7 +49,13 @@ namespace ETOMS_API.Services.Impl
                 StartAt = today.AddDays(10),
                 Status = "DRAFT",
                 RulebookVersion = 1,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                // Lược đồ DEFAULT 1 cho 4 cột này, nhưng EF ghi giá trị thật (ValueGeneratedNever, PendingTables) — không gán
+                // thì giải tạo từ 18/11 thành "thi đấu trực tiếp" không có địa điểm (lỗi phát hiện 22/11). Bước 5 đặt lại 3 cột Require*.
+                IsOnline = true,
+                RequireInGameName = true,
+                RequirePaymentProof = true,
+                RequireIdentityDocument = true
             };
             ApplyStep1(tournament, v, gameChanged: true);
             _context.Tournaments.Add(tournament);
@@ -314,7 +320,7 @@ namespace ETOMS_API.Services.Impl
                 throw new InvalidOperationException("Giải đấu không tồn tại hoặc đã được công bố.");
 
             tournament.RequireIdentityDocument = dto.RequireStudentCard;
-            tournament.RequirePaymentProof = dto.RequirePaymentBill;
+            tournament.RequirePaymentProof = dto.RequirePaymentBill && tournament.EntryFee > 0;   // giải miễn phí không có biên lai để nộp
             tournament.RequireInGameName = dto.RequireIgnVerify;
 
             tournament.Status = "PUBLISHED";

@@ -5,7 +5,7 @@
     var flash = document.getElementById('landing-flash');
 
     function formatDate(value) {
-        return value ? new Date(value).toLocaleString('vi-VN') : '—';
+        return value ? Ui.fmtDateTime(value) : '—';
     }
 
     function safeExternalUrl(value) {

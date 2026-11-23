@@ -95,7 +95,7 @@
     }
 
     // ===== UC-43: đơn xin làm Ban tổ chức =====
-    function fmtTime(iso) { return iso ? new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + 'Z').toLocaleString('vi-VN') : ''; }
+    function fmtTime(iso) { return Ui.fmtDateTime(iso); }
 
     // Một đơn = đầu thẻ (người xin + lời nhắn) và HAI khối tách bạch: "Cấp tài khoản BTC" | "Từ chối".
     function requestCard(r) {

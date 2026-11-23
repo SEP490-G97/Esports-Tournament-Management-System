@@ -115,6 +115,14 @@ public class MatchOpsApiController : ApiControllerBase
         return FromResult(await _ops.RematchAsync(matchId, _currentUser.UserId!.Value, model));
     }
 
+    // GET /api/matches/{matchId}/ops/rematch-preview — UC-26 bước 3 / A2: trận phía sau sẽ bị hủy kết quả.
+    [HttpGet("rematch-preview")]
+    public async Task<IActionResult> RematchPreview(int matchId)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _ops.PreviewRematchAsync(matchId, _currentUser.UserId!.Value));
+    }
+
     // POST /api/matches/{matchId}/ops/disqualify — MAT-11.
     [HttpPost("disqualify")]
     public async Task<IActionResult> Disqualify(int matchId, [FromBody] DisqualifyRequest model)

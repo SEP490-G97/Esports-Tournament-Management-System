@@ -515,7 +515,7 @@ public class BracketService : IBracketService
             CreatedAt = DateTime.UtcNow
         });
         await _uow.SaveChangesAsync();
-        return Result.Success("Đã khóa nhánh đấu. Roster các đội và cổng đăng ký đã đóng.");
+        return Result.Success("Đã khóa nhánh đấu. Đội hình các đội và cổng đăng ký đã đóng. Bước tiếp theo: xếp lịch thi đấu.");
     }
 
     // Trận "chưa đấu": chưa có người thắng, chưa có tỉ số, còn ở trạng thái chờ.

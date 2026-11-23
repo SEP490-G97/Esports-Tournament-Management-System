@@ -63,10 +63,15 @@
             seasons.map(function (season) {
                 return '<option value="' + Number(season) + '">Mùa ' + Number(season) + '</option>';
             }).join('');
-        if (Array.from(seasonSelect.options).some(function (option) { return option.value === current; })) {
+        if (firstLoad) {
+            // UC-38 A1: người xem chưa chọn gì → mùa hiện tại (mùa mới nhất) của tựa game có nhiều giải nhất.
+            seasonSelect.value = String(seasons[0]);
+            firstLoad = false;
+        } else if (Array.from(seasonSelect.options).some(function (option) { return option.value === current; })) {
             seasonSelect.value = current;
         }
     }
+    var firstLoad = true;
 
     async function onGameChange() {
         Ui.clearAlert(flash);
@@ -93,9 +98,12 @@
             var wanted = Ui.qsInt('gameId');
             if (wanted !== null && games.some(function (g) { return g.gameId === wanted; })) gameSelect.value = String(wanted);
             else {
-                var first = games.find(function (g) { return (seasonsByGame[g.gameId] || []).length; });
-                if (first) gameSelect.value = String(first.gameId);
+                // UC-38 A1: không chọn gì thì mở tựa game có nhiều giải nhất (trong các game đã có mùa giải).
+                var withSeasons = games.filter(function (g) { return (seasonsByGame[g.gameId] || []).length; });
+                withSeasons.sort(function (a, b) { return (b.tournamentCount || 0) - (a.tournamentCount || 0); });
+                if (withSeasons.length) gameSelect.value = String(withSeasons[0].gameId);
             }
+            if (wanted !== null) firstLoad = false;   // đến từ trang đội: giữ "Tất cả mùa" như trước
             await onGameChange();
         } catch (error) {
             Ui.showAlert(flash, 'danger', (error && error.message) || 'Không thể tải bộ lọc bảng xếp hạng.');

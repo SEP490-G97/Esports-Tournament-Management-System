@@ -261,4 +261,65 @@ public sealed class AdminAdsController : ControllerBase
         foreach (var m in mails) _mail.TryEnqueue(m);
         return Ok(new { message = $"Đã gửi: {inApp} người nhận trong web, {email} email.", inApp, email });
     }
+
+    // ---------------------------------------------------------------- Mẫu nội dung (System Communications Page, tab "Mẫu nội dung")
+    // Bảng có sẵn ContentItem (Kind = TEMPLATE), mỗi loại thông báo đúng một mẫu (UX_ContentItem_Template).
+    // NUI-NOT-01: mẫu "Đang dùng" của một loại thì email của loại đó dựng từ mẫu (NotificationEmailInterceptor.RenderTemplate);
+    // thông báo hệ thống có thể bắt đầu soạn từ một mẫu.
+    public static readonly Dictionary<string, string> NotificationTypes = new()
+    {
+        ["REGISTRATION"] = "Đăng ký giải", ["CHECKIN_REMINDER"] = "Nhắc điểm danh", ["MATCH_RESULT"] = "Kết quả trận",
+        ["DISPUTE"] = "Tranh chấp", ["PENALTY"] = "Kỷ luật", ["NEWS"] = "Tin tức và thể lệ", ["SYSTEM"] = "Hệ thống"
+    };
+
+    [HttpGet("api/admin/notification-templates")]
+    public async Task<IActionResult> ListTemplates(CancellationToken ct)
+    {
+        var rows = await _db.ContentItems.AsNoTracking().Where(c => c.Kind == "TEMPLATE")
+            .Select(c => new { c.ContentItemId, c.NotificationType, c.Title, c.Body, c.Status, c.UpdatedAt }).ToListAsync(ct);
+        Response.Headers.CacheControl = "no-store";
+        return Ok(new
+        {
+            Variables = NotificationEmailInterceptor.TemplateVariables,
+            Templates = NotificationTypes.Select(t =>
+            {
+                var r = rows.FirstOrDefault(x => x.NotificationType == t.Key);
+                return new { Type = t.Key, Label = t.Value, r?.ContentItemId, r?.Title, r?.Body, Status = r?.Status, r?.UpdatedAt };
+            })
+        });
+    }
+
+    public sealed record TemplateRequest(string? Title, string? Body, string? Status);
+
+    [HttpPut("api/admin/notification-templates/{type}")]
+    public async Task<IActionResult> SaveTemplate(string type, [FromBody] TemplateRequest r, CancellationToken ct)
+    {
+        type = (type ?? "").Trim().ToUpperInvariant();
+        if (!NotificationTypes.ContainsKey(type)) return Err("Loại thông báo không hợp lệ.");
+        var title = (r.Title ?? "").Trim();
+        var body = (r.Body ?? "").Trim();
+        var status = (r.Status ?? "PUBLISHED").Trim().ToUpperInvariant();
+        if (title.Length < 3 || title.Length > 200) return Err("Tiêu đề mẫu từ 3 đến 200 ký tự.");
+        if (body.Length < 5 || body.Length > 5000) return Err("Nội dung mẫu từ 5 đến 5000 ký tự.");
+        if (status is not ("PUBLISHED" or "HIDDEN")) return Err("Trạng thái mẫu không hợp lệ.");
+        // UC-41 E1 chặn từ lúc lưu: chỉ được dùng các biến mà mọi thông báo đều có.
+        var unknown = System.Text.RegularExpressions.Regex.Matches(title + " " + body, @"\{[^}]*\}")
+            .Select(m => m.Value).Where(v => !NotificationEmailInterceptor.TemplateVariables.Contains(v)).Distinct().ToList();
+        if (unknown.Count > 0) return Err($"Mẫu dùng biến không có: {string.Join(", ", unknown)}. Chỉ dùng {string.Join(", ", NotificationEmailInterceptor.TemplateVariables)}.");
+
+        var now = DateTime.UtcNow;
+        var item = await _db.ContentItems.FirstOrDefaultAsync(c => c.Kind == "TEMPLATE" && c.NotificationType == type, ct);
+        if (item is null)
+        {
+            item = new ContentItem { Kind = "TEMPLATE", NotificationType = type, AuthorAccountId = ActorId, IsPinned = false };
+            _db.ContentItems.Add(item);
+        }
+        item.Title = title;
+        item.Body = body;
+        item.Status = status;
+        if (status == "PUBLISHED") item.PublishedAt ??= now;
+        item.UpdatedAt = now;
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { message = status == "PUBLISHED" ? $"Đã lưu mẫu \"{NotificationTypes[type]}\" và đang dùng cho email loại này." : $"Đã lưu mẫu \"{NotificationTypes[type]}\" (đang tắt).", item.ContentItemId });
+    }
 }

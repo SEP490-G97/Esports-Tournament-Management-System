@@ -40,7 +40,7 @@
             document.getElementById('report-title').textContent = report.tournamentName;
             document.getElementById('report-subtitle').textContent =
                 report.gameName + ' · Trạng thái ' + report.status +
-                ' · Tạo lúc ' + new Date(report.generatedAt).toLocaleString('vi-VN');
+                ' · Tạo lúc ' + Ui.fmtDateTime(report.generatedAt);
             root.innerHTML =
                 '<section class="i3-surface mb-3"><h2>Tóm tắt</h2><p>Đội đăng ký: ' +
                 report.registrations.length + ' · Trận đấu: ' + report.matches.length +
@@ -53,7 +53,7 @@
                 section('Lệ phí và minh chứng', ['Mã đơn', 'Đội', 'Loại', 'Số tiền', 'Ghi chú', 'Hiện hành', 'Thời gian'],
                     report.payments.map(function (item) {
                         return [item.registrationId, item.teamName, item.recordKind, item.declaredAmount,
-                            item.note, item.isCurrent ? 'Có' : 'Không', new Date(item.recordedAt).toLocaleString('vi-VN')];
+                            item.note, item.isCurrent ? 'Có' : 'Không', Ui.fmtDateTime(item.recordedAt)];
                     })) +
                 section('Lịch và kết quả trận đấu', ['Mã trận', 'Đội A', 'Đội B', 'Tỷ số', 'Đội thắng', 'Trạng thái', 'Lịch'],
                     report.matches.map(function (item) {
@@ -61,13 +61,13 @@
                             ? '—'
                             : item.scoreA + ' – ' + item.scoreB;
                         return [item.matchId, item.teamA, item.teamB, score,
-                            item.winner, item.status, item.scheduledAt ? new Date(item.scheduledAt).toLocaleString('vi-VN') : '—'];
+                            item.winner, item.status, item.scheduledAt ? Ui.fmtDateTime(item.scheduledAt) : '—'];
                     })) +
                 section('Tranh chấp', ['Mã trận', 'Lý do', 'Trạng thái', 'Phán quyết', 'Khiếu nại', 'Mở lúc', 'Xử lý lúc'],
                     report.disputes.map(function (item) {
                         return [item.matchId, item.openReason, item.status, item.rulingReason, item.appealStatus,
-                            new Date(item.openedAt).toLocaleString('vi-VN'),
-                            item.resolvedAt ? new Date(item.resolvedAt).toLocaleString('vi-VN') : '—'];
+                            Ui.fmtDateTime(item.openedAt),
+                            item.resolvedAt ? Ui.fmtDateTime(item.resolvedAt) : '—'];
                     })) +
                 section('Bảng xếp hạng vòng bảng', ['Bảng', 'Đội', 'Đã đấu', 'Thắng', 'Thua', 'Hiệu số', 'Điểm'],
                     report.standings.map(function (item) {

@@ -41,6 +41,16 @@ public class MatchDetailDto
     public bool IsReferee { get; set; }
     public string? RefereeName { get; set; }
     public DateTime? ReportDeadlineAt { get; set; }
+
+    // Form "Xin thay người": đội trưởng chọn theo TÊN thành viên đang hoạt động của đội mình, không phải gõ mã tài khoản.
+    public List<MatchTeamMemberOption> MyTeamMembers { get; set; } = new();
+}
+
+public class MatchTeamMemberOption
+{
+    public int AccountId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Slot { get; set; } = string.Empty; // STARTER | SUBSTITUTE
 }
 
 public class ManualCheckInRequest
@@ -121,6 +131,14 @@ public class WalkoverRequest
 public class RematchRequest
 {
     public string Reason { get; set; } = string.Empty;
+}
+
+// UC-26 A2: một trận phía sau đã đá sẽ bị hủy kết quả khi cho trận hiện tại đấu lại.
+public class RematchImpactDto
+{
+    public int MatchId { get; set; }
+    public string Label { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
 }
 
 public class DisqualifyRequest

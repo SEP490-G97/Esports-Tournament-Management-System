@@ -15,7 +15,7 @@
     function formatTime(value) {
         if (!value) return 'Chưa xếp lịch';
         var date = new Date(/Z$/.test(value) ? value : value + 'Z');
-        return date.toLocaleString('vi-VN');
+        return date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
     function pickerHtml(board) {
@@ -52,7 +52,7 @@
             '<span class="badge ' + Ui.escapeHtml(m.statusClass) + '">' + Ui.escapeHtml(m.statusLabel) + '</span>' +
             '<div class="d-flex gap-2">' + actions +
             '<a class="btn btn-ghost" href="/match/detail.html?id=' + m.matchId + '">Mở trận</a>' +
-            '<a class="btn btn-ghost" href="/match/pick-ban.html?id=' + m.matchId + '">Cấm chọn</a></div></div>';
+            '<a class="btn btn-ghost" href="/match/pick-ban.html?id=' + m.matchId + '">Cấm chọn bản đồ</a></div></div>';
     }
 
     function render(board) {

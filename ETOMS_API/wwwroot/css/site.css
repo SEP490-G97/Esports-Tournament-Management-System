@@ -797,7 +797,7 @@ body { overflow-x: hidden; }
 .rulebook-content { max-height: 280px; overflow: auto; padding: 16px; border: 1px solid var(--border-soft); border-radius: 11px; background: var(--bg-2); white-space: pre-wrap; overflow-wrap: anywhere; }
 .rulebook-consent { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; padding: 13px 14px; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--bg-2); }
 .rulebook-consent input { flex: none; margin-top: 5px; }
-.tournament-registration-aside { position: sticky; top: 88px; display: grid; gap: 14px; min-width: 0; }
+.tournament-registration-aside { position: sticky; top: 88px; display: grid; gap: 14px; min-width: 0; align-self: start; align-content: start; }   /* neo lên trên, không bị giãn theo cột trái (22/11) */
 .registration-summary-card { background: linear-gradient(160deg, var(--primary-050), var(--panel) 65%); }
 .registration-summary-card .profile-overline, .registration-payment-card .profile-overline { display: block; margin-bottom: 7px; }
 .registration-checklist { display: grid; gap: 10px; margin: 16px 0; padding: 0; list-style: none; }

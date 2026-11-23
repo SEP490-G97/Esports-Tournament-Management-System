@@ -22,13 +22,61 @@
 
     // ---------------------------------------------------------------- Tab
     function selectTab(which) {
-        var b = which === 'banners';
-        el('tab-banners').setAttribute('aria-selected', b ? 'true' : 'false');
-        el('tab-ann').setAttribute('aria-selected', b ? 'false' : 'true');
-        el('panel-banners').hidden = !b;
-        el('panel-ann').hidden = b;
+        ['banners', 'ann', 'tpl'].forEach(function (k) {
+            el('tab-' + k).setAttribute('aria-selected', k === which ? 'true' : 'false');
+            el('panel-' + k).hidden = k !== which;
+        });
         Ui.clearAlert(el('flash'));
-        if (!b) loadAnnouncements();
+        if (which === 'ann') { loadAnnouncements(); loadTemplates(); }
+        if (which === 'tpl') loadTemplates();
+    }
+
+    // ---------------------------------------------------------------- Mẫu nội dung (NUI-NOT-01)
+    var templates = [];
+    function fillTemplateForm() {
+        var t = templates.find(function (x) { return x.type === el('t-type').value; }) || {};
+        el('t-title').value = t.title || '';
+        el('t-body').value = t.body || '';
+        el('t-status').value = t.status === 'HIDDEN' ? 'HIDDEN' : 'PUBLISHED';
+    }
+    async function loadTemplates() {
+        try {
+            var res = await Api.get('/api/admin/notification-templates');
+            templates = res.templates || [];
+            el('tpl-vars').textContent = (res.variables || []).join(', ');
+            var current = el('t-type').value;
+            el('t-type').innerHTML = templates.map(function (t) { return '<option value="' + esc(t.type) + '">' + esc(t.label) + '</option>'; }).join('');
+            if (current) el('t-type').value = current;
+            fillTemplateForm();
+            el('a-template').innerHTML = '<option value="">Không dùng mẫu</option>' + templates.filter(function (t) { return t.title; }).map(function (t) {
+                return '<option value="' + esc(t.type) + '">' + esc(t.label) + (t.status === 'HIDDEN' ? ' (đang tắt)' : '') + '</option>';
+            }).join('');
+            el('tpl-list').innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>Loại</th><th>Tiêu đề</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead><tbody>' +
+                templates.map(function (t) {
+                    return '<tr><td>' + esc(t.label) + '</td><td>' + (t.title ? esc(t.title) : '<span class="field-hint">Chưa có mẫu (email dùng nội dung mặc định)</span>') + '</td><td>' +
+                        (t.title ? (t.status === 'PUBLISHED' ? 'Đang dùng' : 'Tắt') : '—') + '</td><td>' + fmt(t.updatedAt) + '</td></tr>';
+                }).join('') + '</tbody></table></div>';
+        } catch (err) { el('tpl-list').innerHTML = '<div class="empty"><h3>Không tải được mẫu</h3><p>' + esc(err.message) + '</p></div>'; }
+    }
+    async function saveTemplate(e) {
+        e.preventDefault();
+        var flash = el('flash');
+        var body = { title: el('t-title').value.trim(), body: el('t-body').value.trim(), status: el('t-status').value };
+        if (body.title.length < 3) return Ui.showAlert(flash, 'danger', 'Tiêu đề mẫu từ 3 đến 200 ký tự.');
+        if (body.body.length < 5) return Ui.showAlert(flash, 'danger', 'Nội dung mẫu từ 5 đến 5000 ký tự.');
+        try {
+            var res = await Api.put('/api/admin/notification-templates/' + encodeURIComponent(el('t-type').value), body);
+            Ui.showAlert(flash, 'success', res.message);
+            loadTemplates();
+        } catch (err) { Ui.showAlert(flash, 'danger', err.message); }
+    }
+    // Thông báo hệ thống bắt đầu soạn từ mẫu: điền tiêu đề / nội dung (bỏ các biến chỉ dùng cho email tự động).
+    function applyTemplateToAnnouncement() {
+        var t = templates.find(function (x) { return x.type === el('a-template').value; });
+        if (!t) return;
+        var strip = function (s) { return String(s || '').replace(/\{(ten|tieu_de|noi_dung|lien_ket)\}/g, '').trim(); };
+        el('a-title').value = strip(t.title).slice(0, 200);
+        el('a-body').value = strip(t.body).slice(0, 1000);
     }
 
     // ---------------------------------------------------------------- Banner
@@ -171,7 +219,12 @@
         el('banner-form').addEventListener('submit', saveBanner);
         el('banner-list').addEventListener('click', onBannerClick);
         el('ann-form').addEventListener('submit', sendAnnouncement);
+        el('tab-tpl').addEventListener('click', function () { selectTab('tpl'); });
+        el('t-type').addEventListener('change', fillTemplateForm);
+        el('tpl-form').addEventListener('submit', saveTemplate);
+        el('a-template').addEventListener('change', applyTemplateToAnnouncement);
         if (location.hash === '#thong-bao') selectTab('ann');
+        if (location.hash === '#mau-noi-dung') selectTab('tpl');
         loadBanners();
     });
 })();

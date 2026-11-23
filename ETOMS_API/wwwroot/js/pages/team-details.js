@@ -14,11 +14,13 @@
 
     function historyHtml(history) {
         if (!history.length) return '<div class="card-etoms"><div class="empty"><h3>Chưa tham gia giải nào</h3></div></div>';
-        return '<div class="row g-3">' + history.map(function (h) {
+        return '<div class="row g-3" data-history>' + history.map(function (h) {
             return '<div class="col-12"><div class="member-card">' +
                 '<div class="flex-grow-1"><a class="nm" href="/bracket/view.html?id=' + h.tournamentId + '">' + Ui.escapeHtml(h.tournamentName) + '</a>' +
                 '<div class="rl">' + tourStatusLabel(h.tournamentStatus) + '</div></div>' +
-                '<span class="badge badge-soft">' + placementLabel(h.finalPlacement) + (h.finalRank ? ' (#' + h.finalRank + ')' : '') + '</span>' +
+                (h.registrationStatus === 'DISQUALIFIED'
+                    ? '<span class="badge badge-danger">Bị tước quyền</span>'
+                    : '<span class="badge badge-soft">' + placementLabel(h.finalPlacement) + (h.finalRank ? ' (#' + h.finalRank + ')' : '') + '</span>') +
                 '</div></div>';
         }).join('') + '</div>';
     }
@@ -96,6 +98,7 @@
             '<div id="team-discipline"></div>' +
             '<div class="btn-row mt-4">' + actionHtml + '</div>';
 
+        Ui.limitList(root.querySelector('[data-history]'), 10);   // đội lâu năm có hàng trăm giải
         if (window.TeamMatches) TeamMatches.load(document.getElementById('team-matches'), team.teamId, isCaptain);
         if (window.TeamDiscipline) TeamDiscipline.load(document.getElementById('team-discipline'), team.teamId);
 

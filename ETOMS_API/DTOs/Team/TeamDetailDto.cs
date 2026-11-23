@@ -40,4 +40,6 @@ public class TeamTournamentHistoryDto
     public string TournamentStatus { get; set; } = string.Empty;
     public string FinalPlacement { get; set; } = string.Empty;
     public int? FinalRank { get; set; }
+    // UC-19 A1: đội bị tước quyền vẫn được ghi đã tham dự (không có điểm xếp hạng) — trang hiện nhãn "Bị tước quyền".
+    public string RegistrationStatus { get; set; } = string.Empty;
 }

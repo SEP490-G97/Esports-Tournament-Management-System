@@ -5,9 +5,9 @@
         NOT_LOCKED: ['badge-gold', 'Chưa khóa nhánh'],
         IN_PROGRESS: ['badge-gold', 'Vòng bảng đang đấu'],
         NEEDS_DECISION: ['badge-danger', 'Cần Ban tổ chức xếp hạng'],
-        NO_KNOCKOUT: ['badge-gold', 'Không cần knockout'],
-        READY: ['badge-active', 'Sẵn sàng tạo knockout'],
-        DONE: ['badge-active', 'Đã tạo knockout']
+        NO_KNOCKOUT: ['badge-gold', 'Không cần vòng loại trực tiếp'],
+        READY: ['badge-active', 'Sẵn sàng tạo nhánh loại trực tiếp'],
+        DONE: ['badge-active', 'Đã tạo nhánh loại trực tiếp']
     };
 
     var tournamentId = null;
@@ -76,7 +76,7 @@
 
     function pairingsHtml(board) {
         if (!board.pairings.length) return '';
-        var title = board.state === 'DONE' ? 'Vòng 1 knockout đã tạo' : 'Vòng 1 knockout dự kiến';
+        var title = board.state === 'DONE' ? 'Vòng 1 loại trực tiếp đã tạo' : 'Vòng 1 loại trực tiếp dự kiến';
         return '<div class="card-etoms mt-3"><div class="body">' +
             '<div class="section-title mt-0">' + title + '</div>' +
             '<div id="pairing-list">' + board.pairings.map(function (p) {
@@ -98,7 +98,7 @@
     }
 
     function render(board) {
-        document.getElementById('page-title').textContent = 'Chuyển sang knockout · ' + board.tournamentName;
+        document.getElementById('page-title').textContent = 'Chuyển sang vòng loại trực tiếp · ' + board.tournamentName;
         var config = board.groupCount ? board.groupCount + ' bảng, ' + board.advancePerGroup + ' đội đi tiếp mỗi bảng · ' : '';
         document.getElementById('page-sub').textContent = config + 'Tiêu chí phân định: ' + board.tieBreakerOrder.join(' > ');
 
@@ -107,7 +107,7 @@
         var autoNote = board.state === 'READY' && !previewing
             ? '<div class="hint mt-2">Hệ thống cũng tự tạo trong vòng vài phút nếu Ban tổ chức không bấm.</div>' : '';
         var action = board.canAdvance
-            ? '<div class="btn-row"><button type="button" class="btn btn-primary" id="advance-btn">Tạo nhánh knockout</button></div>' : '';
+            ? '<div class="btn-row"><button type="button" class="btn btn-primary" id="advance-btn">Tạo nhánh loại trực tiếp</button></div>' : '';
         var links = '<div class="btn-row">' +
             '<a class="btn btn-ghost" href="/tournament/manage.html?id=' + tournamentId + '">Quản lý giải</a>' +
             '<a class="btn btn-ghost" href="/tournament/standings.html?id=' + tournamentId + '">Bảng xếp hạng công khai</a>' +
@@ -159,7 +159,7 @@
 
     async function advanceStage() {
         var ok = window.etomsConfirm
-            ? await window.etomsConfirm('Tạo nhánh knockout từ kết quả vòng bảng? Sau khi tạo, thứ hạng vòng bảng và các cặp đấu vòng 1 không đổi được nữa.')
+            ? await window.etomsConfirm('Tạo nhánh loại trực tiếp từ kết quả vòng bảng? Sau khi tạo, thứ hạng vòng bảng và các cặp đấu vòng 1 không đổi được nữa.')
             : true;
         if (!ok) return;
         Ui.clearAlert(flash());
@@ -197,7 +197,7 @@
             load(res.data);
         } catch (err) {
             if (err.status === 404) showEmpty('Không tìm thấy giải đấu', 'Giải không tồn tại.');
-            else if (err.status === 403) showEmpty('Bạn không thể chuyển giai đoạn cho giải này', 'Chỉ Ban tổ chức của giải được tạo nhánh knockout.');
+            else if (err.status === 403) showEmpty('Bạn không thể chuyển giai đoạn cho giải này', 'Chỉ Ban tổ chức của giải được tạo nhánh loại trực tiếp.');
             else showEmpty('Không tải được vòng bảng', err.message);
         }
     });

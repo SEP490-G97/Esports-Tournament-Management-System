@@ -60,7 +60,7 @@
                 return !uploadedTypes.includes(type);
             });
             return '<article class="feature-card" data-review-id="' + Number(item.organizationId) + '">' +
-                '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h3>' + Ui.escapeHtml(item.name) + '</h3><div class="muted-copy">' + 'Gửi ' + Ui.escapeHtml(new Date(item.createdAt).toLocaleString('vi-VN')) + '</div></div><span class="badge badge-gold">' + Ui.escapeHtml(item.statusLabel) + '</span></div>' +
+                '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h3>' + Ui.escapeHtml(item.name) + '</h3><div class="muted-copy">' + 'Gửi ' + Ui.escapeHtml(Ui.fmtDateTime(item.createdAt)) + '</div></div><span class="badge badge-gold">' + Ui.escapeHtml(item.statusLabel) + '</span></div>' +
                 '<div class="feature-list mt-3">' + checklist + '</div><div class="review-documents mt-3">' + docs + '</div>' +
                 '<div class="field mt-3"><label for="review-reason-' + Number(item.organizationId) + '">Lý do từ chối</label><input id="review-reason-' + Number(item.organizationId) + '" class="input review-reason" maxlength="1000" placeholder="Bắt buộc nếu từ chối hồ sơ" /></div>' +
                 '<div class="btn-row"><button type="button" class="btn btn-primary" data-review-decision="APPROVE" data-reviewer="' + reviewerId + '"' + (missingRequiredDocument ? ' disabled title="Cần đủ giấy tờ bắt buộc mới có thể duyệt."' : '') + '>Duyệt</button><button type="button" class="btn btn-ghost" data-review-decision="REJECT" data-reviewer="' + reviewerId + '">Từ chối</button></div><div class="review-flash mt-3"></div>' +

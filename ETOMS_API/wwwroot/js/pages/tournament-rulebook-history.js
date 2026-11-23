@@ -11,7 +11,7 @@
     function formatTime(value) {
         if (!value) return '';
         var date = new Date(/Z$/.test(value) ? value : value + 'Z');
-        return date.toLocaleString('vi-VN');
+        return Ui.fmtDateTime(date);
     }
 
     function versionLabel(v) {

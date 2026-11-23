@@ -121,6 +121,20 @@
     // Nhà tài trợ của giải (SPN, cùng nguồn với trang giới thiệu giải) — đặt CUỐI trang, dưới "Thông tin chi tiết",
     // tải sau phần chính. Giải chưa có nhà tài trợ thì không hiện khu này.
     var TIER = { DIAMOND: 'Kim cương', GOLD: 'Vàng', SILVER: 'Bạc', BRONZE: 'Đồng', PARTNER: 'Đối tác' };
+    // UC-13 A4: tin Ban tổ chức đăng cho giải (5 tin mới nhất), bấm vào đọc ở trang Tin tức.
+    async function loadNews(id) {
+        var items;
+        try { items = (((await Api.get('/api/tournaments/' + id + '/news')).data || {}).items || []).filter(function (n) { return n.status === 'PUBLISHED'; }); } catch (e) { return; }
+        if (!items.length) return;
+        var section = document.createElement('section');
+        section.className = 'card-etoms mt-3';
+        section.innerHTML = '<div class="body"><div class="ov-h">Tin tức của giải</div><div class="d-grid gap-2">' + items.slice(0, 5).map(function (n) {
+            return '<a class="member-card" href="/news/index.html?id=' + Number(n.contentItemId) + '"><div class="grow min-w-0"><div class="nm text-truncate">' + esc(n.title) +
+                '</div><div class="rl">' + esc(fmtDate(n.publishedAt)) + '</div></div></a>';
+        }).join('') + '</div></div>';
+        document.getElementById('overview-root').appendChild(section);
+    }
+
     async function loadSponsors(id) {
         var list;
         try { list = ((await Api.get('/api/marketing/tournaments/' + id)).data || {}).sponsors || []; } catch (e) { return; }
@@ -162,6 +176,7 @@
         try {
             var res = await Api.get('/api/tournaments/' + id + '/overview');
             render(res.data);
+            await loadNews(id);
             loadSponsors(id);
         } catch (err) {
             // UC-36 E2: giải không tồn tại hoặc còn Nháp -> báo không tìm thấy, gợi ý về danh sách.

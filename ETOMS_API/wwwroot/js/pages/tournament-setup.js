@@ -275,8 +275,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                 requirePaymentBill: document.getElementById('chkPaymentProof').checked,
                 requireIgnVerify: document.getElementById('chkIgn').checked
             });
-            Ui.setFlash('Đã công bố giải đấu. Giải mới nằm trong danh sách "Giải đấu của tôi".', 'success');
-            location.href = '/registration/organizer.html';
+            // Công bố xong vào thẳng Bảng điều hành của giải vừa tạo (thẻ Tiến trình giải chỉ việc tiếp theo) — trước đây về
+            // "Giải đấu của tôi" nên giải mới lẫn trong hàng trăm giải, BTC phải tự tìm (đánh giá trải nghiệm 22/11).
+            Ui.setFlash('Đã công bố giải đấu. Đội trưởng đăng ký được từ lúc mở đăng ký; theo dõi tiến trình ở thẻ bên dưới.', 'success');
+            location.href = '/tournament/dashboard.html?id=' + currentTournamentId;
+
         } catch (err) {
             showError(err.message);
         }
@@ -380,6 +383,12 @@ function wireStepTabs() {
 function switchStep(stepNum) {
     currentStep = stepNum;
     if (stepNum > maxReached) maxReached = stepNum;
+    // Bước 6: giải miễn phí không thu lệ phí nên không có biên lai — bỏ tích và khóa ô "Yêu cầu biên lai" (lỗi 22/11).
+    if (stepNum === 6) {
+        var free = !(Number((document.getElementById('tEntryFee') || {}).value) > 0);
+        var bill = document.getElementById('chkPaymentProof');
+        if (bill) { bill.disabled = free; if (free) bill.checked = false; bill.title = free ? 'Giải miễn phí nên không cần biên lai' : ''; }
+    }
     for (var i = 1; i <= 6; i++) {
         var panel = document.getElementById('panelStep' + i);
         var tab = document.getElementById('tabStep' + i);

@@ -118,7 +118,48 @@ var Ui = (function () {
         } catch (e) {}
     }
 
+    // Máy chủ trả giờ UTC KHÔNG có hậu tố Z (cột DATETIME của MySQL). new Date(chuỗi) sẽ hiểu nhầm thành giờ máy
+    // người xem (lệch 7 tiếng ở VN) — mọi trang hiển thị ngày giờ nên đi qua hai hàm này.
+    function parseUtc(v) {
+        if (!v) return null;
+        if (v instanceof Date) return v;
+        var s = String(v);
+        var hasZone = /Z$|[+-]\d\d:?\d\d$/.test(s);
+        var hasTime = /T\d|\d:\d/.test(s);
+        return new Date(hasZone || !hasTime ? s : s + 'Z');
+    }
+    function fmtDateTime(v, empty) {
+        var d = parseUtc(v);
+        if (!d || isNaN(d.getTime())) return empty === undefined ? '' : empty;
+        return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    // Danh sách dài (giải của đơn vị, lịch sử đội...): chỉ hiện `step` mục đầu, nút "Xem thêm" mở tiếp từng đợt.
+    // Dùng style.display chứ không dùng thuộc tính hidden vì CSS display:flex của thẻ con sẽ đè hidden.
+    function limitList(listEl, step) {
+        if (!listEl) return;
+        step = step || 10;
+        var items = Array.prototype.slice.call(listEl.children);
+        if (items.length <= step) return;
+        var shown = step;
+        var wrap = document.createElement('div');
+        wrap.className = 'btn-row justify-content-center mt-2';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-ghost btn-sm';
+        wrap.appendChild(btn);
+        listEl.insertAdjacentElement('afterend', wrap);
+        function apply() {
+            items.forEach(function (el, i) { el.style.display = i < shown ? '' : 'none'; });
+            btn.textContent = 'Xem thêm (còn ' + (items.length - shown) + ')';
+            wrap.style.display = shown >= items.length ? 'none' : '';
+        }
+        btn.addEventListener('click', function () { shown += step; apply(); });
+        apply();
+    }
+
     return {
+        parseUtc: parseUtc, fmtDateTime: fmtDateTime, limitList: limitList,
         escapeHtml: escapeHtml, safeUrl: safeUrl, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
         applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth, currentUser: currentUser,
         setFlash: setFlash, consumeFlash: consumeFlash

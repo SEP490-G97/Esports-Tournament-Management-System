@@ -130,7 +130,7 @@ public class GroupStandingService : IGroupStandingService
             });
         }
 
-        if (isAdvanced) return State(board, "ADVANCED", "Vòng bảng đã kết thúc, các đội đi tiếp đã vào nhánh knockout.");
+        if (isAdvanced) return State(board, "ADVANCED", "Vòng bảng đã kết thúc, các đội đi tiếp đã vào nhánh loại trực tiếp.");
         if (finished)
             return State(board, "FINISHED", board.Groups.Any(g => g.Rows.Any(r => r.Mark == "PENDING_DECISION"))
                 ? "Vòng bảng đã kết thúc. Có đội bằng nhau sau mọi tiêu chí, chờ Ban tổ chức xếp hạng."

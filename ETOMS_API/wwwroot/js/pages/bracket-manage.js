@@ -13,7 +13,7 @@
 
     function pad2(n) { return String(n).padStart(2, '0'); }
     function fmtDateTime(iso) {
-        var d = new Date(iso);
+        var d = Ui.parseUtc(iso);
         return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
     }
     function formatLabel(fmt) {
@@ -56,7 +56,7 @@
         var manualRows = teams.map(function (t, i) { return manualRowHtml(t, i); }).join('');
         // Còn nhận đăng ký thì chưa sinh nhánh (UC-20: đóng đăng ký rồi mới sinh) — máy chủ cũng chặn.
         var stillOpen = !!tree.registrationStillOpen;
-        var closeAt = tree.regCloseAt ? new Date(/Z$|[+-]\d\d:\d\d$/.test(tree.regCloseAt) ? tree.regCloseAt : tree.regCloseAt + 'Z').toLocaleString('vi-VN') : '';
+        var closeAt = tree.regCloseAt ? Ui.fmtDateTime(tree.regCloseAt) : '';
         var disabled = (tree.approvedTeamCount < 2 || stillOpen) ? 'disabled' : '';
         var warn = stillOpen
             ? '<div class="hint" style="color:var(--warn);margin-top:8px">Giải còn nhận đăng ký đến ' + Ui.escapeHtml(closeAt) + '. Sinh nhánh sau khi đóng đăng ký để danh sách đội đã chốt.</div>'
@@ -172,6 +172,8 @@
             (tree.format === 'ROUND_ROBIN' || tree.format === 'HYBRID'
                 ? '<a class="btn btn-ghost" href="/bracket/tiebreaker.html?id=' + tree.tournamentId + '">Tiêu chí phân định (khi bằng điểm)</a>' : '') +
             (tree.hasBracket && !tree.isLocked ? '<a class="btn btn-primary" href="/tournament/bracket.html?id=' + tree.tournamentId + '">Đổi chỗ đội (kéo thả trên sơ đồ)</a>' : '') +
+            // Đã khóa thì việc tiếp theo của BTC là xếp lịch: đưa thẳng nút sang trang Lịch thi đấu.
+            (tree.isLocked ? '<a class="btn btn-primary" href="/tournament/schedule.html?id=' + tree.tournamentId + '">Tiếp theo: Xếp lịch thi đấu →</a>' : '') +
             (tree.canUnlock ? '<button type="button" class="btn btn-ghost" id="unlock-btn">Mở khóa nhánh</button>' : '') +
             '</div>' +
             (!tree.isLocked ? generateFormHtml(tree, teams) : '') +
@@ -214,7 +216,7 @@
         var lockBtn = document.getElementById('lock-btn');
         if (lockBtn) {
             lockBtn.addEventListener('click', async function () {
-                var ok = await window.etomsConfirm('Khóa nhánh đấu? Sau khi khóa, khách xem được nhánh, roster các đội bị khóa và cổng đăng ký đóng. Vẫn mở khóa lại được nếu chưa có trận nào bắt đầu.');
+                var ok = await window.etomsConfirm('Khóa nhánh đấu? Sau khi khóa, khách xem được nhánh, đội hình các đội bị khóa và cổng đăng ký đóng. Vẫn mở khóa lại được nếu chưa có trận nào bắt đầu.');
                 if (!ok) return;
                 await runOnce(lockBtn, 'Đang khóa…', function () { return Api.post('/api/tournaments/' + tournamentId + '/bracket/lock'); });
             });

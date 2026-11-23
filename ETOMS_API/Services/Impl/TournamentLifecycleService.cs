@@ -145,6 +145,32 @@ public class TournamentLifecycleService : ITournamentLifecycleService
         return changed;
     }
 
+    public async Task<bool> RecomputeCompletedAsync(int tournamentId)
+    {
+        var t = await _uow.Repository<Tournament>().GetByIdAsync(tournamentId);
+        if (t is null || t.Status != "COMPLETED") return false;
+        var data = await LoadAsync(t);
+        var outcome = Evaluate(t, data, null);
+        if (outcome.Blocked is not null) return false;   // vd còn trận bị hủy kết quả / bằng điểm cần BTC chọn
+        var changed = new List<int>();
+        foreach (var r in data.Approved)
+        {
+            if (!outcome.Ranks.TryGetValue(r.TeamId, out var rank) || r.FinalRank == rank) continue;
+            r.FinalRank = rank;
+            r.FinalPlacement = TournamentLifecycle.Placement(rank);
+            _uow.Repository<Registration>().Update(r);
+            changed.Add(r.TeamId);
+        }
+        if (changed.Count == 0) return false;
+        var now = DateTime.UtcNow;
+        foreach (var c in (await CaptainsAsync(tournamentId, new[] { "APPROVED" })).Where(c => changed.Contains(c.TeamId)))
+            await _uow.Repository<Notification>().AddAsync(Note(c, "Thứ hạng giải đã được tính lại",
+                $"Kết quả giải {t.Name} thay đổi sau phán quyết. Đội {c.TeamName} nay xếp hạng {outcome.Ranks[c.TeamId]}; điểm bảng xếp hạng đã cập nhật.",
+                "/bracket/view.html?id=" + tournamentId, now));
+        await _uow.SaveChangesAsync();
+        return true;
+    }
+
     // ---------------------------------------------------------------- Điều kiện
 
     private static string? StartBlocked(Tournament t) => t.Status switch

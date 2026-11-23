@@ -42,13 +42,55 @@ public sealed class NotificationEmailInterceptor : SaveChangesInterceptor
         public void Dispose() { if (!_done) { _done = true; SuppressDepth.Value--; } }
     }
 
+    // UC-40 A1: thông báo ràng buộc người nhận (đổi thể lệ, hủy giải) luôn được ghi, kể cả khi đã tắt thông báo trong web.
+    private static readonly ConditionalWeakTable<Notification, object> BindingSet = new();
+    private static readonly object BindingMarker = new();
+    public static Notification Binding(Notification n) { BindingSet.AddOrUpdate(n, BindingMarker); return n; }
+
     private void Collect(DbContext? ctx)
     {
         if (ctx is null || SuppressDepth.Value > 0) return;
-        var added = ctx.ChangeTracker.Entries<Notification>()
+        var entries = ctx.ChangeTracker.Entries<Notification>()
             .Where(e => e.State == EntityState.Added && e.Entity.Channel == "IN_APP")
-            .Select(e => e.Entity).ToList();
+            .ToList();
+        if (entries.Count == 0) return;
+
+        // UC-40 bước 4: ghi in-app, email hoặc cả hai theo cài đặt của người nhận.
+        Dictionary<int, (bool InApp, bool Email)> prefs;
+        try
+        {
+            var ids = entries.Select(e => e.Entity.AccountId).Distinct().ToList();
+            prefs = ctx.Set<Account>().AsNoTracking().Where(a => ids.Contains(a.AccountId))
+                .Select(a => new { a.AccountId, a.NotifyInApp, a.NotifyEmail }).AsEnumerable()
+                .ToDictionary(a => a.AccountId, a => (a.NotifyInApp, a.NotifyEmail));
+        }
+        catch { prefs = new(); }
+
+        var added = new List<Notification>();
+        foreach (var e in entries)
+        {
+            var n = e.Entity;
+            var (inApp, email) = prefs.TryGetValue(n.AccountId, out var p) ? p : (true, true);
+            if (!inApp && !BindingSet.TryGetValue(n, out _))
+            {
+                if (!email) { e.State = EntityState.Detached; continue; }   // tắt cả hai kênh: không ghi
+                n.Channel = "EMAIL"; n.IsRead = true;                       // chỉ email: không hiện là thông báo mới trong web
+            }
+            added.Add(n);
+        }
         if (added.Count > 0) _pending.AddOrUpdate(ctx, added);
+    }
+
+    // NUI-NOT-01: mẫu thông báo theo loại (ContentItem Kind=TEMPLATE, Status=PUBLISHED). Biến dùng được trong mẫu.
+    public static readonly string[] TemplateVariables = { "{ten}", "{tieu_de}", "{noi_dung}", "{lien_ket}" };
+
+    // UC-41 E1: mẫu nhắc tới biến mà sự kiện không có → không gửi (trả null) thay vì gửi thư hỏng.
+    public static string? RenderTemplate(string template, string name, string title, string body, string? link)
+    {
+        var text = template.Replace("{ten}", name).Replace("{tieu_de}", title).Replace("{noi_dung}", body).Replace("{lien_ket}", link ?? "");
+        if (System.Text.RegularExpressions.Regex.IsMatch(text, @"\{[a-z_]+\}")) return null;
+        if (template.Contains("{lien_ket}") && link is null) return null;
+        return text;
     }
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -99,19 +141,44 @@ public sealed class NotificationEmailInterceptor : SaveChangesInterceptor
         }
         catch { return; }
 
+        Dictionary<string, (string Title, string Body)> templates;
+        try
+        {
+            var types = list.Select(n => n.NotificationType).Distinct().ToList();
+            templates = ctx.Set<ContentItem>().AsNoTracking()
+                .Where(c => c.Kind == "TEMPLATE" && c.Status == "PUBLISHED" && c.NotificationType != null && types.Contains(c.NotificationType))
+                .Select(c => new { c.NotificationType, c.Title, c.Body }).AsEnumerable()
+                .ToDictionary(c => c.NotificationType!, c => (c.Title, c.Body));
+        }
+        catch { templates = new(); }
+
+        const string footer = @"<p style=""color:#6b7280;font-size:13px"">Bạn nhận email này vì đã bật ""Nhận thông báo qua email"" trong hồ sơ ETOMS. Tắt ở mục Giấy tờ &amp; riêng tư của hồ sơ cá nhân.</p></div>";
         foreach (var n in list)
         {
             var r = to.FirstOrDefault(x => x.Id == n.AccountId);
             if (r.Email is null) continue;
             var link = string.IsNullOrEmpty(n.LinkUrl) ? null
                 : n.LinkUrl.StartsWith('/') ? _baseUrl + n.LinkUrl : n.LinkUrl;
-            var html = $@"<div style=""font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f2430"">
+            string subject, html;
+            if (templates.TryGetValue(n.NotificationType, out var tpl))
+            {
+                // NUI-NOT-01: email dựng từ mẫu của loại thông báo; UC-41 E1: mẫu hỏng thì không gửi, thông báo trong web vẫn còn.
+                var s = RenderTemplate(tpl.Title, r.Name, n.Title, n.Body, link);
+                var b = RenderTemplate(tpl.Body, r.Name, n.Title, n.Body, link);
+                if (s is null || b is null) continue;
+                subject = s;
+                html = $@"<div style=""font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f2430""><p>{WebUtility.HtmlEncode(b).Replace("\n", "<br/>")}</p>" + footer;
+            }
+            else
+            {
+                subject = "[ETOMS] " + n.Title;
+                html = $@"<div style=""font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f2430"">
                 <p>Xin chào <b>{WebUtility.HtmlEncode(r.Name)}</b>,</p>
                 <p><b>{WebUtility.HtmlEncode(n.Title)}</b></p>
                 <p>{WebUtility.HtmlEncode(n.Body).Replace("\n", "<br/>")}</p>
-                {(link is null ? "" : $@"<p><a href=""{WebUtility.HtmlEncode(link)}"">Mở trên ETOMS</a></p>")}
-                <p style=""color:#6b7280;font-size:13px"">Bạn nhận email này vì đã bật ""Nhận thông báo qua email"" trong hồ sơ ETOMS. Tắt ở mục Giấy tờ &amp; riêng tư của hồ sơ cá nhân.</p></div>";
-            _queue.TryEnqueue(new QueuedMail(r.Email, "[ETOMS] " + n.Title, html));
+                {(link is null ? "" : $@"<p><a href=""{WebUtility.HtmlEncode(link)}"">Mở trên ETOMS</a></p>")}" + footer;
+            }
+            _queue.TryEnqueue(new QueuedMail(r.Email, subject, html));
         }
     }
 }

@@ -21,7 +21,7 @@
             document.getElementById('ranked-team-game').textContent = team.gameName + ' · ' + team.teamTag;
             document.getElementById('ranked-team-name').textContent = team.teamName;
             document.getElementById('ranked-team-created').textContent =
-                'Thành lập ' + new Date(team.createdAt).toLocaleDateString('vi-VN');
+                'Thành lập ' + Ui.parseUtc(team.createdAt).toLocaleDateString('vi-VN');
             document.getElementById('ranked-team').hidden = false;
             body.innerHTML = team.honors.length ? team.honors.map(function (honor) {
                 return '<tr><td>' + Ui.escapeHtml(honor.tournamentName) + '</td><td>' + honor.season +

@@ -46,4 +46,12 @@ public interface IResultService
     // Đẩy đội thắng lên vị trí vòng trên — dùng chung cho RES-02/07 và MAT-09/11/12 (walkover,
     // disqualify, forfeit cũng là một cách trận kết thúc có người thắng).
     Task AdvanceWinnerAsync(int matchId, int winnerTeamId);
+
+    // UC-26: gỡ các đội mà trận này đã đẩy sang trận sau (đội thắng lên vòng trên; loại kép: cả đội thua xuống nhánh thua;
+    // đội thua bán kết vào trận tranh hạng Ba). Trận sau đã đá / đã có kết quả thì cũng bị hủy để đấu lại (A2).
+    // apply = false: chỉ liệt kê (xem trước, bước 3). Trả các trận phía sau đã/ sẽ bị hủy kết quả.
+    Task<IReadOnlyList<Models.Match>> RevertAdvancementAsync(int matchId, bool apply);
+
+    // UC-30 A2: trận này nhận đội từ một trận đang tranh chấp (đã đẩy đội thắng đi) → tạm đóng băng.
+    Task<bool> IsFrozenByUpstreamDisputeAsync(int matchId);
 }

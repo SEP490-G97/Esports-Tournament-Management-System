@@ -12,7 +12,21 @@ namespace ETOMS_API.Services.Impl
         private readonly EmailOptions _opt;
         public MailKitEmailSender(IOptions<EmailOptions> opt) => _opt = opt.Value;
 
+        // UC-41 A1: gửi lỗi thì thử lại MỘT lần (sau 2 giây) rồi bỏ; thông báo trong web vẫn còn, hạn điểm danh không đổi.
         public async Task SendAsync(string toEmail, string subject, string htmlBody, CancellationToken ct = default)
+        {
+            try
+            {
+                await SendOnceAsync(toEmail, subject, htmlBody, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), ct);
+                await SendOnceAsync(toEmail, subject, htmlBody, ct);
+            }
+        }
+
+        private async Task SendOnceAsync(string toEmail, string subject, string htmlBody, CancellationToken ct)
         {
             var msg = new MimeMessage();
             msg.From.Add(new MailboxAddress(_opt.FromName, _opt.FromAddress));

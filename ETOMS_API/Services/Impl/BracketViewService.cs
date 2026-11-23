@@ -150,7 +150,7 @@ public class BracketViewService : IBracketViewService
             {
                 StageNo = stage.Key,
                 Label = de is not null ? DoubleElimination.StageLabel(stage.Key)
-                    : multiStage ? $"Giai đoạn {stage.Key} · Knockout" : "Nhánh knockout",
+                    : multiStage ? $"Giai đoạn {stage.Key} · Loại trực tiếp" : "Nhánh loại trực tiếp",
                 Rounds = stageNodes.Select(n => n.RoundNo ?? 0).Distinct().OrderBy(r => r)
                     .Select(r => new BracketRoundViewDto { RoundNo = r, Label = de?.ShortRoundLabel(stage.Key, r) ?? BracketLabels.KnockoutRound(finalRound, r) }).ToList()
             };
@@ -229,7 +229,7 @@ public class BracketViewService : IBracketViewService
         var view = new BracketStageViewDto
         {
             StageNo = (nodes.Max(n => (int?)n.StageNo) ?? 1) + 1,
-            Label = "Nhánh knockout dự kiến (xếp theo thứ hạng vòng bảng)",
+            Label = "Nhánh loại trực tiếp dự kiến (xếp theo thứ hạng vòng bảng)",
             IsProjected = true,
             Rounds = Enumerable.Range(1, totalRounds)
                 .Select(r => new BracketRoundViewDto { RoundNo = r, Label = BracketLabels.KnockoutRound(totalRounds, r) }).ToList()

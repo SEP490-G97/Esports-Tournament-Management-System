@@ -87,7 +87,7 @@ public class MatchScheduleService : IMatchScheduleService
         await NotifyAsync(ctx, item, ChangeText(ctx, item, previous, at));
         await _uow.SaveChangesAsync();
         return Result<MatchScheduleBoardDto>.Success(ToBoard(ctx),
-            previous is null ? "Đã xếp giờ thi đấu. Check-in mở lúc " + Vn(at - CheckInWindow) + "." : "Đã dời giờ thi đấu và báo cho hai đội.");
+            previous is null ? "Đã xếp giờ thi đấu. Điểm danh mở lúc " + Vn(at - CheckInWindow) + "." : "Đã dời giờ thi đấu và báo cho hai đội.");
     }
 
     // ===== BRK-12: Xếp cả vòng: trận đầu lúc FirstAt, mỗi trận sau cách GapMinutes phút =====
@@ -180,12 +180,12 @@ public class MatchScheduleService : IMatchScheduleService
         var m = item.Match;
         if (m.Status != "PENDING") return "Trận đã bắt đầu hoặc đã có kết quả nên không đổi giờ được.";
         if (m.CheckInOpenAt is not DateTime open || ctx.Now < open) return null;
-        if (m.ScheduledAt is DateTime kickOff && ctx.Now < kickOff) return "Trận đã mở check-in nên không dời giờ được.";
+        if (m.ScheduledAt is DateTime kickOff && ctx.Now < kickOff) return "Trận đã mở điểm danh nên không dời giờ được.";
         // Đã qua giờ thi đấu: cả hai đội không check-in thì Ban tổ chức được xếp lại lịch (BR-MATCH-02).
         // Có một đội đã check-in thì đó là thắng trắng, để quy trình vắng mặt (MAT-03) xử lý.
         return m.TeamAcheckedInAt is null && m.TeamBcheckedInAt is null
             ? null
-            : "Đã qua giờ thi đấu và có đội đã check-in, trận được xử theo quy trình vắng mặt nên không dời giờ được.";
+            : "Đã qua giờ thi đấu và có đội đã điểm danh, trận được xử theo quy trình vắng mặt nên không dời giờ được.";
     }
 
     // Góp ý 22/11 "2 giải khác nhau cùng giờ thì không được": một tuyển thủ (qua MỌI đội đang thuộc — mỗi game một đội) hoặc

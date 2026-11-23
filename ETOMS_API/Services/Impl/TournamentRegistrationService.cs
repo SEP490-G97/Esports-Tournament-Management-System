@@ -269,9 +269,11 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 .ToArrayAsync(cancellationToken);
             if (playersAlreadyRegistered.Length > 0)
             {
+                var names = await Query<Account>().AsNoTracking().Where(a => playersAlreadyRegistered.Contains(a.AccountId))
+                    .Select(a => a.FullName).ToListAsync(cancellationToken);
                 return Result<RegistrationResponse>.FieldFailure(
                     nameof(request.Lineup),
-                    $"Thành viên {playersAlreadyRegistered[0]} đã có mặt trong đội hình đăng ký khác của giải.");
+                    $"{string.Join(", ", names)} đã có mặt trong đội hình đăng ký khác của giải này.");
             }
         }
 
@@ -1059,7 +1061,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         var eligible = await IsCurrentLineupEligibleAsync(candidate, tournament, cancellationToken);
         if (!eligible)
         {
-            return Result.Failure<WaitlistPromotionResponse>("Đội hình không còn đáp ứng luật roster/IGN/định danh; hãy cập nhật đội hình trước khi đôn.", StatusCodes.Status409Conflict);
+            return Result.Failure<WaitlistPromotionResponse>("Đội hình không còn đáp ứng luật số người, tên trong game và giấy tờ định danh; hãy cập nhật đội hình trước khi đôn.", StatusCodes.Status409Conflict);
         }
         var formerWaitlistPosition = candidate.WaitlistPosition;
         await PromoteRegistrationAsync(candidate, tournament, accountId, now, cancellationToken);
@@ -1296,12 +1298,12 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         var accountIds = normalized.Select(item => item.AccountId).ToArray();
         var activeRoster = await Query<TeamMember>().AsNoTracking()
             .Where(item => item.TeamId == teamId && item.Status == "ACTIVE" && accountIds.Contains(item.AccountId))
-            .Select(item => new { item.AccountId, item.Account.Status })
+            .Select(item => new { item.AccountId, item.Account.Status, item.Account.FullName })
             .ToListAsync(cancellationToken);
         if (activeRoster.Select(item => item.AccountId).Distinct().Count() != accountIds.Length
             || activeRoster.Any(item => item.Status != "ACTIVE"))
         {
-            return LineupValidation.Failure("Mọi thành viên đăng ký phải thuộc roster đang hoạt động của đội.");
+            return LineupValidation.Failure("Mọi thành viên đăng ký phải thuộc đội hình đang hoạt động của đội.");
         }
 
         var credentials = await Query<PlayerCredential>().AsNoTracking()
@@ -1310,23 +1312,24 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                     || item.CredentialType == IdentityDocumentType))
             .Select(item => new { item.PlayerCredentialId, item.AccountId, item.CredentialType, item.Value, item.FileUrl })
             .ToListAsync(cancellationToken);
-        foreach (var member in normalized)
+        // Báo theo TÊN và gom mọi người còn thiếu trong một lần, kèm việc cần làm (đánh giá trải nghiệm 22/11: trước đây
+        // "Thành viên 228 còn thiếu..." — mã số, từng người một, đội trưởng không biết ai và phải làm gì).
+        string NameOf(int id) => activeRoster.FirstOrDefault(r => r.AccountId == id)?.FullName ?? $"#{id}";
+        if (tournament.RequireInGameName)
         {
-            var ign = credentials.FirstOrDefault(item =>
-                item.AccountId == member.AccountId
-                && item.CredentialType == InGameNameType
-                && !string.IsNullOrWhiteSpace(item.Value));
-            if (tournament.RequireInGameName && ign is null)
-            {
-                return LineupValidation.Failure($"Thành viên {member.AccountId} chưa khai báo IGN cho tựa game này.");
-            }
-            if (tournament.RequireIdentityDocument && !credentials.Any(item =>
-                item.AccountId == member.AccountId
-                && item.CredentialType == IdentityDocumentType
-                && !string.IsNullOrWhiteSpace(item.FileUrl)))
-            {
-                return LineupValidation.Failure($"Thành viên {member.AccountId} còn thiếu giấy tờ định danh bắt buộc.");
-            }
+            var noIgn = normalized.Where(m => !credentials.Any(item => item.AccountId == m.AccountId
+                && item.CredentialType == InGameNameType && !string.IsNullOrWhiteSpace(item.Value))).Select(m => NameOf(m.AccountId)).ToList();
+            if (noIgn.Count > 0)
+                return LineupValidation.Failure($"Giải yêu cầu tên trong game (IGN). Chưa khai IGN cho tựa game này: {string.Join(", ", noIgn)}. " +
+                    "Mỗi người tự khai ở Hồ sơ cá nhân → Tài khoản game.");
+        }
+        if (tournament.RequireIdentityDocument)
+        {
+            var noDoc = normalized.Where(m => !credentials.Any(item => item.AccountId == m.AccountId
+                && item.CredentialType == IdentityDocumentType && !string.IsNullOrWhiteSpace(item.FileUrl))).Select(m => NameOf(m.AccountId)).ToList();
+            if (noDoc.Count > 0)
+                return LineupValidation.Failure($"Giải yêu cầu giấy tờ định danh. Còn thiếu: {string.Join(", ", noDoc)}. " +
+                    "Mỗi người tự tải ở Hồ sơ cá nhân → Giấy tờ & riêng tư; đội trưởng có thể lưu nháp đơn rồi gửi sau.");
         }
 
         if (tournament.RequireInGameName)
@@ -1395,7 +1398,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             .ToListAsync(cancellationToken);
         if (activeRoster.Distinct().Count() != accountIds.Length)
         {
-            return LineupValidation.Failure("Thành viên trong bản nháp phải thuộc roster đang hoạt động của đội.");
+            return LineupValidation.Failure("Thành viên trong bản nháp phải thuộc đội hình đang hoạt động của đội.");
         }
 
         var credentials = await Query<PlayerCredential>().AsNoTracking()
@@ -1509,13 +1512,13 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             if (!await IsCurrentLineupEligibleAsync(candidate, tournament, cancellationToken))
             {
                 skippedRegistrationIds.Add(candidate.RegistrationId);
-                if (candidate.ReviewNote != "Roster không còn đáp ứng điều kiện đăng ký; đang chờ đội cập nhật.")
+                if (candidate.ReviewNote != "Đội hình không còn đáp ứng điều kiện đăng ký; đang chờ đội cập nhật.")
                 {
-                    candidate.ReviewNote = "Roster không còn đáp ứng điều kiện đăng ký; đang chờ đội cập nhật.";
+                    candidate.ReviewNote = "Đội hình không còn đáp ứng điều kiện đăng ký; đang chờ đội cập nhật.";
                     await AddNotificationAsync(
                         candidate.Team.CaptainAccountId,
-                        "Cần cập nhật roster",
-                        $"Đội {candidate.Team.Name} vẫn trong danh sách chờ nhưng roster không còn đáp ứng điều kiện. Hãy cập nhật đội trước khi được đôn.",
+                        "Cần cập nhật đội hình",
+                        $"Đội {candidate.Team.Name} vẫn trong danh sách chờ nhưng đội hình không còn đáp ứng điều kiện. Hãy cập nhật đội trước khi được đôn.",
                         "/registration/mine.html",
                         cancellationToken);
                 }

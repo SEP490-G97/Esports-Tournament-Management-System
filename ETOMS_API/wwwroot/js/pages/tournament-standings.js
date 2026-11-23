@@ -67,7 +67,7 @@
 
     function legendHtml(b) {
         if (!b.advancePerGroup) return '';
-        return '<div class="hint mt-3">' + b.advancePerGroup + ' đội đầu mỗi bảng đi tiếp vào vòng knockout. ' +
+        return '<div class="hint mt-3">' + b.advancePerGroup + ' đội đầu mỗi bảng đi tiếp vào vòng loại trực tiếp. ' +
             '"Tạm đi tiếp" là vị trí hiện tại khi vòng bảng chưa xong.</div>';
     }
 

@@ -93,7 +93,7 @@ public class TournamentCancelService : ITournamentCancelService
             .ToListAsync();
 
     // BR-TOUR-05: lý do hủy tới mọi đội trưởng có đơn, nên luôn có thông báo trong ứng dụng;
-    // ai bật nhận email thì đánh dấu kênh BOTH để phần gửi email của module thông báo gửi đi.
+    // ai bật nhận email thì bộ gửi email chung (NotificationEmailInterceptor) gửi thêm email.
     private async Task<int> NotifyCaptainsAsync(Tournament t, List<RegistrationRow> registrations, string reason, DateTime now)
     {
         var captains = registrations.Where(r => ActiveStatuses.Contains(r.Status) || r.PaymentStatus is "CONFIRMED" or "PROOF_SUBMITTED")
@@ -101,17 +101,19 @@ public class TournamentCancelService : ITournamentCancelService
         foreach (var c in captains)
         {
             var paid = t.EntryFee > 0 && registrations.Any(r => r.CaptainId == c.CaptainId && r.PaymentStatus is "CONFIRMED" or "PROOF_SUBMITTED");
-            await _uow.Repository<Notification>().AddAsync(new Notification
+            // UC-40 A1: hủy giải ràng buộc đội nên vẫn ghi khi tắt thông báo trong web. UC-14 A2: kênh IN_APP để bộ gửi email chung
+            // (NotificationEmailInterceptor) gửi thêm email cho người bật nhận email — trước đây ghi BOTH nên không email nào được gửi.
+            await _uow.Repository<Notification>().AddAsync(NotificationEmailInterceptor.Binding(new Notification
             {
                 AccountId = c.CaptainId,
                 NotificationType = "SYSTEM",
                 Title = "Giải đấu đã bị hủy",
                 Body = $"Giải {t.Name} đã bị hủy. Lý do: {reason}" +
                        (paid ? " Ban tổ chức sẽ liên hệ để hoàn lệ phí đội đã nộp; việc hoàn tiền thực hiện ngoài ETOMS." : string.Empty),
-                Channel = c.NotifyEmail ? "BOTH" : "IN_APP",
+                Channel = "IN_APP",
                 IsRead = false,
                 SentAt = now
-            });
+            }));
         }
         return captains.Count;
     }

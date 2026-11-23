@@ -374,6 +374,7 @@
             ['/tournament/referees.html', 'Trọng tài'],
             ['/tournament/livestreams.html', 'Livestream'],
             ['/tournament/stage-transition.html', 'Chuyển vòng'],
+            ['/tournament/news.html', 'Tin tức giải'],
             ['/tournament/discipline.html', 'Kỷ luật'],
             ['/tournament/audit-log.html', 'Nhật ký giải']
         ]],
@@ -389,7 +390,7 @@
         var path = location.pathname.toLowerCase();
         var q = new URLSearchParams(location.search);
         if (path === '/registration/review.html') return q.get('tournamentId');
-        if (path.indexOf('/tournament/') === 0 || path === '/bracket/manage.html' || path === '/bracket/view.html' || path === '/bracket/tiebreaker.html') return q.get('id');
+        if ((path.indexOf('/tournament/') === 0 && path !== '/tournament/index.html') || path === '/bracket/manage.html' || path === '/bracket/view.html' || path === '/bracket/tiebreaker.html') return q.get('id');
         return null;
     }
 

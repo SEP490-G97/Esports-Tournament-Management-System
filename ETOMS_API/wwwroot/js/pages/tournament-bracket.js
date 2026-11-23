@@ -261,7 +261,7 @@
             '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2">' +
             '<div class="section-title m-0">Hành trình của ' + esc(name) + '</div>' +
             '<button type="button" class="btn btn-ghost" id="clear-team">Bỏ chọn đội</button></div>' +
-            (rows ? '<ol style="margin:10px 0 0;padding-left:22px">' + rows + '</ol>' : '<div class="hint mt-2">Đội chưa có trận nào trong nhánh knockout.</div>') +
+            (rows ? '<ol style="margin:10px 0 0;padding-left:22px">' + rows + '</ol>' : '<div class="hint mt-2">Đội chưa có trận nào trong nhánh loại trực tiếp.</div>') +
             '</div></div>';
     }
 
@@ -278,7 +278,7 @@
         if (found.stage.isProjected) {
             lines.push(n.isBye ? esc(n.teamA.name) + ' được miễn vòng 1.'
                 : '<strong>' + esc(n.teamA.name) + '</strong> gặp <strong>' + esc(n.teamB.name) + '</strong>' + (n.bestOf ? ' · BO' + n.bestOf : ''));
-            lines.push('Cặp đấu dự kiến, chốt khi vòng bảng kết thúc và Ban tổ chức chuyển sang knockout.');
+            lines.push('Cặp đấu dự kiến, chốt khi vòng bảng kết thúc và Ban tổ chức chuyển sang vòng loại trực tiếp.');
         }
         else if (n.isBye) lines.push(esc(n.teamA.name) + ' được miễn vòng 1 và vào thẳng vòng sau.');
         else {
@@ -398,14 +398,14 @@
         }
         if (!b.stages.length) {
             document.getElementById('bracket-root').innerHTML = notice + updated +
-                (b.hasGroupStage ? '<div class="card-etoms"><div class="body"><div class="hint">Giải đang ở vòng bảng, nhánh knockout sẽ có sau khi vòng bảng kết thúc.</div></div></div>'
+                (b.hasGroupStage ? '<div class="card-etoms"><div class="body"><div class="hint">Giải đang ở vòng bảng, nhánh loại trực tiếp sẽ có sau khi vòng bảng kết thúc.</div></div></div>'
                     : '<div class="card-etoms"><div class="empty"><h3>Giải chưa có nhánh đấu</h3><p>Quay lại khi Ban tổ chức đã sinh nhánh.</p></div></div>') +
                 groupsHtml();
             return;
         }
 
         if (b.stages.some(function (s) { return s.isProjected; }))
-            notice += '<div class="hint mb-2">Giải đang ở vòng bảng. Sơ đồ dưới là nhánh knockout <strong>dự kiến</strong> theo thứ hạng ' +
+            notice += '<div class="hint mb-2">Giải đang ở vòng bảng. Sơ đồ dưới là nhánh loại trực tiếp <strong>dự kiến</strong> theo thứ hạng ' +
                 '(Nhất bảng A gặp Nhì bảng B…); tên đội thật được điền khi vòng bảng kết thúc.</div>';
         document.getElementById('bracket-root').innerHTML = notice + updated + toolbarHtml() + journeyHtml() + detailHtml() +
             (state.mode === 'tree' ? treeHtml() : listHtml()) + groupsHtml();
@@ -444,7 +444,7 @@
         });
         var lockBtn = document.getElementById('bk-lock');
         if (lockBtn) lockBtn.addEventListener('click', function () {
-            runAction('/lock', 'Khóa nhánh đấu? Sau khi khóa, khách xem được nhánh, roster các đội và cổng đăng ký đóng lại. ' +
+            runAction('/lock', 'Khóa nhánh đấu? Sau khi khóa, khách xem được nhánh, đội hình các đội và cổng đăng ký đóng lại. ' +
                 'Vẫn mở khóa lại được nếu chưa có trận nào bắt đầu.');
         });
         var unlockBtn = document.getElementById('bk-unlock');

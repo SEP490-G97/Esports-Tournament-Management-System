@@ -14,7 +14,7 @@
 
     function formatTime(value) {
         var date = new Date(/Z$/.test(value) ? value : value + 'Z');
-        return date.toLocaleString('vi-VN');
+        return Ui.fmtDateTime(date);
     }
 
     function resultHtml(b) {

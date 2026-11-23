@@ -47,7 +47,7 @@ namespace ETOMS_API.Services.Impl
             int maxRoster = team.Game.MaxStarters + team.Game.MaxSubstitutes;
 
             if (activeMembersCount >= maxRoster)
-                throw new InvalidOperationException("Đội đã đủ Roster (chính thức & dự bị), không thể đăng tin tuyển thêm.");
+                throw new InvalidOperationException("Đội đã đủ người (chính thức & dự bị), không thể đăng tin tuyển thêm.");
 
             var post = new RecruitmentPost
             {

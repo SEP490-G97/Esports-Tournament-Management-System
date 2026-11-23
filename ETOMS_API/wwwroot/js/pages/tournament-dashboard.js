@@ -11,7 +11,7 @@
     function formatTime(value) {
         if (!value) return '';
         var date = new Date(/Z$/.test(value) ? value : value + 'Z');
-        return date.toLocaleString('vi-VN');
+        return Ui.fmtDateTime(date);
     }
 
     function formatMoney(value) {
@@ -26,8 +26,8 @@
 
     function statCards(d) {
         var checkIn = d.checkInMatchCount > 0
-            ? statCard('Tiến độ check-in', d.checkedInTeamCount + '/' + d.expectedTeamCount, d.checkInMatchCount + ' trận đang mở check-in')
-            : statCard('Tiến độ check-in', '—', 'Không có trận nào đang mở check-in');
+            ? statCard('Tiến độ điểm danh', d.checkedInTeamCount + '/' + d.expectedTeamCount, d.checkInMatchCount + ' trận đang mở điểm danh')
+            : statCard('Tiến độ điểm danh', '—', 'Không có trận nào đang mở điểm danh');
 
         var fee = d.hasEntryFee
             ? statCard('Lệ phí đã xác nhận', formatMoney(d.confirmedFeeTotal),
@@ -241,6 +241,7 @@
             return;
         }
 
+        Ui.consumeFlash(document.getElementById('flash'));
         loadLifecycle();
         try {
             render(await Api.get('/api/tournaments/' + tournamentId + '/dashboard'));

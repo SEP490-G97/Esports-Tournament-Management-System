@@ -41,7 +41,7 @@
 
     function matchRow(m, min) {
         var when = m.scheduledAt
-            ? '<div class="rl"><strong>' + Ui.escapeHtml(formatTime(m.scheduledAt)) + '</strong> · Check-in mở lúc ' + Ui.escapeHtml(formatTime(m.checkInOpenAt)) + '</div>'
+            ? '<div class="rl"><strong>' + Ui.escapeHtml(formatTime(m.scheduledAt)) + '</strong> · Điểm danh mở lúc ' + Ui.escapeHtml(formatTime(m.checkInOpenAt)) + '</div>'
             : '<div class="rl">Chưa xếp giờ</div>';
         var referee = '<div class="rl">' + Ui.escapeHtml(m.refereeName ? 'Trọng tài: ' + m.refereeName : 'Chưa có trọng tài, Ban tổ chức phân xử') + '</div>';
         var editor = m.canEdit
@@ -86,7 +86,7 @@
     function render(board) {
         document.getElementById('page-title').textContent = 'Xếp lịch · ' + board.tournamentName;
         document.getElementById('page-sub').textContent = 'Thời gian thi đấu: từ ' + formatTime(board.startAt) +
-            (board.endAt ? ' đến ' + formatTime(board.endAt) : '') + '. Check-in mở trước giờ thi đấu 30 phút.';
+            (board.endAt ? ' đến ' + formatTime(board.endAt) : '') + '. Điểm danh mở trước giờ thi đấu 30 phút.';
 
         // Giờ chọn sớm nhất: sau hiện tại 30 phút và không trước ngày khởi tranh.
         var earliest = new Date(Date.now() + 30 * 60000);
