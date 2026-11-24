@@ -342,7 +342,8 @@
     }
 
     async function init() {
-        await Auth.requireAuth(['ADMIN']);
+        // Không phải Admin: requireAuth đã chuyển trang đi — dừng tại đây, không gọi API quản trị.
+        if (!(await Auth.requireAuth(['ADMIN']))) return;
 
         modal = new bootstrap.Modal($('ban-modal'));
 
