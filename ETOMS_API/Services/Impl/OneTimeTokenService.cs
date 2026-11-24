@@ -58,6 +58,19 @@ namespace ETOMS_API.Services.Impl
                 .FirstOrDefaultAsync(ct);
         }
 
+        public async Task<string> InspectAsync(string rawToken, string tokenType, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(rawToken) || rawToken.Length > 200) return "INVALID";
+            var hash = _tokens.HashToken(rawToken);
+            var t = await _db.AuthTokens.AsNoTracking()
+                .Where(x => x.TokenHash == hash && x.TokenType == tokenType)
+                .Select(x => new { x.UsedAt, x.ExpiresAt })
+                .FirstOrDefaultAsync(ct);
+            if (t is null) return "INVALID";
+            if (t.UsedAt != null) return "USED";
+            return t.ExpiresAt <= DateTime.UtcNow ? "EXPIRED" : "VALID";
+        }
+
         private static string Base64Url(byte[] bytes) =>
             Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }

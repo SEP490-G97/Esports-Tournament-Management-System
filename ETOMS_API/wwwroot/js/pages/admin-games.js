@@ -70,6 +70,15 @@
         fd.append('MaxEvidenceFileSizeMb', el('g-size').value || '10');
         if (file) fd.append('LogoFile', file);
         else if (el('g-logolink').value.trim()) fd.append('LogoLink', el('g-logolink').value.trim());
+        // Hỏi xác nhận trước khi lưu (góp ý 24/11), nói rõ phạm vi ảnh hưởng khi sửa game đang có đội / giải.
+        var cur = editingId ? games.filter(function (x) { return x.gameId === editingId; })[0] : null;
+        var name = el('g-title').value.trim();
+        var question = cur
+            ? 'Lưu thay đổi cho game ' + name + '?' + (cur.teams || cur.tournaments
+                ? ' Game đang có ' + Number(cur.teams || 0) + ' đội và ' + Number(cur.tournaments || 0) + ' giải. Giải đã tạo giữ nguyên số người và thể thức riêng của giải; luật số người mới áp dụng khi đội xếp đội hình và cho giải tạo sau này.'
+                : '')
+            : 'Thêm game ' + name + ' vào hệ thống?';
+        if (!await window.etomsConfirm(question, { title: cur ? 'Xác nhận lưu game' : 'Xác nhận thêm game', okText: cur ? 'Lưu thay đổi' : 'Thêm game' })) return;
         try {
             var res = editingId ? await Api.putForm('/api/admin/games/' + editingId, fd) : await Api.postForm('/api/admin/games', fd);
             Ui.showAlert(flash, 'success', res.message || 'Đã lưu game.');

@@ -184,6 +184,16 @@
             Ui.clearAlert(flash());
             Ui.clearFieldErrors(form);
 
+            // Hỏi xác nhận trước khi lưu (góp ý 24/11). Giải đang diễn ra KHÔNG bị lỗi: số người và thể thức đã chốt riêng
+            // trong giải nên giữ nguyên; bản đồ, vị trí và định dạng file minh chứng theo bộ luật mới ngay.
+            var open = editing.ruleset ? Number(editing.ruleset.openTournamentCount || 0) : 0;
+            var question = editing.ruleset
+                ? 'Lưu thay đổi bộ luật "' + document.getElementById('Name').value.trim() + '"?' + (open > 0
+                    ? ' Có ' + open + ' giải chưa kết thúc đang dùng bộ luật này: số người thi đấu và thể thức của các giải đó giữ nguyên, còn bản đồ, vị trí và định dạng file minh chứng sẽ áp dụng theo bộ luật mới ngay.'
+                    : ' Chưa có giải nào đang diễn ra dùng bộ luật này.')
+                : 'Thêm bộ luật mới cho ' + editing.game.title + '?';
+            if (!await window.etomsConfirm(question, { title: 'Xác nhận lưu bộ luật', okText: editing.ruleset ? 'Lưu bộ luật' : 'Thêm bộ luật' })) return;
+
             saveBtn.disabled = true;
             try {
                 var res = editing.ruleset

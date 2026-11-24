@@ -118,10 +118,11 @@
                     [['TOURNAMENT_OPERATOR', 'Điều hành giải'], ['REFEREE', 'Trọng tài'], ['MARKETING', 'Truyền thông']].map(function (r) {
                         return '<option value="' + r[0] + '"' + (member.role === r[0] ? ' selected' : '') + '>' + r[1] + '</option>';
                     }).join('') + '</select>';
-            } else {
-                actions = '<span class="muted-copy">—</span>';
             }
-            return '<tr><td>' + Ui.escapeHtml(member.fullName) + ' <span class="item-sub">#' + Number(member.accountId) + '</span></td><td>' + Ui.escapeHtml(member.roleLabel || roleLabel(member.role)) + '</td><td>' + Ui.escapeHtml(member.statusLabel || member.status) + '</td><td>' + actions + '</td></tr>';
+            // Mọi người xem (kể cả Admin) bấm tên hoặc nút để mở hồ sơ công khai của thành viên (góp ý 24/11).
+            var profileHref = '/profile/public.html?id=' + Number(member.accountId);
+            actions = (actions ? actions + ' ' : '') + '<a class="btn btn-ghost btn-xs" href="' + profileHref + '">Xem hồ sơ</a>';
+            return '<tr><td><a class="member-name-link" href="' + profileHref + '" title="Xem hồ sơ ' + Ui.escapeHtml(member.fullName) + '">' + Ui.escapeHtml(member.fullName) + '</a> <span class="item-sub">#' + Number(member.accountId) + '</span></td><td>' + Ui.escapeHtml(member.roleLabel || roleLabel(member.role)) + '</td><td>' + Ui.escapeHtml(member.statusLabel || member.status) + '</td><td>' + actions + '</td></tr>';
         }).join('') || '<tr><td colspan="4">Chưa có thành viên.</td></tr>';
 
         tbody.querySelectorAll('[data-accept]').forEach(function (button) {

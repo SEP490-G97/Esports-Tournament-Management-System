@@ -2166,3 +2166,5 @@ a.mh-team:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); co
     .news-hero.is-logo .news-hero-bg { left: 40%; }
     .news-hero-shade { background: linear-gradient(90deg, rgba(7, 10, 22, .9) 0%, rgba(7, 10, 22, .6) 60%, rgba(7, 10, 22, .35) 100%), linear-gradient(0deg, rgba(7, 10, 22, .85) 0%, rgba(7, 10, 22, 0) 40%); }
 }
+.member-name-link { color: inherit; font-weight: 600; text-decoration: none; }
+.member-name-link:hover { color: var(--primary); text-decoration: underline; }

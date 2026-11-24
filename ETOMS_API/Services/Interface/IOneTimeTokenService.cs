@@ -7,5 +7,8 @@
 
         /// <summary>Đánh dấu đã dùng (atomic). Trả về AccountID nếu token hợp lệ, null nếu sai/hết hạn/đã dùng.</summary>
         Task<int?> ConsumeAsync(string rawToken, string tokenType, CancellationToken ct = default);
+
+        /// <summary>Xem tình trạng token KHÔNG tiêu thụ: VALID | USED | EXPIRED | INVALID (trang đặt lại mật khẩu kiểm ngay khi mở link).</summary>
+        Task<string> InspectAsync(string rawToken, string tokenType, CancellationToken ct = default);
     }
 }

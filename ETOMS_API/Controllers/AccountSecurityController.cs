@@ -16,7 +16,12 @@ namespace ETOMS_API.Controllers
     public class AccountSecurityController : ControllerBase
     {
         private readonly IAccountSecurityService _svc;
-        public AccountSecurityController(IAccountSecurityService svc) => _svc = svc;
+        private readonly IOneTimeTokenService _oneTime;
+        public AccountSecurityController(IAccountSecurityService svc, IOneTimeTokenService oneTime)
+        {
+            _svc = svc;
+            _oneTime = oneTime;
+        }
 
         // AUTH-01
         [HttpPost("/auth/register")]
@@ -55,6 +60,26 @@ namespace ETOMS_API.Controllers
             await _svc.ForgotPasswordAsync(req.Email, ct);
             // Luôn trả cùng một thông báo, không lộ email có tồn tại hay không.
             return Ok(new { message = "Nếu email tồn tại trong hệ thống, liên kết đặt lại mật khẩu đã được gửi." });
+        }
+
+        // Trang đặt lại mật khẩu kiểm link NGAY KHI MỞ (không tiêu thụ token): link đã dùng / hết hạn / sai thì hiện trang lỗi,
+        // không cho nhập mật khẩu (góp ý: link đã đổi mật khẩu xong vẫn hiện form như còn dùng được). POST để token không vào log URL.
+        [HttpPost("/auth/reset-password/check")]
+        [EnableRateLimiting("login")]
+        public async Task<IActionResult> CheckResetToken([FromBody] TokenRequest req, CancellationToken ct)
+        {
+            var status = await _oneTime.InspectAsync(req.Token, TokenTypes.PasswordReset, ct);
+            return Ok(new
+            {
+                status,
+                message = status switch
+                {
+                    "VALID" => "Liên kết hợp lệ.",
+                    "USED" => "Liên kết đặt lại mật khẩu này đã được sử dụng. Mỗi liên kết chỉ dùng được một lần — hãy yêu cầu liên kết mới nếu cần.",
+                    "EXPIRED" => "Liên kết đặt lại mật khẩu đã hết hạn. Vui lòng yêu cầu liên kết mới.",
+                    _ => "Liên kết đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu liên kết mới."
+                }
+            });
         }
 
         [HttpPost("/auth/reset-password")]

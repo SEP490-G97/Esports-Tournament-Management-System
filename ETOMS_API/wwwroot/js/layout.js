@@ -7,9 +7,14 @@
     // quản trị. Mở trang khác (trang chủ, hồ sơ...) thì đưa về Bảng quản trị. Trang đơn vị tổ chức vẫn mở được
     // vì Admin duyệt / đình chỉ đơn vị ở đó. Đây chỉ là điều hướng giao diện; quyền thật vẫn chặn ở API.
     var ADMIN_HOME = '/admin/index.html';
+    // Trang xem công khai (chỉ đọc) Admin mở được từ trang quản trị: xem giải từ hồ sơ đơn vị, hồ sơ thành viên đơn vị,
+    // đội, trận (góp ý 24/11: bấm "Xem" giải bị đẩy về Bảng điều khiển).
+    var ADMIN_VIEW_PAGES = ['/bracket/view.html', '/tournament/participants.html', '/tournament/rulebook-history.html',
+        '/tournament/standings.html', '/tournament/live.html', '/match/detail.html', '/team/details.html', '/profile/public.html'];
     function adminPathAllowed(path) {
         path = (path || '').toLowerCase();
-        return ['/admin/', '/organization/', '/auth/', '/errors/', '/events/', '/news/'] /* admin bấm "Xem" tin ở trang quản trị tin tức */.some(function (p) { return path.indexOf(p) === 0; });
+        return ['/admin/', '/organization/', '/auth/', '/errors/', '/events/', '/news/'] /* admin bấm "Xem" tin ở trang quản trị tin tức */.some(function (p) { return path.indexOf(p) === 0; })
+            || ADMIN_VIEW_PAGES.indexOf(path) >= 0;
     }
     function cachedRole() {
         // Chỉ tin vai trò đã lưu khi còn token đăng nhập (đăng xuất / hết phiên thì coi như khách).

@@ -11,6 +11,9 @@
         /// <summary>ACTIVE | BANNED | UNVERIFIED (hoặc PENDING_VERIFY). Rỗng/ALL = tất cả.</summary>
         public string? Status { get; set; }
 
+        /// <summary>newest (mặc định) | oldest | name | name_desc | email.</summary>
+        public string? Sort { get; set; }
+
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }

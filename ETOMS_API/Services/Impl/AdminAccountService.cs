@@ -16,6 +16,7 @@ namespace ETOMS_API.Services.Impl
         public const int MinReasonLength = 5;
         public const int MaxReasonLength = 500;   // khớp Account.BanReason varchar(500)
         public const int MaxPageSize = 100;
+        private const string AccentInsensitive = "utf8mb4_0900_ai_ci";   // so sánh không phân biệt dấu khi tìm kiếm
 
         private readonly EtomsDbContext _db;
         private readonly IEmailSender _email;
@@ -68,7 +69,20 @@ namespace ETOMS_API.Services.Impl
             var term = (query.Q ?? "").Trim();
             if (term.Length > 100) term = term[..100];
             if (term.Length > 0)
-                baseQuery = baseQuery.Where(a => a.Email.Contains(term) || a.FullName.Contains(term));
+            {
+                // Tìm KHÔNG phân biệt dấu (góp ý: gõ "Bao" phải ra "Bảo"): cột dùng utf8mb4_0900_as_ci (phân biệt dấu) nên
+                // so sánh theo utf8mb4_0900_ai_ci. "đ" không phải chữ có dấu của "d" trong collation → thêm biến thể d→đ.
+                // Dùng LIKE: Contains() bị dịch thành LOCATE(), mà LOCATE không theo collation không dấu ("Bao" trong "Bảo" = 0).
+                static string Pattern(string s) => "%" + s.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+                var like = Pattern(term);
+                var termD = term.Replace('d', 'đ').Replace('D', 'Đ');
+                var likeD = Pattern(termD);
+                var hasD = termD != term;
+                baseQuery = baseQuery.Where(a =>
+                    EF.Functions.Like(EF.Functions.Collate(a.Email, AccentInsensitive), like)
+                    || EF.Functions.Like(EF.Functions.Collate(a.FullName, AccentInsensitive), like)
+                    || (hasD && EF.Functions.Like(EF.Functions.Collate(a.FullName, AccentInsensitive), likeD)));
+            }
 
             var grouped = await baseQuery
                 .GroupBy(a => a.Status)
@@ -85,8 +99,15 @@ namespace ETOMS_API.Services.Impl
             var filtered = status == null ? baseQuery : baseQuery.Where(a => a.Status == status);
             var total = status == null ? counts.All : await filtered.CountAsync(ct);
 
-            var items = await filtered
-                .OrderByDescending(a => a.AccountId)
+            IOrderedQueryable<Account> ordered = (query.Sort ?? "newest").ToLowerInvariant() switch
+            {
+                "oldest" => filtered.OrderBy(a => a.AccountId),
+                "name" => filtered.OrderBy(a => a.FullName).ThenBy(a => a.AccountId),
+                "name_desc" => filtered.OrderByDescending(a => a.FullName).ThenBy(a => a.AccountId),
+                "email" => filtered.OrderBy(a => a.Email),
+                _ => filtered.OrderByDescending(a => a.AccountId)
+            };
+            var items = await ordered
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(a => new AccountListItem(

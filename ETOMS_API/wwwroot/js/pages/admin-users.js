@@ -3,7 +3,9 @@
     'use strict';
 
     const API = '/api/admin/accounts';
-    const PAGE_SIZE = 20;
+    // Số dòng mỗi trang chọn được (10/20/50/100), nhớ trong trình duyệt.
+    let pageSize = 20;
+    try { const saved = parseInt(localStorage.getItem('au-page-size'), 10); if ([10, 20, 50, 100].includes(saved)) pageSize = saved; } catch (_) { /* bỏ qua */ }
     const REASON_PRESETS = [
         'Spam hoặc quảng cáo trái phép',
         'Ngôn từ xúc phạm, thù ghét',
@@ -21,7 +23,7 @@
     };
 
     const $ = (id) => document.getElementById(id);
-    const state = { q: '', role: '', status: '', page: 1, total: 0, busy: false };
+    const state = { q: '', role: '', status: '', sort: 'newest', page: 1, total: 0, busy: false };
     let reqSeq = 0;          // bỏ qua phản hồi cũ khi gõ nhanh
     let modal = null;
     let current = null;      // { mode: 'ban' | 'unban', user }
@@ -68,7 +70,7 @@
     async function load() {
         const seq = ++reqSeq;
         $('rows').classList.add('is-loading');
-        const p = new URLSearchParams({ page: state.page, pageSize: PAGE_SIZE });
+        const p = new URLSearchParams({ page: state.page, pageSize: pageSize, sort: state.sort });
         if (state.q) p.set('q', state.q);
         if (state.role) p.set('role', state.role);
         if (state.status) p.set('status', state.status);
@@ -86,7 +88,7 @@
         state.total = d.total;
 
         // Nếu xóa/lọc làm trang hiện tại vượt quá số trang thì lùi về trang cuối.
-        const pages = Math.max(1, Math.ceil(d.total / PAGE_SIZE));
+        const pages = Math.max(1, Math.ceil(d.total / pageSize));
         if (state.page > pages) { state.page = pages; return load(); }
 
         render(d);
@@ -102,9 +104,9 @@
             n.textContent = d.counts[n.dataset.count] ?? 0;
         });
 
-        const pages = Math.max(1, Math.ceil(d.total / PAGE_SIZE));
-        const from = d.total === 0 ? 0 : (d.page - 1) * PAGE_SIZE + 1;
-        const to = Math.min(d.total, d.page * PAGE_SIZE);
+        const pages = Math.max(1, Math.ceil(d.total / pageSize));
+        const from = d.total === 0 ? 0 : (d.page - 1) * pageSize + 1;
+        const to = Math.min(d.total, d.page * pageSize);
         $('range').textContent = d.total === 0 ? '' : `Hiển thị ${from}–${to} / ${d.total}`;
         $('page-label').textContent = `Trang ${d.page}/${pages}`;
         $('prev').disabled = d.page <= 1;
@@ -147,7 +149,7 @@
 
         // Vai trò
         const td2 = document.createElement('td');
-        td2.appendChild(el('span', 'au-badge role ' + u.role.toLowerCase(), u.role));
+        td2.appendChild(el('span', 'au-badge role ' + u.role.toLowerCase(), ({ PLAYER: 'Người chơi', ORGANIZER: 'Ban tổ chức', ADMIN: 'Quản trị viên' })[u.role] || u.role));
 
         // Trạng thái
         const td3 = document.createElement('td');
@@ -366,6 +368,32 @@
             state.page = 1;
             load();
         }, 350));
+        // Bấm tiêu đề cột để sắp xếp (rê chuột có gợi ý); bấm lần nữa đảo chiều.
+        function paintSort() {
+            document.querySelectorAll('.au-sort').forEach((b) => {
+                const ic = b.querySelector('.au-sort-ic');
+                const on = b.dataset.sort === 'name' ? state.sort.startsWith('name') : (state.sort === 'newest' || state.sort === 'oldest');
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-sort', !on ? 'none' : (state.sort === 'name' || state.sort === 'oldest') ? 'ascending' : 'descending');
+                ic.textContent = !on ? '↕' : (state.sort === 'name' ? '↑' : state.sort === 'name_desc' ? '↓' : state.sort === 'oldest' ? '↑' : '↓');
+            });
+        }
+        document.querySelectorAll('.au-sort').forEach((b) => b.addEventListener('click', () => {
+            state.sort = b.dataset.sort === 'name'
+                ? (state.sort === 'name' ? 'name_desc' : 'name')
+                : (state.sort === 'newest' ? 'oldest' : 'newest');
+            state.page = 1;
+            paintSort();
+            load();
+        }));
+        paintSort();
+        $('page-size').value = String(pageSize);
+        $('page-size').addEventListener('change', () => {
+            pageSize = parseInt($('page-size').value, 10) || 20;
+            try { localStorage.setItem('au-page-size', String(pageSize)); } catch (_) { /* bỏ qua */ }
+            state.page = 1;
+            load();
+        });
         $('role').addEventListener('change', () => {
             state.role = $('role').value;
             state.page = 1;
