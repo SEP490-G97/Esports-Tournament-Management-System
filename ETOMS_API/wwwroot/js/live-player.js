@@ -1,5 +1,5 @@
 // UC-45/46 — phần dùng chung giữa trang trận và tab "Trực tiếp" của giải:
-// vẽ trình phát nhúng (ETOMS không lưu video, chỉ nhúng link YouTube/Facebook/Twitch) và bảng tỉ số trực tiếp.
+// vẽ trình phát nhúng (ETOMS không lưu video, chỉ nhúng link của nền tảng phát) và bảng tỉ số trực tiếp.
 window.LivePlayer = (function () {
     var esc = function (s) { return Ui.escapeHtml(s == null ? '' : String(s)); };
     var STREAM_BADGE = { LIVE: 'badge-live', SCHEDULED: 'badge-soft', ENDED: 'badge-done' };
@@ -17,12 +17,17 @@ window.LivePlayer = (function () {
     function playerHtml(s) {
         var src = embedSrc(s);
         var title = s.title || s.matchLabel || 'Livestream';
+        // PAGE = trang của nền tảng khác được nhúng thẳng: chạy trong khung sandbox (không truy cập được trang ETOMS).
+        var page = s.embedKind === 'PAGE';
         var body = src
             ? '<div class="live-player"><iframe src="' + esc(src) + '" title="' + esc(title) + '" loading="lazy" ' +
               'allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen ' +
-              'referrerpolicy="strict-origin-when-cross-origin"></iframe></div>'
-            : '<div class="live-player live-player-off"><div><div class="fw-bold mb-1">Không phát được ngay trên ETOMS</div>' +
-              '<div class="hint mb-3">Link này không nhúng được (link kênh hoặc nền tảng khác). Hãy mở trên ' + esc(s.platformLabel) + '.</div></div></div>';
+              (page ? 'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" ' : '') +
+              'referrerpolicy="strict-origin-when-cross-origin"></iframe></div>' +
+              (page ? '<div class="hint mt-1">Nếu khung phát trống, nền tảng này không cho phát nhúng — bấm "Mở trên ' + esc(s.platformLabel) + '" để xem.</div>' : '')
+            : '<div class="live-player live-player-off"><div><div class="fw-bold mb-1">Xem trực tiếp trên ' + esc(s.platformLabel) + '</div>' +
+              '<div class="hint mb-3">' + esc(s.platformLabel) + ' không cho phát nhúng link này trên trang khác. Bấm nút bên dưới để mở buổi phát.</div>' +
+              '<a class="btn btn-primary" href="' + esc(s.streamUrl) + '" target="_blank" rel="noopener noreferrer">Mở trên ' + esc(s.platformLabel) + ' ↗</a></div></div>';
         return body +
             '<div class="live-player-meta"><div class="min-w-0"><div class="fw-bold text-truncate">' + esc(title) + '</div>' +
             '<div class="hint">' + esc(s.platformLabel) + (s.matchLabel ? ' · ' + esc(s.matchLabel) : '') + '</div></div>' +

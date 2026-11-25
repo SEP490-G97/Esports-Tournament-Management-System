@@ -10,14 +10,17 @@
     }
 
     // Nhận diện nền tảng giống máy chủ để báo trước cho Ban tổ chức (máy chủ mới là nơi quyết định).
+    // Nhận được link của mọi nền tảng (góp ý 25/11); đây chỉ là gợi ý tên nền tảng.
+    var KNOWN = [['youtu.be', 'YouTube'], ['youtube.com', 'YouTube'], ['fb.watch', 'Facebook'], ['facebook.com', 'Facebook'], ['twitch.tv', 'Twitch'],
+        ['tiktok.com', 'TikTok'], ['kick.com', 'Kick'], ['vimeo.com', 'Vimeo'], ['dailymotion.com', 'Dailymotion'], ['dai.ly', 'Dailymotion'],
+        ['bilibili.com', 'Bilibili'], ['nimo.tv', 'Nimo TV'], ['trovo.live', 'Trovo'], ['huya.com', 'Huya'], ['douyin.com', 'Douyin'],
+        ['instagram.com', 'Instagram'], ['x.com', 'X'], ['twitter.com', 'X'], ['rumble.com', 'Rumble']];
     function platformOf(url) {
         try {
             var host = new URL(url).hostname.toLowerCase();
             var is = function (d) { return host === d || host.endsWith('.' + d); };
-            if (host === 'youtu.be' || is('youtube.com')) return 'YouTube';
-            if (host === 'fb.watch' || is('facebook.com')) return 'Facebook';
-            if (is('twitch.tv')) return 'Twitch';
-            return 'Nền tảng khác (chỉ hiện nút mở link, không nhúng)';
+            for (var i = 0; i < KNOWN.length; i++) if (is(KNOWN[i][0])) return KNOWN[i][1];
+            return host.replace(/^www\./, '');
         } catch (e) { return ''; }
     }
 
@@ -42,7 +45,7 @@
             '<div class="section-title mt-0">' + (editing ? 'Sửa livestream' : 'Thêm livestream') + '</div>' +
             '<form id="stream-form" novalidate>' +
             '<div class="field"><label for="sf-url">Link livestream <span class="req">*</span></label>' +
-            '<input id="sf-url" name="StreamUrl" class="input" maxlength="500" placeholder="https://www.youtube.com/watch?v=..." value="' + esc(editing ? editing.streamUrl : '') + '" />' +
+            '<input id="sf-url" name="StreamUrl" class="input" maxlength="500" placeholder="Link của bất kỳ nền tảng nào: YouTube, Facebook, TikTok, Twitch, Kick..." value="' + esc(editing ? editing.streamUrl : '') + '" />' +
             '<div class="hint" id="sf-platform"></div><span class="field-error" data-field-error="StreamUrl"></span></div>' +
             '<div class="field"><label for="sf-title">Tiêu đề</label>' +
             '<input id="sf-title" name="Title" class="input" maxlength="200" placeholder="Ví dụ: Bán kết 1 — Rồng Xanh vs Bạch Hổ" value="' + esc(editing ? editing.title : '') + '" />' +
@@ -68,7 +71,7 @@
                     '<div class="rl text-truncate">' + esc(s.platformLabel) + ' · ' + esc(s.matchLabel || 'Livestream chung của giải') + '</div>' +
                     '<a class="hint text-truncate d-block" href="' + esc(s.streamUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(s.streamUrl) + '</a></div>' +
                     '<div class="d-flex flex-wrap align-items-center gap-2 justify-content-end">' + LivePlayer.streamBadge(s) +
-                    (s.embedUrl ? '' : '<span class="badge badge-gold" title="Link kênh hoặc nền tảng khác">Chỉ mở link</span>') +
+                    (s.embedUrl ? '' : '<span class="badge badge-gold" title="' + esc(s.platformLabel) + ' không cho phát nhúng link này; người xem bấm nút để mở sang ' + esc(s.platformLabel) + '">Xem trên ' + esc(s.platformLabel) + '</span>') +
                     (data.tournamentStatus === 'CANCELLED' ? '' : '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + s.livestreamId + '">Sửa</button>') +
                     '<button type="button" class="btn btn-ghost btn-sm text-danger-etoms" data-delete="' + s.livestreamId + '">Xóa</button></div></div>';
             }).join('') + '</div>' +
