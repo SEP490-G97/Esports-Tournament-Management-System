@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý tin tức – ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=room-20261125">
+
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <h1>Tin tức ETOMS</h1>
+                <p>Tin đã đăng hiện ở trang chủ và trang Tin tức. Tin ghim luôn đứng đầu. Không xóa tin — chọn "Ẩn" để gỡ khỏi trang.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-new">+ Viết tin mới</button>
+        </div>
+
+        <div id="flash" aria-live="polite"></div>
+
+        <section class="card-etoms mb-3" id="editor" hidden><div class="body">
+            <form id="news-form" novalidate>
+                <h2 class="h5 mb-3" id="editor-title">Viết tin mới</h2>
+                <div class="field">
+                    <label for="n-title">Tiêu đề <span class="req">*</span></label>
+                    <input id="n-title" class="input" maxlength="200" required placeholder="Ví dụ: Khởi tranh Giải Valorant Sinh viên 2026">
+                </div>
+                <div class="field">
+                    <label for="n-body">Nội dung <span class="req">*</span></label>
+                    <textarea id="n-body" class="input" rows="10" maxlength="20000" required placeholder="Mỗi đoạn cách nhau một dòng trống."></textarea>
+                    <small class="field-hint">Viết chữ thường, mỗi đoạn cách nhau một dòng trống.</small>
+                </div>
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-4 field mb-0">
+                        <label for="n-status">Trạng thái</label>
+                        <select id="n-status" class="select">
+                            <option value="DRAFT">Nháp (chưa hiện)</option>
+                            <option value="PUBLISHED">Đăng ngay</option>
+                            <option value="HIDDEN">Ẩn</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="check-row"><input type="checkbox" id="n-pin"><label for="n-pin">Ghim lên đầu (chỉ tin đã đăng)</label></div>
+                    </div>
+                    <div class="col-12 col-md-4 text-md-end">
+                        <button type="button" class="btn btn-ghost" id="btn-cancel">Hủy</button>
+                        <button type="submit" class="btn btn-primary" id="btn-save">Lưu tin</button>
+                    </div>
+                </div>
+            </form>
+        </div></section>
+
+        <section class="card-etoms"><div class="body">
+            <div id="list"><div class="empty"><h3>Đang tải…</h3></div></div>
+        </div></section>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=form-20261118"></script>
+    <script src="/js/ui.js?v=af-20261123"></script>
+    <script src="/js/layout.js?v=adm-20261124"></script>
+    <script src="/js/pages/admin-news.js?v=fb-20261123" defer></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider IDE state
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Chuỗi kết nối thật không bao giờ commit (theo quy ước dự án — xem README.md)
+appsettings.Development.json
+appsettings.*.local.json
+*.env
+.env
+.env.*
+
+# Uploaded identity and organization documents
+ETOMS_API/App_Data/private-uploads/
+
+# NuGet
+*.nupkg
+packages/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Ghi chú cá nhân / hướng dẫn demo — chỉ để local, không commit
+DEMO_GUIDE_LOCAL.md
+
+ETOMS_API.Tests/
+
+# Tệp người dùng tải lên: KHÔNG đưa vào git — bản chung nằm trong DB (Attachment.Content, Utils/SharedFiles.cs).
+# Chỉ giữ tệp mẫu của dữ liệu demo (uploads/demo).
+ETOMS_API/wwwroot/uploads/*
+!ETOMS_API/wwwroot/uploads/demo/

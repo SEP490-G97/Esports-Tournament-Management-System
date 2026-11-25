@@ -1,0 +1,29 @@
+﻿using ETOMS_API.DTOs.Admin;
+
+namespace ETOMS_API.Utils
+{
+    public enum AdminError
+    {
+        None,
+        InvalidReason,
+        InvalidFilter,
+        NotFound,
+        CannotBanSelf,
+        CannotBanAdmin,
+        AlreadyBanned,
+        NotBanned,
+        ChairHandoverRequired,   // đang là chủ nhiệm đơn vị mà Admin chưa chọn cách xử lý
+        InvalidHandover,         // người nhận bàn giao không phải thành viên hợp lệ của đơn vị
+        NotChair                 // gửi nhắc bàn giao cho người không làm chủ nhiệm đơn vị nào
+    }
+
+    public sealed record AdminResult(AdminError Error)
+    {
+        public bool Ok => Error == AdminError.None;
+    }
+
+    public sealed record AdminListResult(AdminError Error, AccountListResponse? Data)
+    {
+        public bool Ok => Error == AdminError.None;
+    }
+}

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Danh sách giải đấu · ETOMS</title>
+    <script src="/js/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=room-20261125" />
+</head>
+<body>
+    <div id="site-header"></div>
+
+    <main class="container-etoms">
+        <div class="page-head">
+            <h1>Danh sách giải đấu</h1>
+            <p>Tìm giải theo tên hoặc đơn vị tổ chức, lọc theo tựa game, trạng thái, thời gian, khu vực và lệ phí.</p>
+        </div>
+
+        <div id="flash" aria-live="polite"></div>
+
+        <form id="dir-filters" class="card-etoms dir-filters mb-4" novalidate>
+            <div class="field dir-search">
+                <label for="f-q">Tìm kiếm</label>
+                <input id="f-q" name="q" type="search" class="input" maxlength="100" placeholder="Tên giải hoặc đơn vị tổ chức..." autocomplete="off" />
+                <span class="field-error" data-field-error="Q"></span>
+            </div>
+            <div class="field">
+                <label for="f-game">Tựa game</label>
+                <select id="f-game" name="gameId" class="select"><option value="">Tất cả tựa game</option></select>
+                <span class="field-error" data-field-error="GameId"></span>
+            </div>
+            <div class="field">
+                <label for="f-state">Trạng thái</label>
+                <select id="f-state" name="state" class="select">
+                    <option value="">Tất cả (trừ đã hủy)</option>
+                    <option value="REGISTRATION">Đang mở đăng ký</option>
+                    <option value="UPCOMING">Sắp diễn ra</option>
+                    <option value="ONGOING">Đang diễn ra</option>
+                    <option value="COMPLETED">Đã kết thúc</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                </select>
+                <span class="field-error" data-field-error="State"></span>
+            </div>
+            <div class="field">
+                <label for="f-from">Khai mạc từ ngày</label>
+                <input id="f-from" name="from" type="date" class="input" />
+                <span class="field-error" data-field-error="From"></span>
+            </div>
+            <div class="field">
+                <label for="f-to">Đến ngày</label>
+                <input id="f-to" name="to" type="date" class="input" />
+                <span class="field-error" data-field-error="To"></span>
+            </div>
+            <div class="field">
+                <label for="f-region">Khu vực</label>
+                <select id="f-region" name="region" class="select"><option value="">Tất cả khu vực</option></select>
+                <span class="field-error" data-field-error="Region"></span>
+            </div>
+            <div class="field">
+                <label for="f-fee">Lệ phí</label>
+                <select id="f-fee" name="fee" class="select">
+                    <option value="">Tất cả</option>
+                    <option value="FREE">Miễn phí</option>
+                    <option value="PAID">Có lệ phí</option>
+                </select>
+                <span class="field-error" data-field-error="Fee"></span>
+            </div>
+            <div class="field">
+                <label for="f-sort">Sắp xếp</label>
+                <select id="f-sort" name="sort" class="select">
+                    <option value="RELEVANT">Phù hợp nhất</option>
+                    <option value="START">Khai mạc sớm nhất</option>
+                    <option value="START_DESC">Khai mạc muộn nhất</option>
+                    <option value="NEWEST">Mới tạo gần đây</option>
+                    <option value="NAME">Tên A → Z</option>
+                </select>
+                <span class="field-error" data-field-error="Sort"></span>
+            </div>
+            <div class="dir-actions">
+                <button type="button" class="btn btn-ghost" id="dir-reset">Xóa lọc</button>
+            </div>
+        </form>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div id="dir-count" class="hint" aria-live="polite"></div>
+        </div>
+
+        <div id="dir-list" aria-live="polite">
+            <div class="card-etoms"><div class="empty"><h3>Đang tải danh sách giải...</h3></div></div>
+        </div>
+
+        <nav id="dir-pager" class="dir-pager" aria-label="Phân trang"></nav>
+    </main>
+
+    <div id="confirm-modal-root"></div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js?v=login-20261115"></script>
+    <script src="/js/api.js?v=form-20261118"></script>
+    <script src="/js/ui.js?v=af-20261123"></script>
+    <script src="/js/layout.js?v=adm-20261124"></script>
+    <script src="/js/pages/tournament-directory.js?v=af-20261123" defer></script>
+</body>
+</html>

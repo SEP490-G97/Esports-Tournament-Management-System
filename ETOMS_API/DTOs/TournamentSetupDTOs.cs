@@ -1,0 +1,95 @@
+﻿namespace ETOMS_API.DTOs.TournamentSetup
+{
+    public class Step1GeneralInfoDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string? BannerUrl { get; set; }
+        // Bỏ qua — đơn vị tổ chức lấy theo tài khoản tạo giải (OrganizationId tùy chọn, xem GetOrganizerIdentityAsync).
+        public string OrganizerName { get; set; } = string.Empty;
+        public int? OrganizationId { get; set; }
+        public string Location { get; set; } = string.Empty;
+        public string ContactInfo { get; set; } = string.Empty;
+        public int GameId { get; set; }
+
+        // TOUR-03: Cấu hình Thể thức (Single, Double, Round Robin, Hybrid)
+        public string Format { get; set; } = "SINGLE_ELIMINATION"; // SINGLE_ELIMINATION, DOUBLE_ELIMINATION, ROUND_ROBIN, HYBRID
+        public bool HasThirdPlaceMatch { get; set; } = true;
+
+        // TOUR-04: Cấu hình Nhiều giai đoạn (Hybrid Stage Config)
+        public int? GroupCount { get; set; } // Số bảng đấu ở Giai đoạn 1 (Vòng tròn)
+        public int? AdvancingPerGroup { get; set; } // Số đội lấy đi tiếp mỗi bảng vào Giai đoạn 2 (Knockout)
+    }
+
+    public class Step2TimelineDto
+    {
+        public DateTime RegistrationOpenDate { get; set; }
+        public DateTime RegistrationCloseDate { get; set; }
+        public DateTime TournamentStartDate { get; set; }
+        public DateTime TournamentEndDate { get; set; }
+        public int MaxTeams { get; set; }
+    }
+
+    public class RoundBoConfigDto
+    {
+        public int StageOrder { get; set; }
+        public string RoundName { get; set; } = string.Empty;
+        // Vòng knockout 1..N (N = chung kết). Có RoundNo thì dùng RoundNo, không thì suy từ RoundName.
+        public int? RoundNo { get; set; }
+        public int BestOf { get; set; } // 1, 3, 5, 7
+    }
+
+    // GET step3: các vòng knockout của giải (theo thể thức + quy mô đã lưu ở bước 1, 2) kèm BO hiện tại.
+    public class Step3BoBoardDto
+    {
+        public string Format { get; set; } = string.Empty;
+        public int KnockoutTeams { get; set; }
+        public string? Note { get; set; }
+        public List<Step3BoRoundDto> Rounds { get; set; } = new();
+    }
+
+    public class Step3BoRoundDto
+    {
+        public int RoundNo { get; set; }
+        public string Label { get; set; } = string.Empty;
+        public int BestOf { get; set; }
+    }
+
+    public class Step3BoConfigDto
+    {
+        public List<RoundBoConfigDto> RoundConfigs { get; set; } = new();
+    }
+
+    public class Step4FinanceDto
+    {
+        public decimal EntryFee { get; set; }
+        public string BankName { get; set; } = string.Empty;
+        public string AccountNumber { get; set; } = string.Empty;
+        public string AccountName { get; set; } = string.Empty;
+        public string? QrCodeUrl { get; set; }
+        public string PrizePoolDescription { get; set; } = string.Empty;
+    }
+
+    public class Step5RequirementDto
+    {
+        public bool RequireStudentCard { get; set; }
+        public bool RequirePaymentBill { get; set; }
+        public bool RequireIgnVerify { get; set; }
+        public List<string> AdditionalChecklistItems { get; set; } = new();
+    }
+}
+namespace ETOMS_API.DTOs.TournamentSetup
+{
+    // Đơn vị tổ chức hiển thị cố định trên form tạo giải: tên tài khoản hoặc một đơn vị tổ chức đã duyệt.
+    public class OrganizerIdentityDto
+    {
+        public string AccountName { get; set; } = string.Empty;
+        public List<OrganizerOrganizationOption> Organizations { get; set; } = new();
+    }
+
+    public class OrganizerOrganizationOption
+    {
+        public int OrganizationId { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+}

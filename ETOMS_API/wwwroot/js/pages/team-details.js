@@ -1,0 +1,162 @@
+(function () {
+    function fmtMonthYear(iso) {
+        var d = new Date(iso);
+        return String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear();
+    }
+
+    function placementLabel(p) {
+        return { CHAMPION: 'Vô địch', RUNNER_UP: 'Á quân', THIRD: 'Hạng ba', PARTICIPANT: 'Đã tham gia', NONE: 'Đang diễn ra' }[p] || p;
+    }
+
+    function tourStatusLabel(s) {
+        return { ONGOING: 'Đang diễn ra', COMPLETED: 'Đã kết thúc', PUBLISHED: 'Sắp diễn ra', CANCELLED: 'Đã hủy' }[s] || s;
+    }
+
+    // Giải đội đang tham gia (sắp diễn ra / đang diễn ra) tách khỏi "Lịch sử giải đấu" — lịch sử chỉ gồm giải đã
+    // kết thúc, đã hủy hoặc đội đã bị loại (trước đây giải sắp diễn ra lẫn vào lịch sử, kèm nhãn "Đang diễn ra" sai).
+    function isCurrent(h) {
+        return (h.tournamentStatus === 'PUBLISHED' || h.tournamentStatus === 'ONGOING') && h.registrationStatus !== 'DISQUALIFIED';
+    }
+
+    function resultBadge(h) {
+        if (h.registrationStatus === 'DISQUALIFIED') return '<span class="badge badge-danger">Bị tước quyền</span>';
+        if (h.tournamentStatus === 'CANCELLED') return '<span class="badge badge-soft">Giải đã hủy</span>';
+        if (h.tournamentStatus === 'PUBLISHED') return '<span class="badge badge-soft">Sắp diễn ra</span>';
+        if (h.tournamentStatus === 'ONGOING') return '<span class="badge badge-live">Đang thi đấu</span>';
+        var p = h.finalPlacement;
+        if (p === 'CHAMPION' || p === 'RUNNER_UP' || p === 'THIRD')
+            return '<span class="badge badge-gold">' + placementLabel(p) + '</span>';
+        return '<span class="badge badge-soft">' + (h.finalRank ? 'Hạng ' + h.finalRank : 'Đã tham gia') + '</span>';
+    }
+
+    function historyRow(h) {
+        return '<div class="col-12"><div class="member-card">' +
+            '<div class="flex-grow-1"><a class="nm" href="/bracket/view.html?id=' + Number(h.tournamentId) + '">' + Ui.escapeHtml(h.tournamentName) + '</a>' +
+            '<div class="rl">' + tourStatusLabel(h.tournamentStatus) + '</div></div>' + resultBadge(h) + '</div></div>';
+    }
+
+    function render(team, isCaptain, isMember) {
+        var root = document.getElementById('team-root');
+        var allHistory = team.tournamentHistory || [];
+        var current = allHistory.filter(isCurrent);
+        var past = allHistory.filter(function (h) { return !isCurrent(h); });
+        var logo = team.logoUrl
+            ? '<img class="logo-big" src="' + Ui.escapeHtml(team.logoUrl) + '" alt="Logo ' + Ui.escapeHtml(team.name) + '" />'
+            : '<span class="logo-big">' + Ui.escapeHtml(team.tag && team.tag.length > 0 ? team.tag.substring(0, 1) : '?') + '</span>';
+        var statusBadge = team.status === 'ACTIVE'
+            ? '<span class="badge badge-active">Đang hoạt động</span>'
+            : '<span class="badge" style="background:var(--danger-bg);color:var(--danger-ink)">Đã giải tán</span>';
+
+        var membersHtml;
+        if (!team.members.length) {
+            membersHtml = '<div class="card-etoms"><div class="empty"><h3>Chưa có thành viên</h3></div></div>';
+        } else {
+            membersHtml = '<div class="row g-3">';
+            team.members.forEach(function (m) {
+                // Cả thẻ là liên kết tới hồ sơ công khai của tuyển thủ (trang /profile/public.html, khách xem được).
+                membersHtml +=
+                    '<div class="col-12 col-md-6"><a class="member-card member-link' + (m.isCaptain ? ' cap' : '') + '" href="/profile/public.html?id=' + Number(m.accountId) +
+                    '" title="Xem hồ sơ tuyển thủ ' + Ui.escapeHtml(m.fullName) + '">' +
+                    '<span class="av">' + Ui.escapeHtml(m.fullName && m.fullName.length > 0 ? m.fullName.substring(0, 1) : '?') + '</span>' +
+                    '<div class="grow"><div class="nm">' + Ui.escapeHtml(m.fullName) + '</div><div class="rl">' + Ui.escapeHtml(m.roleLabel) + '</div></div>' +
+                    (m.isCaptain ? '<span class="badge badge-gold">Đội trưởng</span>' : '') +
+                    '<span class="member-go" aria-hidden="true">›</span>' +
+                    '</a></div>';
+            });
+            membersHtml += '</div>';
+        }
+
+        var actionHtml = '<a class="btn btn-ghost" href="/team/index.html">← Về danh sách đội</a>';
+        if (isCaptain) {
+            actionHtml += '<a class="btn btn-primary" href="/team/dashboard.html?id=' + team.teamId + '">Quản trị đội</a>';
+        } else if (isMember) {
+            actionHtml += '<button type="button" class="btn btn-ghost text-danger-etoms" id="leave-btn">Rời đội</button>';
+        }
+
+        root.innerHTML =
+            '<div class="card-etoms"><div class="body"><div class="team-hero">' + logo +
+            '<div style="flex:1;min-width:260px"><h1>' + Ui.escapeHtml(team.name) + ' <span class="text-muted-etoms fw-bold">[' + Ui.escapeHtml(team.tag) + ']</span></h1>' +
+            '<div class="sub"><span>' + Ui.escapeHtml(team.gameTitle) + '</span>' +
+            '<span>· Đội trưởng: <strong class="text-ink">' + Ui.escapeHtml(team.captainName) + '</strong></span>' +
+            '<span>· Thành lập ' + fmtMonthYear(team.createdAt) + '</span>' + statusBadge +
+            '</div>' + (team.description ? '<p class="team-description">' + Ui.escapeHtml(team.description) + '</p>' : '') + '</div></div></div></div>' +
+            '<div class="row g-3 my-4">' +
+            // Sĩ số kèm luật đội hình của tựa game (vd FC Online đấu 1v1: 1 chính thức, 0 dự bị).
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Sĩ số</div><div class="num accent">' + team.memberCount +
+                '<span class="num-of">/' + (team.gameMaxStarters + team.gameMaxSubstitutes) + '</span></div><div class="sub">' +
+                (team.starterCount >= team.gameMinStarters ? 'đủ người thi đấu theo luật ' + Ui.escapeHtml(team.gameTitle) : '<span class="text-warn">thiếu người — cần ít nhất ' + team.gameMinStarters + ' chính thức</span>') + '</div></div></div>' +
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Chính thức</div><div class="num">' + team.starterCount + '<span class="num-of">/' + team.gameMaxStarters + '</span></div><div class="sub">tối thiểu ' + team.gameMinStarters + ' người</div></div></div>' +
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Dự bị</div><div class="num">' + team.subCount + '<span class="num-of">/' + team.gameMaxSubstitutes + '</span></div><div class="sub">' + (team.gameMaxSubstitutes === 0 ? 'tựa game không có dự bị' : 'tối đa ' + team.gameMaxSubstitutes + ' người') + '</div></div></div>' +
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Trạng thái</div><div class="num" style="font-size:1.3rem;margin-top:14px">' + (team.status === 'ACTIVE' ? 'Hoạt động' : 'Giải tán') + '</div></div></div>' +
+            '</div>' +
+            '<div class="section-title">Thành tích thi đấu</div>' +
+            '<div class="section-sub">Tính trên các trận đã có kết quả chính thức.</div>' +
+            '<div class="row g-3 my-3">' +
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Thắng / Thua</div><div class="num accent">' + team.wins + '/' + team.losses + '</div><div class="sub">' + team.winRate + '% thắng</div></div></div>' +
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Danh hiệu</div><div class="num">' + team.titleCount + '</div><div class="sub">lần vô địch</div></div></div>' +
+            '<div class="col-6 col-md-3"><div class="stat-card h-100"><div class="label">Điểm xếp hạng</div><div class="num">' + team.rankingPoint + '</div><div class="sub">điểm thành tích</div></div></div>' +
+            '</div>' +
+            '<div class="section-title">Trận sắp tới</div>' +
+            '<div class="section-sub">Lịch thi đấu sắp tới và trận đang diễn ra của đội.</div>' +
+            '<div id="team-matches"></div>' +
+            (current.length ? '<div class="section-title">Giải đang tham gia</div>' +
+                '<div class="section-sub">Giải sắp diễn ra hoặc đang diễn ra mà đội đã được duyệt.</div>' +
+                '<div class="row g-3">' + current.map(historyRow).join('') + '</div>' : '') +
+            '<div class="section-title">Lịch sử giải đấu</div>' +
+            '<div class="section-sub">Các giải đội đã thi đấu xong, kèm thành tích.</div>' +
+            (past.length ? '<div data-history></div>' : '<div class="card-etoms"><div class="empty"><h3>Chưa có giải nào đã kết thúc</h3></div></div>') +
+            '<div class="section-title mt-4">Danh sách thành viên</div>' +
+            '<div class="section-sub">Đội hình hiện tại của đội (' + team.memberCount + ' người).</div>' +
+            membersHtml +
+            '<div class="section-title mt-4">Hồ sơ kỷ luật</div>' +
+            '<div class="section-sub">Thẻ phạt của đội ở mọi giải, kể cả thẻ đã hủy cùng lý do hủy.</div>' +
+            '<div id="team-discipline"></div>' +
+            '<div class="btn-row mt-4">' + actionHtml + '</div>';
+
+        // Đội lâu năm có hàng trăm giải: tìm theo tên giải + phân trang 10 giải/trang.
+        if (past.length) Ui.listPager(root.querySelector('[data-history]'), {
+            items: past, render: historyRow, pageSize: 10, listClass: 'row g-3',
+            text: function (h) { return h.tournamentName + ' ' + tourStatusLabel(h.tournamentStatus); },
+            placeholder: 'Tìm giải đội đã tham gia...'
+        });
+        if (window.TeamMatches) TeamMatches.load(document.getElementById('team-matches'), team.teamId, isCaptain);
+        if (window.TeamDiscipline) TeamDiscipline.load(document.getElementById('team-discipline'), team.teamId);
+
+        var leaveBtn = document.getElementById('leave-btn');
+        if (leaveBtn) {
+            leaveBtn.addEventListener('click', async function () {
+                var ok = await window.etomsConfirm('Bạn chắc chắn muốn rời đội ' + team.name + '?');
+                if (!ok) return;
+                try {
+                    var res = await Api.post('/api/teams/' + team.teamId + '/leave');
+                    Ui.setFlash(res.message, 'success');
+                    location.href = '/team/details.html?id=' + team.teamId;
+                } catch (err) {
+                    Ui.showAlert(document.getElementById('flash'), 'danger', err.message);
+                }
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        Ui.consumeFlash(document.getElementById('flash'));
+        var id = Ui.qsInt('id');
+        var root = document.getElementById('team-root');
+        if (!id) { root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Thiếu mã đội</h3></div></div>'; return; }
+
+        var me = (await Ui.currentUser()) || { isAuthenticated: false };
+
+        try {
+            var team = await Api.get('/api/teams/' + id);
+            var isCaptain = me.isAuthenticated && me.userId === team.captainAccountId;
+            var isMember = me.isAuthenticated && team.members.some(function (m) { return m.accountId === me.userId; });
+            render(team, isCaptain, isMember);
+        } catch (err) {
+            if (err.status === 404) {
+                root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Không tìm thấy đội</h3></div></div>';
+            } else {
+                root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Có lỗi xảy ra</h3><p>' + Ui.escapeHtml(err.message) + '</p></div></div>';
+            }
+        }
+    });
+})();
