@@ -64,7 +64,7 @@ window.MatchLobby = (function () {
         var list = document.getElementById('lobby-list');
         var atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
         list.innerHTML = d.messages.length ? d.messages.map(messageHtml).join('')
-            : '<p class="muted">Chưa có tin nhắn. ' + (d.isOpen ? 'Đội trưởng đội nhà hãy gửi mã phòng và mật khẩu cho đội bạn.' : '') + '</p>';
+            : '<p class="muted">Chưa có tin nhắn. ' + (d.isOpen ? 'Mã phòng và mật khẩu do trọng tài hoặc Ban tổ chức cập nhật ở mục Phòng đấu.' : '') + '</p>';
         if (atBottom || lastKey === null) list.scrollTop = list.scrollHeight;
         lastKey = key;
         updateCount();

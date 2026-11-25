@@ -2131,6 +2131,12 @@ a.mh-team:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); co
 .mh-steps li.warn { color: var(--warn); font-weight: 700; border-top-color: var(--warn); }
 .mh-steps li.warn .dot { background: var(--warn); }
 .mh-cancelled { margin-top: 14px; text-align: center; color: var(--danger); font-weight: 600; }
+/* Phòng đấu: đội trưởng chỉ xem + sao chép (trọng tài / BTC mới sửa) */
+.room-info { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-bottom: 12px; }
+.room-field { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2, rgba(255,255,255,.03)); }
+.room-label { color: var(--muted); font-size: .84rem; }
+.room-value { font-size: 1.05rem; letter-spacing: .02em; user-select: all; }
+.btn-danger-text { color: var(--danger) !important; }
 .match-result { margin-bottom: 18px; border-left: 4px solid var(--primary); }
 .match-result.is-done { border-left-color: var(--gold); }
 .match-result.is-dispute { border-left-color: var(--warn); }

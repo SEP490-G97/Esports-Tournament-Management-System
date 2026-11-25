@@ -353,6 +353,103 @@ public class ResultService : IResultService
         if (isLeftChild) parentMatch.TeamAid = winnerTeamId; else parentMatch.TeamBid = winnerTeamId;
         _uow.Repository<Match>().Update(parentMatch);
         await _uow.SaveChangesAsync();
+
+        // Nhánh bên kia của trận sau đã bị hủy xử thua cả hai đội → không còn đối thủ: đội vừa lên thắng trắng và đi tiếp.
+        var sibling = await _uow.Repository<BracketNode>().Query()
+            .FirstOrDefaultAsync(n => n.ParentNodeId == node.ParentNodeId && n.BracketNodeId != node.BracketNodeId && !n.IsBye);
+        if (sibling is null) return;
+        var siblingMatch = await _uow.Repository<Match>().Query().FirstOrDefaultAsync(m => m.BracketNodeId == sibling.BracketNodeId);
+        if (siblingMatch is not null && IsDoubleLoss(siblingMatch) && IsUndecided(parentMatch))
+            await AwardByeWalkoverAsync(parentMatch, winnerTeamId);
+    }
+
+    // ===== Hủy trận, xử thua cả hai đội =====
+    // Trận CANCELLED + ResultSource WALKOVER + không có đội thắng (CK_Match_Source cho phép, không cần đổi DB).
+    public static bool IsDoubleLoss(Match m) => m.Status == "CANCELLED" && m.ResultSource == "WALKOVER" && m.WinnerTeamId is null;
+    private static bool IsUndecided(Match m) => m.WinnerTeamId is null && m.Status is "PENDING" or "READY";
+
+    // Không ai từ trận bị hủy đi tiếp: đội ở nhánh còn lại của trận sau (nếu đã có) thắng trắng; nhánh còn lại cũng bị
+    // hủy thì trận sau cũng bị hủy và lan tiếp lên trên; nhánh còn lại chưa đá thì chờ — đội thắng ở đó lên sẽ thắng trắng.
+    public async Task PropagateDoubleLossAsync(int matchId)
+    {
+        var match = await _uow.Repository<Match>().GetByIdAsync(matchId);
+        if (match is null) return;
+        var node = await _uow.Repository<BracketNode>().GetByIdAsync(match.BracketNodeId);
+        if (node is null || node.StageType != "KNOCKOUT" || node.ParentNodeId is null) return;
+        var parent = await _uow.Repository<Match>().Query().FirstOrDefaultAsync(m => m.BracketNodeId == node.ParentNodeId.Value);
+        if (parent is null || !IsUndecided(parent)) return;
+
+        bool isLeftChild = (node.PositionInRound ?? 1) % 2 == 1;
+        int? other = isLeftChild ? parent.TeamBid : parent.TeamAid;
+        if (isLeftChild) parent.TeamAid = null; else parent.TeamBid = null;
+
+        if (other is int team)
+        {
+            await AwardByeWalkoverAsync(parent, team);
+            return;
+        }
+        var sibling = await _uow.Repository<BracketNode>().Query()
+            .FirstOrDefaultAsync(n => n.ParentNodeId == node.ParentNodeId && n.BracketNodeId != node.BracketNodeId && !n.IsBye);
+        var siblingMatch = sibling is null ? null
+            : await _uow.Repository<Match>().Query().FirstOrDefaultAsync(m => m.BracketNodeId == sibling.BracketNodeId);
+        if (siblingMatch is not null && IsDoubleLoss(siblingMatch))
+        {
+            parent.Status = "CANCELLED"; parent.ResultSource = "WALKOVER"; parent.WinnerTeamId = null;
+            parent.VerifiedAt = DateTime.UtcNow;
+            _uow.Repository<Match>().Update(parent);
+            await _uow.Repository<AuditLog>().AddAsync(new AuditLog
+            {
+                ActorAccountId = null, TournamentId = parent.TournamentId, ActionType = "WALKOVER", ObjectType = "MATCH",
+                ObjectId = parent.MatchId, AfterValue = "Status=CANCELLED; DoubleLoss=AUTO",
+                Reason = "Tự động: cả hai trận trước đều bị hủy xử thua cả hai đội nên trận này không còn đội nào."
+            });
+            await _uow.SaveChangesAsync();
+            await PropagateDoubleLossAsync(parent.MatchId);
+            return;
+        }
+        _uow.Repository<Match>().Update(parent);
+        await _uow.SaveChangesAsync();
+    }
+
+    // Trận sau chỉ còn một đội vì đối thủ đến từ trận bị hủy → xử thắng trắng cho đội đó (người thực hiện = hệ thống).
+    private async Task AwardByeWalkoverAsync(Match parent, int teamId)
+    {
+        parent.Status = "WALKOVER"; parent.ResultSource = "WALKOVER"; parent.WinnerTeamId = teamId;
+        _uow.Repository<Match>().Update(parent);
+        await _uow.Repository<AuditLog>().AddAsync(new AuditLog
+        {
+            ActorAccountId = null, TournamentId = parent.TournamentId, ActionType = "WALKOVER", ObjectType = "MATCH",
+            ObjectId = parent.MatchId, AfterValue = $"WinnerTeamId={teamId}; Cause=OPPONENT_MATCH_CANCELLED",
+            Reason = "Tự động: trận cung cấp đối thủ đã bị hủy, xử thua cả hai đội."
+        });
+        var captain = await _uow.Repository<Team>().Query().Where(t => t.TeamId == teamId).Select(t => (int?)t.CaptainAccountId).FirstOrDefaultAsync();
+        if (captain is int cap)
+            await AddNotificationAsync(cap, "MATCH_RESULT", "Đội bạn thắng trắng",
+                $"Trận cung cấp đối thủ cho trận #{parent.MatchId} đã bị hủy và xử thua cả hai đội, nên đội bạn thắng trắng và đi tiếp.",
+                "/match/detail.html?id=" + parent.MatchId);
+        await _uow.SaveChangesAsync();
+        await AdvanceWinnerAsync(parent, teamId);
+    }
+
+    private async Task<Dictionary<int, string>> TeamNamesAsync(Match match) =>
+        await _uow.Repository<Team>().Query().Where(t => t.TeamId == match.TeamAid || t.TeamId == match.TeamBid)
+            .ToDictionaryAsync(t => t.TeamId, t => t.Name);
+
+    private Task AddNotificationAsync(int accountId, string type, string title, string body, string link)
+        => _uow.Repository<Notification>().AddAsync(new Notification
+        {
+            AccountId = accountId, NotificationType = type, Title = title,
+            Body = body.Length > 1000 ? body[..1000] : body, LinkUrl = link,
+            Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow
+        });
+
+    // Báo đội trưởng hai đội của trận (khiếu nại đã được xử lý, phán quyết, kết luận khiếu nại...).
+    private async Task NotifyCaptainsAsync(Match match, string type, string title, string body, string link)
+    {
+        var captains = await _uow.Repository<Team>().Query()
+            .Where(t => t.TeamId == match.TeamAid || t.TeamId == match.TeamBid)
+            .Select(t => t.CaptainAccountId).ToListAsync();
+        foreach (var cap in captains.Distinct()) await AddNotificationAsync(cap, type, title, body, link);
     }
 
     // BRK-05 Loại kép: đội thắng đi tiếp theo ParentNodeId; đội thua ở nhánh thắng rơi xuống nhánh thua
@@ -394,22 +491,14 @@ public class ResultService : IResultService
         return false;
     }
 
-    // UC-28 A1 / UC-30 bước 4: báo người phân xử — trọng tài của trận, không có thì Ban tổ chức.
+    // UC-28 A1 / UC-30 bước 4: báo người phân xử. Ban tổ chức LUÔN nhận tin (góp ý 25/11: có đội khiếu nại thì phải
+    // có tin nhắn cho BTC); trận có trọng tài thì trọng tài cũng nhận.
     private async Task NotifyAdjudicatorAsync(Match match, string title, string body, int disputeId)
     {
         var organizerId = await _uow.Repository<Tournament>().Query().Where(t => t.TournamentId == match.TournamentId)
             .Select(t => t.OrganizerAccountId).FirstAsync();
-        await _uow.Repository<Notification>().AddAsync(new Notification
-        {
-            AccountId = match.RefereeAccountId ?? organizerId,
-            NotificationType = "DISPUTE",
-            Title = title,
-            Body = body.Length > 1000 ? body[..1000] : body,
-            LinkUrl = "/result/dispute.html?id=" + disputeId,
-            Channel = "IN_APP",
-            IsRead = false,
-            SentAt = DateTime.UtcNow
-        });
+        foreach (var to in new[] { organizerId, match.RefereeAccountId }.Where(x => x.HasValue).Select(x => x!.Value).Distinct())
+            await AddNotificationAsync(to, "DISPUTE", title, body, "/result/dispute.html?id=" + disputeId);
     }
 
     // ===== UC-26: gỡ kết quả đã đẩy sang trận sau =====
@@ -830,6 +919,12 @@ public class ResultService : IResultService
             dispute.ResolvedByAccountId = adjudicatorAccountId;
             dispute.ResolvedAt = DateTime.UtcNow;
             _uow.Repository<Dispute>().Update(dispute);
+            var dqNames = await TeamNamesAsync(match);
+            var cheaterName = dqNames.GetValueOrDefault(cheater, "Đội vi phạm");
+            var otherName = dqNames.GetValueOrDefault(cheater == match.TeamAid ? match.TeamBid ?? 0 : match.TeamAid ?? 0, "đối thủ");
+            await NotifyCaptainsAsync(match, "DISPUTE", "Khiếu nại trận đấu đã được xử lý",
+                $"Trận #{match.MatchId}: Ban tổ chức/trọng tài kết luận {cheaterName} vi phạm và bị tước quyền thi đấu; {otherName} được xử thắng và đi tiếp. Lý do: {request.Reason.Trim()}",
+                "/result/history.html?matchId=" + match.MatchId);
             await _uow.SaveChangesAsync();
             var recomputedDq = await _services.GetRequiredService<ITournamentLifecycleService>().RecomputeCompletedAsync(match.TournamentId);
             return Result.Success("Đã ghi nhận phán quyết: " + dq.Message + " Đối thủ được xử thắng và đi tiếp vào vòng sau." +
@@ -877,6 +972,14 @@ public class ResultService : IResultService
             Reason = request.Reason
         });
 
+        // Góp ý 25/11: xử lý khiếu nại xong phải báo đội trưởng hai đội.
+        var names = await TeamNamesAsync(match);
+        var outcome = request.IsVoid
+            ? "kết quả trận bị hủy; Ban tổ chức sẽ quyết định tiếp (xử thắng trắng, tước quyền, hủy trận hoặc cho đấu lại)"
+            : $"tỉ số chính thức {names.GetValueOrDefault(match.TeamAid ?? 0, "Đội A")} {match.ScoreA} – {match.ScoreB} {names.GetValueOrDefault(match.TeamBid ?? 0, "Đội B")}, {names.GetValueOrDefault(match.WinnerTeamId ?? 0, "đội thắng")} thắng";
+        await NotifyCaptainsAsync(match, "DISPUTE", "Khiếu nại trận đấu đã được xử lý",
+            $"Trận #{match.MatchId}: {outcome}. Lý do: {request.Reason.Trim()}", "/result/history.html?matchId=" + match.MatchId);
+
         await _uow.SaveChangesAsync();
 
         if (!request.IsVoid && match.WinnerTeamId.HasValue)
@@ -909,6 +1012,10 @@ public class ResultService : IResultService
         dispute.AppealStatus = "PENDING";
         dispute.Status = "UNDER_REVIEW";
         _uow.Repository<Dispute>().Update(dispute);
+        // Góp ý 25/11: đội khiếu nại thì Ban tổ chức (và trọng tài của trận) phải nhận tin nhắn.
+        var teamName = (await TeamNamesAsync(dispute.Match)).GetValueOrDefault(captainTeamId.Value, "Một đội");
+        await NotifyAdjudicatorAsync(dispute.Match, "Có đội khiếu nại phán quyết",
+            $"Trận #{dispute.MatchId}: {teamName} khiếu nại phán quyết. Lý do: {request.Reason}", dispute.DisputeId);
         await _uow.SaveChangesAsync();
 
         return Result.Success("Đã gửi khiếu nại. Trọng tài/Ban tổ chức sẽ xem xét lại.");
@@ -958,6 +1065,10 @@ public class ResultService : IResultService
             dispute.AppealOutcomeNote = request.OutcomeNote;
             dispute.Status = "CLOSED";
             _uow.Repository<Dispute>().Update(dispute);
+            // Chấp nhận khiếu nại thì ForceUpdateAsync ở trên đã báo đội trưởng kèm tỉ số mới; bác thì báo ở đây.
+            await NotifyCaptainsAsync(dispute.Match, "DISPUTE", "Khiếu nại đã được xem xét",
+                $"Trận #{dispute.MatchId}: khiếu nại bị bác, phán quyết cũ giữ nguyên. Kết luận: {request.OutcomeNote}",
+                "/result/history.html?matchId=" + dispute.MatchId);
             await _uow.SaveChangesAsync();
         }
 

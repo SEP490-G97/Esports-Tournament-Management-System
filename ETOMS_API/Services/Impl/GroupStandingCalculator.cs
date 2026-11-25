@@ -14,7 +14,12 @@ public static class GroupStandingCalculator
 
     public static readonly IReadOnlyList<string> DefaultOrder = new[] { HeadToHead, GameDifference, GamesWon, DrawLots };
 
-    public sealed record GroupMatch(int? TeamAId, int? TeamBId, int? ScoreA, int? ScoreB, int? WinnerTeamId, string Status);
+    public sealed record GroupMatch(int? TeamAId, int? TeamBId, int? ScoreA, int? ScoreB, int? WinnerTeamId, string Status, string? ResultSource = null);
+
+    // Trận bị Ban tổ chức/trọng tài HỦY, xử thua cả hai đội: CANCELLED + ResultSource WALKOVER + không có đội thắng
+    // (khác hủy kết quả sau tranh chấp = VAR_RULING, chờ BTC quyết tiếp; và khác trận bị hủy theo giải = ResultSource NULL).
+    public static bool IsDoubleLoss(GroupMatch m) =>
+        m.Status == "CANCELLED" && m.ResultSource == "WALKOVER" && m.WinnerTeamId is null && m.TeamAId.HasValue && m.TeamBId.HasValue;
 
     public sealed class Row
     {
@@ -82,6 +87,12 @@ public static class GroupStandingCalculator
             rb.GamesWon += m.ScoreB ?? 0; rb.GamesLost += m.ScoreA ?? 0;
             if (m.WinnerTeamId == ra.TeamId) { ra.Won++; rb.Lost++; }
             else if (m.WinnerTeamId == rb.TeamId) { rb.Won++; ra.Lost++; }
+        }
+        // Hủy trận xử thua cả hai: mỗi đội tính một trận đã đấu và một trận thua, không ai được điểm.
+        foreach (var m in list.Where(IsDoubleLoss))
+        {
+            var ra = RowOf(m.TeamAId!.Value); var rb = RowOf(m.TeamBId!.Value);
+            ra.Played++; rb.Played++; ra.Lost++; rb.Lost++;
         }
 
         var blocks = new List<List<Row>>();

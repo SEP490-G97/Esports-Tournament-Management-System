@@ -121,7 +121,7 @@ public class StageTransitionService : IStageTransitionService
         var groupNodeIds = groupOf.Keys.ToList();
         var matches = await _uow.Repository<Match>().Query()
             .Where(m => groupNodeIds.Contains(m.BracketNodeId))
-            .Select(m => new { m.BracketNodeId, m.TeamAid, m.TeamBid, m.ScoreA, m.ScoreB, m.WinnerTeamId, m.Status })
+            .Select(m => new { m.BracketNodeId, m.TeamAid, m.TeamBid, m.ScoreA, m.ScoreB, m.WinnerTeamId, m.Status, m.ResultSource })
             .ToListAsync();
 
         var knockout = nodes.Where(n => n.StageType == "KNOCKOUT" && n.StageNo > a.GroupStageNo).ToList();
@@ -144,7 +144,7 @@ public class StageTransitionService : IStageTransitionService
                 .Select(d => (IReadOnlyList<int>)d.TeamIds)
                 .ToList();
             var rows = GroupStandingCalculator.Compute(
-                group.Select(m => new GroupStandingCalculator.GroupMatch(m.TeamAid, m.TeamBid, m.ScoreA, m.ScoreB, m.WinnerTeamId, m.Status)),
+                group.Select(m => new GroupStandingCalculator.GroupMatch(m.TeamAid, m.TeamBid, m.ScoreA, m.ScoreB, m.WinnerTeamId, m.Status, m.ResultSource)),
                 a.Order, decided, group.Key + "-");
 
             var table = new GroupTableDto { GroupLabel = group.Key };

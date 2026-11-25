@@ -64,6 +64,7 @@ public class MatchOpsService : IMatchOpsService
             TeamBReported = match.TeamBid.HasValue && reportedTeams.Contains(match.TeamBid.Value),
             OpenDisputeId = openDisputeId,
             AwaitingDecision = match.Status == "CANCELLED" && match.ResultSource == "VAR_RULING",
+            DoubleLoss = ResultService.IsDoubleLoss(match),
             IsReferee = viewerAccountId.HasValue && match.RefereeAccountId == viewerAccountId.Value,
             RefereeName = refereeName,
             ReportDeadlineAt = match.ReportDeadlineAt,
@@ -91,7 +92,8 @@ public class MatchOpsService : IMatchOpsService
             TeamBCheckedIn = match.TeamBcheckedInAt.HasValue,
             CanManage = canManage,
             MyCaptainTeamId = captainTeamId,
-            CanSetRoom = canManage || (captainTeamId.HasValue && captainTeamId == match.TeamAid),
+            // Góp ý 25/11: chỉ Ban tổ chức và trọng tài nhập/sửa mã phòng; đội trưởng chỉ xem và sao chép.
+            CanSetRoom = canManage,
             CheckInOpenAt = match.CheckInOpenAt,
             MyTeamCheckedIn = captainTeamId.HasValue &&
                 (captainTeamId == match.TeamAid ? match.TeamAcheckedInAt.HasValue : match.TeamBcheckedInAt.HasValue)
@@ -164,16 +166,21 @@ public class MatchOpsService : IMatchOpsService
         var m = ctx.Match;
         if (m.Status is not ("PENDING" or "READY"))
             return Result.Failure("Trận không còn ở giai đoạn điểm danh.");
-        if (m.ScheduledAt is null || m.CheckInOpenAt is null)
-            return Result.Failure("Trận chưa được xếp giờ thi đấu nên chưa điểm danh được.");
         if (await _resultService.IsFrozenByUpstreamDisputeAsync(matchId))   // UC-30 A2
             return Result.Failure(ResultService.FrozenMessage, StatusCodes.Status409Conflict);
+        if (m.TeamAid is null || m.TeamBid is null)
+            return Result.Failure("Trận chưa đủ hai đội nên chưa điểm danh được.");
 
         var now = DateTime.UtcNow;
-        if (now < m.CheckInOpenAt) // E1 — MSG-MAT-001
-            return Result.Failure($"Cửa sổ điểm danh chưa mở. Mở trước giờ thi đấu 30 phút (lúc {m.CheckInOpenAt.Value.AddHours(7):HH:mm dd/MM}).");
-        if (now >= m.ScheduledAt) // E2 — MSG-MAT-002
-            return Result.Failure("Đã quá hạn. Vui lòng liên hệ Ban tổ chức.");
+        // Trận đã xếp giờ: cửa sổ điểm danh 30 phút trước giờ thi đấu (BR-MATCH-01).
+        // Trận Ban tổ chức chưa xếp giờ (giải nhỏ tự hẹn giờ): đội trưởng điểm danh khi đội đã sẵn sàng (góp ý 25/11).
+        if (m.ScheduledAt is not null && m.CheckInOpenAt is not null)
+        {
+            if (now < m.CheckInOpenAt) // E1 — MSG-MAT-001
+                return Result.Failure($"Cửa sổ điểm danh chưa mở. Mở trước giờ thi đấu 30 phút (lúc {m.CheckInOpenAt.Value.AddHours(7):HH:mm dd/MM}).");
+            if (now >= m.ScheduledAt) // E2 — MSG-MAT-002
+                return Result.Failure("Đã quá hạn. Vui lòng liên hệ Ban tổ chức.");
+        }
 
         bool isA = ctx.Role == "CAPTAIN_A";
         var already = isA ? m.TeamAcheckedInAt : m.TeamBcheckedInAt;
@@ -201,11 +208,11 @@ public class MatchOpsService : IMatchOpsService
         if (request.RoomPassword is { } pw && pw.Trim().Length > 100)
             return Result.FieldFailure(nameof(request.RoomPassword), "Mật khẩu phòng tối đa 100 ký tự.");
 
-        // UC-25 bước 3: đội trưởng đội nhà (đội A) chia sẻ mã phòng; trọng tài/BTC vẫn sửa được.
+        // Góp ý 25/11: chỉ Ban tổ chức và trọng tài của trận nhập/sửa mã phòng; đội trưởng chỉ xem và sao chép.
         var ctx = await LoadLobbyAsync(matchId, actorAccountId);
         if (ctx is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
-        if (ctx.Role is not ("REFEREE" or "ORGANIZER" or "CAPTAIN_A"))
-            return Result.Failure("Chỉ đội trưởng đội nhà, trọng tài hoặc Ban tổ chức mới nhập được mã phòng.", StatusCodes.Status403Forbidden);
+        if (ctx.Role is not ("REFEREE" or "ORGANIZER"))
+            return Result.Failure("Chỉ trọng tài hoặc Ban tổ chức mới nhập và sửa được mã phòng.", StatusCodes.Status403Forbidden);
         if (ctx.Match.Status is "VERIFIED" or "WALKOVER" or "CANCELLED")
             return Result.Failure("Trận đã kết thúc, không đổi thông tin phòng được nữa.");
         var m = ctx.Match;
@@ -721,6 +728,54 @@ public class MatchOpsService : IMatchOpsService
 
         if (winnerTeamId.HasValue) await _resultService.AdvanceWinnerAsync(matchId, winnerTeamId.Value);
         return Result.Success("Đã ghi nhận đội bỏ cuộc.");
+    }
+
+    // ===== Hủy trận, xử thua cả hai đội (góp ý 25/11) =====
+    // Trận CANCELLED + ResultSource WALKOVER + không đội thắng. Vòng bảng: cả hai đội tính một trận thua.
+    // Nhánh loại trực tiếp: không ai đi tiếp, đối thủ ở trận sau thắng trắng (ResultService.PropagateDoubleLossAsync).
+    public async Task<Result> CancelMatchAsync(int matchId, int actorAccountId, CancelMatchRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return Result.FieldFailure(nameof(request.Reason), "Vui lòng nêu lý do hủy trận.");
+
+        var match = await LoadForManageAsync(matchId, actorAccountId);
+        if (match.Match is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
+        if (match.ManageError is not null) return match.ManageError;
+        var m = match.Match!;
+
+        if (m.TeamAid is null || m.TeamBid is null)
+            return Result.Failure("Trận chưa đủ hai đội, chưa hủy được.");
+        if (m.Status is "VERIFIED" or "WALKOVER" || (m.Status == "CANCELLED" && m.ResultSource != "VAR_RULING"))
+            return Result.Failure("Trận đã kết thúc, không thể hủy trận.");
+        if (m.Status == "DISPUTED" || await _uow.Repository<Dispute>().AnyAsync(d => d.MatchId == matchId && (d.Status == "OPEN" || d.Status == "UNDER_REVIEW")))
+            return Result.Failure("Trận đang có tranh chấp. Hãy ra phán quyết ở trang Tranh chấp trước (chọn Hủy kết quả), sau đó mới hủy trận.");
+        if (await _resultService.IsFrozenByUpstreamDisputeAsync(matchId))
+            return Result.Failure(ResultService.FrozenMessage, StatusCodes.Status409Conflict);
+        var node = await _uow.Repository<BracketNode>().GetByIdAsync(m.BracketNodeId);
+        if (node?.StageType == "KNOCKOUT" && DoubleElimination.IsDoubleElimination(m.Tournament.Format))
+            return Result.Failure("Giải loại kép không hỗ trợ xử thua cả hai đội (mỗi đội phải thua hai trận mới bị loại). Hãy dùng Thắng trắng hoặc Tước quyền.");
+
+        var reason = request.Reason.Trim();
+        m.Status = "CANCELLED";
+        m.ResultSource = "WALKOVER";
+        m.WinnerTeamId = null; m.ScoreA = null; m.ScoreB = null;
+        m.VerifiedAt = DateTime.UtcNow;
+        _uow.Repository<Match>().Update(m);
+        await LogAsync(m.TournamentId, actorAccountId, "WALKOVER", m.MatchId, "Status=CANCELLED; DoubleLoss=1; WinnerTeamId=", reason);
+
+        var captains = await _uow.Repository<Team>().Query().Where(t => t.TeamId == m.TeamAid || t.TeamId == m.TeamBid)
+            .Select(t => t.CaptainAccountId).ToListAsync();
+        foreach (var cap in captains.Distinct())
+            await _uow.Repository<Notification>().AddAsync(new Notification
+            {
+                AccountId = cap, NotificationType = "MATCH_RESULT", Title = "Trận đấu bị hủy, cả hai đội bị xử thua",
+                Body = $"Trận #{matchId} đã bị hủy và xử thua cả hai đội; không đội nào đi tiếp từ trận này. Lý do: " + (reason.Length > 600 ? reason[..600] : reason),
+                LinkUrl = "/match/detail.html?id=" + matchId, Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow
+            });
+        await _uow.SaveChangesAsync();
+
+        await _resultService.PropagateDoubleLossAsync(matchId);
+        return Result.Success("Đã hủy trận, xử thua cả hai đội. Không đội nào đi tiếp từ trận này.");
     }
 
     // ===== NUI-MAT-02: Tự đánh vắng và xử thắng trắng (Scheduler) =====

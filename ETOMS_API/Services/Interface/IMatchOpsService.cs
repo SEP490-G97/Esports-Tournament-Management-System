@@ -37,6 +37,9 @@ public interface IMatchOpsService
     // MAT-12
     Task<Result> ForfeitAsync(int matchId, int captainAccountId, ForfeitRequest request);
 
+    // Hủy trận, xử thua cả hai đội: không đội nào đi tiếp; đối thủ ở trận sau thắng trắng.
+    Task<Result> CancelMatchAsync(int matchId, int actorAccountId, CancelMatchRequest request);
+
     // UC-26 bước 3 / A2: các trận phía sau sẽ bị hủy kết quả nếu cho trận này đấu lại.
     Task<Result<List<RematchImpactDto>>> PreviewRematchAsync(int matchId, int actorAccountId);
 

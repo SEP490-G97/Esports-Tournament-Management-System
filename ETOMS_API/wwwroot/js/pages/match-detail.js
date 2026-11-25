@@ -35,8 +35,9 @@
             var win = d.winnerTeamId && d.winnerTeamId === id, lose = d.winnerTeamId && id && d.winnerTeamId !== id;
             var avatar = logo ? '<img src="' + esc(logo) + '" alt="" />' : '<span>' + esc((name || '?').trim().slice(0, 1).toUpperCase()) + '</span>';
             var pill = !id ? '<span class="mh-pill">Chờ đội thắng trận trước</span>'
+                : d.doubleLoss ? '<span class="mh-pill">Xử thua</span>'
                 : done || d.status === 'CANCELLED' ? (win ? '<span class="mh-pill win">Thắng</span>' : '')
-                : !d.scheduledAt ? ''
+                : d.status !== 'PENDING' && d.status !== 'READY' ? ''
                 : checked ? '<span class="mh-pill ok">✓ Đã điểm danh</span>' : '<span class="mh-pill">Chưa điểm danh</span>';
             var inner = '<div class="mh-logo">' + avatar + '</div><div class="mh-name">' + esc(name) + '</div>' +
                 (tag ? '<div class="mh-tag">' + esc(tag) + '</div>' : '') + pill;
@@ -62,7 +63,8 @@
 
     // Tiến trình trận: Lên lịch → Điểm danh → Thi đấu → Xác nhận kết quả.
     function stepsHtml(d) {
-        if (d.status === 'CANCELLED') return '<div class="mh-cancelled">' + (d.awaitingDecision ? 'Kết quả bị hủy sau tranh chấp — chờ Ban tổ chức xử lý.' : 'Trận đã bị hủy.') + '</div>';
+        if (d.status === 'CANCELLED') return '<div class="mh-cancelled">' + (d.awaitingDecision ? 'Kết quả bị hủy sau tranh chấp — chờ Ban tổ chức xử lý.'
+            : d.doubleLoss ? 'Trận đã bị hủy — cả hai đội bị xử thua.' : 'Trận đã bị hủy.') + '</div>';
         var both = d.teamAId && d.teamBId;
         var stage = !both ? 0
             : d.status === 'PENDING' ? (d.scheduledAt ? 1 : 0)
@@ -92,8 +94,12 @@
         } else if (d.status === 'CANCELLED' && d.awaitingDecision) {
             // Kết quả bị hủy sau phán quyết tranh chấp: nhánh dừng ở trận này cho tới khi BTC xử thắng / tước quyền / cho đấu lại.
             icon = '⚖️'; title = 'Kết quả trận đã bị hủy sau tranh chấp';
-            text = d.canManage ? 'Nhánh đấu đang dừng ở trận này. Hãy xử thắng trắng cho đội không vi phạm, tước quyền thi đấu của đội vi phạm, hoặc cho hai đội đấu lại — dùng các nút ở mục Công cụ trọng tài & Ban tổ chức bên dưới.'
+            text = d.canManage ? 'Nhánh đấu đang dừng ở trận này. Hãy xử thắng trắng cho đội không vi phạm, tước quyền thi đấu của đội vi phạm, hủy trận (xử thua cả hai đội) hoặc cho hai đội đấu lại — dùng các nút ở mục Công cụ trọng tài & Ban tổ chức bên dưới.'
                 : 'Ban tổ chức đang xử lý kết quả trận này. Đội đi tiếp sẽ được cập nhật vào nhánh đấu ngay khi có quyết định.';
+        } else if (d.doubleLoss) {
+            icon = '⛔'; title = 'Trận đã hủy — cả hai đội bị xử thua';
+            text = 'Không đội nào đi tiếp từ trận này. Ở vòng loại trực tiếp, đối thủ của trận sau được xử thắng trắng; ở vòng bảng, mỗi đội tính một trận thua.';
+            actions = '<a class="btn btn-ghost" href="/bracket/view.html?id=' + Number(d.tournamentId) + '">Xem nhánh đấu</a>';
         } else if (d.status === 'CANCELLED') {
             icon = '⛔'; title = 'Trận đã hủy'; text = 'Trận này không diễn ra. Xem nhánh đấu để biết lịch các trận còn lại.';
         } else if (!bothTeams) {
@@ -157,13 +163,18 @@
         if ((d.canManage || d.myCaptainTeamId) && bothTeams && !(closed && !d.roomCode)) {
             html += '<div class="card-etoms" style="margin-bottom:18px"><div class="body"><h3>Phòng đấu</h3>';
             if (d.roomCode) {
-                html += '<p>Mã phòng: <b>' + Ui.escapeHtml(d.roomCode) + '</b>' +
-                    (d.roomPassword ? ' · Mật khẩu: <b>' + Ui.escapeHtml(d.roomPassword) + '</b>' : '') + '</p>';
+                // Đội trưởng chỉ xem và sao chép; chỉ trọng tài / Ban tổ chức sửa được (form bên dưới).
+                html += '<div class="room-info">' +
+                    '<div class="room-field"><span class="room-label">Mã phòng</span><b class="room-value">' + esc(d.roomCode) + '</b>' +
+                    '<button type="button" class="btn btn-ghost btn-sm" data-copy="' + esc(d.roomCode) + '">Sao chép</button></div>' +
+                    (d.roomPassword ? '<div class="room-field"><span class="room-label">Mật khẩu</span><b class="room-value">' + esc(d.roomPassword) + '</b>' +
+                        '<button type="button" class="btn btn-ghost btn-sm" data-copy="' + esc(d.roomPassword) + '">Sao chép</button></div>' : '') +
+                    '</div>';
             } else {
-                html += '<p class="muted">Chưa có thông tin phòng.</p>';
+                html += '<p class="muted">' + (d.canSetRoom ? 'Chưa có thông tin phòng. Nhập mã phòng để hai đội vào đấu.' : 'Chưa có thông tin phòng. Trọng tài hoặc Ban tổ chức sẽ cập nhật mã phòng trước giờ thi đấu.') + '</p>';
             }
             if (d.canSetRoom) {
-                // UC-25 bước 3: đội trưởng đội nhà (hoặc trọng tài/BTC) nhập mã phòng; hai đội trưởng và trọng tài cùng thấy.
+                // Chỉ trọng tài / Ban tổ chức nhập và sửa mã phòng; hai đội trưởng xem và sao chép.
                 html += '<form id="roomForm" class="btn-row" style="align-items:flex-start" novalidate>' +
                     '<div><label>Mã phòng</label><input class="input" name="roomCode" maxlength="100" value="' + Ui.escapeHtml(d.roomCode || '') + '">' +
                     '<span class="field-error" data-field-error="RoomCode"></span></div>' +
@@ -213,6 +224,7 @@
                 '<button class="btn btn-ghost" data-act="walkover" data-winner="' + d.teamAId + '">Thắng trắng cho ' + Ui.escapeHtml(d.teamAName) + '</button>' +
                 '<button class="btn btn-ghost" data-act="walkover" data-winner="' + d.teamBId + '">Thắng trắng cho ' + Ui.escapeHtml(d.teamBName) + '</button>' +
                 '<button class="btn btn-ghost" data-act="rematch">Hủy &amp; đấu lại</button>' +
+                '<button class="btn btn-ghost btn-danger-text" data-act="cancel-match">Hủy trận (xử thua cả hai đội)</button>' +
                 '<button class="btn btn-ghost" data-act="disqualify" data-team="' + d.teamAId + '">Tước quyền ' + Ui.escapeHtml(d.teamAName) + '</button>' +
                 '<button class="btn btn-ghost" data-act="disqualify" data-team="' + d.teamBId + '">Tước quyền ' + Ui.escapeHtml(d.teamBName) + '</button>') +
                 // UC-34: trọng tài / BTC cấp thẻ phạt cho đội của trận ở trang Kỷ luật của giải.
@@ -244,7 +256,13 @@
     // MAT-02 / UC-21: cửa sổ điểm danh mở 30 phút trước giờ thi đấu, đóng đúng giờ thi đấu (BR-MATCH-01).
     function checkInWindowHtml(d) {
         var open = utc(d.checkInOpenAt), kick = utc(d.scheduledAt), now = new Date();
-        if (!open || !kick || (d.status !== 'PENDING' && d.status !== 'READY')) return '';
+        if (!d.teamAId || !d.teamBId || (d.status !== 'PENDING' && d.status !== 'READY')) return '';
+        if (!open || !kick) {
+            // Trận chưa xếp giờ (giải tự hẹn giờ): đội trưởng điểm danh khi đội đã sẵn sàng.
+            var free = d.myCaptainTeamId && !d.myTeamCheckedIn ? '<button class="btn btn-primary" data-act="self-checkin">Điểm danh đội tôi</button>' : '';
+            return '<p class="hint mb-2">Trận chưa có giờ thi đấu. Khi đội đã sẵn sàng, đội trưởng bấm điểm danh; hai đội cùng điểm danh thì phòng chờ trận mở.</p>' +
+                (free ? '<div class="btn-row mb-2">' + free + '</div>' : '');
+        }
         var state = now < open ? 'Cửa sổ điểm danh mở lúc ' + hm(open) + ' (trước giờ thi đấu 30 phút).'
             : now < kick ? 'Cửa sổ điểm danh đang mở đến ' + hm(kick) + '.'
             : 'Cửa sổ điểm danh đã đóng lúc ' + hm(kick) + '.';
@@ -303,6 +321,24 @@
             if (!ok) return;
             withReason('Lý do đấu lại:', async function (reason) {
                 await call(Api.post('/api/matches/' + matchId + '/ops/rematch', { reason: reason }));
+            });
+        });
+
+        var cancelBtn = root.querySelector('[data-act="cancel-match"]');
+        if (cancelBtn) cancelBtn.addEventListener('click', async function () {
+            var ok = await etomsConfirm('Hủy trận và xử thua cả hai đội? Không đội nào đi tiếp từ trận này: ở vòng loại trực tiếp, đối thủ ở trận sau được xử thắng trắng; ở vòng bảng, mỗi đội tính một trận thua. Thao tác này không hoàn tác được (muốn đá lại thì dùng "Hủy & đấu lại").');
+            if (!ok) return;
+            withReason('Lý do hủy trận:', async function (reason) {
+                await call(Api.post('/api/matches/' + matchId + '/ops/cancel', { reason: reason }));
+            });
+        });
+
+        root.querySelectorAll('[data-copy]').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                var text = btn.getAttribute('data-copy');
+                try { await navigator.clipboard.writeText(text); }
+                catch (e) { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (x) { } ta.remove(); }
+                var old = btn.textContent; btn.textContent = 'Đã sao chép'; setTimeout(function () { btn.textContent = old; }, 1500);
             });
         });
 

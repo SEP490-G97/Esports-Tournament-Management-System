@@ -47,6 +47,9 @@ public interface IResultService
     // disqualify, forfeit cũng là một cách trận kết thúc có người thắng).
     Task AdvanceWinnerAsync(int matchId, int winnerTeamId);
 
+    // Trận bị hủy xử thua cả hai đội: không ai đi tiếp — đội ở nhánh còn lại của trận sau thắng trắng (hoặc chờ đội đó lên).
+    Task PropagateDoubleLossAsync(int matchId);
+
     // UC-26: gỡ các đội mà trận này đã đẩy sang trận sau (đội thắng lên vòng trên; loại kép: cả đội thua xuống nhánh thua;
     // đội thua bán kết vào trận tranh hạng Ba). Trận sau đã đá / đã có kết quả thì cũng bị hủy để đấu lại (A2).
     // apply = false: chỉ liệt kê (xem trước, bước 3). Trả các trận phía sau đã/ sẽ bị hủy kết quả.

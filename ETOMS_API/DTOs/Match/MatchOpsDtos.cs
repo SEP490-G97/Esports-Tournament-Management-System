@@ -48,6 +48,8 @@ public class MatchDetailDto
     // Trận bị hủy kết quả sau phán quyết tranh chấp (VAR_RULING): BTC/trọng tài phải xử thắng cho một đội hoặc cho đấu lại
     // thì nhánh mới đi tiếp (mục 15, 23/11).
     public bool AwaitingDecision { get; set; }
+    // Trận bị hủy, xử thua cả hai đội (CANCELLED + ResultSource WALKOVER, không đội thắng).
+    public bool DoubleLoss { get; set; }
     public bool IsReferee { get; set; }
     public string? RefereeName { get; set; }
     public DateTime? ReportDeadlineAt { get; set; }
@@ -139,6 +141,12 @@ public class WalkoverRequest
 }
 
 public class RematchRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}
+
+// Hủy trận, xử thua cả hai đội (góp ý 25/11).
+public class CancelMatchRequest
 {
     public string Reason { get; set; } = string.Empty;
 }

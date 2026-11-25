@@ -57,7 +57,7 @@ public class GroupStandingService : IGroupStandingService
         var nodeIds = nodeInfo.Keys.ToList();
         var matches = await _uow.Repository<Match>().Query()
             .Where(m => nodeIds.Contains(m.BracketNodeId))
-            .Select(m => new { m.MatchId, m.BracketNodeId, m.TeamAid, m.TeamBid, m.ScoreA, m.ScoreB, m.WinnerTeamId, m.Status, m.ScheduledAt })
+            .Select(m => new { m.MatchId, m.BracketNodeId, m.TeamAid, m.TeamBid, m.ScoreA, m.ScoreB, m.WinnerTeamId, m.Status, m.ScheduledAt, m.ResultSource })
             .ToListAsync();
 
         // Đội đã vào knockout (sau BRK-08): đội có trong trận vòng 1 hoặc được miễn vòng 1.
@@ -86,7 +86,7 @@ public class GroupStandingService : IGroupStandingService
 
         foreach (var group in matches.GroupBy(m => nodeInfo[m.BracketNodeId].GroupLabel ?? "?").OrderBy(g => g.Key))
         {
-            var rows = GroupStandingCalculator.Compute(group.Select(m => Calc(m.TeamAid, m.TeamBid, m.ScoreA, m.ScoreB, m.WinnerTeamId, m.Status)), order, null, group.Key + "-");
+            var rows = GroupStandingCalculator.Compute(group.Select(m => new GroupStandingCalculator.GroupMatch(m.TeamAid, m.TeamBid, m.ScoreA, m.ScoreB, m.WinnerTeamId, m.Status, m.ResultSource)), order, null, group.Key + "-");
             var blockingTies = rows.Where(r => r.TieKey is not null && advance is int k && rows.Where(x => x.TieKey == r.TieKey).Min(x => x.Position) <= k)
                 .Select(r => r.TeamId).ToHashSet();
 

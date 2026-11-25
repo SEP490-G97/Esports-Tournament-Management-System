@@ -27,6 +27,8 @@ public class ThirdPlaceService : IThirdPlaceService
         public BracketNode? ThirdNode { get; set; }
         public Match? ThirdMatch { get; set; }
         public int?[] Losers { get; } = new int?[2];
+        // Bán kết bị hủy xử thua cả hai đội: không có "đội thua bán kết" nào từ nhánh đó.
+        public bool[] DoubleLoss { get; } = new bool[2];
         public int BestOf { get; set; } = 1;
     }
 
@@ -97,6 +99,7 @@ public class ThirdPlaceService : IThirdPlaceService
             var m = semiMatches.FirstOrDefault(x => x.BracketNodeId == semis[i].BracketNodeId);
             if (m is { TeamAid: not null, TeamBid: not null, WinnerTeamId: not null } && m.Status is "VERIFIED" or "WALKOVER")
                 plan.Losers[i] = m.WinnerTeamId == m.TeamAid ? m.TeamBid : m.TeamAid;
+            if (m is not null && ResultService.IsDoubleLoss(m)) plan.DoubleLoss[i] = true;
         }
 
         if (plan.ThirdNode is not null)
@@ -157,7 +160,25 @@ public class ThirdPlaceService : IThirdPlaceService
             if (plan.Losers[1] is int lb && match.TeamBid != lb) { match.TeamBid = lb; placed.Add(lb); }
         }
 
-        if (plan.ThirdMatch is not null && placed.Count == 0) return false;
+        // Một bán kết bị hủy xử thua cả hai đội: đội thua ở bán kết còn lại nhận hạng Ba bằng thắng trắng;
+        // cả hai bán kết đều bị hủy thì trận tranh hạng Ba cũng bị hủy (không thì giải không bao giờ kết thúc được).
+        var decided = false;
+        if (CanRefill(match) && (plan.DoubleLoss[0] || plan.DoubleLoss[1]))
+        {
+            if (plan.DoubleLoss[0] && plan.DoubleLoss[1])
+            {
+                match.Status = "CANCELLED"; match.ResultSource = "WALKOVER"; match.WinnerTeamId = null; match.VerifiedAt = now;
+                decided = true;
+            }
+            else if ((plan.DoubleLoss[0] ? plan.Losers[1] : plan.Losers[0]) is int lone)
+            {
+                match.Status = "WALKOVER"; match.ResultSource = "WALKOVER"; match.WinnerTeamId = lone; match.VerifiedAt = now;
+                decided = true;
+            }
+            if (decided && plan.ThirdMatch is not null) _uow.Repository<Match>().Update(match);
+        }
+
+        if (plan.ThirdMatch is not null && placed.Count == 0 && !decided) return false;
 
         if (placed.Count > 0)
         {

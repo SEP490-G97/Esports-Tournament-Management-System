@@ -131,6 +131,14 @@ public class MatchOpsApiController : ApiControllerBase
         return FromResult(await _ops.DisqualifyAsync(matchId, _currentUser.UserId!.Value, model));
     }
 
+    // POST /api/matches/{matchId}/ops/cancel — hủy trận, xử thua cả hai đội (trọng tài / BTC).
+    [HttpPost("cancel")]
+    public async Task<IActionResult> Cancel(int matchId, [FromBody] CancelMatchRequest model)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _ops.CancelMatchAsync(matchId, _currentUser.UserId!.Value, model));
+    }
+
     // POST /api/matches/{matchId}/ops/forfeit — MAT-12.
     [HttpPost("forfeit")]
     public async Task<IActionResult> Forfeit(int matchId, [FromBody] ForfeitRequest model)
