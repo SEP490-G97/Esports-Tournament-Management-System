@@ -15,7 +15,9 @@ public sealed record LiveStreamDto(
     string? Title,
     string Status,
     string StatusLabel,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    // PLAYER = trình phát chính thức, PAGE = nhúng thẳng trang của nền tảng khác, null = chỉ mở link.
+    string? EmbedKind = null);
 
 public sealed record MatchLiveDto(
     int MatchId,

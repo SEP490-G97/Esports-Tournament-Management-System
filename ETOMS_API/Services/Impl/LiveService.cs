@@ -357,8 +357,9 @@ public class LiveService : ILiveService
         .ThenByDescending(s => s.CreatedAt).ThenByDescending(s => s.LivestreamId);
 
     private static LiveStreamDto ToDto(Livestream s, string? matchLabel) => new(
-        s.LivestreamId, s.MatchId, matchLabel, s.Platform, StreamEmbed.PlatformLabel(s.Platform), s.StreamUrl,
-        StreamEmbed.EmbedUrl(s.Platform, s.StreamUrl), s.Title, s.Status, StreamEmbed.StatusLabel(s.Status), s.CreatedAt);
+        s.LivestreamId, s.MatchId, matchLabel, s.Platform, StreamEmbed.PlatformLabel(s.Platform, s.StreamUrl), s.StreamUrl,
+        StreamEmbed.EmbedUrl(s.Platform, s.StreamUrl), s.Title, s.Status, StreamEmbed.StatusLabel(s.Status), s.CreatedAt,
+        StreamEmbed.EmbedKind(s.Platform, s.StreamUrl));
 
     private static string MatchLabel(Match m)
     {

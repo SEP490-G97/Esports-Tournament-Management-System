@@ -5,10 +5,34 @@ namespace ETOMS_API.Utils;
 // UC-46 — nhận diện nền tảng từ link livestream và đổi sang link trình phát nhúng.
 // ETOMS không lưu và không chuyển tiếp video (Report 4 §External: "The browser embeds the link
 // stored in Livestream"), cũng không gọi API của nền tảng (LI-01): chỉ đổi dạng URL.
-// Chỉ nhúng ba nền tảng đã biết; link khác (OTHER) chỉ hiện nút mở ở tab mới, không nhúng trang lạ.
+// Góp ý 25/11: gắn link live của nền tảng nào cũng được. Cột Platform (CK_Livestream_Platform) chỉ có
+// YOUTUBE/FACEBOOK/TWITCH/OTHER nên nền tảng mới vẫn lưu OTHER; tên nền tảng và cách nhúng suy ra từ link:
+//   - PLAYER: đổi sang link trình phát chính thức của nền tảng (YouTube, Facebook, Twitch, video TikTok, Kick, Vimeo, Dailymotion);
+//   - PAGE: trang lạ → nhúng thẳng trang đó (khung sandbox ở trình duyệt), kèm nút mở link nếu trang chặn nhúng;
+//   - null: nền tảng đã biết là chặn nhúng (TikTok live, trang kênh YouTube, trang Facebook...) → chỉ hiện nút mở.
 public static class StreamEmbed
 {
     public const int MaxUrlLength = 500;
+    public const string KindPlayer = "PLAYER";
+    public const string KindPage = "PAGE";
+
+    // Tên hiển thị của các nền tảng hay dùng (lưu OTHER trong DB).
+    private static readonly (string Domain, string Name)[] KnownHosts =
+    {
+        ("tiktok.com", "TikTok"), ("kick.com", "Kick"), ("vimeo.com", "Vimeo"), ("dailymotion.com", "Dailymotion"), ("dai.ly", "Dailymotion"),
+        ("bilibili.com", "Bilibili"), ("nimo.tv", "Nimo TV"), ("trovo.live", "Trovo"), ("huya.com", "Huya"), ("douyin.com", "Douyin"),
+        ("instagram.com", "Instagram"), ("x.com", "X"), ("twitter.com", "X"), ("threads.net", "Threads"), ("rumble.com", "Rumble"),
+        ("sooplive.co.kr", "SOOP"), ("afreecatv.com", "AfreecaTV"), ("booyah.live", "Booyah"), ("zalo.me", "Zalo")
+    };
+
+    // Nền tảng không cho trang khác nhúng (X-Frame-Options / frame-ancestors) — nhúng thẳng chỉ ra khung trống.
+    private static readonly string[] NoFrameHosts =
+        { "tiktok.com", "instagram.com", "x.com", "twitter.com", "threads.net", "douyin.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch", "twitch.tv", "zalo.me" };
+
+    private static readonly Regex KickChannel = new("^[A-Za-z0-9_-]{2,40}$", RegexOptions.Compiled);
+    private static readonly Regex DailymotionId = new("^[A-Za-z0-9]{5,20}$", RegexOptions.Compiled);
+    private static readonly HashSet<string> KickReserved = new(StringComparer.OrdinalIgnoreCase)
+        { "categories", "category", "following", "search", "browse", "video", "videos", "clips", "terms-of-service", "privacy-policy" };
 
     private static readonly Regex YoutubeId = new("^[A-Za-z0-9_-]{11}$", RegexOptions.Compiled);
     private static readonly Regex TwitchChannel = new("^[A-Za-z0-9_]{3,25}$", RegexOptions.Compiled);
@@ -23,6 +47,23 @@ public static class StreamEmbed
         "TWITCH" => "Twitch",
         _ => "Nền tảng khác"
     };
+
+    // Link của nền tảng ngoài ba nền tảng chính: lấy tên từ tên miền (TikTok, Kick...), lạ thì hiện tên miền.
+    public static string PlatformLabel(string platform, string? streamUrl)
+    {
+        if (platform != "OTHER" || !Uri.TryCreate(streamUrl, UriKind.Absolute, out var uri)) return PlatformLabel(platform);
+        var host = uri.Host.ToLowerInvariant();
+        foreach (var (domain, name) in KnownHosts) if (IsHost(host, domain)) return name;
+        return host.StartsWith("www.", StringComparison.Ordinal) ? host[4..] : host;
+    }
+
+    // PLAYER = trình phát chính thức, PAGE = nhúng thẳng trang, null = không nhúng được (chỉ mở link).
+    public static string? EmbedKind(string platform, string streamUrl)
+    {
+        var embed = EmbedUrl(platform, streamUrl);
+        if (embed is null) return null;
+        return string.Equals(embed, streamUrl, StringComparison.Ordinal) ? KindPage : KindPlayer;
+    }
 
     public static string StatusLabel(string status) => status switch
     {
@@ -89,8 +130,41 @@ public static class StreamEmbed
                     : null;
             }
             default:
-                return null;
+                return OtherEmbedUrl(uri, segments, streamUrl);
         }
+    }
+
+    // Nền tảng khác: dùng trình phát chính thức nếu biết định dạng; nền tảng chặn nhúng → null; trang lạ → nhúng thẳng.
+    private static string? OtherEmbedUrl(Uri uri, string[] segments, string streamUrl)
+    {
+        var host = uri.Host.ToLowerInvariant();
+        // Video TikTok: tiktok.com/@kenh/video/{id} → trình phát nhúng chính thức. Live TikTok không cho nhúng.
+        if (IsHost(host, "tiktok.com"))
+            return segments.Length >= 3 && segments[1].Equals("video", StringComparison.OrdinalIgnoreCase) && Digits.IsMatch(segments[2])
+                ? "https://www.tiktok.com/embed/v2/" + segments[2]
+                : null;
+        // Kick: kick.com/{kenh} → player.kick.com/{kenh}.
+        if (IsHost(host, "kick.com"))
+            return segments.Length == 1 && KickChannel.IsMatch(segments[0]) && !KickReserved.Contains(segments[0])
+                ? "https://player.kick.com/" + segments[0].ToLowerInvariant()
+                : null;
+        // Vimeo: vimeo.com/{id} hoặc vimeo.com/event/{id}.
+        if (IsHost(host, "vimeo.com"))
+        {
+            if (segments.Length >= 1 && Digits.IsMatch(segments[0])) return "https://player.vimeo.com/video/" + segments[0];
+            if (segments.Length >= 2 && segments[0].Equals("event", StringComparison.OrdinalIgnoreCase) && Digits.IsMatch(segments[1]))
+                return "https://vimeo.com/event/" + segments[1] + "/embed";
+            return null;
+        }
+        // Dailymotion: dailymotion.com/video/{id} hoặc dai.ly/{id}.
+        if (IsHost(host, "dailymotion.com") || host == "dai.ly")
+        {
+            var id = host == "dai.ly" ? segments.FirstOrDefault()
+                : segments.Length >= 2 && segments[0].Equals("video", StringComparison.OrdinalIgnoreCase) ? segments[1] : null;
+            return id is not null && DailymotionId.IsMatch(id) ? "https://www.dailymotion.com/embed/video/" + id : null;
+        }
+        if (NoFrameHosts.Any(d => IsHost(host, d))) return null;
+        return streamUrl;
     }
 
     private static bool IsHost(string host, string domain) => host == domain || host.EndsWith("." + domain, StringComparison.Ordinal);

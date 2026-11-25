@@ -189,7 +189,7 @@ public class HomeApiController : ApiControllerBase
             .Take(4)
             .Select(l => new
             {
-                l.LivestreamId, l.TournamentId, TournamentName = l.Tournament.Name, l.Title, l.Platform,
+                l.LivestreamId, l.TournamentId, TournamentName = l.Tournament.Name, l.Title, l.Platform, l.StreamUrl,
                 TeamA = l.Match != null && l.Match.TeamA != null ? l.Match.TeamA.Name : null,
                 TeamB = l.Match != null && l.Match.TeamB != null ? l.Match.TeamB.Name : null
             })
@@ -199,7 +199,7 @@ public class HomeApiController : ApiControllerBase
             LivestreamId = l.LivestreamId, TournamentId = l.TournamentId, TournamentName = l.TournamentName,
             Title = !string.IsNullOrWhiteSpace(l.Title) ? l.Title!
                 : l.TeamA != null ? $"{l.TeamA} vs {l.TeamB ?? "Chưa xác định"}" : "Phát trực tiếp " + l.TournamentName,
-            PlatformLabel = ETOMS_API.Utils.StreamEmbed.PlatformLabel(l.Platform)
+            PlatformLabel = ETOMS_API.Utils.StreamEmbed.PlatformLabel(l.Platform, l.StreamUrl)
         }).ToList();
 
         return new HomeSummaryDto
