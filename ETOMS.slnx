@@ -1,4 +1,0 @@
-<Solution>
-  <Project Path="ETOMS_API.Tests/ETOMS_API.Tests.csproj" />
-  <Project Path="ETOMS_API/ETOMS_API.csproj" />
-</Solution>
