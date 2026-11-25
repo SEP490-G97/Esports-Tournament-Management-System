@@ -11,8 +11,13 @@
     // máy chủ đã xếp Đang phát → Sắp phát → Đã kết thúc nên mặc định mở kênh đang phát.
     function renderStreams(d) {
         var box = document.getElementById('live-streams');
-        if (!d.streams.some(function (s) { return s.livestreamId === chosenStreamId; }))
+        if (!d.streams.some(function (s) { return s.livestreamId === chosenStreamId; })) {
+            // Kênh đang xem vừa bị Ban tổ chức gỡ: báo cho người xem thay vì lặng lẽ đổi kênh / ẩn trình phát.
+            if (chosenStreamId != null)
+                Ui.showAlert(document.getElementById('flash'), 'warning', 'Livestream bạn đang xem đã bị Ban tổ chức gỡ hoặc đã kết thúc.' +
+                    (d.streams.length ? ' Đang chuyển sang kênh khác của trận.' : ''));
             chosenStreamId = d.streams.length ? d.streams[0].livestreamId : null;
+        }
         var key = streamKey(d);
         if (key === shownStreamKey) return; // không nạp lại iframe khi chỉ tỉ số đổi
         shownStreamKey = key;

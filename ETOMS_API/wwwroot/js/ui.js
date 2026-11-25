@@ -23,7 +23,8 @@ var Ui = (function () {
     // containerEl: phần tử chứa alert (thường là 1 <div id="flash"></div> đầu trang/khối).
     function showAlert(containerEl, type, message) {
         if (!containerEl) return;
-        containerEl.innerHTML = '<div class="alert alert-' + (type === 'success' ? 'success' : 'danger') + '">' + escapeHtml(message) + '</div>';
+        var kind = type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger';
+        containerEl.innerHTML = '<div class="alert alert-' + kind + '">' + escapeHtml(message) + '</div>';
     }
 
     function clearAlert(containerEl) {

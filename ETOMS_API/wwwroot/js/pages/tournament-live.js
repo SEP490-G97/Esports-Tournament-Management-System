@@ -27,9 +27,18 @@
 
     function render() {
         var root = document.getElementById('live-page-root');
+        // Livestream đang xem (hoặc ?stream= trên link chia sẻ) vừa bị Ban tổ chức gỡ: báo rõ thay vì lặng lẽ đổi kênh.
+        var removed = selectedId != null && !data.streams.some(function (s) { return s.livestreamId === selectedId; });
+        if (removed) {
+            selectedId = null;
+            var u = new URL(location.href); u.searchParams.delete('stream'); history.replaceState(null, '', u);
+            Ui.showAlert(document.getElementById('flash'), 'warning', 'Livestream bạn đang xem đã bị Ban tổ chức gỡ hoặc đã kết thúc.' +
+                (data.streams.length ? ' Đang chuyển sang livestream khác của giải.' : ''));
+        }
         if (!data.streams.length) {
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có livestream</h3>' +
-                '<p>Ban tổ chức chưa thêm link phát trực tiếp cho giải này. Bạn vẫn có thể theo dõi tỉ số ở tab Nhánh đấu.</p>' +
+                '<p>' + (removed ? 'Livestream vừa bị gỡ và giải hiện không còn kênh phát nào.' : 'Ban tổ chức chưa thêm link phát trực tiếp cho giải này.') +
+                ' Bạn vẫn có thể theo dõi tỉ số ở tab Nhánh đấu.</p>' +
                 (data.canManage ? '<a class="btn btn-primary" href="/tournament/livestreams.html?id=' + tournamentId + '">Thêm livestream</a>' : '') +
                 '</div></div>';
             shownPlayerKey = null;

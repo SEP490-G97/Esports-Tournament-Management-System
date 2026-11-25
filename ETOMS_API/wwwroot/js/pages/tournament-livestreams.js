@@ -118,6 +118,13 @@
                 await load();
                 Ui.showAlert(flash, 'success', res.message);
             } catch (err) {
+                // Link đang sửa vừa bị gỡ ở nơi khác (người khác xóa / tab khác): thoát chế độ sửa và tải lại danh sách.
+                if (editingId && (err.status === 404 || err.status === 409)) {
+                    editingId = null;
+                    await load();
+                    Ui.showAlert(flash, 'warning', 'Livestream bạn đang sửa vừa bị gỡ khỏi giải nên không lưu được. Danh sách đã được tải lại — hãy thêm link mới nếu cần.');
+                    return;
+                }
                 Ui.applyFieldErrors(form, err.fieldErrors);
                 Ui.showAlert(flash, 'danger', err.message || 'Không lưu được livestream.');
             } finally { btn.disabled = false; }
@@ -131,6 +138,11 @@
             if (err.status === 404) showEmpty('Không tìm thấy giải đấu', err.message);
             else showEmpty('Không tải được livestream', err.message);
             return;
+        }
+        // Link đang mở để sửa không còn (đã bị gỡ ở tab khác / người khác): bỏ chế độ sửa và báo.
+        if (editingId && !data.streams.some(function (x) { return x.livestreamId === editingId; })) {
+            editingId = null;
+            Ui.showAlert(flash, 'warning', 'Livestream bạn đang sửa đã bị gỡ khỏi giải.');
         }
         document.getElementById('page-title').textContent = 'Quản lý livestream · ' + data.tournamentName;
         if (!data.canManage) {
@@ -167,6 +179,12 @@
                 await load();
                 Ui.showAlert(flash, 'success', res.message);
             } catch (err) {
+                if (err.status === 404 || err.status === 409) {
+                    if (editingId === id) editingId = null;
+                    await load();
+                    Ui.showAlert(flash, 'warning', 'Livestream này đã được gỡ trước đó. Danh sách đã được tải lại.');
+                    return;
+                }
                 Ui.showAlert(flash, 'danger', err.message || 'Không xóa được livestream.');
             }
         });

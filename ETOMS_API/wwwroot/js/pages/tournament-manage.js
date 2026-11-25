@@ -111,7 +111,7 @@
             '<a class="btn btn-ghost" href="/tournament/cancel.html?id=' + tournamentId + '">' + (s.status === 'CANCELLED' ? 'Xem việc hủy giải' : 'Hủy giải…') + '</a>' +
             '</div></div>';
 
-        wireAction('publish-btn', 'Xuất bản giải đấu? Sau khi xuất bản, mọi người đều xem được trang giải.', 'publish');
+        wireAction('publish-btn', 'Xác nhận xuất bản giải đấu? Sau khi xuất bản, mọi người đều xem được trang giải và đội trưởng đăng ký được từ lúc mở đăng ký. Khi giải đã có đơn đăng ký thì không gỡ xuất bản được nữa.', 'publish');
         wireAction('unpublish-btn', 'Gỡ xuất bản? Giải sẽ trở về nháp và không còn hiện trên cổng công khai.', 'unpublish');
     }
 

@@ -13,6 +13,8 @@ namespace ETOMS_API.Services.Interface
         Task<bool> UpdateStep3BoConfigAsync(int tournamentId, Step3BoConfigDto dto);
         Task<bool> UpdateStep4FinanceAsync(int tournamentId, Step4FinanceDto dto);
         Task<bool> FinalizeStep5PublishAsync(int tournamentId, Step5RequirementDto dto);
+        // Bước 6: lưu yêu cầu hồ sơ, giải vẫn là Bản nháp (công bố cần người tạo xác nhận ở trang Quản lý giải).
+        Task<bool> SaveStep6RequirementsAsync(int tournamentId, Step5RequirementDto dto);
 
         // Quyền tạo giải: chỉ ORGANIZER/ADMIN. STUB TẠM thay module TOUR (Nguyễn Quang Anh) —
         // commit trước chưa kiểm quyền nên Player vẫn tạo được giải, bổ sung lại cho đúng.

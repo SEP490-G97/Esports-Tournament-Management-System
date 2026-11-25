@@ -140,7 +140,24 @@ namespace ETOMS_API.Controllers
             }
         }
 
-        // TOUR-07: Step 5 Checklist & Publish — chỉ người đã tạo giải hoặc Admin.
+        // Bước 6: lưu yêu cầu hồ sơ, giải vẫn ở trạng thái Bản nháp — chỉ người đã tạo giải hoặc Admin.
+        [HttpPut("{id}/step6-requirements")]
+        public async Task<IActionResult> SaveStep6(int id, [FromBody] Step5RequirementDto dto)
+        {
+            var denied = await CheckCanManageAsync(id);
+            if (denied is not null) return denied;
+            try
+            {
+                await _setupService.SaveStep6RequirementsAsync(id, dto);
+                return Ok(new { Message = "Đã lưu giải ở trạng thái Bản nháp. Kiểm tra lại thông tin rồi xuất bản khi sẵn sàng." });
+            }
+            catch (Exception ex)
+            {
+                return Fail(ex);
+            }
+        }
+
+        // TOUR-07 (bản cũ, giao diện không còn gọi): lưu yêu cầu hồ sơ và công bố ngay — chỉ người đã tạo giải hoặc Admin.
         [HttpPost("{id}/publish")]
         public async Task<IActionResult> PublishTournament(int id, [FromBody] Step5RequirementDto dto)
         {
