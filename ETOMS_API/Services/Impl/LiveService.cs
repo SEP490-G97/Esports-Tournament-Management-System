@@ -282,7 +282,12 @@ public class LiveService : ILiveService
         stream.Title = fields.Title;
         stream.Status = fields.Status;
         _uow.Repository<Livestream>().Update(stream);
-        await _uow.SaveChangesAsync();
+        // Người khác vừa gỡ đúng livestream này giữa lúc đọc và lưu (góp ý 25/11): báo rõ thay vì lỗi máy chủ.
+        try { await _uow.SaveChangesAsync(); }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<LiveStreamDto>.Failure(StreamGoneMessage, StatusCodes.Status404NotFound);
+        }
         return Result<LiveStreamDto>.Success(ToDto(stream, fields.MatchLabel), "Đã cập nhật livestream.");
     }
 
@@ -298,9 +303,16 @@ public class LiveService : ILiveService
         if (stream is null) return Result.Failure("Không tìm thấy livestream trong giải này.", StatusCodes.Status404NotFound);
 
         _uow.Repository<Livestream>().Remove(stream);
-        await _uow.SaveChangesAsync();
+        // Hai người (hoặc hai tab) cùng gỡ một livestream: lần sau không còn dòng nào để xóa.
+        try { await _uow.SaveChangesAsync(); }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure(StreamGoneMessage, StatusCodes.Status404NotFound);
+        }
         return Result.Success("Đã xóa livestream.");
     }
+
+    public const string StreamGoneMessage = "Livestream này vừa bị gỡ khỏi giải. Vui lòng tải lại trang.";
 
     private sealed record StreamFields(string Url, string Platform, string? Title, int? MatchId, string? MatchLabel, string Status);
 

@@ -282,6 +282,30 @@ app.Use(async (ctx, next) =>
         if (!ctx.Response.HasStarted) ctx.Response.StatusCode = 499;
     }
 });
+// Góp ý 25/11 (livestream bị gỡ khi người khác đang ở trang, tải lại thì "nhảy ra code chỗ SaveChanges"):
+// dữ liệu vừa bị người khác xóa / đổi giữa lúc đọc và lưu → EF ném DbUpdateConcurrencyException (0 dòng bị ảnh hưởng)
+// hoặc lỗi khóa ngoại MySQL 1451/1452. Với API, trả 409 + thông báo tiếng Việt thay vì lỗi 500 (và Visual Studio không dừng vào code).
+app.Use(async (ctx, next) =>
+{
+    if (!ctx.Request.Path.StartsWithSegments("/api")) { await next(); return; }
+    try { await next(); }
+    catch (Exception ex) when (IsStaleData(ex) && !ctx.Response.HasStarted)
+    {
+        ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("StaleData")
+            .LogWarning("Dữ liệu đã bị thay đổi/xóa trước khi lưu: {Method} {Path} — {Error}", ctx.Request.Method, ctx.Request.Path, ex.GetBaseException().Message);
+        ctx.Response.Clear();
+        ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+        await ctx.Response.WriteAsJsonAsync(new { message = "Dữ liệu bạn đang thao tác vừa được người khác thay đổi hoặc gỡ. Vui lòng tải lại trang rồi thử lại." });
+    }
+});
+static bool IsStaleData(Exception? ex)
+{
+    for (; ex is not null; ex = ex.InnerException)
+        if (ex is Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException
+            || (ex is MySql.Data.MySqlClient.MySqlException m && (m.Number == 1451 || m.Number == 1452)))
+            return true;
+    return false;
+}
 static bool IsCancellation(Exception? ex)
 {
     for (; ex is not null; ex = ex.InnerException)

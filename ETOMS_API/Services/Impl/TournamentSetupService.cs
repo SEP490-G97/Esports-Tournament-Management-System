@@ -311,7 +311,24 @@ namespace ETOMS_API.Services.Impl
             return true;
         }
 
-        // TOUR-07: Step 5 Yêu cầu hồ sơ & Công bố giải đấu
+        // Góp ý 25/11: tạo giải xong phải ở trạng thái Bản nháp (còn sửa được), chỉ công bố khi người tạo xác nhận.
+        // Bước 6 của trình tạo giải chỉ LƯU yêu cầu hồ sơ; công bố làm ở trang Quản lý giải (TournamentPublishService:
+        // kiểm đủ điều kiện xuất bản + hộp xác nhận).
+        public async Task<bool> SaveStep6RequirementsAsync(int tournamentId, Step5RequirementDto dto)
+        {
+            var tournament = await _context.Tournaments.FindAsync(tournamentId);
+            if (tournament == null || tournament.Status != "DRAFT")
+                throw new InvalidOperationException("Giải đấu không tồn tại hoặc đã được công bố.");
+
+            tournament.RequireIdentityDocument = dto.RequireStudentCard;
+            tournament.RequirePaymentProof = dto.RequirePaymentBill && tournament.EntryFee > 0;   // giải miễn phí không có biên lai để nộp
+            tournament.RequireInGameName = dto.RequireIgnVerify;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // TOUR-07 (bản cũ): lưu yêu cầu hồ sơ và công bố ngay. Giao diện không còn gọi (công bố phải qua xác nhận ở
+        // trang Quản lý giải); giữ cho các kịch bản kiểm thử tự động tạo nhanh giải đã công bố.
         public async Task<bool> FinalizeStep5PublishAsync(int tournamentId, Step5RequirementDto dto)
         {
             var tournament = await _context.Tournaments.FindAsync(tournamentId);

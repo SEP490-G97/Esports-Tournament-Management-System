@@ -29,7 +29,7 @@
             <li id="tabStep3" class="step-tab" data-step="3"><span class="step-no">3</span>Số ván (BO)</li>
             <li id="tabStep4" class="step-tab" data-step="4"><span class="step-no">4</span>Tài chính</li>
             <li id="tabStep5" class="step-tab" data-step="5"><span class="step-no">5</span>Thể lệ</li>
-            <li id="tabStep6" class="step-tab" data-step="6"><span class="step-no">6</span>Công bố</li>
+            <li id="tabStep6" class="step-tab" data-step="6"><span class="step-no">6</span>Hoàn tất</li>
         </ol>
 
         <!-- BƯỚC 1: Thông tin chung + Cấu hình Thể thức (TOUR-01, TOUR-03, TOUR-04) -->
@@ -227,10 +227,11 @@
             </div>
         </div>
 
-        <!-- BƯỚC 6: Công bố -->
+        <!-- BƯỚC 6: Yêu cầu hồ sơ & lưu bản nháp (công bố ở trang Quản lý giải, cần người tạo xác nhận) -->
         <div id="panelStep6" class="card-etoms" style="display: none;">
             <div class="body">
-                <h3 class="wizard-title wizard-title-success">Bước 6: Yêu cầu hồ sơ &amp; công bố giải đấu</h3>
+                <h3 class="wizard-title wizard-title-success">Bước 6: Yêu cầu hồ sơ &amp; lưu bản nháp</h3>
+                <p class="hint mb-3">Giải được lưu ở trạng thái <b>Bản nháp</b>: chỉ bạn thấy và còn sửa được mọi thông tin. Khi đã kiểm tra xong, bấm <b>Xuất bản giải</b> ở trang Quản lý giải để công bố cho mọi người.</p>
                 <form id="step5Form">
                     <div class="field check-field">
                         <input type="checkbox" id="chkStudentCard" checked>
@@ -246,7 +247,7 @@
                     </div>
                     <div class="btn-row">
                         <button type="button" class="btn btn-ghost" data-back="5">← Quay lại</button>
-                        <button type="submit" class="btn btn-success btn-lg">Hoàn tất &amp; công bố giải đấu</button>
+                        <button type="submit" class="btn btn-success btn-lg">Lưu bản nháp</button>
                     </div>
                 </form>
             </div>
@@ -258,11 +259,11 @@
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=form-20261118"></script>
-    <script src="/js/ui.js?v=af-20261123"></script>
+    <script src="/js/ui.js?v=warn-20261125"></script>
     <script src="/js/layout.js?v=adm-20261124"></script>
     <script src="/js/rules-editor.js?v=rules-20261116"></script>
     <script src="/js/bank-account.js?v=bank-20261116"></script>
     <script src="/js/banner-picker.js?v=banner-20261117"></script>
-    <script src="/js/pages/tournament-setup.js?v=tl-20261123"></script>
+    <script src="/js/pages/tournament-setup.js?v=draft-20261125"></script>
 </body>
 </html>

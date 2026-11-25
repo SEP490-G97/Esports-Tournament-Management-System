@@ -268,22 +268,22 @@ document.addEventListener('DOMContentLoaded', async function () {
         b.addEventListener('click', function () { Ui.clearAlert(flashBox()); switchStep(parseInt(b.dataset.back, 10)); });
     });
 
-    // TOUR-07: Bước 6 - Yêu cầu hồ sơ & Công bố
+    // TOUR-07: Bước 6 - Yêu cầu hồ sơ & lưu bản nháp. Góp ý 25/11: tạo giải xong KHÔNG công bố ngay — giải ở trạng thái
+    // Bản nháp (còn sửa được); người tạo xem lại rồi bấm "Xuất bản giải" (có hộp xác nhận) ở trang Quản lý giải.
     var step5Form = document.getElementById('step5Form');
     step5Form.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!currentTournamentId) return;
 
         try {
-            await Api.post('/api/TournamentSetup/' + currentTournamentId + '/publish', {
+            await Api.put('/api/TournamentSetup/' + currentTournamentId + '/step6-requirements', {
                 requireStudentCard: document.getElementById('chkStudentCard').checked,
                 requirePaymentBill: document.getElementById('chkPaymentProof').checked,
                 requireIgnVerify: document.getElementById('chkIgn').checked
             });
-            // Công bố xong vào thẳng Bảng điều hành của giải vừa tạo (thẻ Tiến trình giải chỉ việc tiếp theo) — trước đây về
-            // "Giải đấu của tôi" nên giải mới lẫn trong hàng trăm giải, BTC phải tự tìm (đánh giá trải nghiệm 22/11).
-            Ui.setFlash('Đã công bố giải đấu. Đội trưởng đăng ký được từ lúc mở đăng ký; theo dõi tiến trình ở thẻ bên dưới.', 'success');
-            location.href = '/tournament/dashboard.html?id=' + currentTournamentId;
+            // Vào trang Quản lý giải (Trạng thái & xuất bản): thấy các điều kiện xuất bản và nút "Xuất bản giải".
+            Ui.setFlash('Đã lưu giải ở trạng thái Bản nháp — giải chưa hiện với mọi người. Kiểm tra các điều kiện bên dưới, sửa thông tin nếu cần, rồi bấm "Xuất bản giải" để công bố.', 'success');
+            location.href = '/tournament/manage.html?id=' + currentTournamentId;
 
         } catch (err) {
             showError(err.message);
