@@ -222,6 +222,57 @@ var Ui = (function () {
         draw();
     }
 
+    // Như listPager nhưng cho bảng có sẵn trong HTML: vẽ dòng của trang hiện tại vào <tbody>, ô tìm đặt trước bảng,
+    // thanh số trang đặt sau bảng. Gọi lại nhiều lần (đổi bộ lọc) thì dùng lại ô tìm/thanh trang cũ.
+    // opts như listPager + cols (số cột cho dòng "không khớp"/rỗng).
+    function tablePager(tbody, opts) {
+        if (!tbody) return;
+        var table = tbody.closest('table');
+        var host = (table && table.parentElement && table.parentElement.classList.contains('table-wrap')) ||
+            (table && table.parentElement && table.parentElement.classList.contains('table-responsive')) ? table.parentElement : table;
+        var items = opts.items || [], size = opts.pageSize || 10, page = 1, keyword = '', cols = opts.cols || 1;
+        var search = host.previousElementSibling && host.previousElementSibling.hasAttribute('data-table-search') ? host.previousElementSibling : null;
+        var pager = host.nextElementSibling && host.nextElementSibling.hasAttribute('data-table-pager') ? host.nextElementSibling : null;
+        if (!pager) { pager = document.createElement('div'); pager.setAttribute('data-table-pager', ''); host.insertAdjacentElement('afterend', pager); }
+        var searchable = items.length > size && typeof opts.text === 'function';
+        if (searchable && !search) {
+            search = document.createElement('div');
+            search.className = 'list-search mb-3'; search.setAttribute('data-table-search', '');
+            search.innerHTML = '<input type="search" class="input" maxlength="100" placeholder="' + escapeHtml(opts.placeholder || 'Tìm trong bảng...') +
+                '" aria-label="' + escapeHtml(opts.placeholder || 'Tìm trong bảng') + '" />';
+            host.insertAdjacentElement('beforebegin', search);
+        }
+        if (search) { search.hidden = !searchable; search.querySelector('input').value = ''; }
+        function norm(s) {
+            var t = String(s || '').normalize('NFD'), out = '';
+            for (var i = 0; i < t.length; i++) { var c = t.charCodeAt(i); if (c < 0x300 || c > 0x36f) out += t.charAt(i); }
+            return out.replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+        }
+        function draw() {
+            var k = norm(keyword.trim());
+            var list = k ? items.filter(function (it) { return norm(opts.text(it)).indexOf(k) >= 0; }) : items;
+            var pages = Math.max(1, Math.ceil(list.length / size));
+            if (page > pages) page = pages;
+            tbody.innerHTML = list.length ? list.slice((page - 1) * size, page * size).map(opts.render).join('')
+                : '<tr><td colspan="' + cols + '">' + escapeHtml(items.length ? 'Không có dòng nào khớp "' + keyword.trim() + '".' : (opts.emptyText || 'Chưa có dữ liệu.')) + '</td></tr>';
+            pager.innerHTML = (list.length > size ? '<div class="hint mt-2">' + list.length + ' dòng · trang ' + page + '/' + pages + '</div>' : '') + pagerHtml(page, pages);
+        }
+        // Gắn sự kiện một lần cho mỗi bảng; lần gọi sau chỉ thay hàm vẽ.
+        pager._draw = function (p) { page = p; draw(); host.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+        if (!pager._wired) {
+            pager._wired = true;
+            pager.addEventListener('click', function (e) {
+                var b = e.target.closest('[data-page]');
+                if (b && !b.disabled) pager._draw(parseInt(b.dataset.page, 10));
+            });
+        }
+        if (search) {
+            search._input = function () { keyword = search.querySelector('input').value; page = 1; draw(); };
+            if (!search._wired) { search._wired = true; search.querySelector('input').addEventListener('input', function () { search._input(); }); }
+        }
+        draw();
+    }
+
     // Giá trị cho ô datetime-local theo giờ máy người dùng (yyyy-MM-ddTHH:mm).
     function localInputValue(d) {
         d = d || new Date();
@@ -306,7 +357,7 @@ var Ui = (function () {
 
     return {
         localInputValue: localInputValue, liveTimeline: liveTimeline, autoFilter: autoFilter,
-        parseUtc: parseUtc, fmtDateTime: fmtDateTime, limitList: limitList, pagerHtml: pagerHtml, listPager: listPager,
+        parseUtc: parseUtc, fmtDateTime: fmtDateTime, limitList: limitList, pagerHtml: pagerHtml, listPager: listPager, tablePager: tablePager,
         escapeHtml: escapeHtml, safeUrl: safeUrl, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
         applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth, currentUser: currentUser,
         setFlash: setFlash, consumeFlash: consumeFlash

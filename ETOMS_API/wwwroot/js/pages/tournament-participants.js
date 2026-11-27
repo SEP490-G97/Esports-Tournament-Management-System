@@ -28,17 +28,31 @@
         var ranked = d.status === 'COMPLETED' && d.approved.some(function (p) { return p.finalRank; });
         var empty = emptyText(d.status);
         var approved = d.approved.length
-            ? '<div class="d-grid gap-2">' + d.approved.map(function (p, i) { return teamRow(p, i, false); }).join('') + '</div>'
+            ? '<div data-approved></div>'
             : '<div class="empty"><h3>' + esc(empty[0]) + '</h3><p>' + esc(empty[1]) + '</p></div>';
         var waiting = d.waitlisted.length
             ? '<section class="card-etoms mt-3"><div class="body"><div class="section-title mt-0">Danh sách chờ (' + d.waitlisted.length + ' đội)</div>' +
               '<p class="hint">Giải đã đủ suất. Khi có đội rút đơn, đội đứng đầu danh sách chờ được mời nhận suất.</p>' +
-              '<div class="d-grid gap-2">' + d.waitlisted.map(function (p, i) { return teamRow(p, i, true); }).join('') + '</div></div></section>'
+              '<div data-waiting></div></div></section>'
             : '';
-        document.getElementById('participants-root').innerHTML =
+        var root = document.getElementById('participants-root');
+        root.innerHTML =
             '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Đội tham dự <span class="hint">(' + d.approved.length + '/' + d.maxTeams + ' suất)</span></div>' +
             (ranked ? '<p class="hint">Xếp theo thứ hạng chung cuộc.</p>' : '') +
             approved + '</div></section>' + waiting;
+        // Giải nhiều đội (64–128): tìm theo tên/tag + phân trang (góp ý 27/11). Giữ số thứ tự gốc khi lọc/sang trang.
+        pageTeams(root.querySelector('[data-approved]'), d.approved, false);
+        pageTeams(root.querySelector('[data-waiting]'), d.waitlisted, true);
+    }
+
+    function pageTeams(el, list, waiting) {
+        if (!el) return;
+        Ui.listPager(el, {
+            items: list.map(function (p, i) { return { p: p, i: i }; }), pageSize: 10, listClass: 'd-grid gap-2',
+            render: function (x) { return teamRow(x.p, x.i, waiting); },
+            text: function (x) { return x.p.name + ' ' + x.p.tag; },
+            placeholder: 'Tìm đội theo tên hoặc tag...'
+        });
     }
 
     document.addEventListener('DOMContentLoaded', async function () {

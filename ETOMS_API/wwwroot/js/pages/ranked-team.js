@@ -23,11 +23,17 @@
             document.getElementById('ranked-team-created').textContent =
                 'Thành lập ' + Ui.parseUtc(team.createdAt).toLocaleDateString('vi-VN');
             document.getElementById('ranked-team').hidden = false;
-            body.innerHTML = team.honors.length ? team.honors.map(function (honor) {
-                return '<tr><td>' + Ui.escapeHtml(honor.tournamentName) + '</td><td>' + honor.season +
-                    '</td><td>' + honor.rank + '</td><td>' +
-                    Ui.escapeHtml(placementLabels[honor.placement] || honor.placement) + '</td></tr>';
-            }).join('') : '<tr><td colspan="4">Chưa có danh hiệu từ giải đã kết thúc.</td></tr>';
+            // Đội lâu năm có nhiều giải: tìm theo tên giải/mùa + phân trang 10 dòng (góp ý 27/11).
+            Ui.tablePager(body, {
+                items: team.honors, pageSize: 10, cols: 4, emptyText: 'Chưa có danh hiệu từ giải đã kết thúc.',
+                placeholder: 'Tìm theo tên giải, mùa...',
+                text: function (h) { return h.tournamentName + ' ' + h.season + ' ' + (placementLabels[h.placement] || ''); },
+                render: function (honor) {
+                    return '<tr><td>' + Ui.escapeHtml(honor.tournamentName) + '</td><td>' + honor.season +
+                        '</td><td>' + honor.rank + '</td><td>' +
+                        Ui.escapeHtml(placementLabels[honor.placement] || honor.placement) + '</td></tr>';
+                }
+            });
         } catch (error) {
             Ui.showAlert(flash, 'danger', (error && error.message) || 'Không thể tải hồ sơ đội tuyển.');
         }

@@ -75,11 +75,11 @@
               '</div>'
             : '';
         var scheduled = r.matches.filter(function (m) { return m.scheduledAt; }).length;
-        return '<div class="card-etoms mt-3"><div class="body">' +
+        return '<div class="card-etoms mt-3"><div class="body"><div data-round-head>' +
             '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">' +
             '<div class="section-title m-0">' + Ui.escapeHtml(r.label) + '</div>' +
             '<span class="rl">' + scheduled + '/' + r.matches.length + ' trận đã có giờ</span></div>' +
-            bulk + r.matches.map(function (m) { return matchRow(m, min); }).join('') +
+            bulk + '</div><div data-round-list="' + key + '"></div>' +
             '</div></div>';
     }
 
@@ -100,15 +100,28 @@
             '<div class="btn-row"><a class="btn btn-ghost" href="/tournament/manage.html?id=' + tournamentId + '">Quản lý giải</a>' +
             '<a class="btn btn-ghost" href="/tournament/referees.html?id=' + tournamentId + '">Gán trọng tài</a></div></div></div>';
 
-        document.getElementById('schedule-root').innerHTML = board.matchCount
+        var root = document.getElementById('schedule-root');
+        root.innerHTML = board.matchCount
             ? summary + board.rounds.map(function (r) { return roundCard(r, board, min); }).join('')
             : summary.replace('trận đã có giờ thi đấu.', 'trận. Giải chưa có nhánh đấu.');
 
-        wire();
+        root.querySelectorAll('[data-round-head]').forEach(wire);
+        // Vòng nhiều trận (64 đội → 32 trận vòng 1): tìm theo đội + phân trang 10 trận (góp ý 27/11).
+        // "Xếp cả vòng" vẫn xếp toàn bộ trận của vòng, không chỉ trang đang xem.
+        board.rounds.forEach(function (r) {
+            Ui.listPager(root.querySelector('[data-round-list="' + r.stageNo + '-' + r.roundNo + '"]'), {
+                items: r.matches, pageSize: 10, listClass: 'schedule-list', placeholder: 'Tìm trận theo tên đội...',
+                render: function (m) { return matchRow(m, min); },
+                text: function (m) { return m.label + ' ' + m.teamAName + ' ' + m.teamBName + ' ' + (m.refereeName || '') + ' ' + m.statusLabel; },
+                after: wire
+            });
+        });
     }
 
-    function wire() {
-        document.querySelectorAll('input[type=datetime-local]').forEach(function (input) {
+    // Gắn sự kiện trong một phạm vi (đầu vòng, hoặc trang trận vừa vẽ) để không gắn trùng khi sang trang.
+    function wire(scope) {
+        scope = scope || document;
+        scope.querySelectorAll('input[type=datetime-local]').forEach(function (input) {
             // Báo ngay khi chọn giờ đã qua / sớm hơn mốc cho phép (không đợi bấm Lưu).
             input.addEventListener('change', function () {
                 var msg = '';
@@ -131,7 +144,7 @@
                 if (e.key === 'Enter' || e.key === ' ') openPicker(input);
             });
         });
-        document.querySelectorAll('[data-save]').forEach(function (btn) {
+        scope.querySelectorAll('[data-save]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var id = btn.dataset.save;
                 var value = document.querySelector('[data-time="' + id + '"]').value;
@@ -140,13 +153,13 @@
                 save(id, toUtc(value));
             });
         });
-        document.querySelectorAll('[data-clear]').forEach(function (btn) {
+        scope.querySelectorAll('[data-clear]').forEach(function (btn) {
             btn.addEventListener('click', async function () {
                 var ok = window.etomsConfirm ? await window.etomsConfirm('Bỏ giờ thi đấu của trận này? Hai đội sẽ được báo.') : true;
                 if (ok) save(btn.dataset.clear, null);
             });
         });
-        document.querySelectorAll('[data-round]').forEach(function (btn) {
+        scope.querySelectorAll('[data-round]').forEach(function (btn) {
             btn.addEventListener('click', function () { scheduleRound(btn); });
         });
     }

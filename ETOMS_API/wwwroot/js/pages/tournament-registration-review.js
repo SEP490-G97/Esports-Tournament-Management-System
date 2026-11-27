@@ -80,7 +80,32 @@
             '<div class="registration-capacity-stat"><strong>' + Number(summary.waitlistCount) + '</strong>' +
             '<span>đội đang chờ</span></div>';
 
-        root.innerHTML = items.length ? items.map(function (item) {
+        if (!items.length) {
+            root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Không có đơn phù hợp</h3>' +
+                '<p>Thử đổi bộ lọc hoặc quay lại sau khi có đội gửi đăng ký.</p></div></div>';
+            return;
+        }
+        // Giải 64–128 đội: phân trang 8 đơn/trang (góp ý 27/11; tìm theo tên đội đã có ở thanh lọc phía trên, gọi máy chủ).
+        // Nút duyệt/lệ phí/hàng chờ gắn lại cho các đơn của trang vừa vẽ.
+        var first = true;
+        Ui.listPager(root, {
+            items: items, pageSize: 8, listClass: 'feature-list', render: cardHtml,
+            after: function (body) {
+                var ids = Array.prototype.map.call(body.querySelectorAll('article[data-registration-id]'), function (a) { return Number(a.dataset.registrationId); });
+                var pageItems = items.filter(function (it) { return ids.indexOf(it.registrationId) >= 0; });
+                wireDisciplineHistory(pageItems);
+                // Tiêu chí phân định (BRK-07) không thuộc việc duyệt đơn — cấu hình ở trang Chia nhánh > "Tiêu chí phân định".
+                if (window.RegistrationReviewDecisions) window.RegistrationReviewDecisions.render(body, pageItems, context);
+                if (window.RegistrationReviewPayments) window.RegistrationReviewPayments.render(body, pageItems, context);
+                // Nút "Đôn đội đầu hàng chờ" chỉ chèn một lần (lần vẽ đầu), sang trang sau không chèn thêm.
+                if (window.RegistrationReviewWaitlist)
+                    window.RegistrationReviewWaitlist.render(body, pageItems, first ? summary : Object.assign({}, summary, { waitlistCount: 0 }), context);
+                first = false;
+            }
+        });
+    }
+
+    function cardHtml(item) {
             return '<article class="feature-card" data-registration-id="' + item.registrationId + '">' +
                 '<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h3>' +
                 Ui.escapeHtml(item.teamName) + ' [' + Ui.escapeHtml(item.teamTag) + ']</h3>' +
@@ -98,20 +123,6 @@
                 '<div class="registration-payment-actions"></div>' +
                 '<div class="registration-waitlist-actions"></div>' +
                 '<div class="review-flash mt-3" aria-live="polite"></div></article>';
-        }).join('') : '<div class="card-etoms"><div class="empty"><h3>Không có đơn phù hợp</h3>' +
-            '<p>Thử đổi bộ lọc hoặc quay lại sau khi có đội gửi đăng ký.</p></div></div>';
-
-        wireDisciplineHistory(items);
-        // Tiêu chí phân định (BRK-07) không thuộc việc duyệt đơn — cấu hình ở trang Chia nhánh > "Tiêu chí phân định".
-        if (window.RegistrationReviewDecisions) {
-            window.RegistrationReviewDecisions.render(root, items, context);
-        }
-        if (window.RegistrationReviewPayments) {
-            window.RegistrationReviewPayments.render(root, items, context);
-        }
-        if (window.RegistrationReviewWaitlist) {
-            window.RegistrationReviewWaitlist.render(root, items, summary, context);
-        }
     }
 
     function hideManagementUi(message) {

@@ -48,9 +48,15 @@
         return state.edit && id && !n.winnerTeamId && n.scoreA == null && n.scoreB == null;
     }
 
+    // Trận đã có kết quả (có đội thắng, hoặc hủy trận xử thua cả hai đội): ô tối đi, đội thua mờ hẳn — nhìn là biết
+    // đội nào đã bị loại, đội nào đi tiếp (góp ý 27/11).
+    function bothLost(n) { return n.status === 'CANCELLED' && !n.winnerTeamId && !!n.teamA.teamId && !!n.teamB.teamId; }
+    function decided(n) { return !n.isBye && (!!n.winnerTeamId || bothLost(n)); }
+
     function teamRow(n, slot, score, extraClass) {
         var id = slot.teamId;
         var win = id !== null && id !== undefined && n.winnerTeamId === id && !n.isBye;
+        if (id && decided(n) && !win) extraClass = (extraClass || '') + ' lose';
         var sel = id !== null && id !== undefined && (state.edit ? state.pick === id : state.team === id);
         var canEdit = editable(n, id);
         var title = canEdit ? 'Kéo thả lên đội khác (hoặc bấm 2 đội) để đổi chỗ ' + slot.name : 'Xem hành trình của ' + slot.name;
@@ -110,7 +116,9 @@
             var x1 = p.x + W, y1 = p.y + H / 2, x2 = parent.x, y2 = parent.y + H / 2, mid = x1 + COL_GAP / 2;
             var hl = state.team !== null && hasTeam(p.node, state.team) && hasTeam(parent.node, state.team);
             var dim = (state.team !== null && !hl) || (state.round !== 'all' && !(inRound(p.stage, p.node) || inRound(parent.stage, parent.node)));
-            paths += '<path class="' + (hl ? 'hl' : dim ? 'dim' : '') + '" d="M' + x1 + ' ' + y1 + ' H' + mid + ' V' + y2 + ' H' + x2 + '" />';
+            // Đường đi tiếp của đội thắng (ô con đã có người thắng) được tô màu.
+            var adv = !!p.node.winnerTeamId && !p.node.isBye;
+            paths += '<path class="' + (hl ? 'hl' : dim ? 'dim' : adv ? 'adv' : '') + '" d="M' + x1 + ' ' + y1 + ' H' + mid + ' V' + y2 + ' H' + x2 + '" />';
         });
         var titles = layout.titles.map(function (t) {
             return '<div class="bk-stage-title" style="top:' + t.y + 'px">' + esc(t.text) + '</div>' +
@@ -118,7 +126,8 @@
         }).join('');
         var boxes = Object.keys(layout.nodes).map(function (id) {
             var p = layout.nodes[id], n = p.node;
-            var cls = 'bk-match' + (n.isThirdPlace ? ' third' : '') + (n.isBye ? ' bye' : '');
+            var cls = 'bk-match' + (n.isThirdPlace ? ' third' : '') + (n.isBye ? ' bye' : '') +
+                (decided(n) ? ' done' : n.status === 'LIVE' ? ' live' : '');
             if (state.team !== null) cls += hasTeam(n, state.team) ? ' hl' : ' dim';
             else if (!inRound(p.stage, n)) cls += ' dim';
             return '<div class="' + cls + '" data-node="' + n.nodeId + '" style="left:' + p.x + 'px;top:' + p.y + 'px">' +

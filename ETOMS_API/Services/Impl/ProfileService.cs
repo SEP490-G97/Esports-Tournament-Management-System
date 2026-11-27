@@ -366,13 +366,37 @@ public sealed class ProfileService : IProfileService
                 PlacementLabel(registration.FinalPlacement)))
             .ToListAsync(cancellationToken);
 
+        // Thông số cốt lõi (Report 3 §3.3.9): tính từ kết quả ETOMS đã xác nhận, không có số tự khai.
+        var history = await LoadMatchHistoryAsync(accountId, cancellationToken);
+        var decided = history.Where(item => item.Outcome is not null).ToArray();
+        var wins = decided.Count(item => item.Outcome == "WIN");
+        var tournamentsPlayed = await _unitOfWork.Repository<Registration>().Query()
+            .AsNoTracking()
+            .Where(registration =>
+                registration.RegistrationLineups.Any(lineup => lineup.AccountId == accountId)
+                && (registration.Status == "APPROVED" || registration.Status == "DISQUALIFIED")
+                && registration.Tournament.Status != "DRAFT"
+                && registration.Tournament.Status != "CANCELLED")
+            .Select(registration => registration.TournamentId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+        var stats = new PlayerStatsResponse(
+            decided.Length,
+            wins,
+            decided.Length - wins,
+            decided.Length == 0 ? null : (int)Math.Round(wins * 100.0 / decided.Length, MidpointRounding.AwayFromZero),
+            tournamentsPlayed,
+            titles.Count(title => title.Placement == "CHAMPION"),
+            titles.Count(title => title.Placement is "CHAMPION" or "RUNNER_UP" or "THIRD"));
+
         return Result.Success(new PublicProfileResponse(
             account.AccountId,
             account.FullName,
             account.AvatarUrl,
             gameAccounts,
             teams,
-            titles));
+            titles,
+            stats));
     }
 
     public async Task<Result<IReadOnlyList<MatchHistoryResponse>>> GetMatchHistoryAsync(
@@ -386,6 +410,12 @@ public sealed class ProfileService : IProfileService
             return Result.Failure<IReadOnlyList<MatchHistoryResponse>>("Không tìm thấy tài khoản.", StatusCodes.Status404NotFound);
         }
 
+        return Result.Success(await LoadMatchHistoryAsync(accountId, cancellationToken));
+    }
+
+    // Các trận của đội mà người chơi có trong đội hình đăng ký, kèm đối thủ, tựa game và kết quả đã xác nhận.
+    private async Task<IReadOnlyList<MatchHistoryResponse>> LoadMatchHistoryAsync(int accountId, CancellationToken cancellationToken)
+    {
         var lineups = await _unitOfWork.Repository<RegistrationLineup>().Query()
             .AsNoTracking()
             .Where(lineup => lineup.AccountId == accountId)
@@ -401,7 +431,7 @@ public sealed class ProfileService : IProfileService
 
         if (lineups.Count == 0)
         {
-            return Result.Success<IReadOnlyList<MatchHistoryResponse>>([]);
+            return [];
         }
 
         var teamByTournament = lineups
@@ -425,7 +455,10 @@ public sealed class ProfileService : IProfileService
                 match.ScoreB,
                 match.ScheduledAt,
                 match.Status,
+                match.WinnerTeamId,
+                match.ResultSource,
                 TournamentName = match.Tournament.Name,
+                GameTitle = match.Tournament.Game.Title,
                 TeamAName = match.TeamA == null ? null : match.TeamA.Name,
                 TeamBName = match.TeamB == null ? null : match.TeamB.Name
             })
@@ -446,6 +479,18 @@ public sealed class ProfileService : IProfileService
                 continue;
             }
 
+            // Kết quả chỉ lấy từ trận đã xác nhận; trận được miễn đấu (không có đối thủ) không tính.
+            var hasOpponent = match.TeamAid.HasValue && match.TeamBid.HasValue;
+            string? outcome = null;
+            if (hasOpponent && match.Status == "CANCELLED" && match.ResultSource == "WALKOVER" && match.WinnerTeamId is null)
+            {
+                outcome = "LOSS"; // hủy trận, xử thua cả hai đội
+            }
+            else if (hasOpponent && (match.Status is "VERIFIED" or "WALKOVER") && match.WinnerTeamId.HasValue)
+            {
+                outcome = match.WinnerTeamId == participant.TeamId ? "WIN" : "LOSS";
+            }
+
             history.Add(new MatchHistoryResponse(
                 match.MatchId,
                 match.TournamentName,
@@ -455,11 +500,14 @@ public sealed class ProfileService : IProfileService
                 isTeamA ? match.ScoreA : match.ScoreB,
                 isTeamA ? match.ScoreB : match.ScoreA,
                 match.Status,
-                MatchStatusLabel(match.Status)));
+                MatchStatusLabel(match.Status),
+                isTeamA ? match.TeamBName : match.TeamAName,
+                match.GameTitle,
+                outcome,
+                match.TournamentId));
         }
 
-        return Result.Success<IReadOnlyList<MatchHistoryResponse>>(
-            history.OrderByDescending(item => item.ScheduledAt).ToArray());
+        return history.OrderByDescending(item => item.ScheduledAt).ToArray();
     }
 
     public async Task<Result<NotificationPreferencesResponse>> GetNotificationPreferencesAsync(

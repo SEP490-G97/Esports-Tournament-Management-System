@@ -9,15 +9,36 @@
             : Ui.escapeHtml(String(value));
     }
 
+    // Bảng dài (giải 64–128 đội, hàng trăm trận): trên màn hình hiện 15 dòng/trang (góp ý 27/11), khi IN vẫn in đủ
+    // mọi dòng — các dòng ngoài trang chỉ ẩn bằng lớp .rp-hide (CSS @media print hiện lại).
+    var PAGE = 15;
     function section(title, headers, rows) {
-        return '<section class="i3-surface mb-3"><h2>' + text(title) + '</h2><div class="i3-table-wrap">' +
+        return '<section class="i3-surface mb-3" data-report-table><h2>' + text(title) + '</h2><div class="i3-table-wrap">' +
             '<table class="i3-table"><thead><tr>' + headers.map(function (header) {
                 return '<th>' + text(header) + '</th>';
             }).join('') + '</tr></thead><tbody>' +
-            (rows.length ? rows.map(function (row) {
-                return '<tr>' + row.map(function (cell) { return '<td>' + text(cell) + '</td>'; }).join('') + '</tr>';
+            (rows.length ? rows.map(function (row, i) {
+                return '<tr' + (i >= PAGE ? ' class="rp-hide"' : '') + '>' + row.map(function (cell) { return '<td>' + text(cell) + '</td>'; }).join('') + '</tr>';
             }).join('') : '<tr><td colspan="' + headers.length + '">Không có dữ liệu.</td></tr>') +
-            '</tbody></table></div></section>';
+            '</tbody></table></div><div class="rp-pager"></div></section>';
+    }
+
+    function wirePagers() {
+        root.querySelectorAll('[data-report-table]').forEach(function (sec) {
+            var rows = sec.querySelectorAll('tbody tr');
+            var pages = Math.ceil(rows.length / PAGE);
+            if (pages <= 1) return;
+            var pager = sec.querySelector('.rp-pager');
+            function show(p) {
+                rows.forEach(function (r, i) { r.classList.toggle('rp-hide', i < (p - 1) * PAGE || i >= p * PAGE); });
+                pager.innerHTML = '<div class="hint mt-2">' + rows.length + ' dòng · trang ' + p + '/' + pages + '</div>' + Ui.pagerHtml(p, pages);
+            }
+            pager.addEventListener('click', function (e) {
+                var b = e.target.closest('[data-page]');
+                if (b && !b.disabled) show(parseInt(b.dataset.page, 10));
+            });
+            show(1);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
@@ -73,6 +94,7 @@
                     report.standings.map(function (item) {
                         return [item.groupLabel, item.teamName, item.played, item.won, item.lost, item.scoreDiff, item.points];
                     }));
+            wirePagers();
         } catch (error) {
             Ui.showAlert(flash, 'danger', (error && error.message) || 'Không thể tạo bộ hồ sơ tổng kết.');
         }

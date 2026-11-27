@@ -101,7 +101,7 @@
             '<div id="team-matches"></div>' +
             (current.length ? '<div class="section-title">Giải đang tham gia</div>' +
                 '<div class="section-sub">Giải sắp diễn ra hoặc đang diễn ra mà đội đã được duyệt.</div>' +
-                '<div class="row g-3">' + current.map(historyRow).join('') + '</div>' : '') +
+                '<div data-current></div>' : '') +
             '<div class="section-title">Lịch sử giải đấu</div>' +
             '<div class="section-sub">Các giải đội đã thi đấu xong, kèm thành tích.</div>' +
             (past.length ? '<div data-history></div>' : '<div class="card-etoms"><div class="empty"><h3>Chưa có giải nào đã kết thúc</h3></div></div>') +
@@ -113,9 +113,14 @@
             '<div id="team-discipline"></div>' +
             '<div class="btn-row mt-4">' + actionHtml + '</div>';
 
-        // Đội lâu năm có hàng trăm giải: tìm theo tên giải + phân trang 10 giải/trang.
+        // Danh sách dài: tìm theo tên giải + phân trang 5 mục/trang (góp ý 27/11), cả giải đang tham gia lẫn lịch sử.
+        if (current.length) Ui.listPager(root.querySelector('[data-current]'), {
+            items: current, render: historyRow, pageSize: 5, listClass: 'row g-3',
+            text: function (h) { return h.tournamentName + ' ' + tourStatusLabel(h.tournamentStatus); },
+            placeholder: 'Tìm giải đang tham gia...'
+        });
         if (past.length) Ui.listPager(root.querySelector('[data-history]'), {
-            items: past, render: historyRow, pageSize: 10, listClass: 'row g-3',
+            items: past, render: historyRow, pageSize: 5, listClass: 'row g-3',
             text: function (h) { return h.tournamentName + ' ' + tourStatusLabel(h.tournamentStatus); },
             placeholder: 'Tìm giải đội đã tham gia...'
         });

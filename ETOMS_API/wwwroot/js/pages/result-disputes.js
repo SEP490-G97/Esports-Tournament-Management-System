@@ -14,9 +14,16 @@
             root.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Không có tranh chấp nào</h3><p>Hàng đợi của bạn đang trống.</p></div></div>';
             return;
         }
-        var html = '<div class="d-grid gap-3">';
-        list.forEach(function (d) {
-            html += '<a href="/result/dispute.html?id=' + d.disputeId + '" class="card-etoms d-block" style="color:inherit">' +
+        // Hàng đợi dài: tìm theo đội/giải + phân trang 10 tranh chấp (góp ý 27/11).
+        Ui.listPager(root, {
+            items: list, pageSize: 10, listClass: 'd-grid gap-3', placeholder: 'Tìm tranh chấp theo đội, tên giải...',
+            text: function (d) { return d.teamAName + ' ' + d.teamBName + ' ' + d.tournamentName + ' ' + reasonLabel(d.openReason); },
+            render: disputeCard
+        });
+    }
+
+    function disputeCard(d) {
+            return '<a href="/result/dispute.html?id=' + d.disputeId + '" class="card-etoms d-block" style="color:inherit">' +
                 '<div class="body d-flex flex-wrap justify-content-between align-items-center gap-3" style="padding:18px 22px">' +
                 '<div><div class="fw-800">' + Ui.escapeHtml(d.teamAName) + ' vs ' + Ui.escapeHtml(d.teamBName) + '</div>' +
                 '<div style="color:var(--muted);font-size:.86rem;margin-top:2px">' + Ui.escapeHtml(d.tournamentName) + '</div></div>' +
@@ -25,9 +32,6 @@
                 '<span class="badge ' + (d.status === 'UNDER_REVIEW' ? 'badge-active' : 'badge-gold') + '">' + (d.status === 'UNDER_REVIEW' ? 'Đang xem xét' : 'Mới mở') + '</span>' +
                 '<span class="text-muted-2 text-small">' + fmtDateShort(d.openedAt) + '</span>' +
                 '</div></div></a>';
-        });
-        html += '</div>';
-        root.innerHTML = html;
     }
 
     document.addEventListener('DOMContentLoaded', async function () {

@@ -2174,3 +2174,79 @@ a.mh-team:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); co
 }
 .member-name-link { color: inherit; font-weight: 600; text-decoration: none; }
 .member-name-link:hover { color: var(--primary); text-decoration: underline; }
+
+/* Bộ lọc Nhật ký hệ thống: lưới 3 cột đều; dòng lỗi nằm dưới ô, không đẩy lệch các ô cùng hàng; nút cao bằng ô nhập. */
+.audit-filter .field { margin-bottom: 0; min-width: 0; position: relative; }
+.audit-filter .field-error { position: absolute; left: calc(var(--bs-gutter-x) * .5); right: calc(var(--bs-gutter-x) * .5); top: calc(100% + 4px); margin: 0; font-size: .78rem; line-height: 1.25; }
+.audit-filter .input, .audit-filter .select { height: calc(.95rem * 1.5 + 26px); }
+.audit-filter-actions { display: flex; justify-content: flex-end; }
+.audit-filter-actions .btn { min-height: calc(.95rem * 1.5 + 26px); min-width: 140px; }
+@media (max-width: 767.98px) { .audit-filter-actions .btn { width: 100%; } }
+/* Trang đọc tin riêng (góp ý 27/11): đang đọc một tin thì chỉ còn bài đọc + Tin khác, ẩn banner/bộ lọc/danh sách. */
+main.news-reading > :not(#news-article):not(#news-flash) { display: none !important; }
+main.news-reading #news-article { max-width: 900px; margin: 0 auto; }
+.news-crumb { display: flex; align-items: center; gap: 8px; padding: 18px 24px 0; font-size: .85rem; color: var(--muted-2); }
+.news-crumb a { color: var(--info-ink); font-weight: 600; text-decoration: none; }
+.news-crumb a:hover { text-decoration: underline; }
+.news-reader { max-width: none; }
+.news-reader-title { font-size: clamp(1.4rem, 2.6vw, 2rem); font-weight: 800; line-height: 1.3; margin: 0 0 16px; }
+.news-summary { background: var(--bg-2); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+.news-summary-title { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.news-summary .rulebook-content p { font-size: 1.02rem; line-height: 1.7; }
+.news-summary .rulebook-content p:last-child { margin-bottom: 0; }
+.news-facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border-soft); font-size: .85rem; }
+.news-facts dt { color: var(--muted-2); font-weight: 500; }
+.news-facts dd { margin: 0; color: var(--ink); font-weight: 600; }
+/* Hồ sơ công khai người chơi (Report 3 §3.3.9): đầu hồ sơ + thông số cốt lõi + lịch sử trận có kết quả. */
+.pp-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.pp-avatar { width: 72px; height: 72px; flex: none; border-radius: 18px; display: grid; place-items: center; overflow: hidden; background: var(--primary-050); border: 1px solid var(--border); color: var(--cyan); font-weight: 800; font-size: 1.8rem; }
+.pp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pp-id { flex: 1 1 260px; min-width: 0; }
+.pp-id h2 { margin: 0 0 2px; font-size: 1.45rem; font-weight: 800; }
+.pp-igns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.pp-ign { display: inline-flex; flex-direction: column; padding: 6px 12px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--border); font-weight: 700; font-size: .9rem; color: var(--ink); line-height: 1.25; }
+.pp-ign small { font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-2); }
+.pp-form { display: flex; align-items: center; gap: 6px; flex: none; }
+.pp-form span { font-size: .75rem; color: var(--muted-2); margin-right: 4px; text-transform: uppercase; letter-spacing: .08em; }
+.pp-form b { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: .75rem; font-weight: 800; }
+.pp-form b.win { background: var(--open-bg, var(--success-bg)); color: var(--open, var(--success-ink)); }
+.pp-form b.loss { background: var(--danger-bg); color: var(--danger-ink); }
+.pp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.pp-stat .num { font-size: 1.9rem; }
+.pp-stat .num small { font-size: .55em; color: var(--muted); margin-left: 2px; }
+.pp-win { color: var(--open, var(--success-ink)); font-weight: 700; }
+.pp-loss { color: var(--danger-ink); font-weight: 700; }
+.pp-bar { height: 6px; border-radius: 99px; background: var(--danger-bg); overflow: hidden; margin-top: 8px; }
+.pp-bar span { display: block; height: 100%; border-radius: 99px; background: var(--open, var(--success-ink)); }
+.pp-note { font-size: .8rem; color: var(--muted-2); margin: 8px 2px 0; }
+a.pp-link { text-decoration: none; color: inherit; transition: border-color .15s; }
+a.pp-link:hover { border-color: var(--primary); }
+.pp-go { color: var(--muted-2); }
+.pp-medal { flex: none; font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: var(--primary-050); color: var(--info-ink); }
+.pp-medal.gold { background: var(--gold-050, rgba(244,192,79,.14)); color: var(--gold); }
+.pp-medal.silver { background: rgba(203,213,225,.14); color: #cbd5e1; }
+.pp-medal.bronze { background: rgba(217,119,6,.15); color: #f59e0b; }
+:root[data-theme="light"] .pp-medal.silver { color: #475569; background: rgba(100,116,139,.14); }
+:root[data-theme="light"] .pp-medal.bronze { color: #b45309; }
+.pp-match { border-left: 3px solid transparent; }
+.pp-match.is-win { border-left-color: var(--open, var(--success-ink)); }
+.pp-match.is-loss { border-left-color: var(--danger-ink); }
+.pp-match .grow { min-width: 0; flex: 1; }
+.pp-vs { color: var(--muted-2); font-weight: 600; font-size: .85em; margin: 0 2px; }
+.pp-result { font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 900px) { .pp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .pp-head { align-items: flex-start; } .pp-stat .num { font-size: 1.6rem; } }
+.pp-count { display: inline-grid; place-items: center; min-width: 24px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 99px; background: var(--primary-050); color: var(--info-ink); font-size: .72rem; font-weight: 700; vertical-align: middle; }
+
+/* Nhánh đấu (góp ý 27/11): trận đã có kết quả tối đi, đội thua mờ hẳn, đội thắng giữ sáng; đường đi tiếp của đội thắng tô màu; trận đang đấu viền đỏ. */
+.bk-lines path.adv { stroke: var(--primary); stroke-width: 2.5; opacity: .75; }
+.bk-match.done:not(.dim):not(.hl) { background: var(--bg-2); border-color: var(--border-soft); }
+.bk-match.done .bk-head { opacity: .65; }
+.bk-team.lose { opacity: .38; filter: grayscale(1); }
+.bk-team.lose .nm { text-decoration: line-through; text-decoration-thickness: 1px; }
+.bk-match.done .bk-team.win, .bk-card .bk-team.win { background: linear-gradient(90deg, var(--primary-050), transparent 85%); }
+.bk-match.done .bk-team.win .sc { color: var(--primary); }
+.bk-match.live:not(.dim) { border-color: var(--danger); box-shadow: 0 0 0 2px var(--danger-bg); }
+/* Phân trang bảng báo cáo (góp ý 27/11): trên màn hình ẩn dòng ngoài trang, khi in hiện đủ mọi dòng. */
+.rp-hide { display: none; }
+@media print { .rp-hide { display: table-row !important; } .rp-pager, [data-table-pager] .pager, .list-search { display: none !important; } }

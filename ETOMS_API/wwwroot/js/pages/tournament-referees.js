@@ -62,17 +62,24 @@
             ? '<div class="pending-banner">' + Ui.escapeHtml(board.blockedReason) + '</div>'
             : '';
         var list = board.matches.length
-            ? board.matches.map(matchRow).join('')
+            ? '<div data-ref-matches></div>'
             : '<div class="card-etoms"><div class="empty"><h3>Giải chưa có trận đấu</h3><p>Trận đấu được tạo khi sinh nhánh đấu.</p></div></div>';
 
-        document.getElementById('referee-root').innerHTML =
+        var root = document.getElementById('referee-root');
+        root.innerHTML =
             blocked + (board.canAssign ? pickerHtml(board) : '') + list +
             '<div class="btn-row mt-4">' +
             '<a class="btn btn-ghost" href="/tournament/dashboard.html?id=' + tournamentId + '">Bảng điều hành</a></div>';
 
         selected = null;
         if (board.canAssign) wirePicker();
-        wireMatchButtons();
+        // Giải nhiều trận: tìm theo đội/vòng/trọng tài + phân trang 10 trận (góp ý 27/11); nút Gán/Bỏ gắn lại cho trang vừa vẽ.
+        if (board.matches.length) Ui.listPager(root.querySelector('[data-ref-matches]'), {
+            items: board.matches, pageSize: 10, listClass: 'ref-match-list', render: matchRow,
+            placeholder: 'Tìm trận theo đội, vòng, trọng tài...',
+            text: function (m) { return m.teamAName + ' ' + m.teamBName + ' ' + m.roundLabel + ' ' + (m.refereeName || 'chưa có trọng tài') + ' ' + m.statusLabel; },
+            after: wireMatchButtons
+        });
     }
 
     function selectReferee(candidate) {
@@ -157,8 +164,9 @@
         Ui.showAlert(document.getElementById('flash'), skipped.length ? 'danger' : 'success', res.message + (skipped.length ? ' ' + skipped.join(' ') : ''));
     }
 
-    function wireMatchButtons() {
-        document.querySelectorAll('[data-assign]').forEach(function (btn) {
+    function wireMatchButtons(scope) {
+        scope = scope || document;
+        scope.querySelectorAll('[data-assign]').forEach(function (btn) {
             btn.addEventListener('click', async function () {
                 if (!requireSelected()) return;
                 var refereeId = selected.accountId;
@@ -169,7 +177,7 @@
             });
         });
 
-        document.querySelectorAll('[data-clear]').forEach(function (btn) {
+        scope.querySelectorAll('[data-clear]').forEach(function (btn) {
             btn.addEventListener('click', async function () {
                 if (!await window.etomsConfirm('Bỏ trọng tài của trận này? Quyền phân xử sẽ thuộc Ban tổ chức.')) return;
                 var res = await run(function () {
