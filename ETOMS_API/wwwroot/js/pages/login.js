@@ -51,10 +51,62 @@
             location.href = targetAfterLogin(data.user);
             return;
         }
-        if (res.status === 403 && data.code === 'ACCOUNT_BANNED') return showBanned(data);
-        if (res.status === 403 && data.code === 'EMAIL_NOT_VERIFIED') return showError(data.message);
-        if (res.status === 429) return showError('Bạn thử quá nhiều lần. Vui lòng đợi một phút rồi thử lại.');
-        showError(data.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+        var msg;
+        if (res.status === 403 && data.code === 'ACCOUNT_BANNED') msg = 'Tài khoản của bạn đã bị khóa. Lý do: ' + (data.reason || 'Không có lý do được ghi nhận');
+        else if (res.status === 403 && data.code === 'EMAIL_NOT_VERIFIED') msg = data.message;
+        else if (res.status === 429) msg = 'Bạn thử quá nhiều lần. Vui lòng đợi một phút rồi thử lại.';
+        else msg = data.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
+        // Đang có phiên mà đăng nhập tài khoản khác thất bại: phiên cũ vẫn giữ nguyên, nói rõ để khỏi tưởng đã bị đăng xuất.
+        if (currentMe) msg += ' Bạn vẫn đang đăng nhập bằng tài khoản ' + (currentMe.fullName || currentMe.email) + '.';
+        showError(msg);
+    }
+
+    // ---------- Đã đăng nhập mà mở trang Đăng nhập ----------
+    // Không tự chuyển trang (tránh vòng lặp khi bị đưa về đây vì thiếu quyền), mà báo rõ đang dùng tài khoản nào:
+    // "Tiếp tục" về trang định vào / trang chủ, hoặc "Đăng nhập tài khoản khác" (phiên cũ chỉ bị thay khi đăng nhập
+    // mới thành công — máy chủ thu hồi refresh token cũ lúc đó).
+    let currentMe = null;
+    const sessionBox = document.getElementById('login-session');
+    const loginParts = ['login-form', 'login-divider', 'google-login', 'login-foot'].map(function (id) { return document.getElementById(id); });
+    function showLoginParts(on) { loginParts.forEach(function (el) { if (el) el.hidden = !on; }); }
+
+    function showSession(me) {
+        const esc = Ui.escapeHtml;
+        const roleLabel = { PLAYER: 'Người chơi', ORGANIZER: 'Ban tổ chức', ADMIN: 'Quản trị hệ thống' }[me.role] || me.role;
+        sessionBox.innerHTML =
+            '<div class="login-session-who"><span class="login-session-av">' + esc((me.fullName || me.email || '?').trim().slice(0, 1).toUpperCase()) + '</span>' +
+            '<div><div class="login-session-name">' + esc(me.fullName || me.email) + '</div>' +
+            '<div class="login-session-sub">' + esc(me.email || '') + ' · ' + esc(roleLabel) + '</div></div></div>' +
+            '<p class="login-session-note">Bạn đang đăng nhập bằng tài khoản này.</p>' +
+            '<a class="login-submit login-continue" id="session-continue" href="' + esc(targetAfterLogin(me)) + '">Tiếp tục với tài khoản này</a>' +
+            '<button type="button" class="login-switch" id="session-switch">Đăng nhập tài khoản khác</button>' +
+            '<button type="button" class="login-switch" id="session-logout">Đăng xuất</button>';
+        sessionBox.hidden = false;
+        showLoginParts(false);
+        document.getElementById('session-switch').addEventListener('click', function () {
+            sessionBox.hidden = true;
+            showLoginParts(true);
+            const hint = document.createElement('p');
+            hint.className = 'login-session-hint';
+            hint.textContent = 'Đang đăng nhập bằng ' + (me.fullName || me.email) + '. Đăng nhập tài khoản khác thành công thì tài khoản hiện tại sẽ được đăng xuất.';
+            form.insertAdjacentElement('beforebegin', hint);
+            identity.focus();
+        });
+        document.getElementById('session-logout').addEventListener('click', function () { Auth.logout('/auth/login.html'); });
+    }
+
+    async function checkSession() {
+        // Có dấu vết phiên (token/người dùng đã lưu) thì ẩn form trong lúc kiểm, tránh nháy form rồi mới đổi.
+        let hint = null;
+        try { hint = Auth.getAccessToken() || Auth.getUser(); } catch { }
+        if (hint) showLoginParts(false);
+        const me = await Ui.currentUser();
+        if (me && me.isAuthenticated !== false && (me.userId || me.accountId || me.email)) {
+            currentMe = me;
+            showSession(me);
+        } else {
+            showLoginParts(true);
+        }
     }
 
     async function postJson(path, body) {
@@ -130,4 +182,5 @@
     Ui.consumeFlash(document.getElementById('flash'));
 
     initGoogle();
+    checkSession();
 })();
