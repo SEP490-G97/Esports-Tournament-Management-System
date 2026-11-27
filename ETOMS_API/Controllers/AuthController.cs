@@ -12,11 +12,20 @@ namespace ETOMS_API.Controllers
 
         [HttpPost("login"), EnableRateLimiting("login")]
         public async Task<IActionResult> Login(LoginRequest req, CancellationToken ct) =>
-            ToResponse(await auth.LoginAsync(req.Email, req.Password, req.Remember, ct), includeUser: true);
+            await LoginResponseAsync(await auth.LoginAsync(req.Email, req.Password, req.Remember, ct), ct);
 
         [HttpPost("google")]
         public async Task<IActionResult> Google(GoogleRequest req, CancellationToken ct) =>
-            ToResponse(await auth.LoginWithGoogleAsync(req.Credential, ct), includeUser: true);
+            await LoginResponseAsync(await auth.LoginWithGoogleAsync(req.Credential, ct), ct);
+
+        // Đăng nhập lại khi trình duyệt vẫn còn phiên cũ (vd đổi sang tài khoản khác): đăng nhập THÀNH CÔNG thì thu hồi
+        // refresh token cũ trong cookie, tránh để phiên cũ còn hiệu lực trong DB tới hết hạn. Đăng nhập thất bại thì
+        // giữ nguyên phiên cũ — người dùng vẫn đăng nhập như trước.
+        private async Task<IActionResult> LoginResponseAsync(AuthResult r, CancellationToken ct)
+        {
+            if (r.IsSuccess) await auth.LogoutAsync(Request.Cookies[CookieName], ct);
+            return ToResponse(r, includeUser: true);
+        }
 
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh(CancellationToken ct)

@@ -423,3 +423,17 @@ color: var(--muted);
 .login-submit, .reg-submit { background: linear-gradient(135deg, var(--primary), #5a82ff); box-shadow: 0 8px 22px rgba(59,108,255,.35); }
 .login-submit:hover, .reg-submit:hover { filter: brightness(1.08); }
 .login-input:focus, .reg-input:focus { box-shadow: 0 0 0 3px rgba(59,108,255,.22); }
+/* Đã đăng nhập mà mở trang Đăng nhập (góp ý 27/11): khung báo tài khoản đang dùng + Tiếp tục / Đổi tài khoản / Đăng xuất. */
+.login-session { display: flex; flex-direction: column; gap: 10px; }
+.login-session[hidden], #login-form[hidden], #login-divider[hidden], #google-login[hidden], #login-foot[hidden] { display: none !important; }
+.login-session-who { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; background: var(--bg-2); outline: 1px var(--border) solid; }
+.login-session-av { width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--primary-050); color: var(--info-ink, var(--primary)); font-weight: 800; font-size: 1.1rem; }
+.login-session-name { font-weight: 700; color: var(--ink); }
+.login-session-sub { font-size: .82rem; color: var(--muted); word-break: break-all; }
+.login-session-note { margin: 2px 0 4px; font-size: .88rem; color: var(--muted); text-align: center; }
+a.login-continue { display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; text-align: center; }
+.login-switch { width: 100%; padding: 11px 14px; border-radius: 10px; background: transparent; color: var(--ink); border: 1px solid var(--border); font-weight: 600; font-size: .9rem; cursor: pointer; }
+.login-switch:hover { border-color: var(--primary); color: var(--primary); }
+#session-logout { border: 0; color: var(--muted); padding: 6px; font-weight: 500; }
+#session-logout:hover { color: var(--danger, #ef4444); }
+.login-session-hint { font-size: .82rem; color: var(--muted); background: var(--bg-2); border-radius: 10px; padding: 10px 12px; margin: 0 0 14px; }

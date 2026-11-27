@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/css/site.css?v=room-20261125" />
-    <link rel="stylesheet" href="/css/loginpage.css?v=ui-2026-11" />
+    <link rel="stylesheet" href="/css/loginpage.css?v=session-20261127" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -23,6 +23,9 @@
                     <h1 class="login-title">Đăng nhập</h1>
                 </div>
                 <div id="flash"></div>
+
+                <!-- Đã đăng nhập mà vẫn mở trang này: báo đang dùng tài khoản nào, cho tiếp tục hoặc đổi tài khoản -->
+                <div id="login-session" class="login-session" hidden></div>
 
                 <form id="login-form" class="login-form" novalidate>
                     <div class="login-field">
@@ -59,11 +62,11 @@
 
                     <button type="submit" id="login-submit" class="login-submit">Đăng nhập</button>
                 </form>
-                <div class="login-divider"><span>hoặc</span></div>
+                <div class="login-divider" id="login-divider"><span>hoặc</span></div>
 
                 <div id="google-login" class="login-google-wrap"></div>
 
-                <div class="login-foot">
+                <div class="login-foot" id="login-foot">
                     <span>Chưa có tài khoản?</span>
                     <a id="register-link" href="/auth/register.html">Đăng ký</a>
                 </div>
@@ -79,7 +82,7 @@
     <script src="/js/api.js?v=form-20261118"></script>
     <script src="/js/ui.js?v=pager-20261127"></script>
     <script src="/js/layout.js?v=adm-20261124"></script>
-    <script src="/js/pages/login.js?v=adm-20261118"></script>
+    <script src="/js/pages/login.js?v=session-20261127"></script>
     <script>
                 // Hiện / ẩn mật khẩu
                 (function () {
