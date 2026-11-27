@@ -1,5 +1,5 @@
 // Trang Tin tức: tin ETOMS (Admin đăng) + tin esports từ RSS các báo (NewsController / NewsFeedService).
-// Bấm tin nào cũng đọc NGAY TRÊN ETOMS (?id= tin ETOMS, ?ext= tin báo). Tin báo chỉ có tiêu đề, ảnh, đoạn mô tả do
+// Bấm tin nào cũng mở TRANG ĐỌC RIÊNG trên ETOMS (?id= tin ETOMS, ?ext= tin báo). Tin báo chỉ có tiêu đề, ảnh, tóm tắt do
 // báo cung cấp qua RSS + nút đọc toàn bài trên trang báo (toàn văn thuộc bản quyền báo gốc, không chép về).
 // Lọc theo game (?game=VAL, banner đổi theo game), nguồn, khoảng ngày và từ khóa; phân trang số.
 (function () {
@@ -146,31 +146,45 @@
         return (list || []).map(function (r) { return card(r, false); }).join('');
     }
 
-    // ?id= : đọc một bài tin ETOMS ngay trên trang.
-    async function openArticle(id) {
+    // Trang đọc tin (góp ý 27/11): mở một tin là sang trang đọc riêng — ẩn banner, bộ lọc, ô tìm và danh sách,
+    // chỉ còn bài đọc + "Tin khác". Đường dẫn: "Tin tức › <game>" để quay lại danh sách.
+    function crumb(gameCode) {
+        var g = gameOf(gameCode);
+        return '<nav class="news-crumb" aria-label="Đường dẫn"><a href="/news/index.html">Tin tức</a>' +
+            (g ? '<span aria-hidden="true">›</span><a href="/news/index.html?game=' + encodeURIComponent(g.code) + '">' + esc(g.title) + '</a>' : '') + '</nav>';
+    }
+    function relatedBlock(list, gameCode) {
+        var html = relatedCards(list);
+        var g = gameOf(gameCode);
+        return html ? '<div class="news-related-block"><h3 class="section-title">Tin khác' + (g ? ' về ' + esc(g.title) : '') + '</h3>' +
+            '<div class="news-cards news-cards-compact">' + html + '</div></div>' : '';
+    }
+
+    // ?id= : đọc một bài tin ETOMS.
+    async function openArticle(id, latest) {
         var box = el('news-article');
         state.reading = true;
-        el('news-list-title').textContent = 'Tin khác';
+        box.innerHTML = '<div class="empty"><h3>Đang tải tin…</h3></div>';
+        box.hidden = false;
         try {
             var a = await Api.get('/api/news/' + id);
             var body = /<[a-z][\s\S]*>/i.test(a.body || '') ? a.body
                 : (a.body || '').split(/\n{2,}|\r\n\r\n/).map(function (p) { return '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>'; }).join('');
-            box.innerHTML = '<div class="body news-reader"><div class="news-card-meta mb-2"><span class="badge badge-active">ETOMS</span><span>' + esc(fmtDate(a.publishedAt)) + '</span>' +
-                (a.author ? '<span>' + esc(a.author) + '</span>' : '') + '</div><h2 class="mb-3">' + esc(a.title) + '</h2>' +
-                '<div class="rulebook-content">' + body + '</div><a class="btn btn-ghost mt-3" href="/news/index.html">← Tất cả tin</a></div>';
-            box.hidden = false;
+            var others = (latest || []).filter(function (n) { return n.readerUrl !== '/news/index.html?id=' + id; }).slice(0, 6);
+            box.innerHTML = crumb(a.gameCode) + '<div class="body news-reader"><div class="news-card-meta mb-2"><span class="badge badge-active">ETOMS</span><span>' + esc(fmtDate(a.publishedAt)) + '</span>' +
+                (a.author ? '<span>' + esc(a.author) + '</span>' : '') + '</div><h1 class="news-reader-title">' + esc(a.title) + '</h1>' +
+                '<div class="rulebook-content">' + body + '</div><a class="btn btn-ghost mt-3" href="/news/index.html">← Tất cả tin</a></div>' +
+                relatedBlock(others, null);
             document.title = a.title + ' · ETOMS';
         } catch (err) {
-            box.innerHTML = '<div class="empty"><h3>Không tìm thấy bài tin</h3><p>' + esc(err.message || '') + '</p></div>';
-            box.hidden = false;
+            box.innerHTML = '<div class="empty"><h3>Không tìm thấy bài tin</h3><p>' + esc(err.message || '') + '</p><a class="btn btn-ghost" href="/news/index.html">← Tất cả tin</a></div>';
         }
     }
 
-    // ?ext= : đọc một tin báo ngay trên ETOMS.
+    // ?ext= : đọc một tin báo trên ETOMS — tóm tắt do báo cung cấp, toàn văn đọc ở báo gốc.
     async function openExternal(id) {
         var box = el('news-article');
         state.reading = true;
-        el('news-list-title').textContent = 'Tin mới nhất';
         box.innerHTML = '<div class="empty"><h3>Đang tải tin…</h3></div>';
         box.hidden = false;
         try {
@@ -182,21 +196,30 @@
                 if (!acc.length || acc[acc.length - 1].split(/[.!?…]\s/).length >= 3) acc.push(s); else acc[acc.length - 1] += ' ' + s;
                 return acc;
             }, []);
-            var related = relatedCards(a.related);
-            box.innerHTML = '<div class="body news-reader">' +
-                '<div class="news-card-meta mb-2"><span class="badge badge-soft">' + esc(a.sourceName) + '</span><span>' + esc(fmtDate(a.publishedAt)) + '</span></div>' +
-                '<h2 class="mb-3">' + esc(a.title) + '</h2>' +
+            var g = gameOf(a.gameCode);
+            var srcHost = '';
+            try { srcHost = src ? new URL(src).hostname.replace(/^www\./, '') : ''; } catch (e) { srcHost = ''; }
+            box.innerHTML = crumb(a.gameCode) + '<div class="body news-reader">' +
+                '<div class="news-card-meta mb-2"><span class="badge badge-soft">' + esc(a.sourceName) + '</span>' +
+                (g ? '<span class="badge badge-soft">' + esc(g.title) + '</span>' : '') + '<span>' + esc(fmtDate(a.publishedAt)) + '</span></div>' +
+                '<h1 class="news-reader-title">' + esc(a.title) + '</h1>' +
                 (img ? '<img class="news-reader-img" src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') +
-                '<div class="rulebook-content">' + (paras.length ? paras.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') : '<p>Báo chưa cung cấp đoạn mô tả cho tin này.</p>') + '</div>' +
-                '<p class="field-hint">Phần trên là đoạn giới thiệu do ' + esc(a.sourceName) + ' cung cấp. Toàn văn bài viết thuộc bản quyền của báo ' + esc(a.sourceName) + '.</p>' +
+                '<section class="news-summary" aria-labelledby="news-summary-title">' +
+                '<h2 id="news-summary-title" class="news-summary-title">Tóm tắt</h2>' +
+                '<div class="rulebook-content">' + (paras.length ? paras.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') : '<p>Báo chưa cung cấp đoạn tóm tắt cho tin này.</p>') + '</div>' +
+                '<dl class="news-facts">' +
+                '<div><dt>Nguồn</dt><dd>' + esc(a.sourceName) + (srcHost ? ' (' + esc(srcHost) + ')' : '') + '</dd></div>' +
+                (fmtDate(a.publishedAt) ? '<div><dt>Đăng lúc</dt><dd>' + esc(fmtDate(a.publishedAt)) + '</dd></div>' : '') +
+                (g ? '<div><dt>Tựa game</dt><dd>' + esc(g.title) + '</dd></div>' : '') +
+                '</dl></section>' +
+                '<p class="field-hint">Tóm tắt do báo ' + esc(a.sourceName) + ' cung cấp. Toàn văn bài viết thuộc bản quyền của báo ' + esc(a.sourceName) + ', bấm nút dưới để đọc đầy đủ.</p>' +
                 '<div class="btn-row mt-2">' +
                 (src ? '<a class="btn btn-primary" href="' + esc(src) + '" target="_blank" rel="noopener noreferrer nofollow">Đọc toàn bài tại ' + esc(a.sourceName) + ' ↗</a>' : '') +
-                '<a class="btn btn-ghost" href="/news/index.html">← Tất cả tin</a></div>' +
+                '<a class="btn btn-ghost" href="/news/index.html' + (g ? '?game=' + encodeURIComponent(g.code) : '') + '">← Tất cả tin</a></div>' +
                 '</div>' +
-                (related ? '<div class="news-related-block"><h3 class="section-title">Tin khác' + (a.gameCode && gameOf(a.gameCode) ? ' về ' + esc(gameOf(a.gameCode).title) : '') + '</h3>' +
-                    '<div class="news-cards news-cards-compact">' + related + '</div></div>' : '');
+                relatedBlock(a.related, a.gameCode);
             document.title = a.title + ' · ETOMS';
-            box.scrollIntoView({ block: 'start' });
+            window.scrollTo(0, 0);
         } catch (err) {
             box.innerHTML = '<div class="empty"><h3>Không mở được tin</h3><p>' + esc(err.message || '') + '</p><a class="btn btn-ghost" href="/news/index.html">← Tất cả tin</a></div>';
         }
@@ -210,9 +233,16 @@
 
         var id = Ui.qsInt('id');
         var ext = params.get('ext');
-        // Tin báo nạp sau danh sách để có tên game cho phần "Tin khác".
-        var afterList = ext && /^[a-z]+-[0-9a-f]{16}$/.test(ext) ? function () { openExternal(ext); } : null;
-        if (id) openArticle(id);
+        if (!(ext && /^[a-z]+-[0-9a-f]{16}$/.test(ext))) ext = null;
+        if (id || ext) {
+            // Trang đọc riêng: không dựng bộ lọc/danh sách. Lấy trang tin đầu để có tên game + tin khác cho bài ETOMS.
+            document.querySelector('main').classList.add('news-reading');
+            Api.get('/api/news?page=1&pageSize=8').catch(function () { return {}; }).then(function (res) {
+                games = res.games || [];
+                if (id) openArticle(id, res.items); else openExternal(ext);
+            });
+            return;
+        }
 
         el('news-games').addEventListener('click', function (e) {
             var b = e.target.closest('[data-game]');
@@ -247,6 +277,6 @@
             el('news-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         syncUrl();
-        load().then(function () { if (afterList) afterList(); });
+        load();
     });
 })();

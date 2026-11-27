@@ -14,7 +14,7 @@ public sealed class UpdateProfileRequest
     public DateOnly? DateOfBirth { get; set; }
 
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
-    [RegularExpression(@"^0\d{9,10}$", ErrorMessage = "Số điện thoại không hợp lệ (phải bắt đầu bằng 0, 10-11 chữ số).")]
+    [RegularExpression(@"^0\d{9}$", ErrorMessage = "Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng 0.")]
     public string? Phone { get; set; }
 
     [StringLength(500, ErrorMessage = "Liên kết mạng xã hội tối đa 500 ký tự.")]
@@ -61,7 +61,20 @@ public sealed record PublicProfileResponse(
     string? AvatarUrl,
     IReadOnlyList<PublicGameAccountResponse> GameAccounts,
     IReadOnlyList<PublicTeamResponse> Teams,
-    IReadOnlyList<PublicTitleResponse> Titles);
+    IReadOnlyList<PublicTitleResponse> Titles,
+    PlayerStatsResponse? Stats = null);
+
+// Report 3 §3.3.9 "Thông số cốt lõi": chỉ tính trận đã có kết quả xác nhận (báo cáo mù khớp, VAR phán quyết,
+// thắng do đối thủ vắng mặt, hoặc hủy trận xử thua cả hai). Trận đang tranh chấp/chưa đá không tính.
+// WinRate: phần trăm làm tròn, null khi chưa có trận nào.
+public sealed record PlayerStatsResponse(
+    int MatchesPlayed,
+    int Wins,
+    int Losses,
+    int? WinRate,
+    int TournamentsPlayed,
+    int Championships,
+    int Podiums);
 
 public sealed record PublicGameAccountResponse(int GameId, string GameTitle, string InGameName);
 public sealed record PublicTeamResponse(int TeamId, string TeamName, string GameTitle);
@@ -80,4 +93,9 @@ public sealed record MatchHistoryResponse(
     int? ScoreFor,
     int? ScoreAgainst,
     string Status,
-    string StatusLabel);
+    string StatusLabel,
+    string? OpponentName = null,
+    string? GameTitle = null,
+    // WIN / LOSS khi đã có kết quả xác nhận; null khi chưa đá, đang tranh chấp, hoặc trận hủy không xử thua.
+    string? Outcome = null,
+    int TournamentId = 0);

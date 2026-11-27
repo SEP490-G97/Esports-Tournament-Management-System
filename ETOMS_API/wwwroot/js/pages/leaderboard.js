@@ -16,16 +16,21 @@
         var empty = !seasons.length
             ? 'Tựa game này chưa có giải nào kết thúc nên chưa có bảng xếp hạng. Bảng xếp hạng chỉ tính các giải đã kết thúc.'
             : 'Không có đội nào được xếp hạng trong mùa đã chọn.';
-        body.innerHTML = entries.length ? entries.map(function (entry) {
-            var logo = entry.logoUrl
-                ? '<img src="' + Ui.escapeHtml(entry.logoUrl) + '" alt="" width="32" height="32" class="rounded-circle me-2" />'
-                : '';
-            return '<tr><td>#' + entry.rank + '</td><td>' + logo +
-                '<a href="/rankings/team.html?teamId=' + entry.teamId + '">' +
-                Ui.escapeHtml(entry.teamName) + ' [' + Ui.escapeHtml(entry.teamTag) + ']</a></td>' +
-                '<td>' + entry.tournamentPlayed + '</td><td>' + entry.titleCount + '</td>' +
-                '<td>' + entry.achievementPoint + '</td></tr>';
-        }).join('') : row(empty);
+        // Nhiều đội: tìm theo tên/tag + phân trang 20 đội (góp ý 27/11); hạng (#) giữ theo toàn bảng.
+        Ui.tablePager(body, {
+            items: entries, pageSize: 20, cols: COLS, emptyText: empty, placeholder: 'Tìm đội theo tên hoặc tag...',
+            text: function (e) { return e.teamName + ' ' + e.teamTag; },
+            render: function (entry) {
+                var logo = entry.logoUrl
+                    ? '<img src="' + Ui.escapeHtml(entry.logoUrl) + '" alt="" width="32" height="32" class="rounded-circle me-2" />'
+                    : '';
+                return '<tr><td>#' + entry.rank + '</td><td>' + logo +
+                    '<a href="/rankings/team.html?teamId=' + entry.teamId + '">' +
+                    Ui.escapeHtml(entry.teamName) + ' [' + Ui.escapeHtml(entry.teamTag) + ']</a></td>' +
+                    '<td>' + entry.tournamentPlayed + '</td><td>' + entry.titleCount + '</td>' +
+                    '<td>' + entry.achievementPoint + '</td></tr>';
+            }
+        });
     }
 
     async function load() {

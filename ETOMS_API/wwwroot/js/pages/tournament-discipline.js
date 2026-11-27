@@ -58,18 +58,21 @@
         if (!data.teams.length) return '';
         var th = data.penaltyThreshold;
         return '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Tổng điểm phạt theo đội</div>' +
-            '<div class="table-responsive"><table class="data-table"><thead><tr><th>Đội</th><th>Trạng thái</th><th class="text-end">Điểm phạt</th></tr></thead><tbody>' +
-            data.teams.map(function (t) {
-                return '<tr><td><a href="/team/details.html?id=' + t.teamId + '">' + esc(t.teamName) + '</a></td><td>' + esc(t.registrationStatusLabel) + '</td>' +
-                    '<td class="text-end"><strong>' + t.activePoints + '</strong>' + (th ? ' / ' + th : '') + '</td></tr>';
-            }).join('') + '</tbody></table></div></div></section>';
+            '<div data-pen-teams></div></div></section>';
+    }
+    function teamRowHtml(t) {
+        var th = data.penaltyThreshold;
+        return '<tr><td><a href="/team/details.html?id=' + t.teamId + '">' + esc(t.teamName) + '</a></td><td>' + esc(t.registrationStatusLabel) + '</td>' +
+            '<td class="text-end"><strong>' + t.activePoints + '</strong>' + (th ? ' / ' + th : '') + '</td></tr>';
     }
 
     function penaltiesHtml() {
         if (!data.penalties.length)
             return '<section class="card-etoms"><div class="empty"><h3>Chưa có thẻ phạt</h3><p>Thẻ phạt đã cấp và đã hủy của giải sẽ hiện ở đây.</p></div></section>';
         return '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Hồ sơ kỷ luật của giải (' + data.penalties.length + ')</div>' +
-            '<div class="d-grid gap-2">' + data.penalties.map(function (p) {
+            '<div data-pen-list></div></div></section>';
+    }
+    function penaltyRowHtml(p) {
                 var head = esc(p.severityLabel) + (p.points ? ' · ' + p.points + ' điểm' : '') + ' — ' + esc(p.teamName);
                 var sub = esc(p.statusLabel) + ' · ' + esc(p.issuedByName) + ' · ' + fmt(p.issuedAt) + (p.matchId ? ' · <a href="/match/detail.html?id=' + p.matchId + '">Trận #' + p.matchId + '</a>' : '');
                 var link = p.cancelsPenaltyId ? '<div class="hint">Hủy thẻ #' + p.cancelsPenaltyId + '</div>'
@@ -83,12 +86,22 @@
                         '<span class="field-error" data-field-error="Reason"></span></div>' +
                         '<button type="submit" class="btn btn-primary btn-sm">Xác nhận hủy thẻ</button></form>' : '') + '</div>' +
                     (p.canCancel ? '<button type="button" class="btn btn-ghost btn-sm" data-cancel="' + p.penaltyId + '">Hủy thẻ</button>' : '') + '</div>';
-            }).join('') + '</div></div></section>';
     }
 
     function render() {
-        document.getElementById('pen-root').innerHTML = '<div class="d-flex flex-column gap-3">' +
+        var root = document.getElementById('pen-root');
+        root.innerHTML = '<div class="d-flex flex-column gap-3">' +
             thresholdHtml() + issueHtml() + teamsHtml() + penaltiesHtml() + '</div>';
+        // Giải nhiều đội / nhiều thẻ phạt: tìm + phân trang 10 dòng (góp ý 27/11). Nút hủy thẻ gắn sự kiện ở pen-root nên vẫn chạy khi sang trang.
+        Ui.listPager(root.querySelector('[data-pen-teams]'), {
+            items: data.teams, pageSize: 10, listClass: 'list-table', render: teamRowHtml, placeholder: 'Tìm đội...',
+            text: function (t) { return t.teamName + ' ' + t.registrationStatusLabel; },
+            wrap: function (rows) { return '<div class="table-responsive"><table class="data-table"><thead><tr><th>Đội</th><th>Trạng thái</th><th class="text-end">Điểm phạt</th></tr></thead><tbody>' + rows + '</tbody></table></div>'; }
+        });
+        Ui.listPager(root.querySelector('[data-pen-list]'), {
+            items: data.penalties, pageSize: 10, listClass: 'd-grid gap-2', render: penaltyRowHtml, placeholder: 'Tìm thẻ phạt theo đội, lý do, mã...',
+            text: function (p) { return '#' + p.penaltyId + ' ' + p.teamName + ' ' + p.severityLabel + ' ' + p.statusLabel + ' ' + p.reason + ' ' + p.issuedByName; }
+        });
         wire();
     }
 

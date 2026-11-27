@@ -15,9 +15,9 @@ window.TeamMatches = (function () {
         try {
             var list = (await Api.get('/api/teams/' + teamId + '/upcoming-matches')).data || [];
             if (!list.length) { container.innerHTML = '<div class="card-etoms"><div class="empty"><h3>Chưa có trận sắp tới</h3><p>Trận sẽ hiện ở đây khi đội vào nhánh đấu của một giải.</p></div></div>'; return; }
-            // Đội lâu năm có rất nhiều trận: tìm theo đối thủ / tên giải + phân trang 10 trận/trang.
+            // Đội lâu năm có rất nhiều trận: tìm theo đối thủ / tên giải + phân trang 5 trận/trang (góp ý 27/11: 10 dòng vẫn quá dài).
             Ui.listPager(container, {
-                items: list, pageSize: 10, listClass: 'd-grid gap-2', placeholder: 'Tìm trận theo đối thủ, tên giải...',
+                items: list, pageSize: 5, listClass: 'd-grid gap-2', placeholder: 'Tìm trận theo đối thủ, tên giải...',
                 text: function (m) { return m.opponentName + ' ' + m.tournamentName + ' ' + m.statusLabel; },
                 render: function (m) {
                     // Nút "Điểm danh" chỉ khi cửa sổ điểm danh đang mở (30 phút trước giờ đấu tới đúng giờ đấu); quá giờ thì chỉ "Xem trận".

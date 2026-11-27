@@ -34,17 +34,22 @@
 
     function listHtml() {
         if (!data.items.length) return '<section class="card-etoms"><div class="empty"><h3>Chưa có tin nào</h3><p>Tin đã đăng sẽ hiện ở trang giải và trang Tin tức.</p></div></section>';
-        return '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Tin của giải (' + data.items.length + ')</div><div class="d-grid gap-2">' +
-            data.items.map(function (n) {
+        return '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Tin của giải (' + data.items.length + ')</div><div data-news-list></div></div></section>';
+    }
+    function newsRowHtml(n) {
                 return '<div class="member-card"><div class="grow min-w-0"><div class="nm text-truncate">' + esc(n.title) + '</div>' +
                     '<div class="rl">' + STATUS[n.status] + ' · ' + fmt(n.publishedAt || n.updatedAt) + '</div></div>' +
                     (n.status === 'PUBLISHED' ? '<a class="btn btn-ghost btn-sm" href="/news/index.html?id=' + n.contentItemId + '">Xem</a>' : '') +
                     '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + n.contentItemId + '">Sửa</button></div>';
-            }).join('') + '</div></div></section>';
     }
 
     function render() {
         document.getElementById('news-root').innerHTML = '<div class="d-flex flex-column gap-3">' + formHtml() + listHtml() + '</div>';
+        // Nhiều tin: tìm theo tiêu đề + phân trang 8 tin (góp ý 27/11). Nút Sửa gắn sự kiện ở news-root.
+        Ui.listPager(document.querySelector('#news-root [data-news-list]'), {
+            items: data.items, pageSize: 8, listClass: 'd-grid gap-2', render: newsRowHtml, placeholder: 'Tìm tin theo tiêu đề...',
+            text: function (n) { return n.title + ' ' + STATUS[n.status]; }
+        });
         var form = document.getElementById('news-form');
         var cancel = document.getElementById('nf-cancel');
         if (cancel) cancel.addEventListener('click', function () { editingId = null; render(); });

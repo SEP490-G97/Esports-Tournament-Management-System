@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=room-20261125">
+    <link rel="stylesheet" href="/css/site.css?v=auditf-20261127">
 </head>
 <body>
     <div id="site-header"></div>
@@ -22,13 +22,13 @@
         <div id="flash" aria-live="polite"></div>
 
         <section class="card-etoms mb-3"><div class="body">
-            <form id="log-filter" class="row g-3 align-items-end" novalidate>
-                <div class="col-12 col-md-4 field mb-0"><label for="lf-action">Loại thao tác</label><select id="lf-action" name="actionType" class="select"><option value="">Tất cả</option></select></div>
-                <div class="col-12 col-md-4 field mb-0"><label for="lf-keyword">Người thực hiện (tên hoặc email)</label><input id="lf-keyword" name="keyword" class="input" maxlength="100" /><span class="field-error" data-field-error="keyword"></span></div>
-                <div class="col-6 col-md-2 field mb-0"><label for="lf-tour">Mã giải</label><input id="lf-tour" name="tournamentId" type="number" min="1" class="input" /></div>
-                <div class="col-6 col-md-2"><button type="reset" class="btn btn-ghost w-100">Xóa lọc</button></div>
-                <div class="col-6 col-md-3 field mb-0"><label for="lf-from">Từ ngày</label><input id="lf-from" name="from" type="date" class="input" /><span class="field-error" data-field-error="from"></span></div>
-                <div class="col-6 col-md-3 field mb-0"><label for="lf-to">Đến ngày</label><input id="lf-to" name="to" type="date" class="input" /></div>
+            <form id="log-filter" class="row gx-3 gy-4 align-items-end audit-filter" novalidate>
+                <div class="col-12 col-md-4 field"><label for="lf-action">Loại thao tác</label><select id="lf-action" name="actionType" class="select"><option value="">Tất cả</option></select></div>
+                <div class="col-12 col-md-4 field"><label for="lf-keyword">Người thực hiện (tên hoặc email)</label><input id="lf-keyword" name="keyword" class="input" maxlength="100" /><span class="field-error" data-field-error="keyword"></span></div>
+                <div class="col-12 col-md-4 field"><label for="lf-tour">Mã giải</label><input id="lf-tour" name="tournamentId" type="number" min="1" class="input" /></div>
+                <div class="col-6 col-md-4 field"><label for="lf-from">Từ ngày</label><input id="lf-from" name="from" type="date" class="input" /><span class="field-error" data-field-error="from"></span></div>
+                <div class="col-6 col-md-4 field"><label for="lf-to">Đến ngày</label><input id="lf-to" name="to" type="date" class="input" /></div>
+                <div class="col-12 col-md-4 audit-filter-actions"><button type="reset" class="btn btn-ghost">Xóa lọc</button></div>
             </form>
         </div></section>
 
@@ -39,7 +39,7 @@
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=login-20261115"></script>
     <script src="/js/api.js?v=form-20261118"></script>
-    <script src="/js/ui.js?v=warn-20261125"></script>
+    <script src="/js/ui.js?v=pager-20261127"></script>
     <script src="/js/layout.js?v=adm-20261124"></script>
     <script src="/js/pages/audit-log.js?v=af-20261123" defer></script>
 </body>

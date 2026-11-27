@@ -59,9 +59,23 @@
             '<div class="section-title" style="margin:0 0 14px">' + Ui.escapeHtml(title) + '</div>' + bodyHtml + '</div></div></div>';
     }
 
+    // Danh sách trong thẻ (trận hôm nay, đơn chờ, tranh chấp) có thể rất dài ở giải lớn: phân trang 5 dòng (góp ý 27/11).
+    // Trả về chỗ giữ, vẽ bằng Ui.listPager sau khi gắn HTML vào trang.
+    var pendingLists = [];
     function listOrEmpty(items, rowFn, emptyText) {
         if (!items.length) return '<div style="color:var(--muted);font-size:.9rem">' + Ui.escapeHtml(emptyText) + '</div>';
-        return items.map(rowFn).join('');
+        pendingLists.push({ items: items, render: rowFn });
+        return '<div data-dash-list="' + (pendingLists.length - 1) + '"></div>';
+    }
+    function drawPendingLists(root) {
+        pendingLists.forEach(function (l, i) {
+            Ui.listPager(root.querySelector('[data-dash-list="' + i + '"]'), {
+                items: l.items, render: l.render, pageSize: 5, listClass: 'dash-list',
+                text: function (x) { return Object.keys(x).map(function (k) { var v = x[k]; return v !== null && typeof v !== 'object' ? v : ''; }).join(' '); },
+                placeholder: 'Tìm trong danh sách...'
+            });
+        });
+        pendingLists = [];
     }
 
     function row(name, detail, badgeHtml) {
@@ -101,6 +115,7 @@
             section('Tranh chấp đang mở', disputeRows) +
             section('Tổng quan', overview) +
             '</div>';   // các lối tắt (quản lý, thể lệ, trọng tài…) đã có ở thanh bên — không lặp lại ở đây
+        drawPendingLists(document.getElementById('dashboard-root'));
     }
 
     // ===== Mục 28: Tiến trình giải (bắt đầu / kết thúc theo việc thật, chưa đủ đội, gia hạn đăng ký) =====

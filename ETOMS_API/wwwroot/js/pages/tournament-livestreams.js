@@ -65,7 +65,10 @@
         if (!data.streams.length)
             return '<section class="card-etoms"><div class="empty"><h3>Chưa có livestream</h3><p>Thêm link đầu tiên ở khung bên cạnh.</p></div></section>';
         return '<section class="card-etoms"><div class="body"><div class="section-title mt-0">Danh sách (' + data.streams.length + ')</div>' +
-            '<div class="d-grid gap-2">' + data.streams.map(function (s) {
+            '<div data-stream-list></div>' +
+            '<a class="btn btn-ghost mt-3" href="/tournament/live.html?id=' + tournamentId + '">Xem trang Trực tiếp công khai</a></div></section>';
+    }
+    function streamRowHtml(s) {
                 return '<div class="member-card stream-row' + (s.livestreamId === editingId ? ' editing' : '') + '">' +
                     '<div class="grow min-w-0"><div class="nm text-truncate">' + esc(s.title || s.platformLabel) + '</div>' +
                     '<div class="rl text-truncate">' + esc(s.platformLabel) + ' · ' + esc(s.matchLabel || 'Livestream chung của giải') + '</div>' +
@@ -74,16 +77,20 @@
                     (s.embedUrl ? '' : '<span class="badge badge-gold" title="' + esc(s.platformLabel) + ' không cho phát nhúng link này; người xem bấm nút để mở sang ' + esc(s.platformLabel) + '">Xem trên ' + esc(s.platformLabel) + '</span>') +
                     (data.tournamentStatus === 'CANCELLED' ? '' : '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + s.livestreamId + '">Sửa</button>') +
                     '<button type="button" class="btn btn-ghost btn-sm text-danger-etoms" data-delete="' + s.livestreamId + '">Xóa</button></div></div>';
-            }).join('') + '</div>' +
-            '<a class="btn btn-ghost mt-3" href="/tournament/live.html?id=' + tournamentId + '">Xem trang Trực tiếp công khai</a></div></section>';
     }
 
     function render() {
         var cancelled = data.tournamentStatus === 'CANCELLED';
-        document.getElementById('stream-root').innerHTML =
+        var root = document.getElementById('stream-root');
+        root.innerHTML =
             (cancelled ? '<div class="alert alert-danger">Giải đã hủy nên không thêm hoặc sửa livestream được. Bạn vẫn có thể xóa link cũ.</div>' : '') +
             '<div class="d-flex flex-column gap-3">' + (cancelled ? '' : formHtml()) +
             listHtml() + '</div>';
+        // Giải nhiều trận có nhiều link: tìm + phân trang 8 dòng (góp ý 27/11). Nút Sửa/Xóa gắn sự kiện ở stream-root.
+        Ui.listPager(root.querySelector('[data-stream-list]'), {
+            items: data.streams, pageSize: 8, listClass: 'd-grid gap-2', render: streamRowHtml, placeholder: 'Tìm livestream theo tiêu đề, trận, nền tảng...',
+            text: function (s) { return (s.title || '') + ' ' + s.platformLabel + ' ' + (s.matchLabel || '') + ' ' + s.streamUrl; }
+        });
         wireForm();
     }
 
