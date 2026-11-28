@@ -363,7 +363,83 @@ var Ui = (function () {
         });
     }
 
+    // Nút con mắt hiện / ẩn mật khẩu cho MỌI ô mật khẩu (góp ý 28/11: đổi mật khẩu, đăng ký, đặt lại mật khẩu trước đây
+    // không xem lại được mình đã gõ gì). Trang đăng nhập đã có nút riêng (#toggle-password) nên bỏ qua ô đã có nút.
+    var EYE_OPEN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+    var EYE_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+    function addPasswordToggles(root) {
+        (root || document).querySelectorAll('input[type=password]:not([data-pw-eye])').forEach(function (input) {
+            input.setAttribute('data-pw-eye', '1');
+            if (input.parentElement && input.parentElement.querySelector('.login-eye, .pw-eye')) return;
+            var host = input.parentElement;
+            // Khung có sẵn của các trang tài khoản (đã position: relative): gắn nút vào luôn, thay biểu tượng ổ khóa trang trí.
+            var inBox = host && host.matches('.login-input-box, .reg-box');
+            if (inBox) {
+                var lock = host.querySelector('.reg-icon');
+                if (lock) lock.remove();
+            } else {
+                host = document.createElement('span');
+                host.className = 'pw-wrap';
+                input.parentNode.insertBefore(host, input);
+                host.appendChild(input);
+            }
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pw-eye';
+            btn.setAttribute('aria-label', 'Hiện mật khẩu');
+            btn.title = 'Hiện mật khẩu';
+            btn.innerHTML = EYE_OPEN;
+            btn.addEventListener('click', function () {
+                var show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                btn.innerHTML = show ? EYE_OFF : EYE_OPEN;
+                btn.setAttribute('aria-label', show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+                btn.title = show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu';
+                input.focus();
+            });
+            input.classList.add('has-eye');
+            host.appendChild(btn);
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { addPasswordToggles(); });
+    else addPasswordToggles();
+
+    // Kiểm email người cần mời vào đơn vị NGAY khi đang gõ (góp ý 28/11): sai email, không phải Ban tổ chức, đã thuộc đơn vị
+    // khác… thì báo luôn dưới ô, và đánh dấu ô (data-invitee-bad) để form chặn gửi. getOrgId: hàm trả mã đơn vị (hoặc null
+    // khi đang lập đơn vị mới).
+    function inviteeCheck(input, getOrgId) {
+        if (!input || input.dataset.inviteeCheck) return;
+        input.dataset.inviteeCheck = '1';
+        var hint = document.createElement('span');
+        hint.className = 'invitee-check';
+        hint.setAttribute('aria-live', 'polite');
+        input.insertAdjacentElement('afterend', hint);
+        var timer = null, seq = 0, last = null;
+        function run() {
+            var v = input.value.trim();
+            if (v === last) return;
+            last = v;
+            var my = ++seq;
+            input.removeAttribute('data-invitee-bad');
+            if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { hint.textContent = ''; hint.className = 'invitee-check'; return; }
+            hint.textContent = 'Đang kiểm tra…';
+            hint.className = 'invitee-check';
+            var org = getOrgId ? getOrgId() : null;
+            Api.post('/api/organizations/invitee-check', { Email: v, OrganizationId: org || null }).then(function (res) {
+                if (my !== seq) return;
+                var d = (res && res.data) || res || {};
+                hint.textContent = d.message || '';
+                hint.className = 'invitee-check ' + (d.ok ? 'ok' : 'bad');
+                if (!d.ok) input.setAttribute('data-invitee-bad', d.message || 'Email này không mời được.');
+            }).catch(function () { if (my === seq) { hint.textContent = ''; hint.className = 'invitee-check'; last = null; } });
+        }
+        input.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(run, 500); });
+        input.addEventListener('blur', function () { clearTimeout(timer); run(); });
+        input.form && input.form.addEventListener('reset', function () { last = null; hint.textContent = ''; hint.className = 'invitee-check'; input.removeAttribute('data-invitee-bad'); });
+    }
+
     return {
+        addPasswordToggles: addPasswordToggles, inviteeCheck: inviteeCheck,
         localInputValue: localInputValue, liveTimeline: liveTimeline, autoFilter: autoFilter,
         parseUtc: parseUtc, fmtDateTime: fmtDateTime, limitList: limitList, pagerHtml: pagerHtml, listPager: listPager, tablePager: tablePager,
         escapeHtml: escapeHtml, safeUrl: safeUrl, avatarInner: avatarInner, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,

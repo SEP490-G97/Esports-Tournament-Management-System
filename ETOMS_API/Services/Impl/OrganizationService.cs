@@ -129,6 +129,9 @@ public sealed class OrganizationService : IOrganizationService
             if (acc.Role != "ORGANIZER" || acc.Status != "ACTIVE")
                 return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.MemberEmails),
                     $"{e} không phải tài khoản Ban tổ chức đang hoạt động. Người này cần được Admin cấp tài khoản Ban tổ chức trước.");
+            var other = await OtherOrganizationNameAsync(acc.AccountId, null, cancellationToken);
+            if (other is not null)
+                return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.MemberEmails), $"{e} đã thuộc đơn vị \"{other}\". {OneOrgRule}");
         }
 
         var creator = await _unitOfWork.Repository<Account>().Query().AsNoTracking()
@@ -556,7 +559,12 @@ public sealed class OrganizationService : IOrganizationService
                 && member.Status != "REMOVED", cancellationToken);
         if (existing)
         {
-            return Result.Failure<OrganizationMemberResponse>("Tài khoản đã là thành viên hoặc đang có lời mời của đơn vị.");
+            return Result<OrganizationMemberResponse>.FieldFailure(nameof(request.Email), "Tài khoản đã là thành viên hoặc đang có lời mời của đơn vị.");
+        }
+        var otherOrg = await OtherOrganizationNameAsync(account.AccountId, organizationId, cancellationToken);
+        if (otherOrg is not null)
+        {
+            return Result<OrganizationMemberResponse>.FieldFailure(nameof(request.Email), $"Tài khoản này đã thuộc đơn vị \"{otherOrg}\". {OneOrgRule}");
         }
 
         var member = new OrganizationMember
@@ -613,6 +621,12 @@ public sealed class OrganizationService : IOrganizationService
         {
             return Result.Failure<OrganizationMemberResponse>("Chỉ người được mời mới được tự xác nhận lời mời này.", StatusCodes.Status403Forbidden);
         }
+        var otherOrg = await OtherOrganizationNameAsync(accountId, organizationId, cancellationToken);
+        if (otherOrg is not null)
+        {
+            return Result.Failure<OrganizationMemberResponse>(
+                $"Bạn đã thuộc đơn vị \"{otherOrg}\" nên không nhận lời mời này được. {OneOrgRule} Bạn có thể từ chối lời mời.", StatusCodes.Status409Conflict);
+        }
 
         member.Status = "ACTIVE";
         member.JoinedAt = DateTime.UtcNow;
@@ -633,6 +647,60 @@ public sealed class OrganizationService : IOrganizationService
             member.InvitedAt,
             member.JoinedAt),
             "Đã chấp nhận lời mời tham gia đơn vị.");
+    }
+
+    // Góp ý 28/11: mỗi tài khoản Ban tổ chức chỉ thuộc MỘT đơn vị. Đơn vị đang có hiệu lực = chờ duyệt / hoạt động /
+    // bị đình chỉ (đơn vị bị từ chối không tính). Lời mời chưa chấp nhận không tính — người được mời tự chọn.
+    private const string OneOrgRule = "Mỗi tài khoản Ban tổ chức chỉ thuộc một đơn vị.";
+    private async Task<string?> OtherOrganizationNameAsync(int accountId, int? exceptOrganizationId, CancellationToken ct) =>
+        await _unitOfWork.Repository<OrganizationMember>().Query().AsNoTracking()
+            .Where(m => m.AccountId == accountId && m.Status == "ACTIVE"
+                && (exceptOrganizationId == null || m.OrganizationId != exceptOrganizationId)
+                && (m.Organization.Status == "ACTIVE" || m.Organization.Status == "PENDING" || m.Organization.Status == "SUSPENDED"))
+            .Select(m => m.Organization.Name)
+            .FirstOrDefaultAsync(ct);
+
+    // Kiểm ngay khi chủ nhiệm gõ email người cần mời (giao diện gọi trước khi bấm Mời / Gửi đơn) — cùng luật với lúc mời thật.
+    public async Task<Result<InviteeCheckResponse>> CheckInviteeAsync(string? email, int? organizationId, int viewerAccountId, CancellationToken ct)
+    {
+        var e = (email ?? string.Empty).Trim();
+        InviteeCheckResponse Bad(string m) => new(false, m);
+        if (e.Length == 0) return Result.Success(Bad("Nhập email tài khoản Ban tổ chức."));
+        var acc = await _unitOfWork.Repository<Account>().Query().AsNoTracking()
+            .Where(a => a.Email == e).Select(a => new { a.AccountId, a.Role, a.Status, a.FullName }).FirstOrDefaultAsync(ct);
+        if (acc is null) return Result.Success(Bad("Không tìm thấy tài khoản có email này."));
+        if (acc.AccountId == viewerAccountId) return Result.Success(Bad("Đây là email của chính bạn."));
+        if (acc.Role != "ORGANIZER" || acc.Status != "ACTIVE")
+            return Result.Success(Bad("Đây không phải tài khoản Ban tổ chức đang hoạt động — người này cần được Admin cấp tài khoản Ban tổ chức trước."));
+        if (organizationId is int oid && await _unitOfWork.Repository<OrganizationMember>().Query()
+                .AnyAsync(m => m.OrganizationId == oid && m.AccountId == acc.AccountId && m.Status != "REMOVED", ct))
+            return Result.Success(Bad("Tài khoản đã là thành viên hoặc đang có lời mời của đơn vị."));
+        var other = await OtherOrganizationNameAsync(acc.AccountId, organizationId, ct);
+        if (other is not null) return Result.Success(Bad($"Tài khoản này đã thuộc đơn vị \"{other}\". {OneOrgRule}"));
+        return Result.Success(new InviteeCheckResponse(true, $"Mời được: {acc.FullName}."));
+    }
+
+    // Người được mời từ chối lời mời (trước đây chỉ có nút Chấp nhận). Báo chủ nhiệm đơn vị.
+    public async Task<Result> DeclineInvitationAsync(int organizationId, int memberId, int accountId, CancellationToken ct)
+    {
+        var member = await _unitOfWork.Repository<OrganizationMember>().Query()
+            .Include(m => m.Organization).Include(m => m.Account)
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.OrganizationMemberId == memberId && m.Status == "INVITED", ct);
+        if (member is null) return Result.Failure("Không tìm thấy lời mời đang chờ xác nhận.", StatusCodes.Status404NotFound);
+        if (member.AccountId != accountId) return Result.Failure("Chỉ người được mời mới được từ chối lời mời này.", StatusCodes.Status403Forbidden);
+        member.Status = "REMOVED";
+        _unitOfWork.Repository<OrganizationMember>().Update(member);
+        var chairIds = await _unitOfWork.Repository<OrganizationMember>().Query().AsNoTracking()
+            .Where(m => m.OrganizationId == organizationId && m.Role == "CHAIR" && m.Status == "ACTIVE").Select(m => m.AccountId).ToListAsync(ct);
+        foreach (var chairId in chairIds)
+            _unitOfWork.Repository<Notification>().Add(new Notification
+            {
+                AccountId = chairId, NotificationType = "SYSTEM", Title = "Lời mời vào đơn vị bị từ chối",
+                Body = $"{member.Account.FullName} đã từ chối lời mời vào đơn vị \"{member.Organization.Name}\". Bạn có thể mời người khác.",
+                LinkUrl = "/organization/details.html?id=" + organizationId, Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow
+            });
+        await _unitOfWork.SaveChangesAsync(ct);
+        return Result.Success("Đã từ chối lời mời.");
     }
 
     public async Task<Result<OrganizationMemberResponse>> UpdateMemberRoleAsync(

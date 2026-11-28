@@ -112,7 +112,8 @@
         tbody.innerHTML = members.map(function (member) {
             var actions = '';
             if (member.status === 'INVITED' && member.accountId === currentUserId) {
-                actions = '<button type="button" class="btn btn-primary btn-xs" data-accept="' + Number(member.organizationMemberId) + '">Chấp nhận</button>';
+                actions = '<button type="button" class="btn btn-primary btn-xs" data-accept="' + Number(member.organizationMemberId) + '">Chấp nhận</button> ' +
+                    '<button type="button" class="btn btn-ghost btn-xs" data-decline="' + Number(member.organizationMemberId) + '">Từ chối</button>';
             } else if (canManageMembers && member.status === 'ACTIVE' && member.role !== 'CHAIR') {
                 actions = '<select class="select member-role" aria-label="Đổi vai trò thành viên" data-member-id="' + Number(member.organizationMemberId) + '">' +
                     [['TOURNAMENT_OPERATOR', 'Điều hành giải'], ['REFEREE', 'Trọng tài'], ['MARKETING', 'Truyền thông']].map(function (r) {
@@ -132,6 +133,17 @@
                     Ui.showAlert(flash, 'success', response.message || 'Đã chấp nhận lời mời.');
                     await loadMembers();
                 } catch (error) { showFailure(error, 'Không thể chấp nhận lời mời.'); }
+            });
+        });
+        tbody.querySelectorAll('[data-decline]').forEach(function (button) {
+            button.addEventListener('click', async function () {
+                if (!(await window.etomsConfirm('Từ chối lời mời vào đơn vị này? Chủ nhiệm đơn vị sẽ được báo.', { title: 'Từ chối lời mời', okText: 'Từ chối' }))) return;
+                button.disabled = true;
+                try {
+                    var response = await Api.post('/api/organizations/' + organizationId + '/members/' + button.dataset.decline + '/decline');
+                    Ui.showAlert(flash, 'success', response.message || 'Đã từ chối lời mời.');
+                    await loadMembers();
+                } catch (error) { button.disabled = false; showFailure(error, 'Không thể từ chối lời mời.'); }
             });
         });
         tbody.querySelectorAll('.member-role').forEach(function (select) {
@@ -167,6 +179,8 @@
 
     function wireManagement() {
         var inviteForm = document.getElementById('invite-form');
+        // Kiểm email ngay khi gõ: đã thuộc đơn vị khác, không phải Ban tổ chức... báo luôn dưới ô (góp ý 28/11).
+        Ui.inviteeCheck(document.getElementById('invite-email'), function () { return organizationId; });
         inviteForm.addEventListener('submit', async function (event) {
             event.preventDefault();
             Ui.clearFieldErrors(inviteForm);
@@ -175,6 +189,10 @@
             var role = document.getElementById('invite-role').value;
             if (!email || !emailInput.validity.valid) {
                 Ui.applyFieldErrors(inviteForm, { Email: 'Nhập đúng email tài khoản Ban tổ chức cần mời.' });
+                return;
+            }
+            if (emailInput.getAttribute('data-invitee-bad')) {
+                Ui.applyFieldErrors(inviteForm, { Email: emailInput.getAttribute('data-invitee-bad') });
                 return;
             }
             try {

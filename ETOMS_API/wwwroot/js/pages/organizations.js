@@ -121,7 +121,8 @@
         root.innerHTML = items.length ? items.map(function (o) {
             var invited = o.memberStatus === 'INVITED';
             var action = invited
-                ? '<button type="button" class="btn btn-primary btn-sm" data-accept-org="' + Number(o.organizationId) + '" data-member="' + Number(o.organizationMemberId) + '">Chấp nhận lời mời</button>'
+                ? '<span class="d-flex gap-2 flex-wrap"><button type="button" class="btn btn-primary btn-sm" data-accept-org="' + Number(o.organizationId) + '" data-member="' + Number(o.organizationMemberId) + '">Chấp nhận lời mời</button>' +
+                  '<button type="button" class="btn btn-ghost btn-sm" data-decline-org="' + Number(o.organizationId) + '" data-member="' + Number(o.organizationMemberId) + '">Từ chối</button></span>'
                 : '<a class="btn btn-ghost btn-sm" href="/organization/details.html?id=' + Number(o.organizationId) + '">' + (o.role === 'CHAIR' ? 'Quản lý đơn vị' : 'Xem đơn vị') + '</a>';
             return '<div class="feature-list-item"><div><div class="item-title">' + Ui.escapeHtml(o.name) + '</div>' +
                 '<div class="item-sub">' + Ui.escapeHtml(o.roleLabel) + ' · ' + Ui.escapeHtml(invited ? 'Được mời, chưa chấp nhận' : o.memberStatusLabel) +
@@ -136,6 +137,21 @@
                     await loadMine();
                 } catch (error) {
                     showFailure(error, 'Không thể chấp nhận lời mời.');
+                    button.disabled = false;
+                }
+            });
+        });
+        // Từ chối lời mời (góp ý 28/11 — trước đây chỉ có nút Chấp nhận). Chủ nhiệm đơn vị được báo.
+        root.querySelectorAll('[data-decline-org]').forEach(function (button) {
+            button.addEventListener('click', async function () {
+                if (!(await window.etomsConfirm('Từ chối lời mời vào đơn vị này? Chủ nhiệm đơn vị sẽ được báo.', { title: 'Từ chối lời mời', okText: 'Từ chối' }))) return;
+                button.disabled = true;
+                try {
+                    var res = await Api.post('/api/organizations/' + button.dataset.declineOrg + '/members/' + button.dataset.member + '/decline');
+                    Ui.showAlert(flash, 'success', res.message || 'Đã từ chối lời mời.');
+                    await loadMine();
+                } catch (error) {
+                    showFailure(error, 'Không thể từ chối lời mời.');
                     button.disabled = false;
                 }
             });

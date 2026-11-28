@@ -34,6 +34,20 @@ public sealed class MyOrganizerRequestController : ApiControllerBase
     [HttpDelete]
     public async Task<IActionResult> Cancel(CancellationToken ct)
         => FromResult(await _svc.CancelAsync(_me.UserId!.Value, ct));
+
+    // Đơn đã duyệt: xem mật khẩu tài khoản Ban tổ chức đúng MỘT lần (góp ý 28/11). Phản hồi có mật khẩu nên không lưu đệm.
+    [HttpPost("organizer-password/reveal")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("login")]
+    public async Task<IActionResult> RevealOrganizerPassword(CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return FromResult(await _svc.RevealOrganizerPasswordAsync(_me.UserId!.Value, ct));
+    }
+
+    // Đã xem rồi mà cần xem lại: gửi yêu cầu, Admin xác nhận thì được xem mật khẩu mới thêm một lần.
+    [HttpPost("organizer-password/reissue")]
+    public async Task<IActionResult> RequestReissue(CancellationToken ct)
+        => FromResult(await _svc.RequestPasswordReissueAsync(_me.UserId!.Value, ct));
 }
 
 // UC-43: quản trị viên xét đơn — duyệt = cấp tài khoản Ban tổ chức RIÊNG; từ chối phải ghi lý do.
@@ -55,10 +69,15 @@ public sealed class AdminOrganizerRequestsController : ApiControllerBase
 
     [HttpPost("{accountId:int}/approve")]
     public async Task<IActionResult> Approve(int accountId, [FromBody] ApproveOrganizerRequest request, CancellationToken ct)
-    {
-        Response.Headers.CacheControl = "no-store";   // có mật khẩu tạm trong phản hồi
-        return FromResult(await _svc.ApproveAsync(_me.UserId!.Value, accountId, request, ct));
-    }
+        => FromResult(await _svc.ApproveAsync(_me.UserId!.Value, accountId, request, ct));
+
+    // Yêu cầu xem lại mật khẩu Ban tổ chức đang chờ Admin xác nhận.
+    [HttpGet("reissues")]
+    public async Task<IActionResult> ListReissues(CancellationToken ct) => Ok(await _svc.ListReissueRequestsAsync(ct));
+
+    [HttpPost("{accountId:int}/reissue-approve")]
+    public async Task<IActionResult> ApproveReissue(int accountId, CancellationToken ct)
+        => FromResult(await _svc.ApprovePasswordReissueAsync(_me.UserId!.Value, accountId, ct));
 
     [HttpPost("{accountId:int}/reject")]
     public async Task<IActionResult> Reject(int accountId, [FromBody] RejectOrganizerRequest request, CancellationToken ct)

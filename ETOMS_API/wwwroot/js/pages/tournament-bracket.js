@@ -62,7 +62,7 @@
         var title = canEdit ? 'Kéo thả lên đội khác (hoặc bấm 2 đội) để đổi chỗ ' + slot.name : 'Xem hành trình của ' + slot.name;
         return '<button type="button" class="bk-team' + (win ? ' win' : '') + (sel ? ' sel' : '') + (canEdit ? ' swap' : '') + (extraClass || '') + '"' +
             (id ? ' data-team="' + id + '" aria-pressed="' + sel + '" title="' + esc(title) + '"' + (canEdit ? ' draggable="true"' : '') : ' disabled') + '>' +
-            '<span class="nm">' + esc(slot.name) + '</span><span class="sc">' + (score === null || score === undefined ? '' : score) + '</span></button>';
+            '<span class="nm" title="' + esc(slot.name) + '">' + esc(slot.name) + '</span><span class="sc">' + (score === null || score === undefined ? '' : score) + '</span></button>';
     }
 
     // ===== Sơ đồ cây (BRK-10) =====
@@ -334,7 +334,7 @@
             var extra = m.statusLabel || '';
             if (!m.isDecided && m.scheduledAt) extra = formatTime(m.scheduledAt);
             function row(name, score, win) {
-                return '<span class="bk-team' + (win ? ' win' : '') + '"><span class="nm">' + esc(name || 'Chưa xác định') + '</span>' +
+                return '<span class="bk-team' + (win ? ' win' : '') + '"><span class="nm" title="' + esc(name || 'Chưa xác định') + '">' + esc(name || 'Chưa xác định') + '</span>' +
                     '<span class="sc">' + (score === null || score === undefined ? '' : score) + '</span></span>';
             }
             return '<a class="bk-match static" href="/match/detail.html?id=' + Number(m.matchId) + '" title="Xem trận và tỉ số trực tiếp">' +

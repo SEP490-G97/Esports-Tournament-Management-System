@@ -20,12 +20,16 @@ public sealed class OrganizerRequestService : IOrganizerRequestService
     private readonly IEmailSender _email;
     private readonly ILogger<OrganizerRequestService> _log;
 
-    public OrganizerRequestService(EtomsDbContext db, IPasswordService passwords, IEmailSender email, ILogger<OrganizerRequestService> log)
+    private readonly bool _canSendMail;
+
+    public OrganizerRequestService(EtomsDbContext db, IPasswordService passwords, IEmailSender email, ILogger<OrganizerRequestService> log,
+        Microsoft.Extensions.Options.IOptions<EmailOptions> emailOptions)
     {
         _db = db;
         _passwords = passwords;
         _email = email;
         _log = log;
+        _canSendMail = emailOptions.Value.CanSend;   // chưa có SMTP thì "gửi" chỉ ghi log — không báo Admin là đã gửi
     }
 
     private static string Label(string status) => status switch
@@ -50,7 +54,128 @@ public sealed class OrganizerRequestService : IOrganizerRequestService
     public async Task<MyOrganizerRequestDto?> GetMineAsync(int accountId, CancellationToken ct = default)
     {
         var a = await _db.Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.AccountId == accountId, ct);
-        return a is null ? null : ToMine(a);
+        if (a is null) return null;
+        var dto = ToMine(a);
+        if (a.OrganizerRequestStatus == "APPROVED")
+        {
+            var (org, state) = await GrantStateAsync(a.AccountId, ct);
+            if (org is not null)
+            {
+                dto.OrganizerEmail = org.Email;
+                dto.PasswordState = state;
+            }
+        }
+        return dto;
+    }
+
+    // ---- Mật khẩu tài khoản Ban tổ chức: xem đúng MỘT lần ở hồ sơ người xin (góp ý 28/11) ----
+    // Không thêm bảng / cột: trạng thái ghi nối tiếp trong nhật ký GRANT_ORGANIZER của người xin (đồng thời là vết kiểm toán).
+    //  * dòng cấp tài khoản ("OrganizerAccountId=..")  -> AVAILABLE (chưa xem)
+    //  * "PasswordRevealed"                             -> REVEALED (đã xem, không hiện lại)
+    //  * "ReissueRequested"                             -> REISSUE_PENDING (chờ Admin xác nhận cho xem lại)
+    //  * "ReissueApproved"                              -> AVAILABLE
+    // Mật khẩu KHÔNG lưu ở đâu: lúc người xin bấm xem, máy chủ tạo mật khẩu mới, đặt cho tài khoản Ban tổ chức và trả về một lần.
+    private const string Revealed = "PasswordRevealed", ReissueRequested = "ReissueRequested", ReissueApproved = "ReissueApproved";
+
+    private async Task<(Account? Org, string State)> GrantStateAsync(int requesterId, CancellationToken ct)
+    {
+        var rows = await _db.AuditLogs.AsNoTracking()
+            .Where(l => l.ActionType == "GRANT_ORGANIZER" && l.ObjectType == "ACCOUNT" && l.ObjectId == requesterId)
+            .OrderBy(l => l.AuditLogId).Select(l => l.AfterValue).ToListAsync(ct);
+        var grant = rows.LastOrDefault(r => (r ?? "").StartsWith("OrganizerAccountId=", StringComparison.Ordinal));
+        var m = System.Text.RegularExpressions.Regex.Match(grant ?? "", @"OrganizerAccountId=(\d+)");
+        if (!m.Success) return (null, "NONE");
+        var id = int.Parse(m.Groups[1].Value);
+        var org = await _db.Accounts.FirstOrDefaultAsync(x => x.AccountId == id && x.Role == AccountRoles.Organizer, ct);
+        var last = rows[^1] ?? "";
+        var state = last == Revealed ? "REVEALED" : last == ReissueRequested ? "REISSUE_PENDING" : "AVAILABLE";
+        return (org, state);
+    }
+
+    private void Mark(int actorId, int requesterId, string marker, string reason) => _db.AuditLogs.Add(new AuditLog
+    {
+        ActorAccountId = actorId, ActionType = "GRANT_ORGANIZER", ObjectType = "ACCOUNT", ObjectId = requesterId,
+        AfterValue = marker, Reason = reason, CreatedAt = DateTime.UtcNow
+    });
+
+    public async Task<Result<RevealedOrganizerPassword>> RevealOrganizerPasswordAsync(int accountId, CancellationToken ct = default)
+    {
+        var requester = await _db.Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.AccountId == accountId, ct);
+        if (requester is null || requester.OrganizerRequestStatus != "APPROVED")
+            return Result.Failure<RevealedOrganizerPassword>("Bạn chưa có đơn xin làm Ban tổ chức nào được duyệt.", StatusCodes.Status404NotFound);
+        var (org, state) = await GrantStateAsync(accountId, ct);
+        if (org is null)
+            return Result.Failure<RevealedOrganizerPassword>("Không tìm thấy tài khoản Ban tổ chức đã cấp cho bạn. Hãy liên hệ quản trị viên.", StatusCodes.Status404NotFound);
+        if (state != "AVAILABLE")
+            return Result.Failure<RevealedOrganizerPassword>(state == "REISSUE_PENDING"
+                ? "Yêu cầu xem lại mật khẩu đang chờ quản trị viên xác nhận."
+                : "Mật khẩu đã được hiện một lần và không hiện lại. Hãy gửi yêu cầu xem lại để quản trị viên xác nhận.", StatusCodes.Status409Conflict);
+        var temp = TemporaryPassword();
+        org.PasswordHash = _passwords.Hash(temp);
+        Mark(accountId, accountId, Revealed, "Người xin đã xem mật khẩu tài khoản Ban tổ chức (hiện một lần).");
+        await _db.SaveChangesAsync(ct);
+        return Result.Success(new RevealedOrganizerPassword(org.Email, temp), "Mật khẩu chỉ hiện một lần — hãy sao chép và cất giữ.");
+    }
+
+    public async Task<Result> RequestPasswordReissueAsync(int accountId, CancellationToken ct = default)
+    {
+        var requester = await _db.Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.AccountId == accountId, ct);
+        if (requester is null || requester.OrganizerRequestStatus != "APPROVED")
+            return Result.Failure("Bạn chưa có đơn xin làm Ban tổ chức nào được duyệt.", StatusCodes.Status404NotFound);
+        var (org, state) = await GrantStateAsync(accountId, ct);
+        if (org is null) return Result.Failure("Không tìm thấy tài khoản Ban tổ chức đã cấp cho bạn.", StatusCodes.Status404NotFound);
+        if (state == "AVAILABLE") return Result.Failure("Bạn vẫn còn một lần xem mật khẩu — không cần xin lại.", StatusCodes.Status409Conflict);
+        if (state == "REISSUE_PENDING") return Result.Failure("Yêu cầu đã gửi, đang chờ quản trị viên xác nhận.", StatusCodes.Status409Conflict);
+        Mark(accountId, accountId, ReissueRequested, "Người xin xin xem lại mật khẩu tài khoản Ban tổ chức.");
+        var admins = await _db.Accounts.AsNoTracking().Where(x => x.Role == AccountRoles.Admin && x.Status == "ACTIVE").Select(x => x.AccountId).ToListAsync(ct);
+        foreach (var adminId in admins)
+            _db.Notifications.Add(new Notification
+            {
+                AccountId = adminId, NotificationType = "SYSTEM", Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow,
+                Title = "Yêu cầu xem lại mật khẩu Ban tổ chức",
+                Body = $"{requester.FullName} xin xem lại mật khẩu tài khoản Ban tổ chức {org.Email}. Xác nhận ở Bảng quản trị.",
+                LinkUrl = "/admin/index.html#organizer-reissues"
+            });
+        await _db.SaveChangesAsync(ct);
+        return Result.Success("Đã gửi yêu cầu. Quản trị viên xác nhận xong bạn sẽ nhận thông báo và xem được mật khẩu mới một lần.");
+    }
+
+    public async Task<IReadOnlyList<OrganizerReissueItemDto>> ListReissueRequestsAsync(CancellationToken ct = default)
+    {
+        var rows = await _db.AuditLogs.AsNoTracking()
+            .Where(l => l.ActionType == "GRANT_ORGANIZER" && l.ObjectType == "ACCOUNT" && l.ObjectId != null)
+            .OrderBy(l => l.AuditLogId).Select(l => new { l.ObjectId, l.AfterValue, l.CreatedAt }).ToListAsync(ct);
+        var pending = rows.GroupBy(r => r.ObjectId!.Value).Select(g => g.Last()).Where(r => r.AfterValue == ReissueRequested).ToList();
+        if (pending.Count == 0) return Array.Empty<OrganizerReissueItemDto>();
+        var ids = pending.Select(p => p.ObjectId!.Value).ToList();
+        var people = await _db.Accounts.AsNoTracking().Where(a => ids.Contains(a.AccountId))
+            .Select(a => new { a.AccountId, a.FullName, a.Email, a.AvatarUrl }).ToListAsync(ct);
+        var list = new List<OrganizerReissueItemDto>();
+        foreach (var p in pending)
+        {
+            var who = people.FirstOrDefault(x => x.AccountId == p.ObjectId);
+            if (who is null) continue;
+            var (org, _) = await GrantStateAsync(who.AccountId, ct);
+            list.Add(new OrganizerReissueItemDto(who.AccountId, who.FullName, who.Email, who.AvatarUrl, org?.Email, p.CreatedAt));
+        }
+        return list;
+    }
+
+    public async Task<Result> ApprovePasswordReissueAsync(int adminAccountId, int requesterAccountId, CancellationToken ct = default)
+    {
+        var (org, state) = await GrantStateAsync(requesterAccountId, ct);
+        if (org is null || state != "REISSUE_PENDING")
+            return Result.Failure("Không có yêu cầu xem lại mật khẩu nào đang chờ của người này.", StatusCodes.Status404NotFound);
+        Mark(adminAccountId, requesterAccountId, ReissueApproved, "Quản trị viên xác nhận cho người xin xem lại mật khẩu tài khoản Ban tổ chức.");
+        _db.Notifications.Add(new Notification
+        {
+            AccountId = requesterAccountId, NotificationType = "SYSTEM", Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow,
+            Title = "Đã được xem lại mật khẩu Ban tổ chức",
+            Body = $"Quản trị viên đã xác nhận. Mở mục Xin làm Ban tổ chức để xem mật khẩu mới của {org.Email} (chỉ hiện một lần).",
+            LinkUrl = "/profile/index.html#organizer-request"
+        });
+        await _db.SaveChangesAsync(ct);
+        return Result.Success("Đã xác nhận — người xin xem được mật khẩu mới một lần.");
     }
 
     public async Task<Result<MyOrganizerRequestDto>> SubmitAsync(int accountId, SubmitOrganizerRequest request, CancellationToken ct = default)
@@ -169,20 +294,22 @@ public sealed class OrganizerRequestService : IOrganizerRequestService
         {
             AccountId = requester.AccountId, NotificationType = "SYSTEM", Channel = "BOTH", IsRead = false, SentAt = now,
             Title = "Đơn xin làm Ban tổ chức đã được duyệt",
-            Body = $"Quản trị viên đã cấp tài khoản Ban tổ chức riêng: {email}. Đăng nhập bằng email này với mật khẩu tạm được gửi tới hộp thư đó, rồi đổi mật khẩu. Tài khoản tuyển thủ hiện tại của bạn giữ nguyên.",
-            LinkUrl = "/auth/login.html"
+            Body = $"Quản trị viên đã cấp tài khoản Ban tổ chức riêng: {email}. Mở mục Xin làm Ban tổ chức trong hồ sơ để xem mật khẩu (chỉ hiện một lần). Tài khoản tuyển thủ hiện tại của bạn giữ nguyên.",
+            LinkUrl = "/profile/index.html#organizer-request"
         });
         await _db.SaveChangesAsync(ct);
 
+        // Thư KHÔNG kèm mật khẩu (góp ý 28/11): mật khẩu chỉ xem một lần ở hồ sơ người xin.
         var sent = await TrySendAsync(email, "ETOMS — Tài khoản Ban tổ chức của bạn",
-            $"<p>Chào {WebUtility.HtmlEncode(name)},</p><p>Quản trị viên ETOMS đã cấp cho bạn tài khoản <b>Ban tổ chức</b>.</p>" +
-            $"<p>Email đăng nhập: <b>{WebUtility.HtmlEncode(email)}</b><br/>Mật khẩu tạm: <b>{WebUtility.HtmlEncode(temp)}</b></p>" +
-            "<p>Hãy đăng nhập và đổi mật khẩu ngay. Tài khoản Ban tổ chức không tham gia đội thi đấu; tài khoản tuyển thủ của bạn vẫn giữ nguyên.</p>", ct);
+            $"<p>Chào {WebUtility.HtmlEncode(name)},</p><p>Quản trị viên ETOMS đã cấp cho bạn tài khoản <b>Ban tổ chức</b>: <b>{WebUtility.HtmlEncode(email)}</b>.</p>" +
+            "<p>Mật khẩu xem một lần tại tài khoản tuyển thủ của người xin: Hồ sơ → Xin làm Ban tổ chức. Tài khoản Ban tổ chức không tham gia đội thi đấu.</p>", ct);
         await TrySendAsync(requester.Email, "ETOMS — Đơn xin làm Ban tổ chức đã được duyệt",
-            $"<p>Chào {WebUtility.HtmlEncode(requester.FullName)},</p><p>Đơn của bạn đã được duyệt. Tài khoản Ban tổ chức riêng: <b>{WebUtility.HtmlEncode(email)}</b> (mật khẩu tạm đã gửi tới hộp thư đó).</p>", ct);
+            $"<p>Chào {WebUtility.HtmlEncode(requester.FullName)},</p><p>Đơn của bạn đã được duyệt. Tài khoản Ban tổ chức riêng: <b>{WebUtility.HtmlEncode(email)}</b>.</p>" +
+            "<p>Đăng nhập ETOMS bằng tài khoản tuyển thủ, vào Hồ sơ → Xin làm Ban tổ chức để xem mật khẩu (chỉ hiện một lần).</p>", ct);
 
-        return Result.Success(new ApproveOrganizerResult { OrganizerAccountId = organizer.AccountId, OrganizerEmail = email, TemporaryPassword = temp, EmailSent = sent },
-            "Đã cấp tài khoản Ban tổ chức " + email + ".");
+        // Admin không nhận mật khẩu: tài khoản mang mật khẩu ngẫu nhiên không ai biết cho tới khi người xin bấm xem.
+        return Result.Success(new ApproveOrganizerResult { OrganizerAccountId = organizer.AccountId, OrganizerEmail = email, EmailSent = sent && _canSendMail },
+            "Đã cấp tài khoản Ban tổ chức " + email + ". Người xin xem mật khẩu một lần ở hồ sơ của họ.");
     }
 
     public async Task<Result> RejectAsync(int adminAccountId, int requesterAccountId, RejectOrganizerRequest request, CancellationToken ct = default)

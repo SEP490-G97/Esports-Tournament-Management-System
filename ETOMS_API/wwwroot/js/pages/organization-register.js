@@ -124,6 +124,8 @@
         document.querySelectorAll('[data-registration-step]').forEach(function (item) {
             item.addEventListener('click', function () { if (organizationId) showStep(Number(item.dataset.registrationStep)); });
         });
+        // Kiểm email người cùng lập ngay khi gõ (đã thuộc đơn vị khác, không phải Ban tổ chức...) — góp ý 28/11.
+        document.querySelectorAll('#founder-list input[name="MemberEmail"]').forEach(function (i) { Ui.inviteeCheck(i, null); });
         // "+ Thêm người": thêm ô email Ban tổ chức cùng lập (tối đa 10).
         document.getElementById('add-founder').addEventListener('click', function () {
             var list = document.getElementById('founder-list');
@@ -133,6 +135,7 @@
             input.placeholder = 'Email Ban tổ chức thứ ' + (list.querySelectorAll('input').length + 2);
             input.autocomplete = 'off';
             list.appendChild(input);
+            Ui.inviteeCheck(input, null);
             input.focus();
         });
         document.getElementById('organization-form').addEventListener('submit', async function (event) {
@@ -148,6 +151,10 @@
             // Đã tạo hồ sơ (quay lại sửa): lời mời đã gửi, không kiểm danh sách người cùng lập nữa.
             if (!organizationId && memberEmails.length < 2) errors.MemberEmails = 'Nhập email tài khoản Ban tổ chức của ít nhất 2 người cùng lập (đơn vị cần tối thiểu 3 Ban tổ chức).';
             else if (!organizationId && memberEmails.some(function (v) { return !EMAIL_RE.test(v); })) errors.MemberEmails = 'Kiểm tra lại định dạng email.';
+            else if (!organizationId) {
+                var bad = Array.prototype.map.call(form.querySelectorAll('#founder-list input[data-invitee-bad]'), function (i) { return i.value.trim() + ': ' + i.getAttribute('data-invitee-bad'); });
+                if (bad.length) errors.MemberEmails = bad.join(' ');
+            }
             var phone = String(data.get('ContactPhone') || '').trim();
             if (phone && !/^0\d{9}$/.test(phone)) errors.ContactPhone = 'Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng 0.';
             ['ContactEmail', 'WebsiteUrl', 'LogoUrl'].forEach(function (name) {
