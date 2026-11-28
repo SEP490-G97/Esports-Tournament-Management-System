@@ -1,10 +1,12 @@
 namespace ETOMS_API.DTOs.Team;
 
-// TEAM-01: kết quả ô "Tìm tuyển thủ để mời" trên trang tạo đội. Chỉ thông tin công khai — không email/SĐT.
+// TEAM-01: kết quả ô "Tìm tuyển thủ để mời" trên trang tạo đội. Không SĐT.
 public class PlayerSearchItemDto
 {
     public int AccountId { get; set; }
     public string FullName { get; set; } = string.Empty;
+    // Góp ý 28/11: hiện đầy đủ email cạnh tên để phân biệt người trùng tên (người dùng chốt hiện nguyên email).
+    public string? Email { get; set; }
     public string? AvatarUrl { get; set; }
     // Tên trong game của tựa game đang chọn (nếu tuyển thủ đã khai báo).
     public string? InGameName { get; set; }
