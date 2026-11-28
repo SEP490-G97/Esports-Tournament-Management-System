@@ -1,27 +1,62 @@
-﻿(function () {
+(function () {
     const nativeFetch = window.fetch.bind(window);
     const API_BASE = '';
     const LOGIN_URL = '/auth/login.html';
     const TOKEN_KEY = 'etoms_access_token';
+    const USER_KEY = 'user';
+    const TAB_KEY = 'etoms_tab_id';
 
-    // Access token giữ trong localStorage (dùng chung mọi tab): site nhiều trang, mỗi lần chuyển
-    // trang/mở tab mới là tải JS mới. Refresh token dùng 1 lần (rotation), nên càng ít lần gọi
-    // /auth/refresh càng tốt — token còn hạn (15 phút) thì mọi trang, mọi tab dùng thẳng.
+    // Hai kiểu phiên (góp ý 28/11):
+    // - "Ghi nhớ đăng nhập": access token + người dùng ở localStorage, refresh token ở cookie chung "refresh_token"
+    //   => dùng chung mọi tab, giữ khi mở lại trình duyệt (như trước).
+    // - Không ghi nhớ: phiên RIÊNG của tab. Tab có mã riêng (sessionStorage, không chia sẻ sang tab khác); token +
+    //   người dùng ở sessionStorage; mọi lần refresh/đăng xuất gửi header X-Etoms-Tab để máy chủ đọc đúng cookie
+    //   "refresh_token_<mã tab>". Tab mới (kể cả mọi tab ẩn danh) chưa có mã => chưa đăng nhập; mỗi tab một tài khoản.
+    // Refresh token dùng 1 lần (rotation), nên càng ít lần gọi /auth/refresh càng tốt — token còn hạn (15 phút) thì dùng thẳng.
+    try { localStorage.removeItem('etoms_session_only'); document.cookie = 'etoms_alive=; path=/; max-age=0'; } catch { }   // dọn cờ của bản trước
+
+    function tabId() { try { return sessionStorage.getItem(TAB_KEY) || null; } catch { return null; } }
+    function store() { return tabId() ? sessionStorage : localStorage; }
+    function tabHeaders(id) { const t = id === undefined ? tabId() : id; return t ? { 'X-Etoms-Tab': t } : {}; }
+    function newTabId() {
+        const b = new Uint8Array(16);
+        (window.crypto || window.msCrypto).getRandomValues(b);
+        return Array.from(b, function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+    }
+
     let accessToken = null;
-    try { accessToken = localStorage.getItem(TOKEN_KEY) || null; } catch { }
+    try { accessToken = store().getItem(TOKEN_KEY) || null; } catch { }
     let refreshing = null;                  // gộp nhiều lần refresh đồng thời thành 1
 
     function setAccessToken(t) {
         accessToken = t;
-        try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch { }
+        try { const s = store(); if (t) s.setItem(TOKEN_KEY, t); else s.removeItem(TOKEN_KEY); } catch { }
     }
     function getAccessToken() { return accessToken; }
 
     function setUser(u) {
-        try { if (u) localStorage.setItem('user', JSON.stringify(u)); else localStorage.removeItem('user'); } catch { }
+        try { const s = store(); if (u) s.setItem(USER_KEY, JSON.stringify(u)); else s.removeItem(USER_KEY); } catch { }
     }
     function getUser() {
-        try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+        try { return JSON.parse(store().getItem(USER_KEY)); } catch { return null; }
+    }
+
+    // Trang Đăng nhập: mã tab gửi kèm yêu cầu đăng nhập (null = phiên ghi nhớ dùng chung). Tab đang có phiên riêng thì
+    // dùng lại mã cũ để máy chủ thu hồi đúng phiên cũ của tab khi đăng nhập lại.
+    function loginTabId(remember) { return remember ? null : (tabId() || newTabId()); }
+    // Đăng nhập THÀNH CÔNG mới chuyển kiểu phiên của tab (thất bại thì tab giữ nguyên phiên cũ).
+    function beginSession(id, token, user) {
+        const oldTab = tabId();
+        try {
+            if (id) sessionStorage.setItem(TAB_KEY, id);
+            else {
+                sessionStorage.removeItem(TAB_KEY); sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(USER_KEY);
+                // Tab trước đó có phiên riêng mà nay đăng nhập ghi nhớ: thu hồi phiên riêng cũ của tab.
+                if (oldTab) nativeFetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include', headers: tabHeaders(oldTab) }).catch(function () { });
+            }
+        } catch { }
+        setAccessToken(token);
+        setUser(user);
     }
 
     async function refresh() {
@@ -30,13 +65,13 @@
             const before = accessToken;
             refreshing = (async () => {
                 const res = await fetch(API_BASE + '/auth/refresh', {
-                    method: 'POST', credentials: 'include'
+                    method: 'POST', credentials: 'include', headers: tabHeaders()
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    // Tab khác có thể vừa refresh xong (cookie đã xoay vòng) — dùng token nó để lại.
+                    // Tab khác có thể vừa refresh xong (cookie chung đã xoay vòng) — dùng token nó để lại.
                     let shared = null;
-                    try { shared = localStorage.getItem(TOKEN_KEY); } catch { }
+                    try { shared = store().getItem(TOKEN_KEY); } catch { }
                     if (shared && shared !== before) { accessToken = shared; return accessToken; }
                     throw Object.assign(new Error(data.message || 'Phiên đăng nhập hết hạn'),
                         { status: res.status, data });
@@ -120,16 +155,19 @@
         } catch (e) { return null; }
     }
 
+    // Đăng xuất phiên của tab này: tab có phiên riêng chỉ đăng xuất tab đó (các tab/tài khoản khác giữ nguyên);
+    // phiên ghi nhớ dùng chung thì đăng xuất mọi tab đang dùng chung.
     async function logout(to) {
-        try { await nativeFetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }); } catch { }
+        try { await nativeFetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include', headers: tabHeaders() }); } catch { }
         setAccessToken(null);
         setUser(null);
+        try { sessionStorage.removeItem(TAB_KEY); } catch { }
         location.href = to || LOGIN_URL;
     }
 
 
     window.Auth = {
         API_BASE, setAccessToken, getAccessToken, setUser, getUser,
-        refresh, apiFetch, requireAuth, tryGetMe, logout
+        refresh, apiFetch, requireAuth, tryGetMe, logout, loginTabId, beginSession, isTabSession: function () { return !!tabId(); }
     };
 })();

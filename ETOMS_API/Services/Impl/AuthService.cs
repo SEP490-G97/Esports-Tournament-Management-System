@@ -57,7 +57,8 @@ namespace ETOMS_API.Services.Impl
             string.IsNullOrWhiteSpace(acc.BanReason) ? "Không có lý do được ghi nhận" : acc.BanReason;
 
         // ---------- Google ----------
-        public async Task<AuthResult> LoginWithGoogleAsync(string credential, CancellationToken ct = default)
+        // persistent = ô "Ghi nhớ đăng nhập" (góp ý 28/11: Google cũng theo ô này; bỏ ghi nhớ = phiên riêng của tab).
+        public async Task<AuthResult> LoginWithGoogleAsync(string credential, CancellationToken ct = default, bool persistent = true)
         {
             var g = await google.ValidateAsync(credential);
             if (g is null) return AuthResult.Fail(AuthError.InvalidGoogleToken);
@@ -96,7 +97,7 @@ namespace ETOMS_API.Services.Impl
             }
             await accounts.SaveChangesAsync(ct);
 
-            return await IssueAsync(acc, persistent: true, ct);
+            return await IssueAsync(acc, persistent, ct);
         }
 
         // ---------- Logout ----------

@@ -1,4 +1,5 @@
-﻿using ETOMS_API.Services.Interface;
+﻿using System.Text.RegularExpressions;
+using ETOMS_API.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using static ETOMS_API.DTOs.Auth.AuthDtos;
@@ -6,9 +7,23 @@ using static ETOMS_API.DTOs.Auth.AuthDtos;
 namespace ETOMS_API.Controllers
 {
     [ApiController, Route("auth")]
-    public class AuthController(IAuthService auth, IWebHostEnvironment env) : ControllerBase
+    public partial class AuthController(IAuthService auth, IWebHostEnvironment env) : ControllerBase
     {
         private const string CookieName = "refresh_token";
+        private const string TabHeader = "X-Etoms-Tab";
+
+        // Phiên riêng từng tab (góp ý 28/11): bỏ "Ghi nhớ đăng nhập" thì trang gửi kèm mã tab (header X-Etoms-Tab),
+        // refresh token nằm ở cookie RIÊNG của tab đó ("refresh_token_<mã tab>"). Tab mới (kể cả mọi tab ẩn danh) không
+        // có mã tab => không đọc được phiên của tab khác => chưa đăng nhập; mỗi tab đăng nhập được một tài khoản khác.
+        // Không có header => cookie chung "refresh_token" (Ghi nhớ đăng nhập: dùng chung mọi tab như trước).
+        private string RefreshCookieName()
+        {
+            var tab = Request.Headers[TabHeader].ToString();
+            return TabId().IsMatch(tab) ? CookieName + "_" + tab : CookieName;
+        }
+
+        [GeneratedRegex("^[a-f0-9]{16,32}$")]
+        private static partial Regex TabId();
 
         [HttpPost("login"), EnableRateLimiting("login")]
         public async Task<IActionResult> Login(LoginRequest req, CancellationToken ct) =>
@@ -16,21 +31,21 @@ namespace ETOMS_API.Controllers
 
         [HttpPost("google")]
         public async Task<IActionResult> Google(GoogleRequest req, CancellationToken ct) =>
-            await LoginResponseAsync(await auth.LoginWithGoogleAsync(req.Credential, ct), ct);
+            await LoginResponseAsync(await auth.LoginWithGoogleAsync(req.Credential, ct, req.Remember), ct);
 
-        // Đăng nhập lại khi trình duyệt vẫn còn phiên cũ (vd đổi sang tài khoản khác): đăng nhập THÀNH CÔNG thì thu hồi
-        // refresh token cũ trong cookie, tránh để phiên cũ còn hiệu lực trong DB tới hết hạn. Đăng nhập thất bại thì
-        // giữ nguyên phiên cũ — người dùng vẫn đăng nhập như trước.
+        // Đăng nhập lại khi trình duyệt (hoặc tab) vẫn còn phiên cũ (vd đổi sang tài khoản khác): đăng nhập THÀNH CÔNG
+        // thì thu hồi refresh token cũ trong cookie, tránh để phiên cũ còn hiệu lực trong DB tới hết hạn. Đăng nhập thất
+        // bại thì giữ nguyên phiên cũ — người dùng vẫn đăng nhập như trước.
         private async Task<IActionResult> LoginResponseAsync(AuthResult r, CancellationToken ct)
         {
-            if (r.IsSuccess) await auth.LogoutAsync(Request.Cookies[CookieName], ct);
+            if (r.IsSuccess) await auth.LogoutAsync(Request.Cookies[RefreshCookieName()], ct);
             return ToResponse(r, includeUser: true);
         }
 
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh(CancellationToken ct)
         {
-            var raw = Request.Cookies[CookieName];
+            var raw = Request.Cookies[RefreshCookieName()];
             if (string.IsNullOrEmpty(raw))
                 return Unauthorized(new { message = "Không có refresh token" });
 
@@ -40,8 +55,9 @@ namespace ETOMS_API.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout(CancellationToken ct)
         {
-            await auth.LogoutAsync(Request.Cookies[CookieName], ct);
-            Response.Cookies.Delete(CookieName, new CookieOptions { Path = "/auth" });
+            var name = RefreshCookieName();
+            await auth.LogoutAsync(Request.Cookies[name], ct);
+            Response.Cookies.Delete(name, new CookieOptions { Path = "/auth" });
             return Ok(new { message = "Đã đăng xuất" });
         }
 
@@ -51,7 +67,7 @@ namespace ETOMS_API.Controllers
             if (!r.IsSuccess) return MapError(r);
 
             var t = r.Tokens!;
-            SetRefreshCookie(t.RefreshToken, t.RefreshExpiresAt, t.Persistent); 
+            SetRefreshCookie(t.RefreshToken, t.RefreshExpiresAt, t.Persistent);
             return includeUser
                 ? Ok(new { accessToken = t.AccessToken, user = t.User })
                 : Ok(new { accessToken = t.AccessToken });
@@ -88,7 +104,7 @@ namespace ETOMS_API.Controllers
                 Path = "/auth",
             };
             if (persistent) opts.Expires = expires;   // không đặt Expires => cookie phiên (mất khi đóng trình duyệt)
-            Response.Cookies.Append(CookieName, raw, opts);
+            Response.Cookies.Append(RefreshCookieName(), raw, opts);
         }
     }
 }
