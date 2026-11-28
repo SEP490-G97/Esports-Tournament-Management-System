@@ -43,9 +43,10 @@ public class MatchOpsService : IMatchOpsService
         // Đội nào đã nộp báo cáo (không đọc tỉ số), tranh chấp đang mở, tên trọng tài — gộp 1 lượt mỗi bảng.
         var reportedTeams = await _uow.Repository<MatchReport>().Query().AsNoTracking()
             .Where(r => r.MatchId == matchId).Select(r => r.TeamId).ToListAsync();
-        var openDisputeId = await _uow.Repository<Dispute>().Query().AsNoTracking()
-            .Where(d => d.MatchId == matchId && (d.Status == "OPEN" || d.Status == "UNDER_REVIEW"))
-            .Select(d => (int?)d.DisputeId).FirstOrDefaultAsync();
+        var disputes = await _uow.Repository<Dispute>().Query().AsNoTracking()
+            .Where(d => d.MatchId == matchId).Select(d => new { d.DisputeId, d.Status }).ToListAsync();
+        var openDisputeId = disputes.Where(d => d.Status == "OPEN" || d.Status == "UNDER_REVIEW").Select(d => (int?)d.DisputeId).FirstOrDefault();
+        var hasRuling = disputes.Any(d => d.Status == "RESOLVED" || d.Status == "CLOSED");
         var refereeName = match.RefereeAccountId is int rid
             ? await _uow.Repository<Account>().Query().AsNoTracking().Where(a => a.AccountId == rid).Select(a => a.FullName).FirstOrDefaultAsync()
             : null;
@@ -63,6 +64,7 @@ public class MatchOpsService : IMatchOpsService
             TeamAReported = match.TeamAid.HasValue && reportedTeams.Contains(match.TeamAid.Value),
             TeamBReported = match.TeamBid.HasValue && reportedTeams.Contains(match.TeamBid.Value),
             OpenDisputeId = openDisputeId,
+            HasRuling = hasRuling,
             AwaitingDecision = match.Status == "CANCELLED" && match.ResultSource == "VAR_RULING",
             DoubleLoss = ResultService.IsDoubleLoss(match),
             IsReferee = viewerAccountId.HasValue && match.RefereeAccountId == viewerAccountId.Value,

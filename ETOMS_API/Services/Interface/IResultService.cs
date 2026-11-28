@@ -22,7 +22,7 @@ public interface IResultService
 
     // RES-04 + RES-09 (UC-39)
     Task<MatchEvidenceDto?> GetEvidenceAsync(int matchId, int? viewerAccountId);
-    Task<MatchAuditTrailDto?> GetAuditTrailAsync(int matchId);
+    Task<MatchAuditTrailDto?> GetAuditTrailAsync(int matchId, int? viewerAccountId = null);
 
     // RES-05 (UC-30)
     Task<Result> FlagMatchAsync(int matchId, int accountId, FlagMatchRequest request);

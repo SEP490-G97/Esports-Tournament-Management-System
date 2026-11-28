@@ -86,6 +86,8 @@ public class MatchAuditTrailDto
 
     // RES-08: khác NULL khi có phán quyết đã Resolved mà chưa ai khiếu nại — hiện form Appeal cho đội trưởng.
     public int? AppealableDisputeId { get; set; }
+    // 28/11: người xem là đội trưởng của một trong hai đội — chỉ khi đó trang mới hiện ô khiếu nại (thành viên, người ngoài chỉ xem).
+    public bool CanAppeal { get; set; }
 }
 
 // ===== RES-05 (UC-30): Cắm cờ nghi vấn =====
