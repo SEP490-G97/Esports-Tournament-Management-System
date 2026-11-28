@@ -95,8 +95,10 @@ public class TournamentSettingsService : ITournamentSettingsService
 
         // ----- Thông tin chung -----
         var banner = Clean(v.BannerUrl);
-        if (Changed("BannerUrl") && banner is not null && !(banner.StartsWith("/") || Uri.TryCreate(banner, UriKind.Absolute, out var u) && (u.Scheme == "http" || u.Scheme == "https")))
-            return Fail("BannerUrl", "Ảnh bìa phải là đường dẫn http(s) hoặc đường dẫn trong hệ thống.");
+        // Ảnh bìa chỉ nhận tệp đã lưu trong hệ thống (/uploads/...). Link ngoài phải qua nút Ảnh bìa (BannerImage tải về và kiểm
+        // chữ ký tệp) — trước đây lưu thẳng link nên có giải mang link trang Google Ảnh, không phải ảnh (28/11).
+        if (Changed("BannerUrl") && banner is not null && !banner.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+            return Fail("BannerUrl", "Ảnh bìa phải tải lên từ máy hoặc dán liên kết ở ô Ảnh bìa để hệ thống lưu lại ảnh.");
         if ((Changed("IsOnline") || Changed("Venue")) && !v.IsOnline && Clean(v.Venue) is null)
             return Fail("Venue", "Giải thi đấu trực tiếp phải ghi địa điểm.");
 

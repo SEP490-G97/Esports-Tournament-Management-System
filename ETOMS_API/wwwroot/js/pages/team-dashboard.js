@@ -25,7 +25,7 @@
         d.members.forEach(function (m) {
             membersHtml +=
                 '<div class="col-12 col-md-6"><div class="member-card' + (m.isCaptain ? ' cap' : '') + '">' +
-                '<span class="av">' + Ui.escapeHtml(m.fullName && m.fullName.length > 0 ? m.fullName.substring(0, 1) : '?') + '</span>' +
+                '<span class="av">' + Ui.avatarInner(m.avatarUrl, m.fullName) + '</span>' +
                 '<div class="grow"><div class="nm">' + Ui.escapeHtml(m.fullName) + '</div><div class="rl">' + Ui.escapeHtml(m.roleLabel) + '</div></div>' +
                 (m.isCaptain ? '<span class="badge badge-gold">Đội trưởng</span>' : '') +
                 '</div></div>';

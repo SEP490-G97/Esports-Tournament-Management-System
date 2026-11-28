@@ -68,6 +68,7 @@ public sealed class NewsFeedService
         ("VAL", new[] { "valorant", "vct" }),
         ("LQM", new[] { "liên quân", "arena of valor", "aov", "đấu trường danh vọng", "đtdv" }),
         ("PUM", new[] { "pubg" }),
+        ("CS2", new[] { "cs2", "counter strike", "counter-strike" }),
         ("FCO", new[] { "fc online", "fifa online", "fco" }),
     };
 
@@ -123,7 +124,7 @@ public sealed class NewsFeedService
             .Select(c => new { c.ContentItemId, c.Title, c.Body, c.PublishedAt, c.IsPinned })
             .ToListAsync(ct);
         var items = internalNews.Select(c => new NewsItem("etoms-" + c.ContentItemId, "etoms", "ETOMS", c.Title,
-            Shorten(StripHtml(c.Body), 220), "/news/index.html?id=" + c.ContentItemId, null, c.PublishedAt, true, c.IsPinned)).ToList();
+            Shorten(StripHtml(c.Body), 220), "/news/index.html?id=" + c.ContentItemId, InternalImage(c.Body), c.PublishedAt, true, c.IsPinned)).ToList();
 
         var statuses = new List<SourceStatus> { new("etoms", "ETOMS", true, items.Count) };
         var results = await Task.WhenAll(Sources.Select(s => GetSourceAsync(s, ct)));
@@ -231,6 +232,8 @@ public sealed class NewsFeedService
 
     private static string StripHtml(string html) => Tags.Replace(html ?? string.Empty, " ");
     private static string? FirstImage(string html) { var m = Img.Match(html ?? string.Empty); return m.Success ? WebUtility.HtmlDecode(m.Groups[1].Value) : null; }
+    // Ảnh bìa của tin nội bộ = ảnh đầu tiên trong bài (chỉ nhận tệp tải lên của ETOMS hoặc link http/https).
+    public static string? InternalImage(string? body) { var u = FirstImage(body ?? string.Empty); return u is not null && (u.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase) || IsHttpUrl(u)) ? u : null; }
     private static string Clean(string? text) => Spaces.Replace(WebUtility.HtmlDecode(StripHtml(text ?? string.Empty)), " ").Trim();
 
     private static string? Shorten(string? text, int max)

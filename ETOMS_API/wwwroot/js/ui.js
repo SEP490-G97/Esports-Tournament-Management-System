@@ -20,6 +20,14 @@ var Ui = (function () {
         }
     }
 
+    // Ảnh đại diện trong ô tròn: có ảnh thì hiện ảnh, không thì chữ cái đầu tên.
+    function avatarInner(url, name) {
+        var src = safeUrl(url);
+        if (src) return '<img class="av-img" src="' + escapeHtml(src) + '" alt="" loading="lazy">';
+        var n = (name || '?').trim();
+        return escapeHtml((n.length > 0 ? n.substring(0, 1) : '?').toUpperCase());
+    }
+
     // containerEl: phần tử chứa alert (thường là 1 <div id="flash"></div> đầu trang/khối).
     function showAlert(containerEl, type, message) {
         if (!containerEl) return;
@@ -358,7 +366,7 @@ var Ui = (function () {
     return {
         localInputValue: localInputValue, liveTimeline: liveTimeline, autoFilter: autoFilter,
         parseUtc: parseUtc, fmtDateTime: fmtDateTime, limitList: limitList, pagerHtml: pagerHtml, listPager: listPager, tablePager: tablePager,
-        escapeHtml: escapeHtml, safeUrl: safeUrl, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
+        escapeHtml: escapeHtml, safeUrl: safeUrl, avatarInner: avatarInner, showAlert: showAlert, clearAlert: clearAlert, clearFieldErrors: clearFieldErrors,
         applyFieldErrors: applyFieldErrors, qs: qs, qsInt: qsInt, requireAuth: requireAuth, currentUser: currentUser,
         setFlash: setFlash, consumeFlash: consumeFlash
     };

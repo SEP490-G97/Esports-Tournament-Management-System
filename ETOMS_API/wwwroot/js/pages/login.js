@@ -79,7 +79,7 @@
         const esc = Ui.escapeHtml;
         const roleLabel = { PLAYER: 'Người chơi', ORGANIZER: 'Ban tổ chức', ADMIN: 'Quản trị hệ thống' }[me.role] || me.role;
         sessionBox.innerHTML =
-            '<div class="login-session-who"><span class="login-session-av">' + esc((me.fullName || me.email || '?').trim().slice(0, 1).toUpperCase()) + '</span>' +
+            '<div class="login-session-who"><span class="login-session-av">' + Ui.avatarInner(me.avatarUrl, me.fullName || me.email) + '</span>' +
             '<div><div class="login-session-name">' + esc(me.fullName || me.email) + '</div>' +
             '<div class="login-session-sub">' + esc(me.email || '') + ' · ' + esc(roleLabel) + '</div></div></div>' +
             '<p class="login-session-note">Bạn đang đăng nhập bằng tài khoản này.</p>' +

@@ -57,7 +57,7 @@
                 membersHtml +=
                     '<div class="col-12 col-md-6"><a class="member-card member-link' + (m.isCaptain ? ' cap' : '') + '" href="/profile/public.html?id=' + Number(m.accountId) +
                     '" title="Xem hồ sơ tuyển thủ ' + Ui.escapeHtml(m.fullName) + '">' +
-                    '<span class="av">' + Ui.escapeHtml(m.fullName && m.fullName.length > 0 ? m.fullName.substring(0, 1) : '?') + '</span>' +
+                    '<span class="av">' + Ui.avatarInner(m.avatarUrl, m.fullName) + '</span>' +
                     '<div class="grow"><div class="nm">' + Ui.escapeHtml(m.fullName) + '</div><div class="rl">' + Ui.escapeHtml(m.roleLabel) + '</div></div>' +
                     (m.isCaptain ? '<span class="badge badge-gold">Đội trưởng</span>' : '') +
                     '<span class="member-go" aria-hidden="true">›</span>' +

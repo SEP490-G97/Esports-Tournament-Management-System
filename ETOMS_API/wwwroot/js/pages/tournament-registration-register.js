@@ -59,7 +59,7 @@
             var badges = (missingIgn ? '<span class="badge badge-gold">Thiếu IGN</span>' : '') +
                 (missingDocument ? '<span class="badge badge-gold">Thiếu giấy tờ</span>' : '');
             return '<div class="lineup-row" role="listitem">' +
-                '<div class="lineup-who"><span class="lineup-av" aria-hidden="true">' + Ui.escapeHtml((member.fullName || '?').substring(0, 1).toUpperCase()) + '</span>' +
+                '<div class="lineup-who"><span class="lineup-av" aria-hidden="true">' + Ui.avatarInner(member.avatarUrl, member.fullName) + '</span>' +
                 '<div><div class="item-title">' + Ui.escapeHtml(member.fullName) + '</div>' +
                 '<div class="item-sub">' + (member.inGameName ? 'IGN: ' + Ui.escapeHtml(member.inGameName) : 'Chưa khai báo IGN') + '</div></div></div>' +
                 '<label class="visually-hidden" for="lineup-' + member.accountId + '">Vị trí của ' + Ui.escapeHtml(member.fullName) + '</label>' +

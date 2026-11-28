@@ -38,11 +38,13 @@ public sealed class OrganizationService : IOrganizationService
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly PrivateFileStorage _fileStorage;
+    private readonly IWebHostEnvironment _env;
 
-    public OrganizationService(IUnitOfWork unitOfWork, PrivateFileStorage fileStorage)
+    public OrganizationService(IUnitOfWork unitOfWork, PrivateFileStorage fileStorage, IWebHostEnvironment env)
     {
         _unitOfWork = unitOfWork;
         _fileStorage = fileStorage;
+        _env = env;
     }
 
 
@@ -74,6 +76,19 @@ public sealed class OrganizationService : IOrganizationService
 
 
 
+
+    // Logo đơn vị (28/11): trước đây lưu thẳng chữ người dùng gõ. Nay link phải tải về được và đúng là ảnh (BannerImage:
+    // kiểm chữ ký tệp, chống SSRF, ≤ 5 MB) rồi lưu bản sao trong hệ thống; giữ nguyên nếu là ảnh đã lưu (/uploads/...).
+    private async Task<(string? Url, string? Error)> ResolveLogoAsync(string? link, string? current, CancellationToken ct)
+    {
+        var value = NormalizeOptional(link);
+        if (value is null) return (null, null);
+        if (value == current || value.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase)) return (value, null);
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
+            return (null, "Logo phải là liên kết ảnh bắt đầu bằng http:// hoặc https://.");
+        var (saved, error) = await BannerImage.SaveAsync(null, value, _env, ct);
+        return saved is null ? (null, "Logo: " + (error ?? "không tải được ảnh từ liên kết này.")) : (saved, null);
+    }
 
     public async Task<Result<OrganizationCreatedResponse>> CreateAsync(
         CreateOrganizationRequest request,
@@ -137,6 +152,9 @@ public sealed class OrganizationService : IOrganizationService
         if (!PhoneNumber.IsValid(contactPhone))
             return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.ContactPhone), PhoneNumber.Message);
 
+        var (logoUrl, logoError) = await ResolveLogoAsync(request.LogoUrl, null, cancellationToken);
+        if (logoError is not null) return Result<OrganizationCreatedResponse>.FieldFailure(nameof(request.LogoUrl), logoError);
+
         var organization = new Organization
         {
             Name = request.Name.Trim(),
@@ -145,7 +163,7 @@ public sealed class OrganizationService : IOrganizationService
             ContactEmail = NormalizeOptional(request.ContactEmail),
             ContactPhone = contactPhone,
             WebsiteUrl = NormalizeOptional(request.WebsiteUrl),
-            LogoUrl = NormalizeOptional(request.LogoUrl),
+            LogoUrl = logoUrl,
             Description = NormalizeOptional(request.Description),
             Status = "PENDING",
             CreatedByAccountId = creatorAccountId,
@@ -897,13 +915,15 @@ public sealed class OrganizationService : IOrganizationService
         if (name.Length == 0) return Result.FieldFailure(nameof(request.Name), "Nhập tên hiển thị của đơn vị.");
         var phone = PhoneNumber.Normalize(request.ContactPhone);
         if (!PhoneNumber.IsValid(phone)) return Result.FieldFailure(nameof(request.ContactPhone), PhoneNumber.Message);
+        var (logoUrl, logoError) = await ResolveLogoAsync(request.LogoUrl, organization.LogoUrl, cancellationToken);
+        if (logoError is not null) return Result.FieldFailure(nameof(request.LogoUrl), logoError);
 
         organization.Name = name;
         organization.ParentOrganization = NormalizeOptional(request.ParentOrganization);
         organization.ContactEmail = NormalizeOptional(request.ContactEmail);
         organization.ContactPhone = phone;
         organization.WebsiteUrl = NormalizeOptional(request.WebsiteUrl);
-        organization.LogoUrl = NormalizeOptional(request.LogoUrl);
+        organization.LogoUrl = logoUrl;
         organization.Description = NormalizeOptional(request.Description);
         _unitOfWork.Repository<Organization>().Update(organization);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -328,8 +328,8 @@
             if (lines.length > 10) errors.SocialLinks = 'Tối đa 10 liên kết mạng xã hội.';
             else if (bad) errors.SocialLinks = 'Liên kết "' + bad.slice(0, 40) + '" không hợp lệ — mỗi dòng phải bắt đầu bằng http:// hoặc https://.';
         }
-        if (body.AvatarUrl && body.AvatarUrl.indexOf(AVATAR_PREFIX) !== 0 && !/^https?:\/\/\S+\.\S+/i.test(body.AvatarUrl))
-            errors.AvatarUrl = 'Ảnh đại diện phải là liên kết bắt đầu bằng http:// hoặc https://, hoặc chọn ảnh từ máy.';
+        if (body.AvatarUrl && body.AvatarUrl !== currentAvatar && body.AvatarUrl.indexOf(AVATAR_PREFIX) !== 0)
+            errors.AvatarUrl = 'Ảnh đại diện phải chọn từ máy hoặc dán liên kết rồi bấm "Dùng ảnh này" để hệ thống lưu lại.';
         Ui.applyFieldErrors(form, errors);
         return Object.keys(errors).length === 0;
     }

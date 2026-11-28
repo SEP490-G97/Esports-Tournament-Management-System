@@ -116,6 +116,7 @@ public sealed class OrganizerRequestService : IOrganizerRequestService
                 AccountId = a.AccountId,
                 FullName = a.FullName,
                 Email = a.Email,
+                AvatarUrl = a.AvatarUrl,
                 RequestedAt = a.OrganizerRequestedAt ?? a.CreatedAt,
                 Note = a.OrganizerRequestNote,
                 ProposedEmail = a.OrganizerRequestEmail,

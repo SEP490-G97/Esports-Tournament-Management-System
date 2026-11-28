@@ -25,6 +25,7 @@ public sealed class OrganizerRequestItemDto
     public int AccountId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
     public DateTime RequestedAt { get; set; }
     public string? Note { get; set; }
     public string? ProposedEmail { get; set; }
