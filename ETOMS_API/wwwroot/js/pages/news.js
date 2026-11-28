@@ -173,6 +173,7 @@
             var others = (latest || []).filter(function (n) { return n.readerUrl !== '/news/index.html?id=' + id; }).slice(0, 6);
             box.innerHTML = crumb(a.gameCode) + '<div class="body news-reader"><div class="news-card-meta mb-2"><span class="badge badge-active">ETOMS</span><span>' + esc(fmtDate(a.publishedAt)) + '</span>' +
                 (a.author ? '<span>' + esc(a.author) + '</span>' : '') + '</div><h1 class="news-reader-title">' + esc(a.title) + '</h1>' +
+                (Ui.safeUrl(a.imageUrl) ? '<img class="news-reader-img" src="' + esc(Ui.safeUrl(a.imageUrl)) + '" alt="" loading="lazy">' : '') +
                 '<div class="rulebook-content">' + body + '</div><a class="btn btn-ghost mt-3" href="/news/index.html">← Tất cả tin</a></div>' +
                 relatedBlock(others, null);
             document.title = a.title + ' · ETOMS';

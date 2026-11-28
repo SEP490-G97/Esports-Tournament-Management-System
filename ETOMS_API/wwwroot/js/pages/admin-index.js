@@ -73,7 +73,7 @@
         var id = Number(r.accountId);
         var name = r.fullName || r.email || '?';
         return '<div class="card-etoms orq-card" data-req="' + id + '"><div class="body">' +
-            '<div class="orq-head"><span class="orq-av" aria-hidden="true">' + Ui.escapeHtml(name.substring(0, 1).toUpperCase()) + '</span>' +
+            '<div class="orq-head"><span class="orq-av" aria-hidden="true">' + Ui.avatarInner(r.avatarUrl, name) + '</span>' +
             '<div class="orq-who"><div class="orq-name">' + Ui.escapeHtml(name) + '</div>' +
             '<div class="orq-meta"><span>' + Ui.escapeHtml(r.email) + '</span><span>Gửi ' + Ui.escapeHtml(fmtTime(r.requestedAt)) + '</span>' +
             '<span>Đang ở ' + Number(r.activeTeams) + ' đội</span></div></div>' +

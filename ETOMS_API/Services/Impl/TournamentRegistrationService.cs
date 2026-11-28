@@ -81,7 +81,8 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 item.AccountId,
                 item.Slot,
                 item.Account.FullName,
-                item.Account.Status
+                item.Account.Status,
+                item.Account.AvatarUrl
             })
             .ToListAsync(cancellationToken);
         var memberIds = members.Select(item => item.AccountId).Distinct().ToArray();
@@ -109,7 +110,8 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                     credentials.Any(credential =>
                         credential.AccountId == member.AccountId
                         && credential.CredentialType == IdentityDocumentType
-                        && !string.IsNullOrWhiteSpace(credential.FileUrl))))
+                        && !string.IsNullOrWhiteSpace(credential.FileUrl)),
+                    member.AvatarUrl))
                 .ToArray()))
             .ToArray();
 

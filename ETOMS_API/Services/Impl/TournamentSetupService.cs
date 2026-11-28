@@ -39,7 +39,8 @@ namespace ETOMS_API.Services.Impl
             var tournament = new Tournament
             {
                 OrganizerAccountId = organizerAccountId,
-                BannerUrl = string.IsNullOrWhiteSpace(dto.BannerUrl) ? null : dto.BannerUrl.Trim(),
+                // Ảnh bìa chỉ nhận tệp đã lưu trong hệ thống (giống khi sửa giải); link ngoài phải qua nút Ảnh bìa.
+                BannerUrl = dto.BannerUrl?.Trim() is { } b && b.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase) ? b : null,
                 Region = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim(),
                 ContactInfo = string.IsNullOrWhiteSpace(dto.ContactInfo) ? null : dto.ContactInfo.Trim(),
                 MaxTeams = v.Format == "HYBRID" ? NextPowerOfTwo(Math.Max(16, v.GroupCount!.Value * 2)) : 16,

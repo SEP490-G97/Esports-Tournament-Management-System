@@ -9,7 +9,7 @@
             '<button type="button" class="btn btn-ghost btn-sm text-danger-etoms" data-act="reject" data-target="' + p.accountId + '" data-name="' + Ui.escapeHtml(p.fullName) + '">' + (p.direction === 'INVITED' ? 'Hủy lời mời' : 'Từ chối') + '</button>' +
             '</div>';
         return '<div class="card-etoms"><div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px;border-left:3px solid var(--warn);border-radius:0 14px 14px 0">' +
-            '<span class="av" style="width:46px;height:46px;border-radius:11px;background:var(--panel-2);border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--warn)">' + Ui.escapeHtml(p.fullName && p.fullName.length > 0 ? p.fullName.substring(0, 1) : '?') + '</span>' +
+            '<span class="av" style="width:46px;height:46px;border-radius:11px;background:var(--panel-2);border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--warn)">' + Ui.avatarInner(p.avatarUrl, p.fullName) + '</span>' +
             '<div style="flex:1;min-width:160px"><div class="fw-bold">' + Ui.escapeHtml(p.fullName) + '</div><div class="text-small text-muted-etoms">' + Ui.escapeHtml(p.directionLabel) + msg + '</div></div>' +
             actions + '</div></div>';
     }
@@ -42,7 +42,7 @@
         }
 
         return '<div class="card-etoms"><div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px">' +
-            '<span class="av" style="width:46px;height:46px;border-radius:11px;background:var(--panel-2);border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--cyan)">' + Ui.escapeHtml(m.fullName && m.fullName.length > 0 ? m.fullName.substring(0, 1) : '?') + '</span>' +
+            '<span class="av" style="width:46px;height:46px;border-radius:11px;background:var(--panel-2);border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--cyan)">' + Ui.avatarInner(m.avatarUrl, m.fullName) + '</span>' +
             '<div style="flex:1;min-width:160px"><div class="fw-bold">' + Ui.escapeHtml(m.fullName) + '</div><div class="text-small text-muted-etoms">' + badge + '</div></div>' +
             actions + '</div></div>';
     }

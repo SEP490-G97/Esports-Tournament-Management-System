@@ -2298,3 +2298,7 @@ a.pp-link:hover { border-color: var(--primary); }
 @media (max-width: 420px) { .dtf-pop-date, .dtf-pop-time { left: 0; right: auto; width: min(300px, calc(100vw - 40px)); } }
 /* Tìm tuyển thủ khi tạo đội: email (che bớt) cạnh tên để phân biệt người trùng tên (góp ý 28/11). */
 .member-option-email { margin-left: 8px; color: var(--muted-2); font-size: .8rem; font-weight: 400; }
+
+/* Ảnh đại diện nằm trong các ô chữ cái đầu (Ui.avatarInner) */
+.av, .orq-av, .lineup-av, .login-session-av { overflow: hidden; }
+.av-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }

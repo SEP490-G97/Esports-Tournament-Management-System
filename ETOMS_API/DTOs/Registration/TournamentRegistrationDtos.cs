@@ -76,7 +76,8 @@ public sealed record RegistrationRosterMemberResponse(
     string FullName,
     string TeamSlot,
     string? InGameName,
-    bool HasIdentityDocument);
+    bool HasIdentityDocument,
+    string? AvatarUrl = null);
 
 public sealed record RegistrationTeamOptionResponse(
     int TeamId,

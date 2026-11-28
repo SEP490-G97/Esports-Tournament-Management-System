@@ -103,6 +103,7 @@ public sealed class NewsController : ControllerBase
             item.ContentItemId,
             item.Title,
             Body = RichTextSanitizer.Sanitize(item.Body),
+            ImageUrl = NewsFeedService.InternalImage(item.Body),
             item.PublishedAt,
             GameCode = NewsFeedService.DetectGame(item.Title),
             Author = item.AuthorAccount?.FullName

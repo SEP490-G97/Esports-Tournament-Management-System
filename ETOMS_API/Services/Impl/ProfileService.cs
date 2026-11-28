@@ -119,10 +119,12 @@ public sealed class ProfileService : IProfileService
 
         // Ảnh đại diện: ảnh đã tải lên của hệ thống, hoặc liên kết http(s) đầy đủ — trước đây nhận cả "hhh".
         var avatar = NormalizeOptional(request.AvatarUrl);
-        if (avatar is not null && !avatar.StartsWith(AvatarUrlPrefix, StringComparison.Ordinal) && !IsHttpUrl(avatar))
+        // 28/11: link ngoài không lưu thẳng (có thể là trang web, không phải ảnh) — giao diện tải ảnh về, cắt khung rồi lưu qua /avatar.
+        // Chỉ nhận ảnh đã lưu trong hệ thống, hoặc giữ nguyên ảnh hiện tại.
+        if (avatar is not null && avatar != account.AvatarUrl && !avatar.StartsWith(AvatarUrlPrefix, StringComparison.Ordinal))
         {
             return Result<ProfileResponse>.FieldFailure(nameof(request.AvatarUrl),
-                "Ảnh đại diện phải là liên kết bắt đầu bằng http:// hoặc https://, hoặc chọn ảnh từ máy.");
+                "Ảnh đại diện phải chọn từ máy hoặc dán liên kết rồi bấm \"Dùng ảnh này\" để hệ thống lưu lại.");
         }
 
         if (request.DateOfBirth is DateOnly dob)

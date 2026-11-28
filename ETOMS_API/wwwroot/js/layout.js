@@ -128,7 +128,7 @@
         slot.innerHTML =
             '<div class="nav-user-dd" id="nav-user-dd">' +
             '  <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-expanded="false">' +
-            '    <span class="av">' + Ui.escapeHtml((me.displayName || '?').substring(0, 1).toUpperCase()) + '</span>' +
+            '    <span class="av">' + Ui.avatarInner(me.avatarUrl, me.displayName) + '</span>' +
             '    <span><span class="nav-hello">Xin chào, </span><span class="who">' + Ui.escapeHtml(me.displayName || '') + '</span></span>' +
             '    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="nav-user-caret"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
             '  </button>' +
