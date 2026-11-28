@@ -624,8 +624,65 @@
                 '<button type="button" class="btn btn-ghost btn-sm" id="orq-cancel">Hủy đơn</button></div>';
             form.hidden = true;
         } else if (dto.status === 'APPROVED') {
-            view.innerHTML = '<p class="muted-copy">Bạn đã được cấp tài khoản Ban tổ chức riêng — xem email/thông báo để biết email đăng nhập và mật khẩu tạm. Đăng xuất rồi đăng nhập bằng tài khoản đó để tổ chức giải.</p>';
+            // Góp ý 28/11: thông báo không chứa mật khẩu, chỉ dẫn tới đây. Mật khẩu tài khoản Ban tổ chức hiện ĐÚNG MỘT LẦN
+            // (có nút Sao chép + cảnh báo); muốn xem lại phải gửi yêu cầu để quản trị viên xác nhận.
+            var esc = Ui.escapeHtml;
+            var orgEmail = dto.organizerEmail ? '<strong>' + esc(dto.organizerEmail) + '</strong>' : 'tài khoản Ban tổ chức được cấp';
+            var intro = '<p class="muted-copy">Bạn đã được cấp tài khoản Ban tổ chức riêng: ' + orgEmail + '. Đăng xuất rồi đăng nhập bằng email đó để tổ chức giải.</p>';
+            if (dto.passwordState === 'AVAILABLE') {
+                view.innerHTML = intro +
+                    '<div class="orq-pass-box"><div class="orq-pass-warn">Mật khẩu chỉ hiện <strong>một lần</strong>. Hãy sao chép và cất giữ ngay — tải lại trang sẽ không xem lại được.</div>' +
+                    '<button type="button" class="btn btn-primary" id="orq-reveal">Xem mật khẩu</button></div>';
+            } else if (dto.passwordState === 'REISSUE_PENDING') {
+                view.innerHTML = intro + '<div class="orq-pass-box"><span class="badge badge-gold">Đang chờ quản trị viên xác nhận</span>' +
+                    '<p class="muted-copy mb-0 mt-2">Bạn đã xin xem lại mật khẩu. Khi quản trị viên xác nhận, bạn sẽ nhận thông báo và xem được mật khẩu mới một lần.</p></div>';
+            } else {
+                view.innerHTML = intro + '<div class="orq-pass-box"><p class="muted-copy mb-2">Mật khẩu đã được hiện một lần và không hiện lại.' +
+                    ' Quên mật khẩu? Gửi yêu cầu xem lại — quản trị viên xác nhận xong bạn được xem mật khẩu mới thêm một lần (mật khẩu cũ sẽ hết hiệu lực).</p>' +
+                    '<button type="button" class="btn btn-ghost" id="orq-reissue">Xin xem lại mật khẩu</button></div>';
+            }
             form.hidden = true;
+            var orqBox = document.getElementById('orq-flash');
+            var reveal = document.getElementById('orq-reveal');
+            if (reveal) reveal.addEventListener('click', async function () {
+                if (!(await window.etomsConfirm('Mật khẩu chỉ hiện MỘT lần. Muốn xem lại sau đó phải xin quản trị viên xác nhận. Xem ngay bây giờ?',
+                    { title: 'Xem mật khẩu Ban tổ chức', okText: 'Xem mật khẩu' }))) return;
+                reveal.disabled = true;
+                try {
+                    var res = await Api.post('/api/me/organizer-request/organizer-password/reveal', {});
+                    var d = res.data || {};
+                    reveal.parentElement.innerHTML =
+                        '<div class="orq-pass-warn">Đây là lần duy nhất mật khẩu được hiện. Sao chép và cất giữ ngay; rời hoặc tải lại trang sẽ không xem lại được.</div>' +
+                        '<div class="orq-pass-row"><span class="orq-pass-label">Email</span><code class="orq-pass">' + esc(d.email || '') + '</code></div>' +
+                        '<div class="orq-pass-row"><span class="orq-pass-label">Mật khẩu</span><code class="orq-pass" id="orq-pass-value">' + esc(d.password || '') + '</code>' +
+                        '<button type="button" class="btn btn-ghost btn-sm" id="orq-copy">Sao chép</button></div>' +
+                        '<p class="field-hint mb-0">Đăng nhập bằng tài khoản này rồi đổi mật khẩu trong Hồ sơ.</p>';
+                    var copyBtn = document.getElementById('orq-copy');
+                    copyBtn.addEventListener('click', function () {
+                        var done = function () { copyBtn.textContent = 'Đã sao chép'; };
+                        if (navigator.clipboard) navigator.clipboard.writeText(d.password || '').then(done, function () { });
+                        else { var r = document.createRange(); r.selectNodeContents(document.getElementById('orq-pass-value')); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); done(); }
+                    });
+                } catch (err) {
+                    Ui.showAlert(orqBox, 'danger', err.message);
+                    reveal.disabled = false;
+                    await loadOrganizerRequest();
+                }
+            });
+            var reissue = document.getElementById('orq-reissue');
+            if (reissue) reissue.addEventListener('click', async function () {
+                if (!(await window.etomsConfirm('Gửi yêu cầu xem lại mật khẩu tài khoản Ban tổ chức? Quản trị viên xác nhận xong, mật khẩu mới sẽ thay mật khẩu cũ.',
+                    { title: 'Xin xem lại mật khẩu', okText: 'Gửi yêu cầu' }))) return;
+                reissue.disabled = true;
+                try {
+                    var res = await Api.post('/api/me/organizer-request/organizer-password/reissue', {});
+                    Ui.showAlert(orqBox, 'success', res.message || 'Đã gửi yêu cầu.');
+                    await loadOrganizerRequest();
+                } catch (err) {
+                    Ui.showAlert(orqBox, 'danger', err.message);
+                    reissue.disabled = false;
+                }
+            });
         } else {
             view.innerHTML = dto.status === 'REJECTED'
                 ? '<p class="muted-copy">Đơn trước đã bị từ chối (lý do trong thông báo). Bạn có thể bổ sung và gửi lại.</p>' : '';

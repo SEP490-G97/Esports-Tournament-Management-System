@@ -16,6 +16,8 @@ public interface IOrganizationService
     Task<Result<IReadOnlyList<MyOrganizationResponse>>> GetMyOrganizationsAsync(int accountId, CancellationToken cancellationToken);
     Task<Result<OrganizationMemberResponse>> InviteMemberAsync(int organizationId, InviteOrganizationMemberRequest request, CancellationToken cancellationToken);
     Task<Result<OrganizationMemberResponse>> AcceptInvitationAsync(int organizationId, int memberId, int accountId, CancellationToken cancellationToken);
+    Task<Result> DeclineInvitationAsync(int organizationId, int memberId, int accountId, CancellationToken ct);
+    Task<Result<InviteeCheckResponse>> CheckInviteeAsync(string? email, int? organizationId, int viewerAccountId, CancellationToken ct);
     Task<Result<OrganizationMemberResponse>> UpdateMemberRoleAsync(int organizationId, int memberId, string role, CancellationToken cancellationToken);
     Task<Result> TransferChairAsync(int organizationId, int newChairAccountId, CancellationToken cancellationToken);
     Task<Result<OrganizationReputationResponse>> GetReputationAsync(int organizationId, CancellationToken cancellationToken);

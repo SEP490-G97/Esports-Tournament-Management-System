@@ -99,6 +99,33 @@
             '</div><div class="orq-result mt-2" aria-live="polite"></div></div></div>';
     }
 
+    // Yêu cầu xem lại mật khẩu Ban tổ chức (góp ý 28/11). Không có yêu cầu thì ẩn cả mục.
+    async function loadReissues() {
+        var section = document.getElementById('organizer-reissues'), root = document.getElementById('organizer-reissues-list');
+        var list;
+        try { list = await Api.get('/api/admin/organizer-requests/reissues'); list = Array.isArray(list) ? list : (list.data || []); } catch (e) { return; }
+        section.hidden = !list.length;
+        root.innerHTML = list.map(function (r) {
+            return '<div class="card-etoms"><div class="body d-flex align-items-center gap-3 flex-wrap">' +
+                '<span class="orq-av" aria-hidden="true">' + Ui.avatarInner(r.avatarUrl, r.fullName) + '</span>' +
+                '<div class="flex-grow-1 min-w-0"><div class="fw-bold">' + Ui.escapeHtml(r.fullName) + '</div>' +
+                '<div class="hint">' + Ui.escapeHtml(r.email) + ' · tài khoản Ban tổ chức ' + Ui.escapeHtml(r.organizerEmail || '—') + ' · xin lúc ' + Ui.escapeHtml(fmtTime(r.requestedAt)) + '</div></div>' +
+                '<button type="button" class="btn btn-primary btn-sm" data-reissue="' + Number(r.accountId) + '">Cho xem lại mật khẩu</button>' +
+                '<span class="orr-result"></span></div></div>';
+        }).join('');
+        root.querySelectorAll('[data-reissue]').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                if (!(await window.etomsConfirm('Cho người này xem mật khẩu mới thêm một lần? Mật khẩu cũ của tài khoản Ban tổ chức sẽ hết hiệu lực khi họ xem.', { title: 'Xác nhận xem lại mật khẩu', okText: 'Xác nhận' }))) return;
+                btn.disabled = true;
+                try {
+                    var res = await Api.post('/api/admin/organizer-requests/' + btn.dataset.reissue + '/reissue-approve', {});
+                    btn.parentElement.querySelector('.orr-result').textContent = res.message || 'Đã xác nhận.';
+                    btn.remove();
+                } catch (err) { btn.disabled = false; btn.parentElement.querySelector('.orr-result').textContent = err.message; }
+            });
+        });
+    }
+
     async function loadRequests() {
         var root = document.getElementById('organizer-requests-list');
         try {
@@ -134,15 +161,11 @@
                 try {
                     var res = await Api.post('/api/admin/organizer-requests/' + id + '/approve', { OrganizerEmail: email, OrganizerFullName: name || null });
                     var d = res.data;
-                    // Mật khẩu tạm chỉ hiện MỘT lần để Admin bàn giao (đồng thời đã gửi email nếu máy chủ có SMTP).
+                    // Góp ý 28/11: Admin không thấy mật khẩu — người xin xem mật khẩu đúng một lần ở hồ sơ của họ.
                     card.querySelector('.orq-actions').remove();
                     card.querySelector('.orq-result').innerHTML = '<div class="alert alert-success mb-0">Đã cấp tài khoản <strong>' + Ui.escapeHtml(d.organizerEmail) +
-                        '</strong>. Mật khẩu tạm: <code class="orq-pass">' + Ui.escapeHtml(d.temporaryPassword) + '</code> ' +
-                        '<button type="button" class="btn btn-ghost btn-sm" data-copy>Sao chép</button><br/>' +
-                        (d.emailSent ? 'Đã gửi email cho tài khoản mới.' : 'Máy chủ chưa gửi được email — hãy bàn giao mật khẩu này trực tiếp.') +
-                        ' Mật khẩu chỉ hiện một lần.</div>';
-                    var copy = card.querySelector('[data-copy]');
-                    copy.addEventListener('click', function () { navigator.clipboard && navigator.clipboard.writeText(d.temporaryPassword); copy.textContent = 'Đã chép'; });
+                        '</strong>. Người xin đã nhận thông báo và xem mật khẩu <strong>một lần</strong> ở Hồ sơ → Xin làm Ban tổ chức. ' +
+                        'Muốn xem lại, họ gửi yêu cầu và bạn xác nhận ở mục "Yêu cầu xem lại mật khẩu" bên dưới.</div>';
                 } catch (err) {
                     showErrors(card, err.fieldErrors);
                     Ui.showAlert(card.querySelector('.orq-result'), 'danger', err.message);
@@ -180,9 +203,15 @@
             '<section id="organizer-requests" class="mt-4" aria-labelledby="orq-title">' +
             '<div class="section-title" id="orq-title">Đơn xin làm Ban tổ chức</div>' +
             '<div class="section-sub">Duyệt đơn = tạo một tài khoản Ban tổ chức RIÊNG (email khác, không có đội). Tài khoản tuyển thủ của người xin giữ nguyên đội.</div>' +
-            '<div id="organizer-requests-list" class="d-grid gap-3"><div class="hint">Đang tải…</div></div></section>';
+            '<div id="organizer-requests-list" class="d-grid gap-3"><div class="hint">Đang tải…</div></div></section>' +
+            '<section id="organizer-reissues" class="mt-4" aria-labelledby="orr-title" hidden>' +
+            '<div class="section-title" id="orr-title">Yêu cầu xem lại mật khẩu Ban tổ chức</div>' +
+            '<div class="section-sub">Người xin đã xem mật khẩu một lần và xin xem lại. Xác nhận thì họ xem được mật khẩu MỚI thêm một lần (mật khẩu cũ hết hiệu lực).</div>' +
+            '<div id="organizer-reissues-list" class="d-grid gap-3"></div></section>';
         TASKS.concat(STATS).forEach(fill);
+        loadReissues();
         await loadRequests();
+        if (location.hash === '#organizer-reissues') { var rs = document.getElementById('organizer-reissues'); if (rs) rs.scrollIntoView({ block: 'start' }); }
         if (location.hash === '#organizer-requests') document.getElementById('organizer-requests').scrollIntoView({ block: 'start' });
     });
 })();

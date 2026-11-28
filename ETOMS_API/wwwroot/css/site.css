@@ -2449,3 +2449,38 @@ a.etoms-toast:hover { border-color: var(--primary, #4f6bff); color: inherit; }
   .mark-3d .mk-glint, .mark-3d .mk-sparks, .brand:hover .mark-3d .mk-sparks { animation: none; display: none; }
   .brand .mark.mark-3d::before { opacity: .6; }
 }
+
+/* Góp ý 28/11: chữ thông tin không bị cắt "…" — xuống dòng cho đủ chữ. Chỉ giữ cắt ở chỗ có khung cố định:
+   tên trên thanh điều hướng (.nav-user-*) và ô trận trong sơ đồ nhánh đấu (.bk-head, .bk-team) — hai chỗ đó có title hiện đủ tên. */
+.ov-fact .v, .part-row .nm, .live-side .nm, .live-card-sub, .sponsor-name, .sponsor-tour, .ht-name, .ht-captain,
+.ohub-name, .ohub-meta, .ohub-next, .phase-steps .t, .lineup-who .item-title, .lineup-who .item-sub, .hbar .lbl,
+.team-card .meta .cap, .team-card .top .name, .team-card .top .tag, .profile-account-copy strong, .profile-account-email,
+.step-tab, .my-team-actions .btn, .bk-pteam .nm, .text-truncate {
+    white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+}
+.ov-fact .v { line-height: 1.35; }
+
+/* Nút hiện / ẩn mật khẩu cho mọi ô mật khẩu (Ui.addPasswordToggles, góp ý 28/11). */
+.pw-wrap { position: relative; display: block; }
+input.has-eye { padding-right: 44px !important; }
+.pw-eye { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; padding: 0; border: 0;
+  border-radius: 6px; background: transparent; color: var(--muted, #94a3b8); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.pw-eye:hover { color: var(--ink, #e2e8f0); background: rgba(127, 127, 127, .12); }
+.pw-eye:focus-visible { outline: 2px solid var(--primary, #4f6bff); outline-offset: 1px; }
+
+/* Kiểm email người được mời vào đơn vị ngay khi gõ (Ui.inviteeCheck, góp ý 28/11). */
+.invitee-check { display: block; font-size: .82rem; margin-top: 4px; color: var(--muted, #94a3b8); min-height: 0; }
+.invitee-check:empty { display: none; }
+.invitee-check.ok { color: var(--success, #22c55e); }
+.invitee-check.bad { color: var(--danger, #ef4444); }
+
+/* Chuông thông báo: hiện ĐỦ nội dung, không cắt "…" sau 2 dòng (góp ý 28/11); danh sách cao hơn và cuộn được. */
+.nav-bell-item .b { display: block; overflow: visible; -webkit-line-clamp: unset; white-space: pre-line; overflow-wrap: anywhere; }
+.nav-bell-item .t { overflow-wrap: anywhere; }
+.nav-bell-list { max-height: min(70vh, 560px); }
+
+/* Xin làm Ban tổ chức: mật khẩu tài khoản Ban tổ chức xem đúng một lần (góp ý 28/11). */
+.orq-pass-box { margin-top: 12px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel-2); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.orq-pass-warn { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, .45); background: rgba(245, 158, 11, .1); color: var(--warn, #f59e0b); font-size: .88rem; }
+.orq-pass-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.orq-pass-label { min-width: 72px; color: var(--muted); font-size: .86rem; }

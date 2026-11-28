@@ -111,6 +111,37 @@ public sealed class OrganizationsController : ApiControllerBase
             organizationId, memberId, _currentUser.UserId!.Value, cancellationToken));
     }
 
+    // Người được mời từ chối lời mời vào đơn vị.
+    [HttpPost("{organizationId:int}/members/{memberId:int}/decline")]
+    public async Task<IActionResult> DeclineInvitation(int organizationId, int memberId, CancellationToken cancellationToken)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        return FromResult(await _organizationService.DeclineInvitationAsync(organizationId, memberId, _currentUser.UserId!.Value, cancellationToken));
+    }
+
+    // Kiểm email người cần mời ngay khi đang gõ (ô mời thành viên / ô email người cùng lập đơn vị).
+    // Có organizationId: chỉ chủ nhiệm đơn vị hoặc Admin. Không có (đang lập đơn vị mới): tài khoản Ban tổ chức.
+    // POST (email nằm trong thân yêu cầu, không nằm trên đường dẫn / nhật ký truy cập).
+    public sealed record InviteeCheckRequest(string? Email, int? OrganizationId);
+
+    [HttpPost("invitee-check")]
+    public async Task<IActionResult> CheckInvitee([FromBody] InviteeCheckRequest request, CancellationToken cancellationToken)
+    {
+        if (!_currentUser.IsAuthenticated) return Unauthorized();
+        var email = request?.Email;
+        var organizationId = request?.OrganizationId;
+        if (organizationId is int oid)
+        {
+            var denied = await RequireChairOrAdminAsync(oid);
+            if (denied is not null) return denied;
+        }
+        else if (!User.IsInRole(ETOMS_API.Utils.AccountRoles.Organizer) && !User.IsInRole(ETOMS_API.Utils.AccountRoles.Admin))
+        {
+            return StatusCode(403, new { message = "Chỉ tài khoản Ban tổ chức được kiểm email người cùng lập đơn vị." });
+        }
+        return FromResult(await _organizationService.CheckInviteeAsync(email, organizationId, _currentUser.UserId!.Value, cancellationToken));
+    }
+
     [HttpPatch("{organizationId:int}/members/{memberId:int}")]
     public async Task<IActionResult> UpdateMemberRole(
         int organizationId,

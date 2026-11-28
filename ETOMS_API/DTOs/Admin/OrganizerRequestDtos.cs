@@ -18,7 +18,17 @@ public sealed class MyOrganizerRequestDto
     public string? Note { get; set; }
     public string? ProposedEmail { get; set; }
     public bool CanSubmit { get; set; }
+    // Đơn đã duyệt: email tài khoản Ban tổ chức được cấp và trạng thái mật khẩu (góp ý 28/11):
+    // AVAILABLE = còn một lần xem, REVEALED = đã xem (không hiện lại), REISSUE_PENDING = đã xin xem lại, chờ Admin xác nhận.
+    public string? OrganizerEmail { get; set; }
+    public string? PasswordState { get; set; }
 }
+
+// Mật khẩu tài khoản Ban tổ chức — trả về đúng một lần khi người xin bấm xem.
+public sealed record RevealedOrganizerPassword(string Email, string Password);
+
+// Yêu cầu xem lại mật khẩu Ban tổ chức đang chờ Admin xác nhận.
+public sealed record OrganizerReissueItemDto(int AccountId, string FullName, string Email, string? AvatarUrl, string? OrganizerEmail, DateTime RequestedAt);
 
 public sealed class OrganizerRequestItemDto
 {
@@ -49,7 +59,6 @@ public sealed class ApproveOrganizerResult
 {
     public int OrganizerAccountId { get; set; }
     public string OrganizerEmail { get; set; } = string.Empty;
-    // Mật khẩu tạm — chỉ trả cho Admin đúng một lần (và gửi qua email) để bàn giao; BTC đổi ngay khi đăng nhập.
-    public string TemporaryPassword { get; set; } = string.Empty;
+    // Không còn trả mật khẩu cho Admin (góp ý 28/11): người xin xem mật khẩu một lần ở hồ sơ của họ.
     public bool EmailSent { get; set; }
 }

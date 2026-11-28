@@ -155,3 +155,6 @@ public sealed record OrganizationReviewResponse(
     DateTime CreatedAt,
     IReadOnlyList<string> RequiredDocumentTypes,
     IReadOnlyList<OrganizationDocumentResponse> Documents);
+
+// Kết quả kiểm email người cần mời vào đơn vị (giao diện gọi khi đang gõ email) — Ok = mời được.
+public sealed record InviteeCheckResponse(bool Ok, string Message);
