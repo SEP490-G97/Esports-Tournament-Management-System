@@ -204,7 +204,7 @@
                 '<span class="field-error" data-field-error="OutAccountId"></span></div>' +
                 '<div><label>Người vào</label><select class="input" name="inAccountId" required>' + opts('SUBSTITUTE') + '</select>' +
                 '<span class="field-error" data-field-error="InAccountId"></span></div>' +
-                '<div style="flex:1 1 240px"><label>Lý do</label><input class="input" name="reason" maxlength="500" required placeholder="Ví dụ: tuyển thủ bị ốm">' +
+                '<div style="flex:1 1 240px"><label>Lý do</label><input class="input" name="reason" minlength="5" maxlength="500" required placeholder="Ví dụ: tuyển thủ bị ốm">' +
                 '<span class="field-error" data-field-error="Reason"></span></div>' +
                 '<button class="btn btn-primary" type="submit">Gửi yêu cầu</button></form></div></div>';
         }

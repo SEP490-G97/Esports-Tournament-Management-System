@@ -42,13 +42,13 @@ public class SaveGameRulesetRequest
     [StringLength(100, ErrorMessage = "Tên bộ luật tối đa 100 ký tự.")]
     public string Name { get; set; } = string.Empty;
 
-    [Range(1, 100, ErrorMessage = "Số người chính thức tối thiểu phải từ 1 đến 100.")]
+    [Range(1, 20, ErrorMessage = "Số người chính thức tối thiểu từ 1 đến 20.")]
     public int MinStarters { get; set; }
 
-    [Range(1, 100, ErrorMessage = "Số người chính thức tối đa phải từ 1 đến 100.")]
+    [Range(1, 20, ErrorMessage = "Số người chính thức tối đa phải từ số tối thiểu đến 20.")]
     public int MaxStarters { get; set; }
 
-    [Range(0, 100, ErrorMessage = "Số dự bị phải từ 0 đến 100.")]
+    [Range(0, 10, ErrorMessage = "Số dự bị từ 0 đến 10.")]
     public int MaxSubstitutes { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập đầy đủ thông tin bắt buộc.")]
@@ -58,7 +58,7 @@ public class SaveGameRulesetRequest
     [StringLength(200, ErrorMessage = "Danh sách định dạng tối đa 200 ký tự.")]
     public string AllowedEvidenceTypes { get; set; } = string.Empty;
 
-    [Range(1, 100, ErrorMessage = "Dung lượng file tối đa phải từ 1 đến 100 MB.")]
+    [Range(1, 50, ErrorMessage = "Dung lượng tệp minh chứng từ 1 đến 50 MB.")]
     public int MaxEvidenceFileSizeMb { get; set; }
 
     // ACTIVE = còn dùng, RETIRED = đã loại. Bỏ trống khi tạo mới hoặc để giữ nguyên.

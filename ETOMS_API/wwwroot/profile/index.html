@@ -107,13 +107,13 @@
                     <p class="muted-copy">Đổi xong, mọi thiết bị đang đăng nhập (kể cả máy này) phải đăng nhập lại bằng mật khẩu mới.</p>
                     <form id="password-form" class="profile-form" novalidate>
                         <div class="field"><label for="pw-current">Mật khẩu hiện tại <span class="req">*</span></label>
-                            <input id="pw-current" class="input" type="password" autocomplete="current-password" required /></div>
+                            <input id="pw-current" maxlength="72" class="input" type="password" autocomplete="current-password" required /></div>
                         <div class="row g-3">
                             <div class="col-12 col-md-6 field"><label for="pw-new">Mật khẩu mới <span class="req">*</span></label>
-                                <input id="pw-new" class="input" type="password" autocomplete="new-password" minlength="8" required />
+                                <input id="pw-new" maxlength="72" class="input" type="password" autocomplete="new-password" minlength="8" required />
                                 <small class="field-hint">Ít nhất 8 ký tự, có chữ hoa, chữ thường và chữ số.</small></div>
                             <div class="col-12 col-md-6 field"><label for="pw-confirm">Nhập lại mật khẩu mới <span class="req">*</span></label>
-                                <input id="pw-confirm" class="input" type="password" autocomplete="new-password" required /></div>
+                                <input id="pw-confirm" maxlength="72" class="input" type="password" autocomplete="new-password" required /></div>
                         </div>
                         <div id="pw-flash" aria-live="polite"></div>
                         <div class="profile-form-actions"><button class="btn btn-primary" type="submit" id="pw-submit">Đổi mật khẩu</button></div>

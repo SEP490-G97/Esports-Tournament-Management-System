@@ -32,6 +32,7 @@ public class SubmitReportRequest
     [Range(0, 50, ErrorMessage = "Tỉ số không hợp lệ.")]
     public int OpponentScore { get; set; }
 
+    [StringLength(200, ErrorMessage = "Tỉ số từng ván tối đa 200 ký tự.")]   // cột MatchReport.PerGameScores VARCHAR(200)
     public string? PerGameScores { get; set; }
 }
 

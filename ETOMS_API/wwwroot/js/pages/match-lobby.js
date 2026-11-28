@@ -31,7 +31,7 @@ window.MatchLobby = (function () {
             '<div class="hint mt-1" id="lobby-state"></div>' +
             '<div class="lobby-list mt-2" id="lobby-list" aria-live="polite"><p class="muted">Đang tải...</p></div>' +
             '<form id="lobby-form" class="lobby-form" novalidate>' +
-            '<textarea class="input" name="content" id="lobby-input" rows="2" placeholder="Nhập tin nhắn (Enter để gửi, Shift+Enter xuống dòng)"></textarea>' +
+            '<textarea class="input" name="content" id="lobby-input" maxlength="1000" rows="2" placeholder="Nhập tin nhắn (Enter để gửi, Shift+Enter xuống dòng)"></textarea>' +
             '<div class="lobby-form-foot"><span class="field-error" data-field-error="Content"></span><span class="hint" id="lobby-count"></span>' +
             '<button class="btn btn-primary" type="submit">Gửi</button></div></form>';
         var form = document.getElementById('lobby-form');
