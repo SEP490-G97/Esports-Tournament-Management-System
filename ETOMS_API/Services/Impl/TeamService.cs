@@ -140,16 +140,20 @@ public class TeamService : ITeamService
         if (!await _uow.Repository<Game>().AnyAsync(g => g.GameId == gameId && g.Status == "ACTIVE"))
             return Result<IReadOnlyList<PlayerSearchItemDto>>.FieldFailure("gameId", "Hãy chọn tựa game trước khi tìm tuyển thủ.");
 
-        // Tìm theo họ tên hoặc tên trong game của tựa game đang chọn. Chỉ tuyển thủ đang hoạt động.
+        // Tìm theo họ tên, tên trong game của tựa game đang chọn, hoặc ĐÚNG email đầy đủ. Chỉ tuyển thủ đang hoạt động.
+        var byEmail = q.Contains('@');
         var list = await _uow.Repository<Account>().Query()
             .Where(a => a.Status == "ACTIVE" && a.Role == "PLAYER" && a.AccountId != requesterAccountId
-                && (a.FullName.Contains(q) || a.PlayerCredentials.Any(c => c.GameId == gameId && c.CredentialType == "IN_GAME_NAME" && c.Value != null && c.Value.Contains(q))))
+                && (byEmail
+                    ? a.Email == q
+                    : a.FullName.Contains(q) || a.PlayerCredentials.Any(c => c.GameId == gameId && c.CredentialType == "IN_GAME_NAME" && c.Value != null && c.Value.Contains(q))))
             .OrderBy(a => a.FullName)
             .Take(10)
             .Select(a => new PlayerSearchItemDto
             {
                 AccountId = a.AccountId,
                 FullName = a.FullName,
+                Email = a.Email,
                 AvatarUrl = a.AvatarUrl,
                 InGameName = a.PlayerCredentials.Where(c => c.GameId == gameId && c.CredentialType == "IN_GAME_NAME").Select(c => c.Value).FirstOrDefault(),
                 AlreadyInTeam = a.TeamMembers.Any(m => m.GameId == gameId && m.Status == "ACTIVE")

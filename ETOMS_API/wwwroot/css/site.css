@@ -2250,3 +2250,51 @@ a.pp-link:hover { border-color: var(--primary); }
 /* Phân trang bảng báo cáo (góp ý 27/11): trên màn hình ẩn dòng ngoài trang, khi in hiện đủ mọi dòng. */
 .rp-hide { display: none; }
 @media print { .rp-hide { display: table-row !important; } .rp-pager, [data-table-pager] .pager, .list-search { display: none !important; } }
+/* Ô ngày giờ dùng chung (datetime-field.js, góp ý 28/11): [lịch] dd/mm/yyyy | [đồng hồ] HH:mm ▾, gõ trực tiếp được,
+   bảng chọn tự vẽ. Ô datetime-local gốc ẩn, chỉ giữ giá trị. */
+.dtf-source { display: none !important; }
+.dtf { position: relative; display: flex; align-items: stretch; width: 100%; min-height: calc(.95rem * 1.5 + 26px); background: var(--bg-2); border: 1px solid var(--border); border-radius: 11px; transition: border-color .15s, box-shadow .15s; }
+.dtf:focus-within, .dtf.is-open { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-050); }
+.dtf.is-invalid, .dtf.has-bad-text { border-color: var(--danger); }
+.dtf.is-disabled { opacity: .6; }
+.dtf-part { display: flex; align-items: center; min-width: 0; }
+.dtf-date-part { flex: 1.35 1 0; padding-left: 6px; }
+.dtf-time-part { flex: 1 1 0; padding-left: 6px; }
+.dtf-sep { width: 1px; margin: 10px 0; background: var(--border); flex: none; }
+.dtf-icon, .dtf-caret { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; transition: background .15s, color .15s; }
+.dtf-icon:hover, .dtf-caret:hover { background: var(--primary-050); color: var(--ink); }
+.dtf-caret { margin-right: 6px; }
+.dtf-text { flex: 1; min-width: 0; height: 100%; padding: 0 6px; border: 0; outline: none; background: transparent; color: var(--ink); font-size: .95rem; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.dtf-text::placeholder { color: var(--muted-2); }
+/* Bảng chọn */
+.dtf-pop { position: absolute; top: calc(100% + 6px); z-index: 60; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.45); padding: 12px; }
+.dtf-pop[hidden] { display: none; }
+.dtf-pop-date { left: 0; width: 292px; }
+.dtf-pop-time { right: 0; width: 300px; }
+.dtf-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.dtf-cal-title { font-weight: 700; color: var(--ink); font-size: .95rem; }
+.dtf-nav { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-2); color: var(--ink); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.dtf-nav:hover:not(:disabled) { border-color: var(--primary); }
+.dtf-nav:disabled { opacity: .35; cursor: not-allowed; }
+.dtf-week, .dtf-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.dtf-week span { text-align: center; font-size: .72rem; font-weight: 700; color: var(--muted-2); padding: 4px 0; }
+.dtf-day { height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font-size: .85rem; font-variant-numeric: tabular-nums; cursor: pointer; }
+.dtf-day:hover:not(:disabled) { background: var(--primary-050); }
+.dtf-day.is-today { box-shadow: inset 0 0 0 1px var(--primary); }
+.dtf-day.is-selected { background: var(--primary); color: #fff; font-weight: 700; }
+.dtf-day:disabled { color: var(--muted-2); opacity: .4; cursor: not-allowed; }
+.dtf-pop-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-soft, var(--border)); }
+.dtf-link { border: 0; background: transparent; color: var(--info-ink, var(--primary)); font-weight: 600; font-size: .85rem; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.dtf-link:hover:not(:disabled) { background: var(--primary-050); }
+.dtf-link:disabled { opacity: .4; cursor: not-allowed; }
+.dtf-hint { font-size: .75rem; color: var(--muted-2); }
+.dtf-time-cols { display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px; }
+.dtf-time-label { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 6px; }
+.dtf-hours { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.dtf-mins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.dtf-slot { height: 30px; border: 1px solid transparent; border-radius: 8px; background: var(--bg-2); color: var(--ink); font-size: .82rem; font-variant-numeric: tabular-nums; cursor: pointer; }
+.dtf-slot:hover { border-color: var(--primary); }
+.dtf-slot.is-selected { background: var(--primary); color: #fff; font-weight: 700; }
+@media (max-width: 420px) { .dtf-pop-date, .dtf-pop-time { left: 0; right: auto; width: min(300px, calc(100vw - 40px)); } }
+/* Tìm tuyển thủ khi tạo đội: email (che bớt) cạnh tên để phân biệt người trùng tên (góp ý 28/11). */
+.member-option-email { margin-left: 8px; color: var(--muted-2); font-size: .8rem; font-weight: 400; }

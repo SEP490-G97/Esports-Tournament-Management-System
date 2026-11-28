@@ -90,7 +90,8 @@
                 var note = r.alreadyInTeam ? 'Đã có đội ở game này' : chosen ? 'Đã chọn' : '';
                 return '<li role="option" id="mr-' + i + '" data-i="' + i + '" class="member-option' + (i === active ? ' active' : '') + (disabled ? ' disabled' : '') + '" aria-disabled="' + disabled + '">' +
                     '<span class="avatar-xs">' + (r.avatarUrl ? '<img src="' + esc(r.avatarUrl) + '" alt="" />' : esc((r.fullName || '?').charAt(0).toUpperCase())) + '</span>' +
-                    '<span class="grow"><strong>' + esc(r.fullName) + '</strong>' + (r.inGameName ? ' <small class="text-muted-2">· ' + esc(r.inGameName) + '</small>' : '') + '</span>' +
+                    '<span class="grow"><strong>' + esc(r.fullName) + '</strong>' + (r.inGameName ? ' <small class="text-muted-2">· ' + esc(r.inGameName) + '</small>' : '') +
+                    (r.email ? '<small class="member-option-email">' + esc(r.email) + '</small>' : '') + '</span>' +
                     (note ? '<small class="text-muted-2">' + note + '</small>' : '') + '</li>';
             }).join('');
             list.querySelectorAll('[data-i]').forEach(function (li) {
@@ -140,7 +141,7 @@
             input.value = '';
             input.placeholder = !gameId() ? 'Chọn tựa game trước, rồi gõ tên người dùng hoặc tên trong game'
                 : maxInvites() === 0 ? 'Tựa game này đội chỉ 1 người — không cần mời'
-                : 'Gõ tên người dùng hoặc tên trong game (ít nhất 2 ký tự)';
+                : 'Gõ tên, tên trong game hoặc email đầy đủ (ít nhất 2 ký tự)';
             closeResults();
             renderChips();
             if (had) document.getElementById('memberHint').textContent = 'Đã đổi tựa game nên danh sách mời được làm lại. ' + document.getElementById('memberHint').textContent;
