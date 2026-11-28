@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=logo-20261128" />
+    <link rel="stylesheet" href="/css/site.css?v=ov-20261128" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -135,13 +135,14 @@
                             <label for="in-game-name">Tên trong game <span class="req">*</span></label>
                             <input id="in-game-name" name="InGameName" class="input" maxlength="150" required placeholder="Ví dụ: TenGame#TAG" aria-describedby="in-game-name-error" />
                             <span id="in-game-name-error" class="field-error" data-field-error="InGameName"></span>
-                            <span id="game-account-hint" class="field-hint">Chọn tựa game để thêm tên mới hoặc cập nhật tên đang liên kết.</span>
                         </div>
-                        <!-- Nhãn trống để nút thẳng hàng với ô nhập (form canh theo đỉnh vì cột phải có dòng gợi ý). -->
+                        <!-- Nhãn trống để nút thẳng hàng với ô nhập. -->
                         <div class="field profile-game-action">
                             <label aria-hidden="true">&nbsp;</label>
                             <button id="game-submit" class="btn btn-primary" type="submit">Thêm tên game</button>
                         </div>
+                        <!-- Gợi ý nằm riêng một hàng dưới cả ba ô (trước đây chỉ dưới ô giữa nên hàng ô nhập trông bị lệch — góp ý 28/11). -->
+                        <span id="game-account-hint" class="field-hint profile-game-hint">Chọn tựa game để thêm tên mới hoặc cập nhật tên đang liên kết.</span>
                     </form>
                     <h3 class="section-title">Tên game đã liên kết</h3>
                     <div id="profile-games" class="feature-list"><p class="muted-copy">Đang tải...</p></div>
