@@ -6,6 +6,21 @@
     var PAGE = 10;
     var shown = PAGE;
 
+    // Cảnh báo trước khi rút đơn (28/11, giống trang giải — bracket-view.js): lệ phí đã nộp không được hoàn; suất trống
+    // mời ngay đội đầu danh sách chờ, đội đó được báo và phải nộp lệ phí mới vào giải.
+    function withdrawWarning(r) {
+        var fee = Number(r.entryFee) || 0;
+        var paid = fee > 0 && (r.paymentStatus === 'PROOF_SUBMITTED' || r.paymentStatus === 'CONFIRMED');
+        var money = fee.toLocaleString('vi-VN') + ' đ';
+        var team = r.teamName || 'của bạn';
+        if (r.status === 'DRAFT') return 'Hủy đơn nháp của đội ' + team + '? Đơn đã hủy không khôi phục được.';
+        var head = r.status === 'WAITLISTED'
+            ? 'Đội ' + team + ' sẽ rời danh sách chờ của giải.'
+            : 'Đội ' + team + ' sẽ rời giải. Suất của đội được mời ngay cho đội đứng đầu danh sách chờ (nếu có) — đội đó nhận thông báo, có 24 giờ để xác nhận' +
+              (fee > 0 ? ' và phải nộp lệ phí ' + money + ' mới được vào giải' : '') + '.';
+        return head + (paid ? ' Lệ phí ' + money + ' đội đã nộp sẽ KHÔNG được hoàn lại.' : '') + ' Đơn đã rút không khôi phục được. Vẫn rút đơn?';
+    }
+
     function statusLabel(status) {
         return {
             DRAFT: 'Bản nháp',
@@ -114,8 +129,8 @@
         });
         root.querySelectorAll('[data-withdraw]').forEach(function (button) {
             button.addEventListener('click', async function () {
-                if (!(await window.etomsConfirm('Rút đơn sẽ giải phóng suất và không thể khôi phục. Bạn có muốn tiếp tục?',
-                    { title: 'Rút đơn đăng ký', okText: 'Rút đơn' }))) return;
+                var reg = registrations.find(function (r) { return Number(r.registrationId) === Number(button.dataset.withdraw); }) || {};
+                if (!(await window.etomsConfirm(withdrawWarning(reg), { title: 'Rút đơn đăng ký', okText: 'Vẫn rút đơn' }))) return;
                 button.disabled = true;
                 try {
                     var result = await Api.post('/api/registrations/' + button.dataset.withdraw + '/withdraw', {});

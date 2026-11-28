@@ -34,6 +34,10 @@
             ? '<section class="card-etoms mt-3"><div class="body"><div class="section-title mt-0">Danh sách chờ (' + d.waitlisted.length + ' đội)</div>' +
               '<p class="hint">Giải đã đủ suất. Khi có đội rút đơn, đội đứng đầu danh sách chờ được mời nhận suất.</p>' +
               '<div data-waiting></div></div></section>'
+            : (d.approved.length >= d.maxTeams && d.status === 'PUBLISHED')
+            // 28/11: giải đã đủ suất mà chưa ai chờ — vẫn cho biết hàng chờ dùng để làm gì.
+            ? '<section class="card-etoms mt-3"><div class="body"><div class="section-title mt-0">Danh sách chờ (0 đội)</div>' +
+              '<p class="hint">Giải đã đủ ' + Number(d.maxTeams) + ' suất. Đội nộp đơn từ bây giờ sẽ vào danh sách chờ theo thứ tự nộp; khi có đội rút đơn hoặc bị từ chối, đội đứng đầu được mời nhận suất trong 24 giờ.</p></div></section>'
             : '';
         var root = document.getElementById('participants-root');
         root.innerHTML =
