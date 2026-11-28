@@ -3,7 +3,7 @@
     public class AuthDtos
     {
         public record LoginRequest(string Email, string Password, bool Remember = true);
-        public record GoogleRequest(string Credential);
+        public record GoogleRequest(string Credential, bool Remember = true);
 
         public record AccountDto(int Id, string Email, string Name, string? AvatarUrl, string Role);
 

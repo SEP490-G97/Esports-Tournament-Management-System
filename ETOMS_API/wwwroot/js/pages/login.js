@@ -46,8 +46,13 @@
         const data = await res.json().catch(() => ({}));
 
         if (res.ok) {
-            Auth.setAccessToken(data.accessToken);
-            Auth.setUser(data.user);
+            // Không ghi nhớ => phiên riêng của tab (pendingTab); ghi nhớ => phiên dùng chung mọi tab.
+            Auth.beginSession(pendingTab, data.accessToken, data.user);
+            // Đang chuyển trang: khóa nút, không cho gửi đăng nhập lần 2 (lần 2 sẽ thu hồi phiên vừa tạo — nếu yêu cầu
+            // bị ngắt giữa chừng do chuyển trang thì trình duyệt giữ token đã bị thu hồi và bị đăng xuất sau đó).
+            navigating = true;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang vào trang…';
             location.href = targetAfterLogin(data.user);
             return;
         }
@@ -109,24 +114,29 @@
         }
     }
 
-    async function postJson(path, body) {
+    async function postJson(path, body, tab) {
         return fetch(Auth.API_BASE + path, {
             method: 'POST',
             credentials: 'include',                 // để nhận cookie refresh_token
-            headers: { 'Content-Type': 'application/json' },
+            headers: Object.assign({ 'Content-Type': 'application/json' }, tab ? { 'X-Etoms-Tab': tab } : {}),
             body: JSON.stringify(body),
         });
     }
 
     // ---------- Email / mật khẩu ----------
+    // pendingTab: mã tab gửi kèm lần đăng nhập này (null = Ghi nhớ đăng nhập, phiên dùng chung mọi tab).
+    let busy = false, navigating = false, pendingTab = null;
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
+        if (busy || navigating) return;            // chặn bấm/Enter liên tục
         clearError();
 
         const id = identity.value.trim();
         const pw = password.value;
         if (!id || !pw) return showError('Vui lòng nhập đầy đủ email và mật khẩu.');
 
+        busy = true;
+        pendingTab = Auth.loginTabId(remember.checked);
         setLoading(true);
         try {
             // Backend hiện nhận trường "email"
@@ -134,20 +144,28 @@
                 email: id,
                 password: pw,
                 remember: remember.checked,
-            }));        } catch {
+            }, pendingTab));
+        } catch {
             showError('Không kết nối được máy chủ. Vui lòng thử lại.');
         } finally {
-            setLoading(false);
+            busy = false;
+            if (!navigating) setLoading(false);   // thành công thì giữ nút khóa tới khi trang mới mở
         }
     });
 
     // ---------- Google ----------
     async function onGoogleCredential(response) {
+        if (busy || navigating) return;
+        busy = true;
+        // Google cũng theo ô "Ghi nhớ đăng nhập": bỏ chọn => phiên riêng của tab này.
+        pendingTab = Auth.loginTabId(remember.checked);
         clearError();
         try {
-            await handleLoginResponse(await postJson('/auth/google', { credential: response.credential }));
+            await handleLoginResponse(await postJson('/auth/google', { credential: response.credential, remember: remember.checked }, pendingTab));
         } catch {
             showError('Không kết nối được máy chủ. Vui lòng thử lại.');
+        } finally {
+            busy = false;
         }
     }
 

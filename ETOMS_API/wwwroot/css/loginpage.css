@@ -437,3 +437,5 @@ a.login-continue { display: flex; align-items: center; justify-content: center; 
 #session-logout { border: 0; color: var(--muted); padding: 6px; font-weight: 500; }
 #session-logout:hover { color: var(--danger, #ef4444); }
 .login-session-hint { font-size: .82rem; color: var(--muted); background: var(--bg-2); border-radius: 10px; padding: 10px 12px; margin: 0 0 14px; }
+/* Gợi ý ô Ghi nhớ đăng nhập (góp ý 28/11: không ghi nhớ = phiên riêng của tab). */
+.login-remember-hint { margin: -6px 0 14px 26px; font-size: .78rem; line-height: 1.4; color: var(--muted-2, var(--muted)); }

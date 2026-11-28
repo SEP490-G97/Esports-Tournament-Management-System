@@ -94,7 +94,10 @@
     async function wireAuthWidget() {
         var slot = document.getElementById('nav-auth-slot');
         if (!slot) return;
-        var loggedOutHtml = '<a class="btn btn-primary nav-auth-login" href="/auth/login.html">Đăng nhập</a>';
+        // Đang ở chính trang Đăng nhập thì không hiện nút "Đăng nhập" trên đầu trang (bấm chỉ tải lại trang, dễ bấm nhầm
+        // trong lúc đang đăng nhập — góp ý 28/11).
+        var onLoginPage = /^\/auth\/login(\.html)?$/i.test(location.pathname);
+        var loggedOutHtml = onLoginPage ? '' : '<a class="btn btn-primary nav-auth-login" href="/auth/login.html">Đăng nhập</a>';
         try {
             var me = await resolveCurrentUser();
             if (me.isAuthenticated && me.role === 'ADMIN') {
