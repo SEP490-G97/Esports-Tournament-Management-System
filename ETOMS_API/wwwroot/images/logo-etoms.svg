@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
+  <!-- Logo ETOMS: thẻ vát 4 góc viền vàng kim loại; chữ E là sơ đồ nhánh đấu (2 bán kết dồn về chung kết) dẫn tới ngôi sao vô địch; đèn đỏ = trực tiếp -->
+  <defs>
+    <linearGradient id="rimGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff1b8"/><stop offset=".22" stop-color="#f2c14e"/><stop offset=".48" stop-color="#8a5a12"/><stop offset=".7" stop-color="#f5cf68"/><stop offset="1" stop-color="#6b430b"/>
+    </linearGradient>
+    <radialGradient id="core" cx=".35" cy=".2" r="1">
+      <stop offset="0" stop-color="#4f6dff"/><stop offset=".45" stop-color="#2236b8"/><stop offset="1" stop-color="#0a0f3d"/>
+    </radialGradient>
+    <linearGradient id="glyph" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#eef1ff"/><stop offset="1" stop-color="#b9c6ff"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3c4"/><stop offset=".5" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9801c"/>
+    </linearGradient>
+    <radialGradient id="starGlow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#f2c14e" stop-opacity=".55"/><stop offset="1" stop-color="#f2c14e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="live" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ff8fa3"/><stop offset=".6" stop-color="#ff3b5c"/><stop offset="1" stop-color="#ff3b5c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <path d="M12 2H52L62 12V52L52 62H12L2 52V12Z" fill="url(#rimGold)" stroke="#3a2606" stroke-width=".8" stroke-linejoin="round"/>
+  <path d="M12.8 4H51.2L60 12.8V51.2L51.2 60H12.8L4 51.2V12.8Z" fill="#1a1204"/>
+  <path d="M13.3 5.2H50.7L58.8 13.3V50.7L50.7 58.8H13.3L5.2 50.7V13.3Z" fill="url(#core)"/>
+  <path d="M8 22H20M8 42H20M44 12V20M44 44V52" stroke="#7f95ff" stroke-opacity=".18" stroke-width="1"/>
+  <path d="M13.3 5.2H50.7L58.8 13.3V17C42 11 24 13 5.2 25V13.3Z" fill="#ffffff" fill-opacity=".13"/>
+  <path d="M13.3 5.2H50.7L58.8 13.3V50.7L50.7 58.8H13.3L5.2 50.7V13.3Z" fill="none" stroke="#9fb0ff" stroke-opacity=".45" stroke-width=".7"/>
+  <g transform="translate(-2.5 0)">
+    <circle cx="51" cy="32" r="9.5" fill="url(#starGlow)"/>
+    <path d="M39.8 19.25H44V44.75H39.8M40.5 32H46.5" fill="none" stroke="#3a2606" stroke-width="3.4" stroke-linecap="square"/>
+    <path d="M39.8 19.25H44V44.75H39.8M40.5 32H46.5" fill="none" stroke="url(#gold)" stroke-width="2" stroke-linecap="square"/>
+    <path d="M19 17.4H41L38 23.9H23V30.15H36L39.25 33.4L36 36.65H23V42.9H38L41 49.4H19L16 46.4V20.4Z" fill="#0b1250"/>
+    <path d="M19 16H41L38 22.5H23V28.75H36L39.25 32L36 35.25H23V41.5H38L41 48H19L16 45V19Z" fill="url(#glyph)"/>
+    <path d="M19.4 16.9H39.6M23.6 29.6H35.6M23.6 42.4H38.3" stroke="#ffffff" stroke-width=".7" stroke-opacity=".9"/>
+    <path d="M51 26L52.53 29.9L56.71 30.15L53.47 32.8L54.53 36.85L51 34.6L47.47 36.85L48.53 32.8L45.29 30.15L49.47 29.9Z" fill="url(#gold)" stroke="#5a3a08" stroke-width=".7" stroke-linejoin="round"/>
+    <path d="M51 27.6L52 30.4L49.9 30.6Z" fill="#fffbe6" fill-opacity=".85"/>
+  </g>
+  <circle cx="51" cy="12.5" r="3" fill="url(#live)"/>
+  <circle cx="51" cy="12.5" r="1.3" fill="#ff3b5c"/>
+  <circle cx="50.6" cy="12.1" r=".45" fill="#ffffff"/>
+</svg>
