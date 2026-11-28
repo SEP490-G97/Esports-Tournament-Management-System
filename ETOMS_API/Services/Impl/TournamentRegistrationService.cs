@@ -388,7 +388,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         await AddNotificationAsync(
             tournament.OrganizerAccountId,
             "Đơn đăng ký mới",
-            $"{team.Name} đã gửi đơn đăng ký cho giải {tournament.Name}.",
+            $"{team.Name} đã gửi đơn đăng ký cho {GiaiName(tournament.Name)}.",
             $"/registration/review.html?tournamentId={tournamentId}",
             cancellationToken);
         await AddNotificationAsync(
@@ -843,7 +843,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         if (totalRefundedAfterThis > tournament.EntryFee)
         {
             return Result<RegistrationResponse>.FieldFailure(nameof(request.Amount),
-                $"Đã hoàn {alreadyRefunded:N0}đ trước đó; số tiền hoàn lần này khiến tổng vượt quá lệ phí đăng ký ({tournament.EntryFee:N0}đ).");
+                $"Đã hoàn {Money(alreadyRefunded)} trước đó; số tiền hoàn lần này khiến tổng vượt quá lệ phí đăng ký ({Money(tournament.EntryFee)}).");
         }
         if (request.RefundDate is null || request.RefundDate > DateOnly.FromDateTime(DateTime.UtcNow))
         {
@@ -949,6 +949,11 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             return Result.Failure<RegistrationResponse>("Trạng thái đơn hiện tại không thể rút.", StatusCodes.Status409Conflict);
         }
 
+        // 28/11: đội tự rút đơn thì lệ phí đã nộp KHÔNG được hoàn (giao diện cảnh báo trước khi rút); ghi rõ trong
+        // thông báo cho đội trưởng và Ban tổ chức để hai bên cùng biết.
+        var fee = registration.Tournament.EntryFee;
+        var paid = fee > 0 && registration.PaymentStatus is "PROOF_SUBMITTED" or "CONFIRMED";
+        var feeNote = paid ? $" Lệ phí {Money(fee)} đội đã nộp không được hoàn lại." : "";
         registration.Status = "WITHDRAWN";
         registration.WaitlistPosition = null;
         registration.WaitlistExpiresAt = null;
@@ -956,8 +961,14 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         await AddNotificationAsync(
             registration.Tournament.OrganizerAccountId,
             "Đội đã rút đăng ký",
-            $"Đội {registration.Team.Name} đã rút đơn khỏi giải {registration.Tournament.Name}.",
+            $"Đội {registration.Team.Name} đã rút đơn khỏi {GiaiName(registration.Tournament.Name)}.{feeNote}",
             $"/registration/review.html?tournamentId={registration.TournamentId}",
+            cancellationToken);
+        await AddNotificationAsync(
+            registration.Team.CaptainAccountId,
+            "Đội đã rời giải",
+            $"Đội {registration.Team.Name} đã rút đơn khỏi {GiaiName(registration.Tournament.Name)}.{feeNote}",
+            $"/bracket/view.html?id={registration.TournamentId}",
             cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await PromoteAvailableSlotsAsync(registration.Tournament, null, cancellationToken);
@@ -965,7 +976,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
         await transaction.CommitAsync(cancellationToken);
         return Result.Success(
             await GetRegistrationResponseAsync(registrationId, cancellationToken),
-            "Đã rút đơn. Suất trống sẽ được cấp cho đội trong danh sách chờ nếu có.");
+            "Đã rút đơn." + feeNote + " Suất trống được mời cho đội đầu danh sách chờ (nếu có).");
     }
 
     public async Task<Result<RegistrationResponse>> AcceptWaitlistOfferAsync(
@@ -1129,7 +1140,7 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                     await AddNotificationAsync(
                         expired.Team.CaptainAccountId,
                         "Danh sách chờ đã đóng",
-                        $"Đăng ký giải {tournament.Name} đã đóng; đội {expired.Team.Name} không còn trong danh sách chờ.",
+                        $"Đăng ký {GiaiName(tournament.Name)} đã đóng; đội {expired.Team.Name} không còn trong danh sách chờ.",
                         "/registration/mine.html",
                         cancellationToken);
                 }
@@ -1549,10 +1560,15 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
             AfterValue = $"PENDING:{registration.WaitlistExpiresAt:O}",
             CreatedAt = now
         });
+        // 28/11: nhắc lệ phí — đội được mời chỉ vào giải khi đã nộp lệ phí (ETOMS không thu tiền, chỉ nhận minh chứng — LI-02).
+        var feeHint = tournament.EntryFee <= 0 ? ""
+            : registration.PaymentStatus is "PROOF_SUBMITTED" or "CONFIRMED"
+                ? $" Lệ phí {Money(tournament.EntryFee)}: đội đã nộp minh chứng, Ban tổ chức sẽ đối soát khi duyệt."
+                : $" Giải có lệ phí {Money(tournament.EntryFee)}: hãy chuyển khoản theo thông tin của Ban tổ chức và tải minh chứng ở mục Đơn đăng ký của tôi.";
         await AddNotificationAsync(
             registration.Team.CaptainAccountId,
             "Được mời nhận suất giải",
-            $"Đội {registration.Team.Name} được đôn từ danh sách chờ. Xác nhận trong 24 giờ để giữ suất.",
+            $"Đội {registration.Team.Name} được đôn từ danh sách chờ vào {GiaiName(tournament.Name)}. Xác nhận trong 24 giờ để giữ suất.{feeHint}",
             "/registration/mine.html",
             cancellationToken);
         await AddNotificationAsync(
@@ -1756,6 +1772,14 @@ public sealed class TournamentRegistrationService : ITournamentRegistrationServi
                 ? parsed
                 : TieBreakerCriteria.DefaultOrder;
     }
+
+    // "giải X" trong câu thông báo — tên giải thường đã bắt đầu bằng "Giải" thì không thêm (tránh "giải Giải ...").
+    private static string GiaiName(string name) =>
+        name.StartsWith("Giải", StringComparison.OrdinalIgnoreCase) ? name : "giải " + name;
+
+    // Số tiền kiểu Việt Nam: 50.000 đ (máy chủ chạy văn hóa en-US sẽ in "50,000").
+    private static readonly System.Globalization.CultureInfo ViCulture = System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
+    private static string Money(decimal amount) => amount.ToString("N0", ViCulture) + " đ";
 
     private static string PaymentStatusLabel(string status) => status switch
     {

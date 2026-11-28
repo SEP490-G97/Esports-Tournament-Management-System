@@ -46,6 +46,75 @@
         }).join('') + '</ol>';
     }
 
+    // 28/11: đội trưởng đã có đơn trong giải thì không hiện nút "Đăng ký cho đội" nữa — thay bằng trạng thái đơn của đội.
+    // Đơn bị từ chối / đã rút / hết hạn vẫn được nộp lại nên giữ nút. API chỉ trả đơn của các đội mà người xem làm đội trưởng.
+    // Cảnh báo trước khi rút đơn (28/11): lệ phí đã nộp không được hoàn; suất trống mời ngay đội đầu danh sách chờ,
+    // đội đó được báo và phải nộp lệ phí mới vào giải.
+    function withdrawWarning(r) {
+        var fee = Number(r.entryFee) || 0;
+        var paid = fee > 0 && (r.paymentStatus === 'PROOF_SUBMITTED' || r.paymentStatus === 'CONFIRMED');
+        var money = fee.toLocaleString('vi-VN') + ' đ';
+        if (r.status === 'DRAFT') return 'Hủy đơn nháp của đội ' + r.teamName + '? Đơn đã hủy không khôi phục được.';
+        var head = r.status === 'WAITLISTED'
+            ? 'Đội ' + r.teamName + ' sẽ rời danh sách chờ của giải.'
+            : 'Đội ' + r.teamName + ' sẽ rời giải. Suất của đội được mời ngay cho đội đứng đầu danh sách chờ (nếu có) — đội đó nhận thông báo, có 24 giờ để xác nhận' +
+              (fee > 0 ? ' và phải nộp lệ phí ' + money + ' mới được vào giải' : '') + '.';
+        return head + (paid ? ' Lệ phí ' + money + ' đội đã nộp sẽ KHÔNG được hoàn lại.' : '') + ' Đơn đã rút không khôi phục được. Vẫn rút đơn?';
+    }
+
+    async function markMyRegistration(id) {
+        var btn = document.getElementById('ov-register');
+        if (!btn) return;
+        var me = null; try { me = await Ui.currentUser(); } catch (e) { me = null; }
+        if (!me) return;
+        var list;
+        try { list = (await Api.get('/api/registrations/mine')).data || []; } catch (e) { return; }
+        var mine = list.filter(function (r) { return Number(r.tournamentId) === Number(id) && ['APPROVED', 'PENDING', 'WAITLISTED', 'DRAFT'].indexOf(r.status) >= 0; })[0];
+        if (!mine) return;
+        var offer = mine.status === 'PENDING' && mine.waitlistExpiresAt;
+        var label = mine.status === 'APPROVED' ? 'đã được duyệt'
+            : mine.status === 'WAITLISTED' ? 'đang ở danh sách chờ' + (mine.waitlistPosition ? ' (vị trí ' + Number(mine.waitlistPosition) + ')' : '')
+            : mine.status === 'DRAFT' ? 'còn đơn nháp chưa gửi'
+            : (offer ? 'được mời nhận suất — xác nhận trước ' + fmtDateTime(mine.waitlistExpiresAt) : 'đang chờ duyệt');
+        // Được mời từ hàng chờ mà chưa nộp lệ phí: nhắc nộp (ETOMS chỉ nhận minh chứng chuyển khoản — LI-02).
+        var fee = Number(mine.entryFee) || 0, paid = mine.paymentStatus === 'PROOF_SUBMITTED' || mine.paymentStatus === 'CONFIRMED';
+        if (offer && fee > 0 && !paid) label += ' — cần nộp lệ phí ' + fee.toLocaleString('vi-VN') + ' đ';
+        // Đội trưởng tự rời giải ngay tại trang giải (trước khi khóa nhánh — máy chủ kiểm); suất trống tự mời đội đầu danh sách chờ.
+        var wrap = document.createElement('span');
+        wrap.className = 'ov-my-reg';
+        wrap.innerHTML = '<span class="badge badge-soft">Đội ' + esc(mine.teamName) + ' ' + esc(label) + '</span>' +
+            (offer ? '<button type="button" class="btn btn-primary" data-offer>Xác nhận nhận suất</button>' : '') +
+            '<a class="btn btn-ghost" href="/registration/mine.html">Xem đơn</a>' +
+            '<button type="button" class="btn btn-ghost text-danger-etoms" data-withdraw>Rút đơn</button>';
+        btn.replaceWith(wrap);
+        var act = async function (button, url, ask, title, okText, fallback) {
+            if (ask && !(await window.etomsConfirm(ask, { title: title, okText: okText }))) return;
+            button.disabled = true;
+            try { var res = await Api.post(url, {}); await window.etomsAlert(res.message || 'Đã cập nhật.', { title: 'Đơn đăng ký' }); location.reload(); }
+            catch (err) { button.disabled = false; await window.etomsAlert(err.message || fallback, { title: 'Không thực hiện được' }); }
+        };
+        wrap.querySelector('[data-withdraw]').addEventListener('click', function () {
+            act(this, '/api/registrations/' + mine.registrationId + '/withdraw', withdrawWarning(mine),
+                'Rút đơn đăng ký', 'Vẫn rút đơn', 'Không thể rút đơn.');
+        });
+        var ob = wrap.querySelector('[data-offer]');
+        if (ob) ob.addEventListener('click', function () { act(this, '/api/registrations/' + mine.registrationId + '/waitlist-confirmation', null, '', '', 'Không thể xác nhận suất.'); });
+    }
+
+    // Danh sách chờ: ai xem trang giải cũng biết đang có bao nhiêu đội chờ suất và xem được thứ tự ở trang Đội tham dự.
+    async function showWaitlist(id) {
+        var holder = document.getElementById('ov-waitlist');
+        if (!holder) return;
+        var d; try { d = (await Api.get('/api/tournaments/' + id + '/participants')).data; } catch (e) { return; }
+        if (!d) return;
+        var n = (d.waitlisted || []).length, full = (d.approved || []).length >= d.maxTeams;
+        if (!n && !full) return;
+        holder.innerHTML = 'Danh sách chờ: <strong>' + n + ' đội</strong>' +
+            (n ? ' (' + d.waitlisted.slice(0, 3).map(function (p) { return '#' + Number(p.waitlistPosition) + ' ' + esc(p.name); }).join(', ') + (n > 3 ? ', …' : '') + ')' : ' — đội nộp đơn từ bây giờ sẽ vào đây') +
+            ' · <a href="/tournament/participants.html?id=' + Number(id) + '">Xem thứ tự</a>';
+        holder.hidden = false;
+    }
+
     function render(t) {
         var id = t.tournamentId;
         document.title = t.name + ' · ETOMS';
@@ -71,7 +140,7 @@
             heroText = 'Đang nhận đăng ký đến ' + fmtDateTime(t.regCloseAt);
             heroSub = (full ? 'Đã đủ ' + t.maxTeams + ' suất — đơn mới vào danh sách chờ.' : 'Còn ' + (t.maxTeams - t.approvedTeams) + ' trên ' + t.maxTeams + ' suất.') +
                 (t.minTeams ? ' Cần ít nhất ' + t.minTeams + ' đội được duyệt để khai mạc.' : '');
-            primary = '<a class="btn btn-primary" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + id + '">Đăng ký cho đội</a>';
+            primary = '<a class="btn btn-primary" id="ov-register" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + id + '">Đăng ký cho đội</a>';
             secondary = '<a class="btn btn-ghost" href="/tournament/rulebook-history.html?id=' + id + '">Đọc thể lệ</a>';
         } else if (t.status === 'PUBLISHED' && at(t.regOpenAt) > now) {
             heroText = 'Mở đăng ký từ ' + fmtDateTime(t.regOpenAt);
@@ -103,7 +172,8 @@
         }
         var cta = '<section class="card-etoms ov-hero mb-3"><div class="body">' +
             '<div class="ov-hero-top"><div class="minw-0"><div class="ov-hero-title">' + esc(heroText) + '</div>' +
-            (heroSub ? '<div class="hint">' + esc(heroSub) + '</div>' : '') + '</div>' +
+            (heroSub ? '<div class="hint">' + esc(heroSub) + '</div>' : '') +
+            (t.registrationOpen ? '<div class="hint mt-1" id="ov-waitlist" hidden></div>' : '') + '</div>' +
             '<div class="ov-hero-actions">' + secondary + primary + '</div></div>' +
             '<div class="ov-facts">' +
             fact('Tựa game', esc(t.game)) +
@@ -206,6 +276,8 @@
         try {
             var res = await Api.get('/api/tournaments/' + id + '/overview');
             render(res.data);
+            markMyRegistration(id);
+            showWaitlist(id);
             await loadNews(id);
             loadSponsors(id);
         } catch (err) {
