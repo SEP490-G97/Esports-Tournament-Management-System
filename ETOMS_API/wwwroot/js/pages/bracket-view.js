@@ -131,18 +131,16 @@
             heroText = 'Giải đã bị hủy';
         } else if (t.registrationOpen) {
             heroText = 'Đang nhận đăng ký đến ' + fmtDateTime(t.regCloseAt);
-            heroSub = (full ? 'Đã đủ ' + t.maxTeams + ' suất — đơn mới vào danh sách chờ.' : 'Còn ' + (t.maxTeams - t.approvedTeams) + ' trên ' + t.maxTeams + ' suất.') +
-                (t.minTeams ? ' Cần ít nhất ' + t.minTeams + ' đội được duyệt để khai mạc.' : '');
+            // Số suất đã có ở ô "Đội tham dự", tình trạng kín suất ở dòng Danh sách chờ — ở đây chỉ nói điều kiện khai mạc.
+            heroSub = t.minTeams ? 'Cần ít nhất ' + t.minTeams + ' đội được duyệt để khai mạc.' : '';
             // Đã đăng nhập: nút hơi mờ trong lúc kiểm đội đã có đơn chưa (markMyRegistration), không nháy đổi sau đó.
             primary = '<a class="btn btn-primary' + (LOGGED_HINT ? ' is-checking' : '') + '" id="ov-register" data-hide-roles="ORGANIZER ADMIN" href="/registration/register.html?tournamentId=' + id + '">Đăng ký cho đội</a>';
             secondary = '<a class="btn btn-ghost" href="/tournament/rulebook-history.html?id=' + id + '">Đọc thể lệ</a>';
         } else if (t.status === 'PUBLISHED' && at(t.regOpenAt) > now) {
-            heroText = 'Mở đăng ký từ ' + fmtDateTime(t.regOpenAt);
-            heroSub = 'Khai mạc ' + fmtDateTime(t.startAt) + '.';
+            heroText = 'Mở đăng ký từ ' + fmtDateTime(t.regOpenAt);   // ngày khai mạc đã có ở Tiến độ giải
             secondary = '<a class="btn btn-ghost" href="/tournament/rulebook-history.html?id=' + id + '">Đọc thể lệ</a>';
         } else if (t.status === 'ONGOING') {
-            heroText = 'Giải đang diễn ra';
-            heroSub = t.approvedTeams ? t.approvedTeams + ' đội tham dự.' : 'Đang cập nhật thông tin đội.';
+            heroText = 'Giải đang diễn ra';   // số đội đã có ở ô "Đội tham dự"
             primary = '<a class="btn btn-primary" href="/tournament/bracket.html?id=' + id + '">Xem nhánh đấu &amp; kết quả</a>';
             if (t.liveStreams > 0) secondary = '<a class="btn btn-ghost" href="/tournament/live.html?id=' + id + '">Xem trực tiếp</a>';
         } else if (t.status === 'COMPLETED') {
@@ -169,19 +167,20 @@
             (heroSub ? '<div class="hint">' + esc(heroSub) + '</div>' : '') +
             (t.registrationOpen ? '<div class="hint mt-1" id="ov-waitlist" hidden></div>' : '') + '</div>' +
             '<div class="ov-hero-actions">' + secondary + primary + '</div></div>' +
+            // 5 ô nhanh — MỖI thông tin chỉ ở một chỗ (góp ý 28/11: trước đây thể thức, lệ phí, số đội, ngày khai mạc lặp
+            // 2–3 lần giữa ô nhanh, câu trạng thái, tiến độ và Thông tin chi tiết). Ngày tháng chỉ nằm ở Tiến độ giải.
             '<div class="ov-facts">' +
             fact('Tựa game', esc(t.game)) +
             fact('Thể thức', esc(t.formatLabel)) +
-            fact('Đội tham dự', t.approvedTeams + '<small>/' + t.maxTeams + '</small>') +
-            fact('Lệ phí', t.entryFee > 0 ? Number(t.entryFee).toLocaleString('vi-VN') + 'đ' : 'Miễn phí') +
-            fact('Khai mạc', esc(fmtDate(t.startAt))) +
+            fact('Đội tham dự', t.approvedTeams + '<small>/' + t.maxTeams + (t.registrationOpen && !full ? ' · còn ' + (t.maxTeams - t.approvedTeams) + ' suất' : '') + '</small>') +
+            fact('Lệ phí', t.entryFee > 0 ? Number(t.entryFee).toLocaleString('vi-VN') + ' đ/đội' : 'Miễn phí') +
+            fact('Hình thức', t.isOnline ? 'Trực tuyến' : esc(t.venue || 'Chưa công bố địa điểm')) +
             '</div></div></section>';
 
-        var format = esc(t.formatLabel);
-        if (t.groupCount) format += ' · ' + t.groupCount + ' bảng' + (t.advancePerGroup ? ', mỗi bảng ' + t.advancePerGroup + ' đội đi tiếp' : '');
-        if (t.hasThirdPlaceMatch) format += ' · có trận tranh hạng Ba';
-
-        var place = t.isOnline ? 'Trực tuyến' : esc(t.venue || 'Chưa công bố địa điểm');
+        // Chi tiết thể thức chỉ ghi phần mà ô "Thể thức" chưa nói (số bảng, đội đi tiếp, tranh hạng Ba).
+        var formatMore = [];
+        if (t.groupCount) formatMore.push(t.groupCount + ' bảng' + (t.advancePerGroup ? ', mỗi bảng ' + t.advancePerGroup + ' đội đi tiếp' : ''));
+        if (t.hasThirdPlaceMatch) formatMore.push('có trận tranh hạng Ba');
         var requirements = [
             [t.requireInGameName, 'Khai báo tên trong game (IGN) cho từng thành viên'],
             [t.requireIdentityDocument, 'Giấy tờ định danh (thẻ sinh viên/CCCD)'],
@@ -202,10 +201,9 @@
             '</div>' +
             '<details class="card-etoms ov-more mt-3"><summary>Thông tin chi tiết</summary><div class="body pt-0">' +
             row('Đơn vị tổ chức', esc(t.organizingUnit || 'Chưa ghi')) +
-            row('Thể thức', format) +
+            (formatMore.length ? row('Cách chia bảng', esc(formatMore.join(' · '))) : '') +
             row('Đội hình mỗi đội', t.starterCount + ' chính thức' + (t.maxSubstitutes ? ', tối đa ' + t.maxSubstitutes + ' dự bị' : '')) +
-            row('Hình thức', place + (t.region ? ' · ' + esc(t.region) : '')) +
-            row('Lệ phí', t.entryFee > 0 ? Number(t.entryFee).toLocaleString('vi-VN') + 'đ / đội' : 'Miễn phí') +
+            (t.region ? row('Khu vực', esc(t.region)) : '') +
             row('Hồ sơ cần nộp', requirements.length ? requirements.map(function (r) { return esc(r[1]); }).join('; ') : 'Không yêu cầu thêm') +
             (t.contactInfo ? row('Liên hệ', esc(t.contactInfo)) : '') +
             row('Thể lệ', t.hasRulebook ? '<a href="/tournament/rulebook-history.html?id=' + id + '">Phiên bản ' + t.rulebookVersion + '</a>' : 'Chưa công bố') +
