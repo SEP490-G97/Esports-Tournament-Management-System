@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=bell-20261129" />
+    <link rel="stylesheet" href="/css/site.css?v=inl-20261129" />
 </head>
 <body>
     <div id="site-header"></div>
@@ -43,7 +43,6 @@
                     <div class="field">
                         <label for="invite-email">Email tài khoản Ban tổ chức</label>
                         <input id="invite-email" name="Email" class="input" type="email" maxlength="255" required placeholder="vd: ten@donvi.vn" autocomplete="off" />
-                        <span class="field-error" data-field-error="Email"></span>
                     </div>
                     <div class="field">
                         <label for="invite-role">Vai trò</label>
@@ -54,6 +53,8 @@
                         </select>
                     </div>
                     <button class="btn btn-primary" type="submit">Gửi lời mời</button>
+                    <!-- Lỗi / kết quả kiểm email nằm riêng một hàng dưới form để ô email, vai trò và nút luôn thẳng hàng. -->
+                    <span class="field-error inline-full" data-field-error="Email"></span>
                 </form>
                 <ul class="org-role-guide">
                     <li><b>Chủ nhiệm</b> — quản lý thành viên, đổi vai trò, tạo và điều hành giải của đơn vị.</li>
@@ -99,7 +100,7 @@
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/auth.js?v=tab-20261128"></script>
     <script src="/js/api.js?v=form-20261118"></script>
-    <script src="/js/ui.js?v=org1-20261128"></script>
+    <script src="/js/ui.js?v=inl-20261129"></script>
     <script src="/js/layout.js?v=rt-20261128"></script>
     <script src="/js/pages/organization-details.js?v=org1-20261128" defer></script>
 </body>

@@ -413,7 +413,11 @@ var Ui = (function () {
         var hint = document.createElement('span');
         hint.className = 'invitee-check';
         hint.setAttribute('aria-live', 'polite');
-        input.insertAdjacentElement('afterend', hint);
+        // Form một hàng (.inline-form: ô email + vai trò + nút): dòng báo nằm riêng một hàng dưới cả form, không làm cột
+        // email cao lên đẩy lệch ô bên cạnh và nút (góp ý 28/11).
+        var inline = input.form && input.form.classList.contains('inline-form');
+        if (inline) { hint.classList.add('inline-full'); input.form.appendChild(hint); }
+        else input.insertAdjacentElement('afterend', hint);
         var timer = null, seq = 0, last = null;
         function run() {
             var v = input.value.trim();

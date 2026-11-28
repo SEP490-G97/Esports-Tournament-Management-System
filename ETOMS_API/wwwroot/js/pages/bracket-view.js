@@ -167,20 +167,16 @@
             (heroSub ? '<div class="hint">' + esc(heroSub) + '</div>' : '') +
             (t.registrationOpen ? '<div class="hint mt-1" id="ov-waitlist" hidden></div>' : '') + '</div>' +
             '<div class="ov-hero-actions">' + secondary + primary + '</div></div>' +
-            // 5 ô nhanh — MỖI thông tin chỉ ở một chỗ (góp ý 28/11: trước đây thể thức, lệ phí, số đội, ngày khai mạc lặp
-            // 2–3 lần giữa ô nhanh, câu trạng thái, tiến độ và Thông tin chi tiết). Ngày tháng chỉ nằm ở Tiến độ giải.
+            // 5 ô nhanh — MỖI thông tin chỉ ở MỘT chỗ (góp ý 28–29/11). Tựa game và thể thức đã ở dòng dưới tên giải
+            // (#page-sub) nên không lặp ở đây; ngày tháng chỉ ở Tiến độ giải. Đơn vị tổ chức và đội hình đưa lên đây,
+            // "Thông tin chi tiết" chỉ còn những gì chưa có ở chỗ khác.
             '<div class="ov-facts">' +
-            fact('Tựa game', esc(t.game)) +
-            fact('Thể thức', esc(t.formatLabel)) +
             fact('Đội tham dự', t.approvedTeams + '<small>/' + t.maxTeams + (t.registrationOpen && !full ? ' · còn ' + (t.maxTeams - t.approvedTeams) + ' suất' : '') + '</small>') +
             fact('Lệ phí', t.entryFee > 0 ? Number(t.entryFee).toLocaleString('vi-VN') + ' đ/đội' : 'Miễn phí') +
             fact('Hình thức', t.isOnline ? 'Trực tuyến' : esc(t.venue || 'Chưa công bố địa điểm')) +
+            fact('Đội hình', t.starterCount + ' chính thức' + (t.maxSubstitutes ? '<small> + ' + t.maxSubstitutes + ' dự bị</small>' : '')) +
+            fact('Đơn vị tổ chức', esc(t.organizingUnit || 'Chưa ghi')) +
             '</div></div></section>';
-
-        // Chi tiết thể thức chỉ ghi phần mà ô "Thể thức" chưa nói (số bảng, đội đi tiếp, tranh hạng Ba).
-        var formatMore = [];
-        if (t.groupCount) formatMore.push(t.groupCount + ' bảng' + (t.advancePerGroup ? ', mỗi bảng ' + t.advancePerGroup + ' đội đi tiếp' : ''));
-        if (t.hasThirdPlaceMatch) formatMore.push('có trận tranh hạng Ba');
         var requirements = [
             [t.requireInGameName, 'Khai báo tên trong game (IGN) cho từng thành viên'],
             [t.requireIdentityDocument, 'Giấy tờ định danh (thẻ sinh viên/CCCD)'],
@@ -200,9 +196,8 @@
             '</div></section></div>' +
             '</div>' +
             '<details class="card-etoms ov-more mt-3"><summary>Thông tin chi tiết</summary><div class="body pt-0">' +
-            row('Đơn vị tổ chức', esc(t.organizingUnit || 'Chưa ghi')) +
-            (formatMore.length ? row('Cách chia bảng', esc(formatMore.join(' · '))) : '') +
-            row('Đội hình mỗi đội', t.starterCount + ' chính thức' + (t.maxSubstitutes ? ', tối đa ' + t.maxSubstitutes + ' dự bị' : '')) +
+            (t.groupCount ? row('Vòng bảng', t.groupCount + ' bảng' + (t.advancePerGroup ? ', mỗi bảng ' + t.advancePerGroup + ' đội đi tiếp' : '')) : '') +
+            row('Tranh hạng Ba', t.hasThirdPlaceMatch ? 'Có' : 'Không') +
             (t.region ? row('Khu vực', esc(t.region)) : '') +
             row('Hồ sơ cần nộp', requirements.length ? requirements.map(function (r) { return esc(r[1]); }).join('; ') : 'Không yêu cầu thêm') +
             (t.contactInfo ? row('Liên hệ', esc(t.contactInfo)) : '') +
