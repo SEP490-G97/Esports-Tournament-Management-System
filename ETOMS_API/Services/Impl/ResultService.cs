@@ -227,6 +227,10 @@ public class ResultService : IResultService
             // UC-28 A1: báo trọng tài của trận, không có thì Ban tổ chức.
             await NotifyAdjudicatorAsync(match, "Tranh chấp mới: hai báo cáo lệch nhau",
                 $"Trận #{match.MatchId}: hai đội trưởng báo tỉ số khác nhau. Trận đã bị khóa, mở hồ sơ tranh chấp để phân xử.", dispute.DisputeId);
+            // Hai đội (đội trưởng + thành viên) biết trận của mình đang tranh chấp, chờ trọng tài phán quyết.
+            await NotifyTeamsAsync(match, "DISPUTE", "Trận đấu đang tranh chấp",
+                $"Trận #{match.MatchId}: báo cáo tỉ số của hai đội không khớp nên trận chuyển sang tranh chấp. Trọng tài sẽ xem bằng chứng và ra phán quyết; kết quả sẽ được thông báo cho cả hai đội.",
+                "/result/history.html?matchId=" + match.MatchId);
             await _uow.SaveChangesAsync();
         }
     }
@@ -443,13 +447,21 @@ public class ResultService : IResultService
             Channel = "IN_APP", IsRead = false, SentAt = DateTime.UtcNow
         });
 
-    // Báo đội trưởng hai đội của trận (khiếu nại đã được xử lý, phán quyết, kết luận khiếu nại...).
-    private async Task NotifyCaptainsAsync(Match match, string type, string title, string body, string link)
+    // Tiêu đề tin phán quyết: tranh chấp do một đội cắm cờ (khiếu nại) giữ tiêu đề cũ (góp ý 25/11); hai báo cáo lệch nhau hay
+    // quá hạn báo cáo thì đây là phán quyết của trọng tài (28/11).
+    private static string RulingTitle(Dispute d) => d.OpenReason == "FLAGGED" ? "Khiếu nại trận đấu đã được xử lý" : "Trọng tài đã ra phán quyết trận đấu";
+
+    // Báo cả hai đội của trận: đội trưởng và mọi thành viên đang hoạt động (tranh chấp mở, phán quyết, kết luận khiếu nại).
+    // 28/11: trước đây chỉ báo đội trưởng, thành viên không biết trận của đội mình đang tranh chấp / đã có phán quyết.
+    private async Task NotifyTeamsAsync(Match match, string type, string title, string body, string link)
     {
         var captains = await _uow.Repository<Team>().Query()
             .Where(t => t.TeamId == match.TeamAid || t.TeamId == match.TeamBid)
             .Select(t => t.CaptainAccountId).ToListAsync();
-        foreach (var cap in captains.Distinct()) await AddNotificationAsync(cap, type, title, body, link);
+        var members = await _uow.Repository<TeamMember>().Query()
+            .Where(m => (m.TeamId == match.TeamAid || m.TeamId == match.TeamBid) && m.Status == "ACTIVE")
+            .Select(m => m.AccountId).ToListAsync();
+        foreach (var to in captains.Concat(members).Distinct()) await AddNotificationAsync(to, type, title, body, link);
     }
 
     // BRK-05 Loại kép: đội thắng đi tiếp theo ParentNodeId; đội thua ở nhánh thắng rơi xuống nhánh thua
@@ -645,7 +657,7 @@ public class ResultService : IResultService
         return dto;
     }
 
-    public async Task<MatchAuditTrailDto?> GetAuditTrailAsync(int matchId)
+    public async Task<MatchAuditTrailDto?> GetAuditTrailAsync(int matchId, int? viewerAccountId = null)
     {
         var match = await _uow.Repository<Match>().Query()
             .Include(m => m.TeamA).Include(m => m.TeamB)
@@ -724,6 +736,8 @@ public class ResultService : IResultService
             .Where(d => d.Status == "RESOLVED" && d.AppealStatus == "NONE")
             .Select(d => (int?)d.DisputeId)
             .FirstOrDefault();
+        dto.CanAppeal = dto.AppealableDisputeId is not null && viewerAccountId is int viewer
+            && (match.TeamA?.CaptainAccountId == viewer || match.TeamB?.CaptainAccountId == viewer);
 
         return dto;
     }
@@ -922,7 +936,7 @@ public class ResultService : IResultService
             var dqNames = await TeamNamesAsync(match);
             var cheaterName = dqNames.GetValueOrDefault(cheater, "Đội vi phạm");
             var otherName = dqNames.GetValueOrDefault(cheater == match.TeamAid ? match.TeamBid ?? 0 : match.TeamAid ?? 0, "đối thủ");
-            await NotifyCaptainsAsync(match, "DISPUTE", "Khiếu nại trận đấu đã được xử lý",
+            await NotifyTeamsAsync(match, "DISPUTE", RulingTitle(dispute),
                 $"Trận #{match.MatchId}: Ban tổ chức/trọng tài kết luận {cheaterName} vi phạm và bị tước quyền thi đấu; {otherName} được xử thắng và đi tiếp. Lý do: {request.Reason.Trim()}",
                 "/result/history.html?matchId=" + match.MatchId);
             await _uow.SaveChangesAsync();
@@ -972,12 +986,12 @@ public class ResultService : IResultService
             Reason = request.Reason
         });
 
-        // Góp ý 25/11: xử lý khiếu nại xong phải báo đội trưởng hai đội.
+        // Góp ý 25/11 (mở rộng 28/11): phán quyết xong phải báo hai đội — đội trưởng và thành viên.
         var names = await TeamNamesAsync(match);
         var outcome = request.IsVoid
             ? "kết quả trận bị hủy; Ban tổ chức sẽ quyết định tiếp (xử thắng trắng, tước quyền, hủy trận hoặc cho đấu lại)"
             : $"tỉ số chính thức {names.GetValueOrDefault(match.TeamAid ?? 0, "Đội A")} {match.ScoreA} – {match.ScoreB} {names.GetValueOrDefault(match.TeamBid ?? 0, "Đội B")}, {names.GetValueOrDefault(match.WinnerTeamId ?? 0, "đội thắng")} thắng";
-        await NotifyCaptainsAsync(match, "DISPUTE", "Khiếu nại trận đấu đã được xử lý",
+        await NotifyTeamsAsync(match, "DISPUTE", RulingTitle(dispute),
             $"Trận #{match.MatchId}: {outcome}. Lý do: {request.Reason.Trim()}", "/result/history.html?matchId=" + match.MatchId);
 
         await _uow.SaveChangesAsync();
@@ -1066,7 +1080,7 @@ public class ResultService : IResultService
             dispute.Status = "CLOSED";
             _uow.Repository<Dispute>().Update(dispute);
             // Chấp nhận khiếu nại thì ForceUpdateAsync ở trên đã báo đội trưởng kèm tỉ số mới; bác thì báo ở đây.
-            await NotifyCaptainsAsync(dispute.Match, "DISPUTE", "Khiếu nại đã được xem xét",
+            await NotifyTeamsAsync(dispute.Match, "DISPUTE", "Khiếu nại đã được xem xét",
                 $"Trận #{dispute.MatchId}: khiếu nại bị bác, phán quyết cũ giữ nguyên. Kết luận: {request.OutcomeNote}",
                 "/result/history.html?matchId=" + dispute.MatchId);
             await _uow.SaveChangesAsync();

@@ -2302,3 +2302,22 @@ a.pp-link:hover { border-color: var(--primary); }
 /* Ảnh đại diện nằm trong các ô chữ cái đầu (Ui.avatarInner) */
 .av, .orq-av, .lineup-av, .login-session-av { overflow: hidden; }
 .av-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
+
+/* Ảnh banner sự kiện / quà tặng chạy làm ảnh nền khung đầu trang chủ (góp ý 28/11). */
+.hero-3d-on .hero-slide.is-banner { filter: saturate(.95) brightness(.82); }
+
+/* Cảnh báo máy chủ chưa gửi được email (trang Quảng cáo & thông báo của Admin). */
+.mail-warn { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(245, 158, 11, .45); background: rgba(245, 158, 11, .1); color: var(--warn, #f59e0b); font-size: .9rem; }
+
+/* Thẻ "Thông báo mới" thời gian thực (layout.js showNotifyToast). */
+.etoms-toasts { position: fixed; right: 16px; bottom: 16px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; max-width: min(360px, calc(100vw - 32px)); }
+.etoms-toast { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--panel, #141a2e); color: var(--text, #e5e7eb);
+  border: 1px solid var(--border, rgba(255,255,255,.12)); border-left: 3px solid var(--primary, #4f6bff); box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  text-decoration: none; animation: etomsToastIn .3s ease both; transition: opacity .35s, transform .35s; }
+a.etoms-toast:hover { border-color: var(--primary, #4f6bff); color: inherit; }
+.etoms-toast.out { opacity: 0; transform: translateY(8px); }
+.etoms-toast-head { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--primary, #4f6bff); }
+.etoms-toast-title { font-weight: 700; line-height: 1.35; }
+.etoms-toast-body { font-size: .86rem; color: var(--muted, #9ca3af); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@keyframes etomsToastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .etoms-toast { animation: none; transition: none; } }

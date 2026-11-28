@@ -27,14 +27,28 @@ public sealed class AdminAdsController : ControllerBase
     private readonly IWebHostEnvironment _env;
     private readonly NotificationMailQueue _mail;
     private readonly string _baseUrl;
+    private readonly bool _canSendMail;
 
-    public AdminAdsController(EtomsDbContext db, IWebHostEnvironment env, NotificationMailQueue mail, IOptions<AuthLinkOptions> links)
+    public AdminAdsController(EtomsDbContext db, IWebHostEnvironment env, NotificationMailQueue mail, IOptions<AuthLinkOptions> links,
+        IOptions<EmailOptions> email)
     {
         _db = db;
         _env = env;
         _mail = mail;
         _baseUrl = (links.Value.BaseUrl ?? "").TrimEnd('/');
+        _canSendMail = email.Value.CanSend;
     }
+
+    // Biến dạng {abc} còn sót trong tiêu đề / nội dung (vd chép từ mẫu email tự động {match}, {team}).
+    private static readonly System.Text.RegularExpressions.Regex Placeholder = new(@"\{[^{}\s]{1,40}\}");
+
+    // Tên dễ đọc của liên kết banner: trang giải thì lấy tên giải, còn lại theo trang trong ETOMS.
+    private static readonly System.Text.RegularExpressions.Regex TournamentLink = new(@"^/(bracket/view|tournament/[a-z-]+)\.html\?(?:.*&)?id=(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static readonly Dictionary<string, string> PageLabels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["/tournament/index.html"] = "Danh sách giải", ["/news/index.html"] = "Trang tin tức", ["/team/index.html"] = "Danh sách đội",
+        ["/rankings/index.html"] = "Bảng xếp hạng", ["/"] = "Trang chủ", ["/index.html"] = "Trang chủ"
+    };
 
     private int ActorId => int.TryParse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
     private ObjectResult Err(string message, int status = 400) => StatusCode(status, new { message });
@@ -49,10 +63,27 @@ public sealed class AdminAdsController : ControllerBase
     {
         var now = DateTime.UtcNow;
         var rows = await _db.Set<SystemBanner>().AsNoTracking().OrderBy(b => b.DisplayOrder).ThenByDescending(b => b.SystemBannerId).ToListAsync(ct);
+        var tourIds = rows.Select(b => TournamentLink.Match(b.LinkUrl ?? "")).Where(m => m.Success)
+            .Select(m => int.Parse(m.Groups[2].Value)).Distinct().ToList();
+        var tourNames = tourIds.Count == 0 ? new Dictionary<int, string>()
+            : await _db.Tournaments.AsNoTracking().Where(t => tourIds.Contains(t.TournamentId)).ToDictionaryAsync(t => t.TournamentId, t => t.Name, ct);
+        string? Label(string? link)
+        {
+            if (string.IsNullOrEmpty(link)) return null;
+            var m = TournamentLink.Match(link);
+            if (m.Success)
+                return tourNames.TryGetValue(int.Parse(m.Groups[2].Value), out var n)
+                    ? (n.StartsWith("Giải", StringComparison.OrdinalIgnoreCase) ? n : "Giải " + n)   // tên giải thường đã có chữ "Giải"
+                    : "Giải không còn tồn tại";
+            var path = link.Split('?')[0];
+            if (PageLabels.TryGetValue(path, out var label))
+                return label + (link.Contains("state=REGISTRATION", StringComparison.OrdinalIgnoreCase) ? " đang mở đăng ký" : "");
+            return "Trang trong ETOMS";
+        }
         Response.Headers.CacheControl = "no-store";
         return Ok(rows.Select(b => new
         {
-            b.SystemBannerId, b.Title, b.Description, b.ImageUrl, b.LinkUrl, b.BannerType, b.IsActive, b.DisplayOrder,
+            b.SystemBannerId, b.Title, b.Description, b.ImageUrl, b.LinkUrl, LinkLabel = Label(b.LinkUrl), b.BannerType, b.IsActive, b.DisplayOrder,
             b.StartAt, b.EndAt, State = State(b, now)
         }));
     }
@@ -220,6 +251,10 @@ public sealed class AdminAdsController : ControllerBase
         if (!Targets.Contains(target)) return Err("Đối tượng nhận không hợp lệ.");
         if (!Channels.Contains(channel)) return Err("Kênh gửi không hợp lệ.");
         if (link.Length > 0 && !IsInternal(link)) return Err("Liên kết phải là đường dẫn trong ETOMS (bắt đầu bằng /).");
+        // Thông báo hệ thống gửi nguyên văn cho mọi người: không được còn biến kiểu {match}, {team} (biến đó chỉ có nghĩa
+        // trong email tự động của từng trận / từng đơn) — trước đây đã gửi "Nhắc check-in trận {match}" tới 327 người.
+        var left = Placeholder.Matches(title + " " + body).Select(m => m.Value).Distinct().ToList();
+        if (left.Count > 0) return Err($"Tiêu đề / nội dung còn biến chưa thay: {string.Join(", ", left)}. Hãy viết thành chữ cụ thể trước khi gửi.");
 
         var q = _db.Accounts.AsNoTracking().Where(a => a.Status == "ACTIVE" && a.Role != "ADMIN");
         if (target != "ALL") q = q.Where(a => a.Role == target);
@@ -227,11 +262,15 @@ public sealed class AdminAdsController : ControllerBase
 
         bool wantIn = channel is "IN_APP" or "BOTH", wantMail = channel is "EMAIL" or "BOTH";
         var now = DateTime.UtcNow;
-        int inApp = 0, email = 0;
+        int inApp = 0, email = 0, fakeAddr = 0;
         var mails = new List<QueuedMail>();
         foreach (var p in people)
         {
-            bool i = wantIn && p.NotifyInApp, m = wantMail && p.NotifyEmail;   // tôn trọng cài đặt của từng người
+            // Tôn trọng cài đặt của từng người. Email chỉ tính khi máy chủ gửi được thư thật (có SMTP) và địa chỉ có thật
+            // (tài khoản mẫu @demo.etoms không có hộp thư) — trước đây báo "272 email" dù không thư nào được gửi đi.
+            bool deliverable = EmailOptions.IsDeliverable(p.Email);
+            if (wantMail && p.NotifyEmail && !deliverable) fakeAddr++;
+            bool i = wantIn && p.NotifyInApp, m = wantMail && p.NotifyEmail && deliverable && _canSendMail;
             if (!i && !m) continue;
             _db.Notifications.Add(new Notification
             {
@@ -259,7 +298,10 @@ public sealed class AdminAdsController : ControllerBase
         // Email đã tự xếp hàng ở trên theo đúng lựa chọn kênh — tắt bộ gửi email tự động để không gửi trùng.
         using (NotificationEmailInterceptor.Suppress()) await _db.SaveChangesAsync(ct);
         foreach (var m in mails) _mail.TryEnqueue(m);
-        return Ok(new { message = $"Đã gửi: {inApp} người nhận trong web, {email} email.", inApp, email });
+        var msg = $"Đã gửi: {inApp} người nhận trong web, {email} email.";
+        if (wantMail && !_canSendMail) msg += " Máy chủ chưa cấu hình gửi email (SMTP) nên chưa có email nào được gửi đi.";
+        else if (fakeAddr > 0) msg += $" Bỏ qua {fakeAddr} địa chỉ email không có thật (tài khoản mẫu).";
+        return Ok(new { message = msg, inApp, email, mailConfigured = _canSendMail });
     }
 
     // ---------------------------------------------------------------- Mẫu nội dung (System Communications Page, tab "Mẫu nội dung")
@@ -281,10 +323,14 @@ public sealed class AdminAdsController : ControllerBase
         return Ok(new
         {
             Variables = NotificationEmailInterceptor.TemplateVariables,
+            MailConfigured = _canSendMail,
             Templates = NotificationTypes.Select(t =>
             {
                 var r = rows.FirstOrDefault(x => x.NotificationType == t.Key);
-                return new { Type = t.Key, Label = t.Value, r?.ContentItemId, r?.Title, r?.Body, Status = r?.Status, r?.UpdatedAt };
+                // Mẫu lưu từ trước khi có kiểm tra biến: biến lạ làm email loại đó bị bỏ (UC-41 E1) — báo cho Admin biết để sửa.
+                var bad = r is null ? new List<string>() : Placeholder.Matches(r.Title + " " + r.Body).Select(m => m.Value)
+                    .Where(v => !NotificationEmailInterceptor.TemplateVariables.Contains(v)).Distinct().ToList();
+                return new { Type = t.Key, Label = t.Value, r?.ContentItemId, r?.Title, r?.Body, Status = r?.Status, r?.UpdatedAt, InvalidVariables = bad };
             })
         });
     }

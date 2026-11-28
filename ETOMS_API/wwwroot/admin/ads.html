@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/site.css?v=av-20261128">
+    <link rel="stylesheet" href="/css/site.css?v=rt-20261128">
 
 </head>
 <body>
@@ -17,7 +17,7 @@
     <main class="container-etoms">
         <div class="page-head">
             <h1>Quảng cáo &amp; thông báo</h1>
-            <p>Banner sự kiện, quà tặng hiện ở trang chủ trong khoảng thời gian đã chọn. Thông báo hệ thống gửi tới mọi tài khoản đang hoạt động theo vai trò.</p>
+            <p>Banner sự kiện, quà tặng chạy luân phiên ở khung đầu trang chủ trong khoảng thời gian đã chọn. Thông báo hệ thống gửi tới mọi tài khoản đang hoạt động theo vai trò.</p>
         </div>
 
         <div class="ads-tabs" role="tablist">
@@ -92,8 +92,10 @@
         <div id="panel-ann" role="tabpanel" aria-labelledby="tab-ann" hidden>
             <section class="card-etoms mb-3"><div class="body">
                 <form id="ann-form" novalidate>
-                    <h2 class="h5 mb-3">Gửi thông báo mới</h2>
-                    <div class="field">
+                    <h2 class="h5 mb-1">Gửi thông báo mới</h2>
+                    <p class="field-hint mb-3">Một tin chung gửi tới chuông thông báo (và email) của nhiều người cùng lúc, ví dụ bảo trì hệ thống hay mùa giải mới. Nội dung gửi nguyên văn, không dùng biến.</p>
+                    <div class="mail-warn" data-mail-warn hidden></div>
+                    <div class="field" id="a-template-field" hidden>
                         <label for="a-template">Bắt đầu từ mẫu</label>
                         <select id="a-template" class="select"><option value="">Không dùng mẫu</option></select>
                     </div>
@@ -134,7 +136,8 @@
             <section class="card-etoms mb-3"><div class="body">
                 <form id="tpl-form" novalidate>
                     <h2 class="h5 mb-3">Mẫu nội dung theo loại thông báo</h2>
-                    <p class="field-hint">Mỗi loại thông báo có một mẫu. Mẫu đang dùng sẽ dựng email của loại đó; thông báo hệ thống có thể bắt đầu soạn từ mẫu. Biến dùng được: <span id="tpl-vars"></span>.</p>
+                    <p class="field-hint">Định dạng email hệ thống TỰ gửi khi có việc (đơn đăng ký đổi trạng thái, nhắc check-in, kết quả trận…). Mỗi loại một mẫu; loại chưa có mẫu thì email dùng nội dung mặc định. Biến dùng được: <span id="tpl-vars"></span>.</p>
+                    <div class="mail-warn" data-mail-warn hidden></div>
                     <div class="row g-3">
                         <div class="col-12 col-md-6 field mb-0">
                             <label for="t-type">Loại thông báo</label>
@@ -168,7 +171,7 @@
     <script src="/js/auth.js?v=tab-20261128"></script>
     <script src="/js/api.js?v=form-20261118"></script>
     <script src="/js/ui.js?v=av-20261128"></script>
-    <script src="/js/layout.js?v=av-20261128"></script>
-    <script src="/js/pages/admin-ads.js?v=tl-20261123" defer></script>
+    <script src="/js/layout.js?v=rt-20261128"></script>
+    <script src="/js/pages/admin-ads.js?v=mail-20261128" defer></script>
 </body>
 </html>

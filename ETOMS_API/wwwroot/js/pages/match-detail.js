@@ -89,13 +89,15 @@
         if (done) {
             var winner = d.winnerTeamId === d.teamAId ? d.teamAName : d.teamBName;
             icon = '🏆'; title = winner + ' thắng' + (d.status === 'WALKOVER' ? ' (thắng trắng)' : ' ' + (d.scoreA ?? '–') + ' – ' + (d.scoreB ?? '–'));
-            text = 'Kết quả đã được xác nhận. ' + esc(winner) + ' đi tiếp vào trận sau của nhánh đấu.';
-            actions = '<a class="btn btn-ghost" href="/bracket/view.html?id=' + Number(d.tournamentId) + '">Xem nhánh đấu</a>';
+            text = (d.hasRuling ? 'Kết quả theo phán quyết của trọng tài sau tranh chấp. ' : 'Kết quả đã được xác nhận. ') + esc(winner) + ' đi tiếp vào trận sau của nhánh đấu.';
+            actions = (d.hasRuling ? '<a class="btn btn-primary" href="/result/history.html?matchId=' + d.matchId + '">Xem phán quyết</a>' : '') +
+                '<a class="btn btn-ghost" href="/bracket/view.html?id=' + Number(d.tournamentId) + '">Xem nhánh đấu</a>';
         } else if (d.status === 'CANCELLED' && d.awaitingDecision) {
             // Kết quả bị hủy sau phán quyết tranh chấp: nhánh dừng ở trận này cho tới khi BTC xử thắng / tước quyền / cho đấu lại.
             icon = '⚖️'; title = 'Kết quả trận đã bị hủy sau tranh chấp';
             text = d.canManage ? 'Nhánh đấu đang dừng ở trận này. Hãy xử thắng trắng cho đội không vi phạm, tước quyền thi đấu của đội vi phạm, hủy trận (xử thua cả hai đội) hoặc cho hai đội đấu lại — dùng các nút ở mục Công cụ trọng tài & Ban tổ chức bên dưới.'
                 : 'Ban tổ chức đang xử lý kết quả trận này. Đội đi tiếp sẽ được cập nhật vào nhánh đấu ngay khi có quyết định.';
+            actions = '<a class="btn btn-ghost" href="/result/history.html?matchId=' + d.matchId + '">Xem phán quyết</a>';
         } else if (d.doubleLoss) {
             icon = '⛔'; title = 'Trận đã hủy — cả hai đội bị xử thua';
             text = 'Không đội nào đi tiếp từ trận này. Ở vòng loại trực tiếp, đối thủ của trận sau được xử thắng trắng; ở vòng bảng, mỗi đội tính một trận thua.';
@@ -109,7 +111,8 @@
             text = d.canManage ? 'Báo cáo tỉ số của hai đội không khớp. Hãy xem bằng chứng và ra phán quyết; đội thắng sẽ tự vào vòng sau.'
                 : 'Hai đội báo cáo tỉ số chưa khớp nhau, trọng tài đang xem bằng chứng. Kết quả sẽ cập nhật ngay khi có phán quyết.';
             actions = (d.canManage ? '<a class="btn btn-primary" href="/result/dispute.html?id=' + d.openDisputeId + '">Xử lý tranh chấp</a>' : '') +
-                (mine ? '<a class="btn btn-ghost" href="/result/evidence.html?matchId=' + d.matchId + '">Bổ sung bằng chứng</a>' : '');
+                (mine ? '<a class="btn btn-ghost" href="/result/evidence.html?matchId=' + d.matchId + '">Bổ sung bằng chứng</a>' : '') +
+                '<a class="btn btn-ghost" href="/result/history.html?matchId=' + d.matchId + '">Xem diễn biến tranh chấp</a>';
         } else if (open) {
             var deadline = d.reportDeadlineAt ? fmtFull(d.reportDeadlineAt) : '';
             if (mine) {

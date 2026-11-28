@@ -28,7 +28,7 @@
         }
 
         var appealBlock = '';
-        if (trail.appealableDisputeId != null) {
+        if (trail.appealableDisputeId != null && trail.canAppeal) {
             appealBlock =
                 '<div class="card-etoms form-narrow mt-4"><div class="body">' +
                 '<div class="section-title mt-0">Khiếu nại phán quyết</div>' +

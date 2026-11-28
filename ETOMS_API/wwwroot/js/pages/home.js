@@ -76,27 +76,70 @@
         } else { revealTargets.forEach(function (el) { el.classList.add('in'); }); }
     }
 
+    // Khung đầu trang: ảnh nền chạy luân phiên 6 giây/ảnh, rồng 3D bay phía trên. Có banner sự kiện / quà tặng đang chạy
+    // (Admin đăng ở /admin/ads.html) thì ảnh banner thay cho 3 ảnh nền mặc định. Không có thẻ chú thích đè lên nội dung
+    // (góp ý 28/11: che trang chủ; tin bài đã có ở trang Tin tức) — tên banner chỉ hiện khi rê chuột vào chấm chuyển ảnh.
+    var heroState = { root: null, slides: [], dots: [], current: 0, timer: null };
+
+    function heroLoadLazy() {
+        heroState.slides.forEach(function (s) { if (s.dataset.bg) { s.style.backgroundImage = 'url("' + s.dataset.bg.replace(/"/g, '%22') + '")'; delete s.dataset.bg; } });
+    }
+    function heroShow(i) {
+        var n = heroState.slides.length;
+        if (!n) return;
+        heroLoadLazy();
+        heroState.current = (i + n) % n;
+        heroState.slides.forEach(function (s, idx) { s.classList.toggle('active', idx === heroState.current); });
+        heroState.dots.forEach(function (d, idx) { d.classList.toggle('active', idx === heroState.current); d.setAttribute('aria-current', idx === heroState.current ? 'true' : 'false'); });
+    }
+    function heroStop() { if (heroState.timer) { clearInterval(heroState.timer); heroState.timer = null; } }
+    function heroStart() {
+        heroStop();
+        if (heroState.slides.length > 1) heroState.timer = setInterval(function () { heroShow(heroState.current + 1); }, 6000);
+    }
+    function heroBind() {
+        var root = heroState.root;
+        heroState.slides = Array.prototype.slice.call(root.querySelectorAll('.hero-slide'));
+        heroState.dots = Array.prototype.slice.call(root.querySelectorAll('.hero-dots button'));
+        heroState.dots.forEach(function (d) { d.addEventListener('click', function () { heroShow(parseInt(d.dataset.slide, 10)); heroStart(); }); });
+        heroShow(0);
+        heroStart();
+    }
+
     function wireHeroCarousel() {
-        var hero = document.getElementById('heroCarousel');
-        if (!hero) return;
-        var slides = hero.querySelectorAll('.hero-slide');
-        var dots = hero.querySelectorAll('.hero-dots button');
-        var current = 0, timer = null;
-        // Ảnh nền 2 và 3 chỉ tải sau khi trang đã hiện xong (trước đây cả 3 ảnh nặng tải cùng lúc khi mở trang).
-        function loadLazy() { slides.forEach(function (s) { if (s.dataset.bg) { s.style.backgroundImage = 'url("' + s.dataset.bg + '")'; delete s.dataset.bg; } }); }
-        if (document.readyState === 'complete') setTimeout(loadLazy, 1500); else window.addEventListener('load', function () { setTimeout(loadLazy, 1500); });
-        function show(i) {
-            loadLazy();
-            current = (i + slides.length) % slides.length;
-            slides.forEach(function (s, idx) { s.classList.toggle('active', idx === current); });
-            dots.forEach(function (d, idx) { d.classList.toggle('active', idx === current); });
-        }
-        function start() { timer = setInterval(function () { show(current + 1); }, 6000); }
-        function stop() { if (timer) { clearInterval(timer); timer = null; } }
-        dots.forEach(function (d) { d.addEventListener('click', function () { show(parseInt(d.dataset.slide, 10)); stop(); start(); }); });
-        hero.addEventListener('mouseenter', stop);
-        hero.addEventListener('mouseleave', start);
-        if (slides.length > 1) start();
+        heroState.root = document.getElementById('heroCarousel');
+        if (!heroState.root) return;
+        // Ảnh nền sau ảnh đầu chỉ tải khi trang đã hiện xong (trước đây cả 3 ảnh nặng tải cùng lúc khi mở trang).
+        if (document.readyState === 'complete') setTimeout(heroLoadLazy, 1500); else window.addEventListener('load', function () { setTimeout(heroLoadLazy, 1500); });
+        heroState.root.addEventListener('mouseenter', heroStop);
+        heroState.root.addEventListener('mouseleave', heroStart);
+        heroBind();
+    }
+
+    // Banner đang chạy (tối đa 6) thành các ảnh của khung đầu. Lỗi hoặc không có banner thì giữ ảnh nền mặc định.
+    async function loadHeroBanners() {
+        if (!heroState.root) return;
+        var list;
+        try { list = await Api.get('/api/home/banners'); } catch (e) { return; }
+        list = (list || []).filter(function (b) { return Ui.safeUrl(b.imageUrl); }).slice(0, 6);
+        if (!list.length) return;
+        var root = heroState.root;
+        heroStop();
+        root.querySelectorAll('.hero-slide').forEach(function (s) { s.remove(); });
+        var scrim = root.querySelector('.hero-scrim');
+        list.forEach(function (b, idx) {
+            var s = document.createElement('div');
+            s.className = 'hero-slide is-banner';
+            s.dataset.bg = Ui.safeUrl(b.imageUrl);
+            root.insertBefore(s, scrim);
+            if (idx === 0) { s.style.backgroundImage = 'url("' + s.dataset.bg.replace(/"/g, '%22') + '")'; delete s.dataset.bg; }
+        });
+        var dots = root.querySelector('.hero-dots');
+        dots.innerHTML = list.map(function (b, idx) {
+            return '<button type="button" data-slide="' + idx + '" aria-label="' + Ui.escapeHtml(b.title) + '" title="' + Ui.escapeHtml(b.title) + '"></button>';
+        }).join('');
+        dots.hidden = list.length < 2;
+        heroBind();
     }
 
     // Thẻ giải ở trang chủ KHÔNG có nút "Đăng ký cho đội" (góp ý nhóm 18/11): bấm thẻ để vào trang giải,
@@ -292,26 +335,6 @@
         root.innerHTML = '<div class="news-grid">' + leadHtml + listHtml + '</div>';
     }
 
-    // Banner sự kiện / quà tặng (Admin đăng ở /admin/ads.html). Lỗi hoặc không có banner thì giữ khu ẩn.
-    async function loadPromos() {
-        var band = document.getElementById('promo-band');
-        if (!band) return;
-        try {
-            var list = await Api.get('/api/home/banners');
-            if (!list || !list.length) return;
-            var TYPE = { EVENT: 'Sự kiện', GIVEAWAY: 'Quà tặng' };
-            document.getElementById('promo-row').innerHTML = list.map(function (b) {
-                // Bấm thẻ mở trang sự kiện viết trong ETOMS (không dẫn ra trang ngoài).
-                var link = '/events/index.html?id=' + Number(b.systemBannerId);
-                var inner = '<div class="img" style="background-image:url(\x27' + Ui.escapeHtml(Ui.safeUrl(b.imageUrl)) + '\x27)" role="img" aria-label="' + Ui.escapeHtml(b.title) + '"></div>' +
-                    '<div class="txt"><span class="badge badge-gold">' + Ui.escapeHtml(TYPE[b.bannerType] || b.bannerType) + '</span>' +
-                    '<h3>' + Ui.escapeHtml(b.title) + '</h3>' + (b.description ? '<p>' + Ui.escapeHtml(b.description) + '</p>' : '') + '</div>';
-                return '<a class="promo-card" href="' + link + '">' + inner + '</a>';
-            }).join('');
-            band.hidden = false;
-        } catch (e) { /* không có banner thì thôi */ }
-    }
-
     async function loadNews() {
         try {
             var res = await Api.get('/api/news?pageSize=5');
@@ -321,7 +344,7 @@
 
     document.addEventListener('DOMContentLoaded', async function () {
         wireHeroCarousel();
-        loadPromos();   // không chờ: banner chậm cũng không giữ trang chủ
+        loadHeroBanners();   // không chờ: banner chậm cũng không giữ trang chủ
         try {
             var summary = await Api.get('/api/home/summary');
             renderTicker(summary.events);

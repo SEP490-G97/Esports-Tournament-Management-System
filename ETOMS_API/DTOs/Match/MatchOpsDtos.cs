@@ -45,6 +45,8 @@ public class MatchDetailDto
     public bool TeamAReported { get; set; }
     public bool TeamBReported { get; set; }
     public int? OpenDisputeId { get; set; }
+    // Trận đã có phán quyết tranh chấp (trọng tài/BTC chốt tỉ số): ai xem trận cũng thấy được lịch sử phán quyết.
+    public bool HasRuling { get; set; }
     // Trận bị hủy kết quả sau phán quyết tranh chấp (VAR_RULING): BTC/trọng tài phải xử thắng cho một đội hoặc cho đấu lại
     // thì nhánh mới đi tiếp (mục 15, 23/11).
     public bool AwaitingDecision { get; set; }

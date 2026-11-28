@@ -63,7 +63,7 @@ public class ResultsApiController : ApiControllerBase
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory(int matchId)
     {
-        var dto = await _resultService.GetAuditTrailAsync(matchId);
+        var dto = await _resultService.GetAuditTrailAsync(matchId, _currentUser.UserId);
         return dto is null ? NotFound() : Ok(dto);
     }
 

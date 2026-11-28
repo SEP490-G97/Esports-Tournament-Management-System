@@ -48,13 +48,25 @@
             el('t-type').innerHTML = templates.map(function (t) { return '<option value="' + esc(t.type) + '">' + esc(t.label) + '</option>'; }).join('');
             if (current) el('t-type').value = current;
             fillTemplateForm();
-            el('a-template').innerHTML = '<option value="">Không dùng mẫu</option>' + templates.filter(function (t) { return t.title; }).map(function (t) {
+            // Máy chủ chưa có SMTP: nói rõ email chưa gửi được thật (trước đây vẫn báo "272 email").
+            document.querySelectorAll('[data-mail-warn]').forEach(function (box) {
+                box.hidden = res.mailConfigured !== false;
+                box.textContent = 'Máy chủ chưa cấu hình gửi email (SMTP) nên hiện chưa gửi được email nào — chỉ thông báo trong web hoạt động. Cần khai báo Email:Password trên máy chủ.';
+            });
+            // Chỉ mẫu không có biến lạ mới dùng làm điểm bắt đầu cho thông báo hệ thống; không có mẫu nào thì ẩn ô chọn.
+            var usable = templates.filter(function (t) { return t.title && !(t.invalidVariables || []).length; });
+            el('a-template').innerHTML = '<option value="">Không dùng mẫu</option>' + usable.map(function (t) {
                 return '<option value="' + esc(t.type) + '">' + esc(t.label) + (t.status === 'HIDDEN' ? ' (đang tắt)' : '') + '</option>';
             }).join('');
+            el('a-template-field').hidden = usable.length === 0;
             el('tpl-list').innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>Loại</th><th>Tiêu đề</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead><tbody>' +
                 templates.map(function (t) {
+                    var bad = t.invalidVariables || [];
+                    var state = !t.title ? '—'
+                        : bad.length ? '<span class="badge badge-danger">Mẫu lỗi</span><div class="field-hint">Biến không có: ' + esc(bad.join(', ')) + ' — email loại này đang bị bỏ, hãy sửa mẫu.</div>'
+                        : (t.status === 'PUBLISHED' ? 'Đang dùng' : 'Tắt');
                     return '<tr><td>' + esc(t.label) + '</td><td>' + (t.title ? esc(t.title) : '<span class="field-hint">Chưa có mẫu (email dùng nội dung mặc định)</span>') + '</td><td>' +
-                        (t.title ? (t.status === 'PUBLISHED' ? 'Đang dùng' : 'Tắt') : '—') + '</td><td>' + fmt(t.updatedAt) + '</td></tr>';
+                        state + '</td><td>' + fmt(t.updatedAt) + '</td></tr>';
                 }).join('') + '</tbody></table></div>';
         } catch (err) { el('tpl-list').innerHTML = '<div class="empty"><h3>Không tải được mẫu</h3><p>' + esc(err.message) + '</p></div>'; }
     }
@@ -94,7 +106,8 @@
                 var s = STATE[b.state] || [b.state, 'badge-soft'];
                 return '<tr><td><img class="banner-thumb" src="' + esc(Ui.safeUrl(b.imageUrl)) + '" alt=""></td>' +
                     '<td><b>' + esc(b.title) + '</b> <span class="badge badge-gold">' + esc(TYPE[b.bannerType] || b.bannerType) + '</span>' +
-                    '<div class="field-hint">Thứ tự ' + b.displayOrder + (b.linkUrl ? ' · ' + esc(b.linkUrl) : '') + '</div></td>' +
+                    '<div class="field-hint">Thứ tự ' + b.displayOrder +
+                    (b.linkUrl ? ' · Nút "Xem thêm" dẫn tới: <a href="' + esc(Ui.safeUrl(b.linkUrl)) + '" target="_blank" rel="noopener" title="' + esc(b.linkUrl) + '">' + esc(b.linkLabel || 'Trang trong ETOMS') + '</a>' : '') + '</div></td>' +
                     '<td>' + fmt(b.startAt) + '<br>→ ' + fmt(b.endAt) + '</td>' +
                     '<td><span class="badge ' + s[1] + '">' + s[0] + '</span></td>' +
                     '<td class="text-end text-nowrap">' +
@@ -220,11 +233,13 @@
         if (body.title.length < 3) return Ui.showAlert(flash, 'danger', 'Tiêu đề từ 3 đến 200 ký tự.');
         if (body.body.length < 5) return Ui.showAlert(flash, 'danger', 'Nội dung từ 5 đến 1000 ký tự.');
         if (body.linkUrl && body.linkUrl[0] !== '/') return Ui.showAlert(flash, 'danger', 'Liên kết phải là đường dẫn trong ETOMS (bắt đầu bằng /).');
+        var left = (body.title + ' ' + body.body).match(/\{[^{}\s]{1,40}\}/g);
+        if (left) return Ui.showAlert(flash, 'danger', 'Tiêu đề / nội dung còn biến chưa thay: ' + Array.from(new Set(left)).join(', ') + '. Hãy viết thành chữ cụ thể trước khi gửi.');
         var who = TARGET[body.targetRoles].toLowerCase(), how = CHANNEL[body.channel].toLowerCase();
         if (!await window.etomsConfirm('Gửi thông báo "' + body.title + '" tới ' + who + ' qua kênh ' + how + '? Đã gửi thì không thu hồi được.', { title: 'Gửi thông báo', okText: 'Gửi' })) return;
         try {
             var res = await Api.post('/api/admin/announcements', body);
-            Ui.showAlert(flash, 'success', res.message);
+            Ui.showAlert(flash, res.mailConfigured === false && body.channel !== 'IN_APP' ? 'warning' : 'success', res.message);
             el('ann-form').reset();
             loadAnnouncements();
         } catch (err) { Ui.showAlert(flash, 'danger', err.message); }
