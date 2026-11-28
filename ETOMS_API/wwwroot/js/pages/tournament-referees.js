@@ -25,7 +25,7 @@
 
         return '<div class="card-etoms mb-3"><div class="body">' +
             '<div class="field"><label for="referee-search">Chọn trọng tài</label>' +
-            '<input id="referee-search" class="input" autocomplete="off" placeholder="Nhập tên hoặc email, ít nhất 2 ký tự" />' +
+            '<input id="referee-search" maxlength="100" class="input" autocomplete="off" placeholder="Nhập tên hoặc email, ít nhất 2 ký tự" />' +
             '<div class="hint" id="selected-referee">Chưa chọn trọng tài.</div>' +
             '<div id="candidate-list" style="margin-top:10px"></div></div>' +
             (rounds

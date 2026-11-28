@@ -48,7 +48,7 @@ public class TournamentSettingsValues
     public string Name { get; set; } = string.Empty;
     [Range(1, int.MaxValue, ErrorMessage = "Vui lòng chọn tựa game.")]
     public int GameId { get; set; }
-    [Range(typeof(decimal), "0", "1000000000", ErrorMessage = "Lệ phí từ 0 đến 1.000.000.000 đồng.")]
+    [Range(typeof(decimal), "0", "100000000", ErrorMessage = "Lệ phí tham gia phải từ 0 đến 100.000.000 VNĐ.")]
     public decimal EntryFee { get; set; }
     [MaxLength(300, ErrorMessage = "Thông tin tài khoản tối đa 300 ký tự.")]
     public string? BankAccountInfo { get; set; }

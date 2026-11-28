@@ -146,6 +146,9 @@ namespace ETOMS_API.Services.Impl
             int? organizationId = org.OrganizationId;
             if (organizingUnit.Length > 200) organizingUnit = organizingUnit[..200];
             if (description.Length > 4000) throw new ArgumentException("Mô tả giải tối đa 4000 ký tự.");
+            // Cùng giới hạn với trang Sửa thông tin giải (TournamentSettingsValues) và cột Region VARCHAR(100), ContactInfo VARCHAR(300).
+            if ((dto.Location ?? "").Trim().Length > 100) throw new ArgumentException("Khu vực tối đa 100 ký tự.");
+            if ((dto.ContactInfo ?? "").Trim().Length > 300) throw new ArgumentException("Thông tin liên hệ tối đa 300 ký tự.");
 
             return new Step1Values(name, format, game, groupCount, advancePerGroup,
                 description.Length == 0 ? null : description,
@@ -302,6 +305,8 @@ namespace ETOMS_API.Services.Impl
             // Ngân hàng phải nằm trong danh sách, số tài khoản 6–20 chữ số, chủ tài khoản IN HOA không dấu.
             var error = ETOMS_API.Utils.BankAccount.TryCompose(dto.EntryFee, dto.BankName, dto.AccountNumber, dto.AccountName, out var bankInfo);
             if (error is not null) throw new ArgumentException(error);
+            // BR-TOUR-08: cơ cấu giải thưởng tối đa 20.000 ký tự, như trang Sửa thông tin giải.
+            if ((dto.PrizePoolDescription ?? "").Trim().Length > 20000) throw new ArgumentException("Cơ cấu giải thưởng tối đa 20000 ký tự.");
 
             tournament.EntryFee = dto.EntryFee;
             tournament.BankAccountInfo = bankInfo;

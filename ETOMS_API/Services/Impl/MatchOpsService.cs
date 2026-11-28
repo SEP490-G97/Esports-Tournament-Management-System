@@ -105,6 +105,7 @@ public class MatchOpsService : IMatchOpsService
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             return Result.FieldFailure(nameof(request.Reason), "Điểm danh thủ công bắt buộc phải có lý do.");
+        if (ReasonLengthError(request.Reason) is { } reasonError) return Result.FieldFailure(nameof(request.Reason), reasonError);
 
         var match = await LoadForManageAsync(matchId, actorAccountId);
         if (match.Match is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
@@ -229,6 +230,7 @@ public class MatchOpsService : IMatchOpsService
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             return Result<int>.FieldFailure(nameof(request.Reason), "Vui lòng nêu lý do thay người.");
+        if (ReasonLengthError(request.Reason) is { } reasonError) return Result<int>.FieldFailure(nameof(request.Reason), reasonError);
         if (request.OutAccountId == request.InAccountId)
             return Result<int>.FieldFailure(nameof(request.InAccountId), "Người vào phải khác người ra.");
 
@@ -317,6 +319,15 @@ public class MatchOpsService : IMatchOpsService
     // người phân xử tranh chấp (UC-31), nên tin nhắn không sửa/xóa được.
     public const int ChatMaxLength = 1000;      // MatchChatMessage.Body VARCHAR(1000) trên DB chung
     private const int ChatReportNoteMax = 500;   // lý do báo cáo (gửi trong thông báo, không lưu trên tin nhắn)
+
+    // Lý do của các thao tác trên trận (điểm danh thủ công, thay người, thắng trắng, đấu lại, tước quyền, bỏ cuộc, hủy trận):
+    // 5–500 ký tự, khớp ô nhập trên giao diện (match-detail.js) và cột MatchRequest.Reason / Match.OverrideReason VARCHAR(500).
+    public const int ReasonMin = 5, ReasonMax = 500;
+    private static string? ReasonLengthError(string reason)
+    {
+        var length = reason.Trim().Length;
+        return length < ReasonMin || length > ReasonMax ? $"Lý do phải từ {ReasonMin} đến {ReasonMax} ký tự." : null;
+    }
     private static readonly string[] LobbyOpenStatuses = { "READY", "LIVE", "WAITING_REPORT", "DISPUTED" };
 
     private sealed record LobbyContext(Match Match, string? Role, int? CaptainA, int? CaptainB);
@@ -531,6 +542,7 @@ public class MatchOpsService : IMatchOpsService
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             return Result.FieldFailure(nameof(request.Reason), "Vui lòng nêu lý do xử thắng trắng.");
+        if (ReasonLengthError(request.Reason) is { } reasonError) return Result.FieldFailure(nameof(request.Reason), reasonError);
 
         var match = await LoadForManageAsync(matchId, actorAccountId);
         if (match.Match is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
@@ -560,6 +572,7 @@ public class MatchOpsService : IMatchOpsService
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             return Result.FieldFailure(nameof(request.Reason), "Vui lòng nêu lý do đấu lại.");
+        if (ReasonLengthError(request.Reason) is { } reasonError) return Result.FieldFailure(nameof(request.Reason), reasonError);
 
         var match = await LoadForManageAsync(matchId, actorAccountId);
         if (match.Match is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
@@ -636,6 +649,7 @@ public class MatchOpsService : IMatchOpsService
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             return Result.FieldFailure(nameof(request.Reason), "Vui lòng nêu lý do tước quyền thi đấu.");
+        if (ReasonLengthError(request.Reason) is { } reasonError) return Result.FieldFailure(nameof(request.Reason), reasonError);
 
         var match = await LoadForManageAsync(matchId, actorAccountId);
         if (match.Match is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
@@ -706,6 +720,7 @@ public class MatchOpsService : IMatchOpsService
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             return Result.FieldFailure(nameof(request.Reason), "Vui lòng nêu lý do bỏ cuộc.");
+        if (ReasonLengthError(request.Reason) is { } reasonError) return Result.FieldFailure(nameof(request.Reason), reasonError);
 
         var captainTeamId = await _resultService.GetCaptainTeamIdAsync(matchId, captainAccountId);
         if (captainTeamId is null || captainTeamId != request.TeamId)
@@ -737,6 +752,7 @@ public class MatchOpsService : IMatchOpsService
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             return Result.FieldFailure(nameof(request.Reason), "Vui lòng nêu lý do hủy trận.");
+        if (ReasonLengthError(request.Reason) is { } reasonError) return Result.FieldFailure(nameof(request.Reason), reasonError);
 
         var match = await LoadForManageAsync(matchId, actorAccountId);
         if (match.Match is null) return Result.Failure("Không tìm thấy trận đấu.", StatusCodes.Status404NotFound);
