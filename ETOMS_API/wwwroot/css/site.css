@@ -2484,3 +2484,7 @@ input.has-eye { padding-right: 44px !important; }
 .orq-pass-warn { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, .45); background: rgba(245, 158, 11, .1); color: var(--warn, #f59e0b); font-size: .88rem; }
 .orq-pass-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .orq-pass-label { min-width: 72px; color: var(--muted); font-size: .86rem; }
+
+/* Form một hàng (.inline-form): dòng báo lỗi / kiểm email chiếm riêng một hàng dưới cùng, không đẩy lệch ô và nút (góp ý 28/11). */
+.inline-form .inline-full { flex: 0 0 100%; order: 99; margin-top: -4px; }
+.inline-form .inline-full:empty { display: none; }
