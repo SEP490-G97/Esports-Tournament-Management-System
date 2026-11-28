@@ -56,6 +56,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = "sub",
             RoleClaimType = "role",
         };
+        // WebSocket của trình duyệt không gửi được header Authorization: SignalR đưa token qua ?access_token=,
+        // chỉ nhận cách này cho đường dẫn /hubs (API thường vẫn bắt buộc header).
+        o.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Query["access_token"].ToString();
+                if (!string.IsNullOrEmpty(token) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 
@@ -132,8 +144,9 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
 
 builder.Services.AddOpenApi();
 
-// SignalR cho thông báo/tỉ số trực tiếp (NOT-01, LIVE).
+// SignalR cho thông báo/tỉ số trực tiếp (NOT-01, LIVE). Người nhận = claim "sub" (mã tài khoản) của JWT.
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, ETOMS_API.Hubs.SubClaimUserIdProvider>();
 
 // Swagger UI để test API trực tiếp trên trình duyệt: /swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -184,8 +197,10 @@ builder.Services.AddScoped<WarmConnectionLease>();
 var keepOpen = new KeepConnectionOpenInterceptor();
 builder.Services.AddDbContext<EtomsDbContext>((sp, options) => options
     .UseMySQL(sp.GetRequiredService<WarmConnectionLease>().Connection) // context KHÔNG sở hữu kết nối: hết request trả lại nhóm
-    .AddInterceptors(keepOpen, sp.GetRequiredService<NotificationEmailInterceptor>()));   // + email cho người bật "Nhận thông báo qua email"
+    .AddInterceptors(keepOpen, sp.GetRequiredService<NotificationEmailInterceptor>(),   // + email cho người bật "Nhận thông báo qua email"
+        sp.GetRequiredService<ETOMS_API.Hubs.NotificationPushInterceptor>()));        // + đẩy thông báo mới tới trình duyệt ngay (SignalR)
 builder.Services.AddSingleton<NotificationEmailInterceptor>();
+builder.Services.AddSingleton<ETOMS_API.Hubs.NotificationPushInterceptor>();
 builder.Services.AddSingleton<NotificationMailQueue>();
 builder.Services.AddHostedService<NotificationMailWorker>();
 
@@ -321,7 +336,8 @@ static bool IsCancellation(Exception? ex)
 // Loại trừ /api/*: API phải luôn trả JSON thật (kể cả lỗi), không bị ghi đè thành trang HTML.
 // PHẢI đứng TRƯỚC UseStaticFiles — re-execute chỉ đi tiếp qua middleware đăng ký SAU nó,
 // nên static-file middleware phải nằm sau để bị re-execute vào được.
-app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
+// /hubs (SignalR) cũng như /api: lỗi 401/404 trả nguyên mã, không đổi thành trang HTML.
+app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api") && !ctx.Request.Path.StartsWithSegments("/hubs"), branch =>
 {
     branch.UseExceptionHandler("/errors/500.html");
     branch.UseStatusCodePagesWithReExecute("/errors/{0}.html");
@@ -394,6 +410,7 @@ app.UseAuthorization();
 // API controllers (attribute routing [Route("api/...")]) — không còn route quy ước MVC.
 app.MapControllers();
 
-// app.MapHub<...>("/hubs/...");  // đăng ký SignalR Hub cụ thể khi tạo Hub
+// Thông báo thời gian thực: chuông cập nhật ngay khi có thông báo mới (Hubs/NotificationHub.cs, layout.js).
+app.MapHub<ETOMS_API.Hubs.NotificationHub>(ETOMS_API.Hubs.NotificationHub.Path);
 
 app.Run();

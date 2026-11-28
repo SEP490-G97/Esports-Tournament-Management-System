@@ -17,6 +17,18 @@
         // chỉ có trên máy được cấp qua user-secrets / biến môi trường, không nằm trong repo).
         public bool CanSend => Enabled && !string.IsNullOrWhiteSpace(Host)
             && (string.IsNullOrEmpty(User) || !string.IsNullOrEmpty(Password));
+
+        // Địa chỉ nhận được thư thật: bỏ tên miền không tồn tại của dữ liệu mẫu (@demo.etoms, .test, .invalid, .local,
+        // example.com) — gửi tới đó chỉ làm hộp thư gửi bị trả thư lỗi hàng loạt.
+        private static readonly string[] FakeDomains = { "etoms", "test", "invalid", "local", "localhost", "example.com", "example.org" };
+        public static bool IsDeliverable(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return false;
+            var at = email.LastIndexOf('@');
+            if (at <= 0 || at == email.Length - 1) return false;
+            var domain = email[(at + 1)..].Trim().ToLowerInvariant();
+            return !FakeDomains.Any(d => domain == d || domain.EndsWith("." + d));
+        }
     }
 
     public class AuthLinkOptions

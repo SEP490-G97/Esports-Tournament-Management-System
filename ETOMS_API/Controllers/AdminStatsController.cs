@@ -33,7 +33,9 @@ public sealed class AdminStatsController : ControllerBase
         var data = await _cache.GetOrCreateAsync("admin-stats-" + months, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
-            return await BuildAsync(months, ct);
+            // Không gắn token của yêu cầu: người xem rời trang giữa chừng thì vẫn đếm xong và giữ vào bộ nhớ đệm cho lần
+            // mở sau (trước đây ném TaskCanceledException ở PerMonth mỗi lần chuyển trang khi đang tải).
+            return await BuildAsync(months, CancellationToken.None);
         });
         return Ok(data);
     }

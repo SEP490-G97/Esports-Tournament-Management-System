@@ -177,7 +177,8 @@
         });
     }
 
-    // Chuông thông báo (bảng Notification, API /api/notifications). Hỏi lại máy chủ mỗi 60 giây (polling — chưa có Hub).
+    // Chuông thông báo (bảng Notification, API /api/notifications). Thông báo mới tới ngay qua SignalR (connectRealtime);
+    // vẫn hỏi lại máy chủ mỗi 60 giây làm dự phòng.
     // Bấm một thông báo: đánh dấu đã đọc rồi mở liên kết của nó (nếu có).
     function wireNotificationBell(slot) {
         var wrap = document.createElement('div');
@@ -281,7 +282,83 @@
         });
 
         poll();
+        // Dự phòng khi không giữ được kết nối thời gian thực: vẫn hỏi lại mỗi 60 giây, và hỏi ngay khi quay lại tab.
         setInterval(poll, 60 * 1000);
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
+        // Thời gian thực (góp ý 28/11): có thông báo mới là máy chủ đẩy tới ngay, không cần tải lại trang.
+        connectRealtime({
+            notify: function (n) {
+                poll();
+                if (menu.classList.contains('show')) load(true);
+                showNotifyToast(n);
+                // Trang đang mở có thể tự làm mới dữ liệu của mình (vd trang trận khi có kết quả / tranh chấp mới).
+                try { window.dispatchEvent(new CustomEvent('etoms:notify', { detail: n })); } catch (e) { }
+            },
+            reconnected: poll
+        });
+    }
+
+    // ---------- Thông báo thời gian thực (SignalR, Hubs/NotificationHub.cs) ----------
+    var SIGNALR_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js';
+    function loadScriptOnce(src) {
+        return new Promise(function (resolve, reject) {
+            if (window.signalR) return resolve();
+            var s = document.createElement('script');
+            s.src = src; s.async = true; s.crossOrigin = 'anonymous';
+            s.onload = function () { resolve(); };
+            s.onerror = function () { reject(new Error('load')); };
+            document.head.appendChild(s);
+        });
+    }
+    function tokenExpiry(t) {
+        try { return (JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp || 0) * 1000; } catch (e) { return 0; }
+    }
+    // Token truy cập chỉ sống 15 phút: sắp hết thì làm mới trước khi (kết nối lại) hub.
+    async function freshToken() {
+        var t = Auth.getAccessToken();
+        if (!t || tokenExpiry(t) - Date.now() < 60 * 1000) { try { t = await Auth.refresh(); } catch (e) { } }
+        return t || '';
+    }
+    async function connectRealtime(handlers) {
+        if (!('WebSocket' in window) || !window.Auth) return;
+        try { await loadScriptOnce(SIGNALR_SRC); } catch (e) { return; }   // không tải được thư viện: dùng hỏi định kỳ
+        if (!window.signalR) return;
+        var conn = new signalR.HubConnectionBuilder()
+            .withUrl('/hubs/notifications', { accessTokenFactory: freshToken })
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+            .configureLogging(signalR.LogLevel.None)
+            .build();
+        conn.on('notify', handlers.notify);
+        conn.onreconnected(function () { handlers.reconnected(); });
+        // Mất hẳn kết nối (máy chủ khởi động lại, mạng rớt lâu): thử lại sau 30 giây.
+        conn.onclose(function () { setTimeout(start, 30 * 1000); });
+        async function start() {
+            if (!Auth.getAccessToken()) return;   // đã đăng xuất
+            try { await conn.start(); } catch (e) { setTimeout(start, 30 * 1000); }
+        }
+        start();
+    }
+    // Thẻ nhỏ ở góc màn hình khi có thông báo mới; bấm vào mở liên kết (nếu là trang trong ETOMS).
+    function showNotifyToast(n) {
+        if (!n || !n.title) return;
+        var host = document.getElementById('etoms-toasts');
+        if (!host) {
+            host = document.createElement('div');
+            host.id = 'etoms-toasts';
+            host.className = 'etoms-toasts';
+            host.setAttribute('aria-live', 'polite');
+            document.body.appendChild(host);
+        }
+        var link = n.linkUrl && /^\/(?!\/)/.test(n.linkUrl) ? n.linkUrl : null;
+        var t = document.createElement(link ? 'a' : 'div');
+        t.className = 'etoms-toast';
+        if (link) t.href = link;
+        t.innerHTML = '<span class="etoms-toast-head">Thông báo mới' + (n.count > 1 ? ' (' + Number(n.count) + ')' : '') + '</span>' +
+            '<span class="etoms-toast-title">' + Ui.escapeHtml(n.title) + '</span>' +
+            (n.body ? '<span class="etoms-toast-body">' + Ui.escapeHtml(n.body) + '</span>' : '');
+        host.appendChild(t);
+        while (host.children.length > 3) host.removeChild(host.firstChild);
+        setTimeout(function () { t.classList.add('out'); setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 400); }, 7000);
     }
 
     // Nhớ tạm trong tab (sessionStorage) những câu hỏi lặp lại MỖI lần chuyển trang — database ở xa nên mỗi câu

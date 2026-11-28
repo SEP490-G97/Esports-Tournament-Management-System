@@ -38,6 +38,7 @@ public sealed class NotificationMailWorker : BackgroundService
     {
         await foreach (var mail in _queue.Reader.ReadAllAsync(stoppingToken))
         {
+            if (!ETOMS_API.Utils.EmailOptions.IsDeliverable(mail.To)) continue;   // địa chỉ mẫu không có thật: không gửi
             try
             {
                 using var scope = _scopes.CreateScope();

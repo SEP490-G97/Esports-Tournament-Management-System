@@ -5,6 +5,12 @@
     var editingId = null;
     var el = function (id) { return document.getElementById(id); };
     var esc = function (s) { return Ui.escapeHtml(s == null ? '' : String(s)); };
+    // Chữ thuần từ HTML (DOMParser không chạy script, không tải ảnh).
+    function plainText(html) {
+        if (!html) return '';
+        try { return (new DOMParser().parseFromString(String(html), 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim(); }
+        catch (e) { return String(html).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); }
+    }
 
     function fmt(iso) {
         if (!iso) return '—';
@@ -25,8 +31,10 @@
             wrap: function (rows) { return '<table class="data-table"><thead><tr><th>Tiêu đề</th><th>Trạng thái</th><th>Ngày đăng</th><th>Người viết</th><th class="text-end">Thao tác</th></tr></thead><tbody>' + rows + '</tbody></table>'; },
             render: function (n) {
                 var s = STATUS[n.status] || [n.status, 'badge-soft'];
+                // Nội dung tin là HTML (có <p>, <img>): trích đoạn chỉ lấy chữ, không hiện mã thẻ.
+                var plain = plainText(n.body);
                 return '<tr><td><b>' + esc(n.title) + '</b>' + (n.isPinned ? ' <span class="badge badge-gold">Ghim</span>' : '') +
-                    '<div class="field-hint">' + esc((n.body || '').slice(0, 110)) + ((n.body || '').length > 110 ? '…' : '') + '</div></td>' +
+                    '<div class="field-hint">' + esc(plain.slice(0, 110)) + (plain.length > 110 ? '…' : '') + '</div></td>' +
                     '<td><span class="badge ' + s[1] + '">' + s[0] + '</span></td>' +
                     '<td>' + fmt(n.publishedAt) + '</td><td>' + esc(n.author) + '</td>' +
                     '<td class="text-end"><button type="button" class="btn btn-ghost btn-sm" data-edit="' + n.contentItemId + '">Sửa</button>' +
